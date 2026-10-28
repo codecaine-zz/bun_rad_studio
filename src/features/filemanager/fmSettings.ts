@@ -187,7 +187,7 @@ export interface Settings {
   treeExpanded: boolean;
   /** Default Ollama Phonon voice name used when reading text aloud or exporting audio. */
   phononVoice: string;
-  /** Default audio output format for Ollama Phonon speech export ("wav" | "mp3" | "m4a" | "aac" | "flac" | "ogg" | "opus" | "aiff" | "wma"). */
+  /** Default audio or read-along video output format for Ollama Phonon speech export ("wav" | "mp3" | "m4a" | "aac" | "flac" | "ogg" | "opus" | "aiff" | "wma" | "mp4" | "webm" | "mov" | "mkv"). */
   phononFormat: PhononAudioFormat;
   /** Default playback / synthesis tempo multiplier for Ollama Phonon (0.5..2.5, default 1). */
   phononSpeed: number;
@@ -195,9 +195,13 @@ export interface Settings {
   phononCleanText: boolean;
   /** Silence gap in milliseconds inserted between paragraphs when synthesizing multi-chunk speech (0..2000, default 200). */
   phononPauseMs: number;
+  /** Voice pitch shift in semitones (-6..6, default 0). */
+  phononPitch: number;
+  /** Fine-tune offset in milliseconds for follow-along text highlight synchronization (-300..300, default 0). */
+  phononSyncOffsetMs: number;
 }
 
-export const PHONON_AUDIO_FORMATS = ["wav", "mp3", "m4a", "aac", "flac", "ogg", "opus", "aiff", "wma"] as const;
+export const PHONON_AUDIO_FORMATS = ["wav", "mp3", "m4a", "aac", "flac", "ogg", "opus", "aiff", "wma", "mp4", "webm", "mov", "mkv"] as const;
 export type PhononAudioFormat = (typeof PHONON_AUDIO_FORMATS)[number];
 
 export const EXTRA_COLUMNS = ["permissions", "ext"] as const;
@@ -396,6 +400,8 @@ export const DEFAULT_SETTINGS: Settings = {
   phononSpeed: 1,
   phononCleanText: true,
   phononPauseMs: 200,
+  phononPitch: 0,
+  phononSyncOffsetMs: 0,
 };
 
 export const MAX_FAVORITES = 100;
@@ -559,6 +565,8 @@ export function sanitizeSettings(raw: unknown, ctx: FmContext): Settings {
     phononSpeed: typeof r.phononSpeed === "number" && isFinite(r.phononSpeed) ? Math.round(Math.min(2.5, Math.max(0.5, r.phononSpeed)) * 100) / 100 : DEFAULT_SETTINGS.phononSpeed,
     phononCleanText: typeof r.phononCleanText === "boolean" ? r.phononCleanText : DEFAULT_SETTINGS.phononCleanText,
     phononPauseMs: typeof r.phononPauseMs === "number" && isFinite(r.phononPauseMs) ? Math.round(Math.min(2000, Math.max(0, r.phononPauseMs))) : DEFAULT_SETTINGS.phononPauseMs,
+    phononPitch: typeof r.phononPitch === "number" && isFinite(r.phononPitch) ? Math.round(Math.min(6, Math.max(-6, r.phononPitch)) * 2) / 2 : DEFAULT_SETTINGS.phononPitch,
+    phononSyncOffsetMs: typeof r.phononSyncOffsetMs === "number" && isFinite(r.phononSyncOffsetMs) ? Math.round(Math.min(300, Math.max(-300, r.phononSyncOffsetMs))) : DEFAULT_SETTINGS.phononSyncOffsetMs,
   };
 }
 

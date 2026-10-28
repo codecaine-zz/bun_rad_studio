@@ -90,24 +90,796 @@ export const DEFAULT_PHONON_VOICES: PhononVoiceInfo[] = [
   { id: "Azgorath", label: "Azgorath", category: "Character", desc: "Dark, cinematic fantasy villain voice" },
 ];
 
-export const AUDIO_FORMAT_INFO: Array<{
+export interface PhononFormatInfo {
   id: PhononAudioFormat;
   label: string;
   ext: string;
   mime: string;
   needsFfmpeg: boolean;
+  isVideo?: boolean;
   desc: string;
-}> = [
-  { id: "wav", label: "WAV (24 kHz PCM — Native)", ext: "wav", mime: "audio/wav", needsFfmpeg: false, desc: "Uncompressed studio-grade 24 kHz 16-bit mono WAV directly from Phonon. Works without ffmpeg." },
-  { id: "mp3", label: "MP3 (Universal Audio)", ext: "mp3", mime: "audio/mpeg", needsFfmpeg: true, desc: "Compact MP3 audio file playable on every phone, car, and media player (uses ffmpeg)." },
-  { id: "m4a", label: "M4A / AAC (Apple & Podcast)", ext: "m4a", mime: "audio/mp4", needsFfmpeg: true, desc: "High-efficiency AAC audio in an M4A container for Apple devices and audiobooks (uses ffmpeg)." },
-  { id: "aac", label: "AAC (Raw ADTS Stream)", ext: "aac", mime: "audio/aac", needsFfmpeg: true, desc: "Advanced Audio Coding stream (uses ffmpeg)." },
-  { id: "flac", label: "FLAC (Lossless Compressed)", ext: "flac", mime: "audio/flac", needsFfmpeg: true, desc: "Archival lossless compression, ~50% smaller than WAV with identical audio quality (uses ffmpeg)." },
-  { id: "ogg", label: "OGG Vorbis", ext: "ogg", mime: "audio/ogg", needsFfmpeg: true, desc: "Open-source Ogg Vorbis audio format (uses ffmpeg)." },
-  { id: "opus", label: "Opus (Best Speech Compression)", ext: "opus", mime: "audio/opus", needsFfmpeg: true, desc: "Modern low-bitrate voice codec ideal for long audiobooks and voice notes (uses ffmpeg)." },
-  { id: "aiff", label: "AIFF (Apple Uncompressed PCM)", ext: "aiff", mime: "audio/aiff", needsFfmpeg: false, desc: "Uncompressed PCM AIFF audio file. Works natively even without ffmpeg." },
-  { id: "wma", label: "WMA (Windows Media Audio)", ext: "wma", mime: "audio/x-ms-wma", needsFfmpeg: true, desc: "Windows Media Audio format (uses ffmpeg)." },
+}
+
+export const AUDIO_FORMAT_INFO: PhononFormatInfo[] = [
+  { id: "wav", label: "WAV (24 kHz PCM — Native)", ext: "wav", mime: "audio/wav", needsFfmpeg: false, isVideo: false, desc: "Uncompressed studio-grade 24 kHz 16-bit mono WAV directly from Phonon. Works without ffmpeg." },
+  { id: "mp3", label: "MP3 (Universal Audio)", ext: "mp3", mime: "audio/mpeg", needsFfmpeg: true, isVideo: false, desc: "Compact MP3 audio file playable on every phone, car, and media player (uses ffmpeg)." },
+  { id: "m4a", label: "M4A / AAC (Apple & Podcast)", ext: "m4a", mime: "audio/mp4", needsFfmpeg: true, isVideo: false, desc: "High-efficiency AAC audio in an M4A container for Apple devices and audiobooks (uses ffmpeg)." },
+  { id: "aac", label: "AAC (Raw ADTS Stream)", ext: "aac", mime: "audio/aac", needsFfmpeg: true, isVideo: false, desc: "Advanced Audio Coding stream (uses ffmpeg)." },
+  { id: "flac", label: "FLAC (Lossless Compressed)", ext: "flac", mime: "audio/flac", needsFfmpeg: true, isVideo: false, desc: "Archival lossless compression, ~50% smaller than WAV with identical audio quality (uses ffmpeg)." },
+  { id: "ogg", label: "OGG Vorbis", ext: "ogg", mime: "audio/ogg", needsFfmpeg: true, isVideo: false, desc: "Open-source Ogg Vorbis audio format (uses ffmpeg)." },
+  { id: "opus", label: "Opus (Best Speech Compression)", ext: "opus", mime: "audio/opus", needsFfmpeg: true, isVideo: false, desc: "Modern low-bitrate voice codec ideal for long audiobooks and voice notes (uses ffmpeg)." },
+  { id: "aiff", label: "AIFF (Apple Uncompressed PCM)", ext: "aiff", mime: "audio/aiff", needsFfmpeg: false, isVideo: false, desc: "Uncompressed PCM AIFF audio file. Works natively even without ffmpeg." },
+  { id: "wma", label: "WMA (Windows Media Audio)", ext: "wma", mime: "audio/x-ms-wma", needsFfmpeg: true, isVideo: false, desc: "Windows Media Audio format (uses ffmpeg)." },
 ];
+
+export const VIDEO_FORMAT_INFO: PhononFormatInfo[] = [
+  { id: "mp4", label: "MP4 Read-Along Video (H.264 + Highlighted Text)", ext: "mp4", mime: "video/mp4", needsFfmpeg: true, isVideo: true, desc: "Universal 1080p MP4 Read-Along Video with synchronized word-by-word karaoke text highlighting and companion .SRT/.VTT subtitles." },
+  { id: "webm", label: "WebM Read-Along Video (VP9 + Highlighted Text)", ext: "webm", mime: "video/webm", needsFfmpeg: true, isVideo: true, desc: "Open-web VP9/Opus Read-Along Video with synchronized word-by-word text highlighting." },
+  { id: "mov", label: "MOV QuickTime Read-Along Video (Apple H.264)", ext: "mov", mime: "video/quicktime", needsFfmpeg: true, isVideo: true, desc: "Apple QuickTime MOV Read-Along Video with synchronized text highlighting for macOS, iPad, and Final Cut." },
+  { id: "mkv", label: "MKV Matroska Read-Along Video (H.264 + Subtitles)", ext: "mkv", mime: "video/x-matroska", needsFfmpeg: true, isVideo: true, desc: "Archival MKV Read-Along Video with synchronized burned-in text highlighting and companion subtitle files." },
+];
+
+export const ALL_MEDIA_FORMAT_INFO: PhononFormatInfo[] = [...AUDIO_FORMAT_INFO, ...VIDEO_FORMAT_INFO];
+
+export function isPhononVideoFormat(format: string): format is "mp4" | "webm" | "mov" | "mkv" {
+  return format === "mp4" || format === "webm" || format === "mov" || format === "mkv";
+}
+
+export const PHONON_VIDEO_ASPECTS = ["16:9", "9:16", "1:1"] as const;
+export type PhononVideoAspect = (typeof PHONON_VIDEO_ASPECTS)[number];
+
+export interface PhononVideoAspectInfo {
+  id: PhononVideoAspect;
+  label: string;
+  width: number;
+  height: number;
+  maxLineChars: number;
+  maxWordsPerCue: number;
+  fontSize: number;
+  contextFontSize: number;
+  headerFontSize: number;
+  lineSpacingPx: number;
+}
+
+export const VIDEO_ASPECT_INFO: Record<PhononVideoAspect, PhononVideoAspectInfo> = {
+  "16:9": {
+    id: "16:9",
+    label: "16:9 Widescreen (1920×1080 — YouTube / Desktop)",
+    width: 1920,
+    height: 1080,
+    maxLineChars: 54,
+    maxWordsPerCue: 9,
+    fontSize: 56,
+    contextFontSize: 34,
+    headerFontSize: 28,
+    lineSpacingPx: 118,
+  },
+  "9:16": {
+    id: "9:16",
+    label: "9:16 Vertical Short (1080×1920 — Shorts / Reels / TikTok)",
+    width: 1080,
+    height: 1920,
+    maxLineChars: 30,
+    maxWordsPerCue: 6,
+    fontSize: 58,
+    contextFontSize: 36,
+    headerFontSize: 30,
+    lineSpacingPx: 140,
+  },
+  "1:1": {
+    id: "1:1",
+    label: "1:1 Square (1080×1080 — Social Feed / Audiobook Card)",
+    width: 1080,
+    height: 1080,
+    maxLineChars: 36,
+    maxWordsPerCue: 7,
+    fontSize: 50,
+    contextFontSize: 32,
+    headerFontSize: 26,
+    lineSpacingPx: 115,
+  },
+};
+
+export const PHONON_VIDEO_THEMES = ["midnight", "parchment", "cyber", "high_contrast"] as const;
+export type PhononVideoTheme = (typeof PHONON_VIDEO_THEMES)[number];
+
+export interface PhononVideoThemeInfo {
+  id: PhononVideoTheme;
+  label: string;
+  bgHex: string;
+  assPrimary: string;
+  assSecondary: string;
+  assContext: string;
+  assHeader: string;
+  assBack: string;
+  assOutline: string;
+}
+
+export const VIDEO_THEME_INFO: Record<PhononVideoTheme, PhononVideoThemeInfo> = {
+  midnight: {
+    id: "midnight",
+    label: "Midnight Studio (Electric Cyan Highlight)",
+    bgHex: "0b1020",
+    assPrimary: "&H00F8BD38", // #38BDF8 (BGR)
+    assSecondary: "&H00F8FAFC", // #FCFAF8
+    assContext: "&H55B8A394", // #94A3B8
+    assHeader: "&H00F8BD38",
+    assBack: "&H5520130C",
+    assOutline: "&H00180D07",
+  },
+  parchment: {
+    id: "parchment",
+    label: "Warm Book Page (Amber Gold Highlight)",
+    bgHex: "1c1611",
+    assPrimary: "&H000B9EF5", // #F59E0B (BGR)
+    assSecondary: "&H00C7F3FE", // #FEF3C7
+    assContext: "&H558A9CA8", // #A89C8A
+    assHeader: "&H0024BBFB",
+    assBack: "&H550C0907",
+    assOutline: "&H00090705",
+  },
+  cyber: {
+    id: "cyber",
+    label: "Cyber Neon (Neon Cyan & Violet Highlight)",
+    bgHex: "070812",
+    assPrimary: "&H00EED322", // #22D3EE (BGR)
+    assSecondary: "&H00FFECFA", // #FAECFF
+    assContext: "&H55B572A8", // #A872B5
+    assHeader: "&H00F755A8", // #A855F7
+    assBack: "&H55180914",
+    assOutline: "&H0012050E",
+  },
+  high_contrast: {
+    id: "high_contrast",
+    label: "Accessible High Contrast (WCAG AAA Yellow)",
+    bgHex: "000000",
+    assPrimary: "&H0015CCFA", // #FACC15 (BGR)
+    assSecondary: "&H00FFFFFF", // #FFFFFF
+    assContext: "&H35D4D4D4", // #D4D4D4
+    assHeader: "&H0015CCFA",
+    assBack: "&H30000000",
+    assOutline: "&H00000000",
+  },
+};
+
+// ---------------------------------------------------------------------------------------------------------------
+// Synchronized Word-by-Word & Phrase Timing Engine (for Live Teleprompter + Read-Along Video & Subtitles)
+// ---------------------------------------------------------------------------------------------------------------
+
+export interface PhononWordTiming {
+  word: string;
+  wordIndex: number;
+  chunkIndex: number;
+  cueIndex: number;
+  charStart: number;
+  charEnd: number;
+  startMs: number;
+  endMs: number;
+  durationMs: number;
+}
+
+export interface PhononReadAlongCue {
+  index: number;
+  chunkIndex: number;
+  paragraphIndex: number;
+  text: string;
+  startMs: number;
+  endMs: number;
+  words: PhononWordTiming[];
+}
+
+export interface PhononTimedChunk {
+  index: number;
+  paragraphIndex: number;
+  text: string;
+  startMs: number;
+  endMs: number;
+  durationMs: number;
+  /** Optional 16-bit signed little-endian mono PCM audio samples for exact waveform-aligned word timings. */
+  pcmData?: Buffer;
+  /** Sample rate of `pcmData` (default 24000). */
+  sampleRate?: number;
+  /** Playback/export speed multiplier applied to this chunk (default 1). */
+  speed?: number;
+}
+
+export interface PhononReadAlongTimeline {
+  totalDurationMs: number;
+  chunks: PhononTimedChunk[];
+  cues: PhononReadAlongCue[];
+  words: PhononWordTiming[];
+}
+
+const FAST_FUNCTION_WORDS = new Set([
+  "a", "an", "the", "to", "of", "in", "on", "at", "by", "for", "as", "is", "be", "or", "and", "so", "if", "it", "us", "we",
+]);
+
+/**
+ * Estimates the spoken syllable/phoneme weight and punctuation pause affinity of a word token.
+ * Accurately accounts for uppercase/alphanumeric acronyms (`TTS`, `MLX`, `MP4`, `MKV`, `MP3`, `M4A`) that neural TTS
+ * spells out letter-by-letter with distinct pitch inflections, spoken digits, hyphenated compounds, and fast function words.
+ */
+export function estimateSpokenWordWeight(rawWord: string): { weight: number; pauseAffinity: number; textOnlyWeight: number } {
+  const stripped = rawWord.replace(/^['"“‘(\[]+|['"”’)\].!?,;:—–…]+$/g, "");
+  let pauseAffinity = 0;
+  if (/[.!?…]['"”’)\]]*$/.test(rawWord) || rawWord.endsWith("...")) pauseAffinity = 3.0;
+  else if (/[;:—–]['"”’)\]]*$/.test(rawWord)) pauseAffinity = 2.2;
+  else if (/,['"”’)\]]*$/.test(rawWord)) pauseAffinity = 1.8;
+
+  if (!stripped) {
+    return { weight: 1.0, pauseAffinity, textOnlyWeight: 1.0 + pauseAffinity };
+  }
+
+  const subParts = stripped.split(/[-/—–:]+/).filter(Boolean);
+  let totalSyllables = 0;
+
+  for (const part of subParts) {
+    const digits = (part.match(/\d/g) || []).length;
+    const letters = part.replace(/[^A-Za-z\u00C0-\u024F]/g, "");
+    const upperCount = (letters.match(/[A-Z]/g) || []).length;
+    const isAllCaps = letters.length >= 2 && upperCount === letters.length;
+    const isMixedAcronym = letters.length >= 2 && (upperCount >= 2 || (upperCount >= 1 && digits >= 1));
+
+    if (isAllCaps || isMixedAcronym) {
+      const vowelCount = (letters.match(/[AEIOUYaeiouy]/g) || []).length;
+      if (vowelCount === 0 || letters.length <= 3 || digits > 0) {
+        totalSyllables += letters.length * 1.15 + digits * 1.35;
+      } else {
+        totalSyllables += Math.max(1.8, letters.length * 0.75) + digits * 1.35;
+      }
+    } else {
+      const lower = letters.toLowerCase();
+      const vowelGroups = (lower.match(/[aeiouy\u00E0-\u00FC]+/g) || []).length;
+      const silentE = lower.endsWith("e") && !lower.endsWith("le") && vowelGroups > 1 ? 1 : 0;
+      const wordSyllables = letters.length > 0 ? Math.max(1, vowelGroups - silentE) : 0;
+      totalSyllables += wordSyllables + digits * 1.35;
+    }
+  }
+
+  const lowerClean = stripped.toLowerCase();
+  if (FAST_FUNCTION_WORDS.has(lowerClean) && pauseAffinity === 0) {
+    return { weight: 0.72, pauseAffinity: 0, textOnlyWeight: 0.9 };
+  }
+
+  const charFactor = Math.pow(Math.max(1, stripped.length), 0.45) * 0.35;
+  const weight = Math.max(0.85, totalSyllables * 0.95 + charFactor);
+  return {
+    weight,
+    pauseAffinity,
+    textOnlyWeight: weight + pauseAffinity,
+  };
+}
+
+/**
+ * Computes natural phoneme/syllable-weighted, punctuation-aware, and (when `pcmOptions.pcmData` is provided)
+ * pitch-invariant acoustic-waveform-aligned word timings within `[startOffsetMs, startOffsetMs + durationMs]`.
+ *
+ * When `pcmData` is supplied, this function:
+ *   1. Trims leading pre-roll and trailing silence so Word 1 highlights at the exact speech onset (`speechStartMs`).
+ *   2. Uses a pitch-invariant voiced-time curve so low-pitched or softer sentence-final words are never rushed past.
+ *   3. Anchors punctuated clause breaks to real acoustic pause valleys via monotonic Dynamic Programming so the text
+ *      selection waits during breath/pitch-change pauses instead of racing ahead of the voice.
+ *   4. Snaps interior word boundaries to local energy minima (consonant closures / micro-dips) in the PCM envelope.
+ */
+export function computeWordTimingsForText(
+  text: string,
+  durationMs: number,
+  startOffsetMs = 0,
+  chunkIndex = 0,
+  pcmOptions?: { pcmData?: Buffer; sampleRate?: number; speed?: number },
+): PhononWordTiming[] {
+  const safeDuration = Math.max(20, Math.round(durationMs));
+  const rawTokens: Array<{
+    word: string;
+    charStart: number;
+    charEnd: number;
+    weight: number;
+    pauseAffinity: number;
+    textOnlyWeight: number;
+  }> = [];
+  const regex = /\S+/g;
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(text)) !== null) {
+    const word = match[0];
+    const charStart = match.index;
+    const charEnd = charStart + word.length;
+    const { weight, pauseAffinity, textOnlyWeight } = estimateSpokenWordWeight(word);
+    rawTokens.push({ word, charStart, charEnd, weight, pauseAffinity, textOnlyWeight });
+  }
+
+  if (rawTokens.length === 0) return [];
+
+  const pcmData = pcmOptions?.pcmData;
+  const sampleRate = Math.max(8000, pcmOptions?.sampleRate || 24000);
+  const safeSpeed = Math.max(0.25, Math.min(4.0, pcmOptions?.speed || 1));
+  const frameMs = 10;
+  const samplesPerFrame = Math.max(1, Math.round((sampleRate * frameMs) / 1000));
+  const totalSamples = pcmData ? Math.floor(pcmData.length / 2) : 0;
+  const numFrames = totalSamples > 0 ? Math.ceil(totalSamples / samplesPerFrame) : 0;
+
+  // Use high-resolution PCM waveform alignment whenever we have real speech frames (>= 4 frames per word)
+  if (pcmData && numFrames >= Math.max(16, rawTokens.length * 4)) {
+    const rawRms = new Float32Array(numFrames);
+    for (let f = 0; f < numFrames; f++) {
+      let sum = 0;
+      let cnt = 0;
+      const base = f * samplesPerFrame;
+      for (let i = 0; i < samplesPerFrame && base + i < totalSamples; i++) {
+        const s = pcmData.readInt16LE((base + i) * 2) / 32768;
+        sum += s * s;
+        cnt++;
+      }
+      rawRms[f] = cnt > 0 ? Math.sqrt(sum / cnt) : 0;
+    }
+
+    const env = new Float32Array(numFrames);
+    let maxEnv = 0;
+    let minEnv = Infinity;
+    for (let f = 0; f < numFrames; f++) {
+      const prev = rawRms[Math.max(0, f - 1)]!;
+      const cur = rawRms[f]!;
+      const next = rawRms[Math.min(numFrames - 1, f + 1)]!;
+      const v = 0.25 * prev + 0.5 * cur + 0.25 * next;
+      env[f] = v;
+      if (v > maxEnv) maxEnv = v;
+      if (v < minEnv) minEnv = v;
+    }
+
+    // Check that the waveform has real speech envelope modulation (not a flat synthetic test tone)
+    if (maxEnv >= 0.002 && minEnv < maxEnv * 0.75) {
+      // 5.5% threshold ensures low-pitched / softer sentence-final pitch drops are still recognized as voiced speech
+      const voiceThresh = Math.max(0.003, maxEnv * 0.055);
+      let startF = 0;
+      while (startF < numFrames && env[startF]! < voiceThresh) startF++;
+      startF = Math.max(0, startF - 1);
+
+      let endF = numFrames - 1;
+      while (endF > startF && env[endF]! < voiceThresh) endF--;
+      endF = Math.min(numFrames, endF + 2);
+
+      if (endF - startF >= rawTokens.length * 2) {
+        // 1. Find acoustic pause valleys >= 110ms (11 frames) inside [startF, endF]
+        const valleys: Array<{ startF: number; endF: number; lenF: number }> = [];
+        let inVal = false;
+        let vStart = 0;
+        for (let f = startF; f <= endF; f++) {
+          const silent = f < endF ? env[f]! < voiceThresh : false;
+          if (silent && !inVal) {
+            inVal = true;
+            vStart = f;
+          } else if (!silent && inVal) {
+            inVal = false;
+            const lenF = f - vStart;
+            if (lenF >= 11) valleys.push({ startF: vStart, endF: f, lenF });
+          }
+        }
+
+        // 2. Pitch-invariant voiced-time cumulative curve (active voiced frames = 1.0 regardless of pitch amplitude)
+        const voicedCum = new Float64Array(numFrames + 1);
+        for (let f = 0; f < numFrames; f++) {
+          const active = f >= startF && f < endF && env[f]! >= voiceThresh;
+          voicedCum[f + 1] = voicedCum[f]! + (active ? 1.0 : 0.01);
+        }
+        const totalVoiced = Math.max(0.001, voicedCum[endF]! - voicedCum[startF]!);
+        const totalWordWeight = rawTokens.reduce((s, t) => s + t.weight, 0) || 1;
+
+        const wordCumFrac: number[] = [];
+        let wCum = 0;
+        for (let i = 0; i < rawTokens.length; i++) {
+          wCum += rawTokens[i]!.weight;
+          wordCumFrac.push(wCum / totalWordWeight);
+        }
+
+        // 3. Dynamic Programming monotonic sequence alignment between punctuated words and acoustic pause valleys
+        const punctIndices = rawTokens
+          .map((t, idx) => ({ idx, frac: wordCumFrac[idx]!, affinity: t.pauseAffinity }))
+          .filter((p) => p.idx < rawTokens.length - 1 && p.affinity >= 1.5);
+
+        const vFracs = valleys.map((v) => (voicedCum[v.startF]! - voicedCum[startF]!) / totalVoiced);
+        const P = punctIndices.length;
+        const V = valleys.length;
+
+        const dp: number[][] = Array.from({ length: P }, () => new Array(V).fill(-Infinity));
+        const parent: Array<Array<{ pi: number; vj: number } | null>> = Array.from({ length: P }, () => new Array(V).fill(null));
+        let bestEndScore = 0;
+        let bestEndPair: { pi: number; vj: number } | null = null;
+
+        for (let i = 0; i < P; i++) {
+          const p = punctIndices[i]!;
+          for (let j = 0; j < V; j++) {
+            const v = valleys[j]!;
+            const vf = vFracs[j]!;
+            const absDist = Math.abs(vf - p.frac);
+            if (absDist > 0.16) continue;
+
+            const baseReward = p.affinity * 0.10 + Math.min(0.08, v.lenF * 0.002) - absDist * 1.1;
+            if (baseReward > dp[i]![j]!) {
+              dp[i]![j] = baseReward;
+              parent[i]![j] = null;
+            }
+
+            for (let pi = 0; pi < i; pi++) {
+              const prevP = punctIndices[pi]!;
+              const expectedDelta = p.frac - prevP.frac;
+              for (let vj = 0; vj < j; vj++) {
+                const prevScore = dp[pi]![vj]!;
+                if (prevScore === -Infinity) continue;
+                if (v.startF <= valleys[vj]!.endF) continue;
+                const actualDelta = vf - vFracs[vj]!;
+                const deltaDiff = Math.abs(actualDelta - expectedDelta);
+                if (deltaDiff > Math.max(0.13, expectedDelta * 1.1)) continue;
+                const transScore = prevScore + baseReward - deltaDiff * 2.0;
+                if (transScore > dp[i]![j]!) {
+                  dp[i]![j] = transScore;
+                  parent[i]![j] = { pi, vj };
+                }
+              }
+            }
+
+            if (dp[i]![j]! > bestEndScore) {
+              bestEndScore = dp[i]![j]!;
+              bestEndPair = { pi: i, vj: j };
+            }
+          }
+        }
+
+        const anchors: Array<{ wordIdx: number; valleyStartF: number; valleyEndF: number }> = [];
+        let cur = bestEndPair;
+        while (cur) {
+          const p = punctIndices[cur.pi]!;
+          const v = valleys[cur.vj]!;
+          anchors.push({ wordIdx: p.idx, valleyStartF: v.startF, valleyEndF: v.endF });
+          cur = parent[cur.pi]![cur.vj]!;
+        }
+        anchors.reverse();
+
+        const segs: Array<{ wStart: number; wEnd: number; fStart: number; fEnd: number }> = [];
+        let prevW = 0;
+        let prevF = startF;
+        for (const a of anchors) {
+          segs.push({ wStart: prevW, wEnd: a.wordIdx, fStart: prevF, fEnd: a.valleyStartF });
+          prevW = a.wordIdx + 1;
+          prevF = a.valleyEndF;
+        }
+        segs.push({ wStart: prevW, wEnd: rawTokens.length - 1, fStart: prevF, fEnd: endF });
+
+        const words: PhononWordTiming[] = [];
+        for (const seg of segs) {
+          const segTokens = rawTokens.slice(seg.wStart, seg.wEnd + 1);
+          const segWTotal = segTokens.reduce((s, t) => s + t.weight, 0) || 1;
+          const segVoicedStart = voicedCum[seg.fStart]!;
+          const segVoicedTotal = Math.max(0.001, voicedCum[seg.fEnd]! - segVoicedStart);
+
+          const boundaryFrames: number[] = [seg.fStart];
+          let localCum = 0;
+          for (let k = 0; k < segTokens.length - 1; k++) {
+            localCum += segTokens[k]!.weight;
+            const targetV = segVoicedStart + (localCum / segWTotal) * segVoicedTotal;
+            let fB = seg.fStart;
+            while (fB < seg.fEnd && voicedCum[fB]! < targetV) fB++;
+            boundaryFrames.push(fB);
+          }
+          boundaryFrames.push(seg.fEnd);
+
+          // 4. Snap interior word boundaries to local energy minima (consonant closures / dips)
+          for (let k = 1; k < boundaryFrames.length - 1; k++) {
+            const estF = boundaryFrames[k]!;
+            const prevBound = boundaryFrames[k - 1]!;
+            const nextBound = boundaryFrames[k + 1]!;
+            const minSearch = Math.max(prevBound + 3, estF - 8);
+            const maxSearch = Math.min(nextBound - 3, estF + 8);
+            if (minSearch <= maxSearch) {
+              let bestF = estF;
+              let bestCost = Infinity;
+              for (let f = minSearch; f <= maxSearch; f++) {
+                const distPenalty = Math.abs(f - estF) * (maxEnv * 0.02);
+                const cost = env[f]! + distPenalty;
+                if (cost < bestCost) {
+                  bestCost = cost;
+                  bestF = f;
+                }
+              }
+              boundaryFrames[k] = bestF;
+            }
+          }
+
+          for (let k = 0; k < segTokens.length; k++) {
+            const tok = segTokens[k]!;
+            const globalIdx = seg.wStart + k;
+            let fS = boundaryFrames[k]!;
+            const fE = Math.max(fS + 1, boundaryFrames[k + 1]!);
+            while (fS < fE - 1 && env[fS]! < voiceThresh) fS++;
+            let fEndVoiced = fE;
+            while (fEndVoiced > fS + 1 && env[fEndVoiced - 1]! < voiceThresh * 0.8) fEndVoiced--;
+
+            const prevEnd = words.length > 0 ? words[words.length - 1]!.endMs : startOffsetMs;
+            const rawStartMs = startOffsetMs + Math.round((fS * frameMs) / safeSpeed);
+            const rawEndMs = startOffsetMs + Math.round((fEndVoiced * frameMs) / safeSpeed);
+            const startMs = Math.max(prevEnd, Math.min(startOffsetMs + safeDuration - 1, rawStartMs));
+            const endMs = Math.max(startMs + 1, Math.min(startOffsetMs + safeDuration, Math.max(startMs + 20, rawEndMs)));
+
+            words.push({
+              word: tok.word,
+              wordIndex: globalIdx,
+              chunkIndex,
+              cueIndex: 0,
+              charStart: tok.charStart,
+              charEnd: tok.charEnd,
+              startMs,
+              endMs,
+              durationMs: Math.max(1, endMs - startMs),
+            });
+          }
+        }
+        return words;
+      }
+    }
+  }
+
+  // Analytical fallback when raw PCM samples are not provided (or for synthetic short test buffers)
+  const totalWeight = rawTokens.reduce((sum, t) => sum + t.textOnlyWeight, 0) || 1;
+  const words: PhononWordTiming[] = [];
+  let cumWeight = 0;
+
+  for (let i = 0; i < rawTokens.length; i++) {
+    const tok = rawTokens[i]!;
+    const startMs = i === 0
+      ? startOffsetMs
+      : Math.max(words[i - 1]!.endMs, startOffsetMs + Math.round((cumWeight / totalWeight) * safeDuration));
+    cumWeight += tok.textOnlyWeight;
+    const endMs = i === rawTokens.length - 1
+      ? Math.max(startMs + 1, startOffsetMs + safeDuration)
+      : Math.max(startMs + 1, startOffsetMs + Math.round((cumWeight / totalWeight) * safeDuration));
+    words.push({
+      word: tok.word,
+      wordIndex: i,
+      chunkIndex,
+      cueIndex: 0,
+      charStart: tok.charStart,
+      charEnd: tok.charEnd,
+      startMs,
+      endMs,
+      durationMs: Math.max(1, endMs - startMs),
+    });
+  }
+  return words;
+}
+
+/**
+ * Builds a complete synchronized Read-Along Timeline across all synthesized chunks, grouping words into readable
+ * caption lines (`cues`) while preserving exact millisecond start/end times for every word.
+ */
+export function computeReadAlongTimeline(
+  timedChunks: PhononTimedChunk[],
+  options: { aspectRatio?: PhononVideoAspect; maxLineChars?: number; maxWordsPerCue?: number } = {},
+): PhononReadAlongTimeline {
+  const aspect = VIDEO_ASPECT_INFO[options.aspectRatio ?? "16:9"] ?? VIDEO_ASPECT_INFO["16:9"];
+  const maxLineChars = options.maxLineChars ?? aspect.maxLineChars;
+  const maxWordsPerCue = options.maxWordsPerCue ?? aspect.maxWordsPerCue;
+
+  const allWords: PhononWordTiming[] = [];
+  const allCues: PhononReadAlongCue[] = [];
+  let globalWordIdx = 0;
+
+  for (const chunk of timedChunks) {
+    const chunkWords = computeWordTimingsForText(
+      chunk.text,
+      Math.max(20, chunk.endMs - chunk.startMs),
+      chunk.startMs,
+      chunk.index,
+      chunk.pcmData
+        ? { pcmData: chunk.pcmData, sampleRate: chunk.sampleRate, speed: chunk.speed }
+        : undefined,
+    );
+    if (!chunkWords.length) continue;
+
+    let currentCueWords: PhononWordTiming[] = [];
+    let currentCueChars = 0;
+
+    const flushCue = () => {
+      if (!currentCueWords.length) return;
+      const cueIdx = allCues.length;
+      for (const w of currentCueWords) {
+        w.cueIndex = cueIdx;
+      }
+      allCues.push({
+        index: cueIdx,
+        chunkIndex: chunk.index,
+        paragraphIndex: chunk.paragraphIndex,
+        text: currentCueWords.map((w) => w.word).join(" "),
+        startMs: currentCueWords[0]!.startMs,
+        endMs: currentCueWords[currentCueWords.length - 1]!.endMs,
+        words: currentCueWords,
+      });
+      currentCueWords = [];
+      currentCueChars = 0;
+    };
+
+    for (let k = 0; k < chunkWords.length; k++) {
+      const w = chunkWords[k]!;
+      w.wordIndex = globalWordIdx++;
+      allWords.push(w);
+
+      // If there was a major acoustic pause (>= 280ms) before this word and current cue already has >= 2 words, start a fresh cue
+      const prevInCue = currentCueWords[currentCueWords.length - 1];
+      if (prevInCue && w.startMs - prevInCue.endMs >= 280 && currentCueWords.length >= 2) {
+        flushCue();
+      }
+
+      const nextLen = currentCueChars === 0 ? w.word.length : currentCueChars + 1 + w.word.length;
+      if (currentCueWords.length >= maxWordsPerCue || (currentCueWords.length > 0 && nextLen > maxLineChars)) {
+        flushCue();
+      }
+      currentCueWords.push(w);
+      currentCueChars = currentCueChars === 0 ? w.word.length : currentCueChars + 1 + w.word.length;
+
+      // Break naturally at sentence boundaries once the line has at least 3 words or 16 chars
+      if (/[.!?…]['"”’)\]]*$/.test(w.word) && (currentCueWords.length >= 3 || currentCueChars >= 16)) {
+        flushCue();
+      }
+    }
+    flushCue();
+  }
+
+  const totalDurationMs = timedChunks.length > 0
+    ? Math.max(...timedChunks.map((c) => c.endMs), allWords[allWords.length - 1]?.endMs ?? 0)
+    : 0;
+
+  return {
+    totalDurationMs,
+    chunks: timedChunks,
+    cues: allCues,
+    words: allWords,
+  };
+}
+
+function formatSrtTime(ms: number): string {
+  const clamped = Math.max(0, Math.round(ms));
+  const hrs = Math.floor(clamped / 3_600_000);
+  const mins = Math.floor((clamped % 3_600_000) / 60_000);
+  const secs = Math.floor((clamped % 60_000) / 1000);
+  const millis = clamped % 1000;
+  return `${String(hrs).padStart(2, "0")}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")},${String(millis).padStart(3, "0")}`;
+}
+
+function formatVttTime(ms: number): string {
+  return formatSrtTime(ms).replace(",", ".");
+}
+
+function formatAssTime(ms: number): string {
+  const clamped = Math.max(0, Math.round(ms));
+  const hrs = Math.floor(clamped / 3_600_000);
+  const mins = Math.floor((clamped % 3_600_000) / 60_000);
+  const secs = Math.floor((clamped % 60_000) / 1000);
+  const cs = Math.floor((clamped % 1000) / 10);
+  return `${hrs}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}.${String(cs).padStart(2, "0")}`;
+}
+
+/**
+ * Formats a `PhononReadAlongTimeline` as a standard SubRip (`.srt`) subtitle file.
+ */
+export function formatSrtSubtitles(timeline: PhononReadAlongTimeline): string {
+  if (!timeline.cues.length) return "";
+  return timeline.cues
+    .map((cue, idx) => `${idx + 1}\n${formatSrtTime(cue.startMs)} --> ${formatSrtTime(cue.endMs)}\n${cue.text}\n`)
+    .join("\n");
+}
+
+/**
+ * Formats a `PhononReadAlongTimeline` as a WebVTT (`.vtt`) subtitle file with word-level timestamps so HTML5 video
+ * players and follow-along readers can track every word.
+ */
+export function formatVttSubtitles(timeline: PhononReadAlongTimeline): string {
+  const lines = ["WEBVTT", ""];
+  for (const cue of timeline.cues) {
+    lines.push(`${cue.index + 1}`);
+    lines.push(`${formatVttTime(cue.startMs)} --> ${formatVttTime(cue.endMs)}`);
+    lines.push(cue.text);
+    lines.push("");
+  }
+  return lines.join("\n");
+}
+
+function escapeAssText(s: string): string {
+  return s
+    .replace(/\\/g, "\\\\")
+    .replace(/\{/g, "(")
+    .replace(/\}/g, ")")
+    .replace(/\r?\n/g, "\\N");
+}
+
+/**
+ * Formats a `PhononReadAlongTimeline` as an Advanced SubStation Alpha (`.ass`) karaoke script with smooth `{\kf<cs>}`
+ * word-by-word highlighting, `{\k<gapCs>}` inter-word pause holds, previous/next line teleprompter context, voice/title header, and progress indicator.
+ */
+export function formatAssKaraokeSubtitles(
+  timeline: PhononReadAlongTimeline,
+  options: {
+    voice?: string;
+    title?: string;
+    aspectRatio?: PhononVideoAspect;
+    videoTheme?: PhononVideoTheme;
+  } = {},
+): string {
+  const aspect = VIDEO_ASPECT_INFO[options.aspectRatio ?? "16:9"] ?? VIDEO_ASPECT_INFO["16:9"];
+  const theme = VIDEO_THEME_INFO[options.videoTheme ?? "midnight"] ?? VIDEO_THEME_INFO.midnight;
+  const voiceLabel = escapeAssText((options.voice || "Zoey").trim());
+  const titleLabel = escapeAssText((options.title || "Ollama Phonon Read-Along").trim().slice(0, 72));
+  const cx = Math.round(aspect.width / 2);
+  const cy = Math.round(aspect.height * 0.52);
+  const prevY = cy - aspect.lineSpacingPx;
+  const nextY = cy + aspect.lineSpacingPx;
+  const progressY = aspect.height - Math.round(aspect.height * 0.08);
+  const totalSec = Math.max(1, Math.round(timeline.totalDurationMs / 1000));
+
+  const endAss = formatAssTime(Math.max(1000, timeline.totalDurationMs + 250));
+
+  const lines: string[] = [
+    "[Script Info]",
+    `; Generated by Codecaine File Manager — Ollama Phonon Read-Along Video Studio`,
+    `Title: ${titleLabel}`,
+    "ScriptType: v4.00+",
+    "WrapStyle: 0",
+    "ScaledBorderAndShadow: yes",
+    `PlayResX: ${aspect.width}`,
+    `PlayResY: ${aspect.height}`,
+    "",
+    "[V4+ Styles]",
+    "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding",
+    `Style: Header,Arial,${aspect.headerFontSize},${theme.assHeader},${theme.assHeader},${theme.assOutline},${theme.assBack},-1,0,0,0,100,100,0.5,0,3,10,0,8,60,60,48,1`,
+    `Style: ActiveKaraoke,Arial,${aspect.fontSize},${theme.assPrimary},${theme.assSecondary},${theme.assOutline},${theme.assBack},-1,0,0,0,100,100,0,0,3,16,0,5,90,90,40,1`,
+    `Style: ContextLine,Arial,${aspect.contextFontSize},${theme.assContext},${theme.assContext},${theme.assOutline},&HFF000000,0,0,0,0,100,100,0,0,1,2,0,5,110,110,40,1`,
+    `Style: ProgressHud,Arial,${Math.max(22, aspect.headerFontSize - 2)},${theme.assSecondary},${theme.assSecondary},${theme.assOutline},${theme.assBack},0,0,0,0,100,100,0.5,0,3,8,0,2,60,60,36,1`,
+    "",
+    "[Events]",
+    "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text",
+    `Dialogue: 0,0:00:00.00,${endAss},Header,,0,0,0,,${titleLabel}  •  Voice: ${voiceLabel}  •  Follow Along`,
+  ];
+
+  const totalCues = timeline.cues.length;
+  for (let i = 0; i < totalCues; i++) {
+    const cue = timeline.cues[i]!;
+    const startStr = formatAssTime(cue.startMs);
+    const endStr = formatAssTime(cue.endMs);
+
+    // 1. Previous line context (above active line)
+    if (i > 0) {
+      const prevText = escapeAssText(timeline.cues[i - 1]!.text);
+      lines.push(`Dialogue: 1,${startStr},${endStr},ContextLine,,0,0,0,,{\\pos(${cx},${prevY})}${prevText}`);
+    }
+
+    // 2. Active Karaoke Read-Along Line (center stage, word-by-word highlight via \kf + \k pause hold)
+    const karaokeParts: string[] = [];
+    let cursorCs = Math.floor(Math.max(0, cue.startMs) / 10);
+    for (const w of cue.words) {
+      const wordStartCs = Math.max(cursorCs, Math.round(w.startMs / 10));
+      const wordEndCs = Math.max(wordStartCs + 2, Math.round(w.endMs / 10));
+      const gapCs = Math.max(0, wordStartCs - cursorCs);
+      const wordCs = Math.max(2, wordEndCs - wordStartCs);
+      const prefix = gapCs > 0 ? `{\\k${gapCs}}` : "";
+      karaokeParts.push(`${prefix}{\\kf${wordCs}}${escapeAssText(w.word)}`);
+      cursorCs = wordEndCs;
+    }
+    lines.push(`Dialogue: 2,${startStr},${endStr},ActiveKaraoke,,0,0,0,,{\\pos(${cx},${cy})}${karaokeParts.join(" ")}`);
+
+    // 3. Next line preview (below active line)
+    if (i + 1 < totalCues) {
+      const nextText = escapeAssText(timeline.cues[i + 1]!.text);
+      lines.push(`Dialogue: 1,${startStr},${endStr},ContextLine,,0,0,0,,{\\pos(${cx},${nextY})}${nextText}`);
+    }
+
+    // 4. Bottom progress indicator
+    const pct = Math.min(100, Math.round(((i + 1) / Math.max(1, totalCues)) * 100));
+    const filledBars = Math.round((pct / 100) * 16);
+    const bar = `${"█".repeat(filledBars)}${"░".repeat(Math.max(0, 16 - filledBars))}`;
+    const curSec = Math.round(cue.endMs / 1000);
+    lines.push(
+      `Dialogue: 1,${startStr},${endStr},ProgressHud,,0,0,0,,{\\pos(${cx},${progressY})}${bar}  ${pct}%   •   Line ${i + 1} of ${totalCues}   •   ${curSec}s / ${totalSec}s`,
+    );
+  }
+
+  return `${lines.join("\n")}\n`;
+}
 
 // ---------------------------------------------------------------------------------------------------------------
 // Smart Large-Text Chunker (Optimized for Phonon's 8,192-Token Context Window)
@@ -1106,10 +1878,15 @@ export interface PhononStatusReport {
   ready: boolean;
   voices: PhononVoiceInfo[];
   audioFormats: typeof AUDIO_FORMAT_INFO;
+  videoFormats: typeof VIDEO_FORMAT_INFO;
+  videoAspects: PhononVideoAspectInfo[];
+  videoThemes: PhononVideoThemeInfo[];
   settings: {
     voice: string;
     format: PhononAudioFormat;
     speed: number;
+    pitch: number;
+    syncOffsetMs: number;
     cleanText: boolean;
     pauseMs: number;
   };
@@ -1182,10 +1959,15 @@ export async function getPhononStatus(ctx: FmContext): Promise<PhononStatusRepor
     ready: supported && !!ollamaExe && modelInstalled,
     voices: [...voiceMap.values()],
     audioFormats: AUDIO_FORMAT_INFO,
+    videoFormats: VIDEO_FORMAT_INFO,
+    videoAspects: Object.values(VIDEO_ASPECT_INFO),
+    videoThemes: Object.values(VIDEO_THEME_INFO),
     settings: {
       voice: settings.phononVoice || "Zoey",
       format: settings.phononFormat || "wav",
       speed: settings.phononSpeed || 1,
+      pitch: settings.phononPitch ?? 0,
+      syncOffsetMs: settings.phononSyncOffsetMs ?? 0,
       cleanText: settings.phononCleanText ?? true,
       pauseMs: settings.phononPauseMs ?? 200,
     },
@@ -1290,8 +2072,11 @@ interface CachedAudioItem {
   filePath: string;
   createdAt: number;
   durationSec: number;
+  durationMs: number;
   sampleRate: number;
   byteLength: number;
+  words: PhononWordTiming[];
+  cues: PhononReadAlongCue[];
 }
 
 const MAX_CACHED_CHUNKS = 60;
@@ -1315,33 +2100,54 @@ function getAudioCache(ctx: FmContext) {
 }
 
 /**
- * Synthesizes a chunk for live "Read Out Loud" playback (or returns it immediately from cache if already prefetched).
+ * Synthesizes a chunk for live "Read Out Loud" playback (or returns it immediately from cache if already prefetched),
+ * along with waveform-synchronized word-level (`words`) and phrase-level (`cues`) timings for the Live Follow-Along Teleprompter.
  */
 export async function speakChunk(
   ctx: FmContext,
-  input: { text?: unknown; voice?: unknown },
-): Promise<{ audioId: string; url: string; durationSec: number; sampleRate: number; byteLength: number; voice: string }> {
+  input: { text?: unknown; voice?: unknown; pitch?: unknown },
+): Promise<{
+  audioId: string;
+  url: string;
+  durationSec: number;
+  durationMs: number;
+  sampleRate: number;
+  byteLength: number;
+  voice: string;
+  pitch: number;
+  pcmAligned: boolean;
+  words: PhononWordTiming[];
+  cues: PhononReadAlongCue[];
+}> {
   const rawText = typeof input.text === "string" ? input.text.trim() : "";
   if (!rawText) throw new FmError("BAD_REQUEST", "Provide text to read out loud.");
 
   const settings = await loadSettings(ctx);
   const voice = typeof input.voice === "string" && /^[A-Za-z0-9 _-]{1,48}$/.test(input.voice.trim()) ? input.voice.trim() : settings.phononVoice || "Zoey";
+  const pitch = typeof input.pitch === "number" && isFinite(input.pitch)
+    ? Math.round(Math.min(6, Math.max(-6, input.pitch)) * 2) / 2
+    : (settings.phononPitch ?? 0);
 
   // Ensure the chunk is within Phonon's context window even if the caller passed a longer string
   const safeChunks = splitTextForPhonon(rawText, { maxChars: PHONON_HARD_MAX_CHUNK_CHARS });
   const chunkText = safeChunks[0]?.text ?? rawText.slice(0, PHONON_HARD_MAX_CHUNK_CHARS);
 
   const cache = getAudioCache(ctx);
-  const key = createHash("sha256").update(`${voice}\0${chunkText}`).digest("hex").slice(0, 24);
+  const key = createHash("sha256").update(`${voice}\0${pitch}\0${chunkText}`).digest("hex").slice(0, 24);
   const existing = cache.items.get(key);
   if (existing && existsSync(existing.filePath)) {
     return {
       audioId: existing.id,
       url: `/api/phonon/audio?id=${encodeURIComponent(existing.id)}`,
       durationSec: existing.durationSec,
+      durationMs: existing.durationMs,
       sampleRate: existing.sampleRate,
       byteLength: existing.byteLength,
       voice,
+      pitch,
+      pcmAligned: true,
+      words: existing.words,
+      cues: existing.cues,
     };
   }
 
@@ -1352,10 +2158,45 @@ export async function speakChunk(
   await ensureOllamaDaemon(ctx, ollamaExe);
 
   const wavBuf = await synthesizePhononChunkWav(ctx, ollamaExe, chunkText, voice);
-  const parsed = parseWavPcm(wavBuf);
-  const cleanWav = Buffer.concat([createWavHeader(parsed.pcmData.length, parsed.sampleRate, parsed.numChannels, parsed.bitsPerSample), parsed.pcmData]);
+  let parsed = parseWavPcm(wavBuf);
+  let cleanWav = Buffer.concat([createWavHeader(parsed.pcmData.length, parsed.sampleRate, parsed.numChannels, parsed.bitsPerSample), parsed.pcmData]);
+
+  // If pitch shift is requested and ffmpeg is installed, apply time-locked pitch shift (`asetrate` + `aresample` + `atempo`)
+  // so the pitch-shifted WAV keeps the exact speaking duration and we align word timings against the pitch-shifted PCM waveform.
+  const ffmpegExe = resolveTool(ctx, "ffmpeg");
+  if (Math.abs(pitch) >= 0.25 && ffmpegExe) {
+    const rawTmp = nodePath.join(cache.dir, `${key}-raw.wav`);
+    const pitchedTmp = nodePath.join(cache.dir, `${key}-pitched.wav`);
+    try {
+      await fsp.writeFile(rawTmp, cleanWav);
+      const env = buildExecEnv(ctx);
+      const filterArgs = buildAtempoFilter(1.0, pitch, parsed.sampleRate);
+      const proc = Bun.spawn(
+        [ffmpegExe, "-hide_banner", "-nostdin", "-y", "-i", rawTmp, ...filterArgs, "-c:a", "pcm_s16le", pitchedTmp],
+        { stdout: "ignore", stderr: "ignore", stdin: "ignore", env },
+      );
+      const exitCode = await proc.exited;
+      if (exitCode === 0 && existsSync(pitchedTmp)) {
+        const pitchedBuf = await fsp.readFile(pitchedTmp);
+        if (pitchedBuf.length > 44 && pitchedBuf.subarray(0, 4).toString("ascii") === "RIFF") {
+          parsed = parseWavPcm(pitchedBuf);
+          cleanWav = Buffer.concat([
+            createWavHeader(parsed.pcmData.length, parsed.sampleRate, parsed.numChannels, parsed.bitsPerSample),
+            parsed.pcmData,
+          ]);
+        }
+      }
+    } catch {
+      // Keep original WAV if ffmpeg pitch filter is unavailable
+    } finally {
+      await fsp.rm(rawTmp, { force: true }).catch(() => {});
+      await fsp.rm(pitchedTmp, { force: true }).catch(() => {});
+    }
+  }
+
   const bytesPerSec = Math.max(1, parsed.sampleRate * parsed.numChannels * (parsed.bitsPerSample >> 3));
-  const durationSec = Math.round((parsed.pcmData.length / bytesPerSec) * 100) / 100;
+  const durationMs = Math.max(50, Math.round((parsed.pcmData.length / bytesPerSec) * 1000));
+  const durationSec = Math.round((durationMs / 1000) * 1000) / 1000;
 
   // Evict oldest if cache is full
   if (cache.items.size >= MAX_CACHED_CHUNKS) {
@@ -1367,6 +2208,20 @@ export async function speakChunk(
     }
   }
 
+  const tl = computeReadAlongTimeline([
+    {
+      index: 0,
+      paragraphIndex: 0,
+      text: chunkText,
+      startMs: 0,
+      endMs: durationMs,
+      durationMs,
+      pcmData: parsed.pcmData,
+      sampleRate: parsed.sampleRate,
+      speed: 1,
+    },
+  ]);
+
   const filePath = nodePath.join(cache.dir, `${key}.wav`);
   await fsp.writeFile(filePath, cleanWav);
   const item: CachedAudioItem = {
@@ -1374,8 +2229,11 @@ export async function speakChunk(
     filePath,
     createdAt: Date.now(),
     durationSec,
+    durationMs,
     sampleRate: parsed.sampleRate,
     byteLength: cleanWav.length,
+    words: tl.words,
+    cues: tl.cues,
   };
   cache.items.set(key, item);
 
@@ -1383,9 +2241,14 @@ export async function speakChunk(
     audioId: key,
     url: `/api/phonon/audio?id=${encodeURIComponent(key)}`,
     durationSec,
+    durationMs,
     sampleRate: parsed.sampleRate,
     byteLength: cleanWav.length,
     voice,
+    pitch,
+    pcmAligned: true,
+    words: tl.words,
+    cues: tl.cues,
   };
 }
 
@@ -1735,25 +2598,42 @@ export function startPhononInstall(ctx: FmContext, body: { confirm?: unknown }):
 // Multi-Chunk Synthesis + Any-Audio-Format Export Job (`phonon/save`)
 // ---------------------------------------------------------------------------------------------------------------
 
-function buildAtempoFilter(speed: number): string[] {
-  const s = Math.min(2.5, Math.max(0.5, speed));
-  if (Math.abs(s - 1) < 0.01) return [];
+export function buildAtempoFilter(speed: number, pitchSemitones = 0, sampleRate = 24000): string[] {
+  const s = Math.min(2.5, Math.max(0.5, speed || 1));
+  const p = Math.min(6, Math.max(-6, pitchSemitones || 0));
+  const hasSpeed = Math.abs(s - 1) >= 0.01;
+  const hasPitch = Math.abs(p) >= 0.25;
+  if (!hasSpeed && !hasPitch) return [];
+
   const parts: string[] = [];
-  let rem = s;
-  while (rem > 2.0) {
-    parts.push("atempo=2.0");
-    rem /= 2.0;
+  let targetTempo = s;
+
+  if (hasPitch) {
+    const pitchFactor = Math.pow(2, p / 12);
+    const shiftedRate = Math.max(4000, Math.round(sampleRate * pitchFactor));
+    parts.push(`asetrate=${shiftedRate}`, `aresample=${sampleRate}`);
+    // Compensate tempo by 1 / pitchFactor so changing voice pitch NEVER slows down or speeds up the audio relative to the text!
+    targetTempo = s / pitchFactor;
   }
-  while (rem < 0.5) {
-    parts.push("atempo=0.5");
-    rem /= 0.5;
+
+  if (Math.abs(targetTempo - 1) >= 0.008) {
+    let rem = targetTempo;
+    while (rem > 2.0) {
+      parts.push("atempo=2.0");
+      rem /= 2.0;
+    }
+    while (rem < 0.5) {
+      parts.push("atempo=0.5");
+      rem /= 0.5;
+    }
+    parts.push(`atempo=${Math.round(rem * 1000) / 1000}`);
   }
-  parts.push(`atempo=${Math.round(rem * 1000) / 1000}`);
-  return ["-af", parts.join(",")];
+
+  return parts.length ? ["-af", parts.join(",")] : [];
 }
 
-function ffmpegEncoderArgsForFormat(format: PhononAudioFormat, speed: number): string[] {
-  const filter = buildAtempoFilter(speed);
+function ffmpegEncoderArgsForFormat(format: PhononAudioFormat, speed: number, pitchSemitones = 0, sampleRate = 24000): string[] {
+  const filter = buildAtempoFilter(speed, pitchSemitones, sampleRate);
   switch (format) {
     case "wav":
       return [...filter, "-c:a", "pcm_s16le"];
@@ -1773,13 +2653,47 @@ function ffmpegEncoderArgsForFormat(format: PhononAudioFormat, speed: number): s
       return [...filter, "-vn", "-c:a", "pcm_s16be"];
     case "wma":
       return [...filter, "-vn", "-c:a", "wmav2", "-b:a", "160k"];
+    case "mp4":
+    case "mov":
+      return [
+        ...filter,
+        "-c:v", "libx264",
+        "-preset", "veryfast",
+        "-crf", "21",
+        "-pix_fmt", "yuv420p",
+        "-c:a", "aac",
+        "-b:a", "192k",
+        "-movflags", "+faststart",
+      ];
+    case "webm":
+      return [
+        ...filter,
+        "-c:v", "libvpx-vp9",
+        "-b:v", "1200k",
+        "-deadline", "realtime",
+        "-cpu-used", "4",
+        "-pix_fmt", "yuv420p",
+        "-c:a", "libopus",
+        "-b:a", "128k",
+      ];
+    case "mkv":
+      return [
+        ...filter,
+        "-c:v", "libx264",
+        "-preset", "veryfast",
+        "-crf", "21",
+        "-pix_fmt", "yuv420p",
+        "-c:a", "aac",
+        "-b:a", "192k",
+      ];
   }
 }
 
 /**
  * Synthesizes an arbitrarily long list of text chunks using `ollama run phonon`, stitches their 24 kHz 16-bit mono
  * PCM samples directly on disk (inserting `pauseMs` of silence between paragraphs), and converts to the requested
- * target audio format (`wav`, `mp3`, `m4a`, `aac`, `flac`, `ogg`, `opus`, `aiff`, `wma`).
+ * target audio format (`wav`, `mp3`, `m4a`, `aac`, `flac`, `ogg`, `opus`, `aiff`, `wma`) or Read-Along Video format
+ * (`mp4`, `webm`, `mov`, `mkv`) with synchronized word-by-word karaoke text highlighting and companion `.srt`/`.vtt` subtitles.
  */
 export async function synthesizeAndExportAudioFile(
   ctx: FmContext,
@@ -1790,13 +2704,42 @@ export async function synthesizeAndExportAudioFile(
     voice: string;
     format: PhononAudioFormat;
     speed: number;
+    pitch?: number;
     pauseMs: number;
     outputPath: string;
+    aspectRatio?: PhononVideoAspect;
+    videoTheme?: PhononVideoTheme;
+    saveSubtitles?: boolean;
+    title?: string;
     signal?: AbortSignal;
     onChunkProgress?: (doneChunks: number, totalChunks: number) => void;
   },
-): Promise<{ outputPath: string; chunkCount: number; durationSec: number; sizeBytes: number }> {
-  const { ollamaExe, ffmpegExe, chunks, voice, format, speed, pauseMs, outputPath, signal, onChunkProgress } = params;
+): Promise<{
+  outputPath: string;
+  srtPath?: string;
+  vttPath?: string;
+  chunkCount: number;
+  durationSec: number;
+  sizeBytes: number;
+  timeline?: PhononReadAlongTimeline;
+}> {
+  const {
+    ollamaExe,
+    ffmpegExe,
+    chunks,
+    voice,
+    format,
+    speed,
+    pitch = 0,
+    pauseMs,
+    outputPath,
+    aspectRatio = "16:9",
+    videoTheme = "midnight",
+    saveSubtitles = true,
+    title,
+    signal,
+    onChunkProgress,
+  } = params;
   if (!chunks.length) throw new FmError("EMPTY_TEXT", "There is no text to synthesize.");
 
   const tmpDir = nodePath.join(tmpdir(), `fm-phonon-export-${process.pid}-${randomBytes(6).toString("hex")}`);
@@ -1810,6 +2753,8 @@ export async function synthesizeAndExportAudioFile(
     let sampleRate = 24000;
     let numChannels = 1;
     let bitsPerSample = 16;
+    const timedChunks: PhononTimedChunk[] = [];
+    const safeSpeed = Math.max(0.5, Math.min(2.5, speed || 1));
 
     try {
       // Reserve 44 bytes at the start of stitched.wav for the final RIFF/WAVE header
@@ -1826,10 +2771,29 @@ export async function synthesizeAndExportAudioFile(
           bitsPerSample = parsed.bitsPerSample;
         }
 
+        const bytesPerSec = Math.max(1, sampleRate * numChannels * (bitsPerSample >> 3));
+        const chunkStartMs = Math.round(((totalPcmBytes / bytesPerSec) * 1000) / safeSpeed);
+
         if (parsed.pcmData.length > 0) {
           await wavHandle.write(parsed.pcmData, 0, parsed.pcmData.length, 44 + totalPcmBytes);
           totalPcmBytes += parsed.pcmData.length;
         }
+
+        const chunkEndMs = Math.max(
+          chunkStartMs + 20,
+          Math.round(((totalPcmBytes / bytesPerSec) * 1000) / safeSpeed),
+        );
+        timedChunks.push({
+          index: chunk.index,
+          paragraphIndex: chunk.paragraphIndex,
+          text: chunk.text,
+          startMs: chunkStartMs,
+          endMs: chunkEndMs,
+          durationMs: chunkEndMs - chunkStartMs,
+          pcmData: parsed.pcmData,
+          sampleRate: parsed.sampleRate,
+          speed: safeSpeed,
+        });
 
         // Insert natural silence gap between chunks (longer pause between different paragraphs, short pause within a paragraph)
         if (i + 1 < chunks.length && pauseMs > 0) {
@@ -1855,11 +2819,85 @@ export async function synthesizeAndExportAudioFile(
       await wavHandle.close();
     }
 
-    const needsSpeedFilter = Math.abs(speed - 1) >= 0.01;
-    if (format === "wav" && (!needsSpeedFilter || !ffmpegExe)) {
+    const timeline = computeReadAlongTimeline(timedChunks, { aspectRatio });
+    let srtPath: string | undefined;
+    let vttPath: string | undefined;
+
+    // Publish companion .srt and .vtt subtitle files when exporting a Read-Along Video (or when saveSubtitles === true)
+    if (isPhononVideoFormat(format) && saveSubtitles) {
+      const outDir = nodePath.dirname(outputPath);
+      const outStem = splitName(nodePath.basename(outputPath))[0] || "speech";
+      srtPath = nodePath.join(outDir, `${outStem}.srt`);
+      vttPath = nodePath.join(outDir, `${outStem}.vtt`);
+      await fsp.writeFile(srtPath, formatSrtSubtitles(timeline), "utf8");
+      await fsp.writeFile(vttPath, formatVttSubtitles(timeline), "utf8");
+    }
+
+    const needsSpeedOrPitchFilter = Math.abs(speed - 1) >= 0.01 || Math.abs(pitch) >= 0.25;
+    if (format === "wav" && (!needsSpeedOrPitchFilter || !ffmpegExe)) {
       await publishStagedFile(stitchedWavPath, outputPath);
     } else if (format === "aiff" && !ffmpegExe) {
       await convertWavFileToAiffNative(stitchedWavPath, stagedOutPath);
+      await publishStagedFile(stagedOutPath, outputPath);
+    } else if (isPhononVideoFormat(format)) {
+      if (!ffmpegExe) {
+        throw new FmError("MISSING_TOOL", `Saving a Read-Along Video (.${format.toUpperCase()}) requires ffmpeg. Click 1-Click Install ffmpeg first.`);
+      }
+      const env = buildExecEnv(ctx);
+      const aspect = VIDEO_ASPECT_INFO[aspectRatio] ?? VIDEO_ASPECT_INFO["16:9"];
+      const theme = VIDEO_THEME_INFO[videoTheme] ?? VIDEO_THEME_INFO.midnight;
+      const docTitle = title || splitName(nodePath.basename(outputPath))[0] || "Phonon Read-Along";
+      const assPath = nodePath.join(tmpDir, "subtitles.ass");
+      await fsp.writeFile(
+        assPath,
+        formatAssKaraokeSubtitles(timeline, { voice, title: docTitle, aspectRatio, videoTheme }),
+        "utf8",
+      );
+
+      // 1. Primary render: 24fps studio canvas + burned-in ASS word-by-word karaoke text + audio
+      const primaryArgs = [
+        "-hide_banner",
+        "-nostdin",
+        "-y",
+        "-f", "lavfi",
+        "-i", `color=c=0x${theme.bgHex}:s=${aspect.width}x${aspect.height}:r=24`,
+        "-i", "stitched.wav",
+        "-shortest",
+        "-vf", "ass=subtitles.ass",
+        ...ffmpegEncoderArgsForFormat(format, speed, pitch, sampleRate),
+        `out.${format}`,
+      ];
+      let proc = Bun.spawn([ffmpegExe, ...primaryArgs], { cwd: tmpDir, stdout: "pipe", stderr: "pipe", stdin: "ignore", env });
+      let [outText, errText, exitCode] = await Promise.all([
+        new Response(proc.stdout).text(),
+        new Response(proc.stderr).text(),
+        proc.exited,
+      ]);
+
+      // 2. Fallback if this ffmpeg build does not have `libass` (`ass` filter) compiled in
+      if (exitCode !== 0 || !existsSync(stagedOutPath)) {
+        const fallbackCanvasArgs = [
+          "-hide_banner",
+          "-nostdin",
+          "-y",
+          "-f", "lavfi",
+          "-i", `color=c=0x${theme.bgHex}:s=${aspect.width}x${aspect.height}:r=24`,
+          "-i", "stitched.wav",
+          "-shortest",
+          ...ffmpegEncoderArgsForFormat(format, speed, pitch, sampleRate),
+          `out.${format}`,
+        ];
+        proc = Bun.spawn([ffmpegExe, ...fallbackCanvasArgs], { cwd: tmpDir, stdout: "pipe", stderr: "pipe", stdin: "ignore", env });
+        [outText, errText, exitCode] = await Promise.all([
+          new Response(proc.stdout).text(),
+          new Response(proc.stderr).text(),
+          proc.exited,
+        ]);
+      }
+
+      if (exitCode !== 0 || !existsSync(stagedOutPath)) {
+        throw new Error(explainFailure("ffmpeg", `${outText}\n${errText}`, exitCode));
+      }
       await publishStagedFile(stagedOutPath, outputPath);
     } else {
       if (!ffmpegExe) {
@@ -1872,7 +2910,7 @@ export async function synthesizeAndExportAudioFile(
         "-y",
         "-i",
         `file:${stitchedWavPath}`,
-        ...ffmpegEncoderArgsForFormat(format, speed),
+        ...ffmpegEncoderArgsForFormat(format, speed, pitch, sampleRate),
         `file:${stagedOutPath}`,
       ];
       const proc = Bun.spawn([ffmpegExe, ...ffArgs], { stdout: "pipe", stderr: "pipe", stdin: "ignore", env });
@@ -1892,9 +2930,12 @@ export async function synthesizeAndExportAudioFile(
     const durationSec = Math.round((totalPcmBytes / bytesPerSec / Math.max(0.5, speed)) * 100) / 100;
     return {
       outputPath,
+      ...(srtPath ? { srtPath } : {}),
+      ...(vttPath ? { vttPath } : {}),
       chunkCount: chunks.length,
       durationSec,
       sizeBytes: finalStat.size,
+      timeline,
     };
   } finally {
     await fsp.rm(tmpDir, { recursive: true, force: true }).catch(() => {});
@@ -1909,31 +2950,47 @@ export async function startPhononAudioExportJob(
     voice?: unknown;
     format?: unknown;
     speed?: unknown;
+    pitch?: unknown;
     pauseMs?: unknown;
     cleanText?: unknown;
     outputDir?: unknown;
     outputName?: unknown;
     maxChunkChars?: unknown;
+    aspectRatio?: unknown;
+    videoTheme?: unknown;
+    saveSubtitles?: unknown;
+    title?: unknown;
   },
-): Promise<{ job: ReturnType<FmContext["jobs"]["start"]>; outputs: string[] }> {
+): Promise<{ job: ReturnType<FmContext["jobs"]["start"]>; outputs: string[]; isVideo: boolean }> {
   const settings = await loadSettings(ctx);
   const voice = typeof body.voice === "string" && /^[A-Za-z0-9 _-]{1,48}$/.test(body.voice.trim()) ? body.voice.trim() : settings.phononVoice || "Zoey";
   const format: PhononAudioFormat = (PHONON_AUDIO_FORMATS as readonly string[]).includes(String(body.format ?? ""))
     ? (body.format as PhononAudioFormat)
     : settings.phononFormat || "wav";
   const speed = typeof body.speed === "number" && isFinite(body.speed) ? Math.min(2.5, Math.max(0.5, body.speed)) : settings.phononSpeed || 1;
+  const pitch = typeof body.pitch === "number" && isFinite(body.pitch)
+    ? Math.round(Math.min(6, Math.max(-6, body.pitch)) * 2) / 2
+    : (settings.phononPitch ?? 0);
   const pauseMs = typeof body.pauseMs === "number" && isFinite(body.pauseMs) ? Math.min(2000, Math.max(0, Math.round(body.pauseMs))) : settings.phononPauseMs ?? 200;
   const cleanText = typeof body.cleanText === "boolean" ? body.cleanText : (settings.phononCleanText ?? true);
   const maxChunkChars = typeof body.maxChunkChars === "number" && isFinite(body.maxChunkChars)
     ? Math.min(PHONON_HARD_MAX_CHUNK_CHARS, Math.max(150, Math.round(body.maxChunkChars)))
     : PHONON_BATCH_CHUNK_CHARS;
+  const aspectRatio: PhononVideoAspect = (PHONON_VIDEO_ASPECTS as readonly string[]).includes(String(body.aspectRatio ?? ""))
+    ? (body.aspectRatio as PhononVideoAspect)
+    : "16:9";
+  const videoTheme: PhononVideoTheme = (PHONON_VIDEO_THEMES as readonly string[]).includes(String(body.videoTheme ?? ""))
+    ? (body.videoTheme as PhononVideoTheme)
+    : "midnight";
+  const saveSubtitles = typeof body.saveSubtitles === "boolean" ? body.saveSubtitles : true;
+  const customTitle = typeof body.title === "string" ? body.title.trim() : "";
 
   const ollamaExe = resolveTool(ctx, "ollama");
   if (!ollamaExe) {
     throw new FmError("MISSING_TOOL", "Ollama isn't installed yet. Click Install Ollama & Phonon first.");
   }
   const ffmpegExe = resolveTool(ctx, "ffmpeg");
-  const fmtInfo = AUDIO_FORMAT_INFO.find((f) => f.id === format)!;
+  const fmtInfo = ALL_MEDIA_FORMAT_INFO.find((f) => f.id === format) ?? AUDIO_FORMAT_INFO[0]!;
   if (fmtInfo.needsFfmpeg && !ffmpegExe) {
     throw new FmError("MISSING_TOOL", `Saving as .${format.toUpperCase()} needs ffmpeg. Install ffmpeg or choose WAV / AIFF.`);
   }
@@ -1942,7 +2999,7 @@ export async function startPhononAudioExportJob(
   const directText = typeof body.text === "string" ? body.text.trim() : "";
 
   if (!directText && rawPaths.length === 0) {
-    throw new FmError("BAD_REQUEST", "Provide text or select at least one file to save as audio.");
+    throw new FmError("BAD_REQUEST", "Provide text or select at least one file to save as audio or read-along video.");
   }
 
   const targetDir = typeof body.outputDir === "string" && body.outputDir.trim()
@@ -1965,10 +3022,12 @@ export async function startPhononAudioExportJob(
     prepare: () => Promise<{ work: (signal: AbortSignal, log: (text: string) => void) => Promise<string | void> }>;
   }> = [];
 
+  const isVideo = isPhononVideoFormat(format);
+
   if (directText) {
     const cleaned = cleanText ? cleanTextForSpeech(directText) : directText;
     const chunks = splitTextForPhonon(cleaned, { maxChars: maxChunkChars, mergeShortParagraphs: true });
-    if (!chunks.length) throw new FmError("EMPTY_TEXT", "There are no readable words to save as audio.");
+    if (!chunks.length) throw new FmError("EMPTY_TEXT", "There are no readable words to save.");
 
     const rawBase = typeof body.outputName === "string" && body.outputName.trim()
       ? splitName(nodePath.basename(body.outputName.trim()))[0] || "speech"
@@ -1978,26 +3037,32 @@ export async function startPhononAudioExportJob(
     outputs.push(outPath);
 
     steps.push({
-      label: `${nodePath.basename(outPath)} (${chunks.length} chunk${chunks.length === 1 ? "" : "s"}, voice: ${voice})`,
+      label: `${nodePath.basename(outPath)} (${chunks.length} chunk${chunks.length === 1 ? "" : "s"}, voice: ${voice}${isVideo ? `, ${aspectRatio} Read-Along Video` : ""})`,
       output: outPath,
       timeoutMs: Math.max(10 * 60 * 1000, chunks.length * 90_000),
       prepare: async () => ({
         work: async (signal: AbortSignal, log: (text: string) => void) => {
           await ensureOllamaDaemon(ctx, ollamaExe);
-          await synthesizeAndExportAudioFile(ctx, {
+          const res = await synthesizeAndExportAudioFile(ctx, {
             ollamaExe,
             ffmpegExe,
             chunks,
             voice,
             format,
             speed,
+            pitch,
             pauseMs,
             outputPath: outPath,
+            aspectRatio,
+            videoTheme,
+            saveSubtitles,
+            title: customTitle || safeStem,
             signal,
             onChunkProgress: (done, total) => {
               log(`Synthesized chunk ${done} of ${total} (${voice})\n`);
             },
           });
+          if (res.srtPath) log(`Saved synchronized subtitles: ${nodePath.basename(res.srtPath)} & ${nodePath.basename(res.vttPath || "")}\n`);
         },
       }),
     });
@@ -2010,7 +3075,7 @@ export async function startPhononAudioExportJob(
       outputs.push(outPath);
 
       steps.push({
-        label: `${nodePath.basename(srcPath)} → ${nodePath.basename(outPath)} (${voice})`,
+        label: `${nodePath.basename(srcPath)} → ${nodePath.basename(outPath)} (${voice}${isVideo ? `, ${aspectRatio} Video` : ""})`,
         output: outPath,
         timeoutMs: 60 * 60 * 1000,
         prepare: async () => ({
@@ -2019,20 +3084,26 @@ export async function startPhononAudioExportJob(
             const extracted = await extractPlainTextFromFile(ctx, srcPath, { clean: cleanText, maxChars: maxChunkChars });
             const chunks = splitTextForPhonon(extracted.text, { maxChars: maxChunkChars, mergeShortParagraphs: true });
             if (!chunks.length) throw new Error(`No readable text in ${nodePath.basename(srcPath)}.`);
-            await synthesizeAndExportAudioFile(ctx, {
+            const res = await synthesizeAndExportAudioFile(ctx, {
               ollamaExe,
               ffmpegExe,
               chunks,
               voice,
               format,
               speed,
+              pitch,
               pauseMs,
               outputPath: outPath,
+              aspectRatio,
+              videoTheme,
+              saveSubtitles,
+              title: customTitle || extracted.title || stem,
               signal,
               onChunkProgress: (done, total) => {
                 log(`Synthesized chunk ${done} of ${total} for ${nodePath.basename(srcPath)}\n`);
               },
             });
+            if (res.srtPath) log(`Saved synchronized subtitles: ${nodePath.basename(res.srtPath)}\n`);
           },
         }),
       });
@@ -2041,11 +3112,13 @@ export async function startPhononAudioExportJob(
 
   const job = ctx.jobs.start({
     kind: "convert",
-    title: `Phonon Speech to ${format.toUpperCase()} (${voice})`,
+    title: isVideo
+      ? `Phonon Read-Along Video to ${format.toUpperCase()} (${voice}, ${aspectRatio})`
+      : `Phonon Speech to ${format.toUpperCase()} (${voice})`,
     steps,
   });
 
-  return { job, outputs };
+  return { job, outputs, isVideo };
 }
 
 /**
@@ -2096,6 +3169,8 @@ export const PHONON_OPS: Record<string, FmHandler> = {
     if (typeof rec.voice === "string") patch.phononVoice = rec.voice;
     if (typeof rec.format === "string") patch.phononFormat = rec.format;
     if (typeof rec.speed === "number") patch.phononSpeed = rec.speed;
+    if (typeof rec.pitch === "number") patch.phononPitch = rec.pitch;
+    if (typeof rec.syncOffsetMs === "number") patch.phononSyncOffsetMs = rec.syncOffsetMs;
     if (typeof rec.cleanText === "boolean") patch.phononCleanText = rec.cleanText;
     if (typeof rec.pauseMs === "number") patch.phononPauseMs = rec.pauseMs;
     const settings = await updateSettings(ctx, patch);
@@ -2103,6 +3178,8 @@ export const PHONON_OPS: Record<string, FmHandler> = {
       voice: settings.phononVoice,
       format: settings.phononFormat,
       speed: settings.phononSpeed,
+      pitch: settings.phononPitch,
+      syncOffsetMs: settings.phononSyncOffsetMs,
       cleanText: settings.phononCleanText,
       pauseMs: settings.phononPauseMs,
       settings,
@@ -2170,7 +3247,12 @@ export const PHONON_OPS: Record<string, FmHandler> = {
       chunks,
     };
   },
-  "phonon/speak": (ctx, b) => speakChunk(ctx, (b ?? {}) as { text?: unknown; voice?: unknown }),
+  "phonon/speak": (ctx, b) => speakChunk(ctx, (b ?? {}) as { text?: unknown; voice?: unknown; pitch?: unknown }),
   "phonon/save": (ctx, b) => startPhononAudioExportJob(ctx, (b ?? {}) as Record<string, unknown>),
+  "phonon/video": (ctx, b) => {
+    const rec = (b ?? {}) as Record<string, unknown>;
+    const fmt = isPhononVideoFormat(String(rec.format ?? "")) ? rec.format : "mp4";
+    return startPhononAudioExportJob(ctx, { ...rec, format: fmt });
+  },
   "phonon/savetxt": (ctx, b) => savePlainTextToFile(ctx, (b ?? {}) as Record<string, unknown>),
 };

@@ -355,85 +355,75 @@ const sceneSpecs: SceneSpec[] = [
   {
     id: "05_live_read_out_loud",
     voice: "Zoey",
-    voiceDesc: "Zoey (--voice Zoey · Lookahead Streaming)",
-    badge: "05 / 06 · READ OUT LOUD & 2-CHUNK PREFETCHING",
-    title: "ZERO-GAP STREAMING.\n2-CHUNK LOOKAHEAD.",
-    label: "▶️ LIVE READ OUT LOUD · BACKGROUND PREFETCH · INTERACTIVE QUEUE",
-    extra: "Narrated Live by ollama run phonon --voice Zoey · Instant Segment Jump & Caching",
+    voiceDesc: "Zoey (--voice Zoey · Follow-Along Teleprompter)",
+    badge: "05 / 06 · FOLLOW-ALONG TELEPROMPTER & PREFETCHING",
+    title: "FOLLOW ALONG LIVE.\nWORD-BY-WORD SYNC.",
+    label: "📖 LIVE FOLLOW-ALONG TELEPROMPTER · CLICK ANY WORD TO JUMP · 2-CHUNK PREFETCH",
+    extra: "Narrated Live by ollama run phonon --voice Zoey · Word-by-Word Highlighting",
     bullets: [
-      "▶️ Instant Read Out Loud, Pause, Stop, Prev & Next",
-      "⚡ 2-Chunk Background Lookahead Prefetch (Zero Gaps)",
-      "🖱️ Click Any Segment in the Queue to Jump Immediately",
+      "📖 Live Follow-Along Teleprompter Highlights Every Word Spoken",
+      "🖱️ Click Any Word or Segment to Jump Playback Immediately",
+      "⚡ 2-Chunk Background Lookahead Prefetch for Zero-Gap Streaming",
     ],
-    say: "Click Read Out Loud for instant streaming playback. While I speak the active paragraph, the File Manager prefetches the next two chunks in the background so transitions between paragraphs are completely seamless with zero lag—and you can click any segment in the queue to jump right to that chapter.",
+    say: "Click Read Out Loud and follow along in the live teleprompter as every word lights up in sync with my voice! While I speak the active sentence, the File Manager prefetches the next two chunks in the background for zero-gap transitions, and you can click any word or segment to jump right there.",
     record: async (c) => {
       await showKeynoteHud(
         c,
-        "▶️ Live Read Out Loud (`--voice Zoey`) + 2-Chunk Background Lookahead Prefetch",
-        "Interactive segment queue caches upcoming paragraphs for zero-gap transitions",
-        "🎙️ --VOICE ZOEY",
+        "📖 Live Follow-Along Teleprompter (`--voice Zoey`) — Word-by-Word Sync + 2-Chunk Prefetch",
+        "Every spoken word lights up in real time · Click any word in the teleprompter to jump",
+        "🎙️ FOLLOW ALONG",
       );
       await c.eval(`(() => {
-        const qList = document.querySelector('.phonon-chunk-list');
-        if (qList) qList.scrollTo({ top: 0, behavior: 'smooth' });
-        const items = document.querySelectorAll('.phonon-chunk-item');
-        items.forEach((el, idx) => {
-          el.classList.toggle('is-active', idx === 0);
-          el.classList.toggle('is-cached', idx === 1 || idx === 2);
-        });
-        const st = document.querySelector('.phonon-now-playing');
-        if (st) st.textContent = '🔊 Speaking chunk 1 of ' + (items.length || 24) + ' (Zoey, 24 kHz WAV)…';
+        const tp = document.querySelector('.phonon-teleprompter-box');
+        if (tp) tp.scrollIntoView({ behavior: 'smooth', block: 'center' });
       })()`);
-      await sleep(950);
-      await c.eval(`(() => {
-        const items = document.querySelectorAll('.phonon-chunk-item');
-        items.forEach((el, idx) => {
-          el.classList.toggle('is-active', idx === 1);
-          el.classList.toggle('is-cached', idx === 0 || idx === 2 || idx === 3);
-        });
-        const st = document.querySelector('.phonon-now-playing');
-        if (st) st.textContent = '🔊 Speaking chunk 2 of ' + (items.length || 24) + ' (Prefetched N+1 & N+2)…';
-      })()`);
-      await sleep(950);
-      await c.eval(`(() => {
-        const items = document.querySelectorAll('.phonon-chunk-item');
-        items.forEach((el, idx) => {
-          el.classList.toggle('is-active', idx === 2);
-          el.classList.toggle('is-cached', idx <= 4 && idx !== 2);
-        });
-        const st = document.querySelector('.phonon-now-playing');
-        if (st) st.textContent = '🔊 Speaking chunk 3 of ' + (items.length || 24) + ' (Zero-gap transition)…';
-      })()`);
-      await sleep(1100);
+      await sleep(400);
+      for (const targetWordIdx of [2, 5, 9, 14, 19]) {
+        await c.eval(`(() => {
+          const words = Array.from(document.querySelectorAll('.phonon-teleprompter-stage .phonon-word'));
+          const wIdx = Math.min(${targetWordIdx}, Math.max(0, words.length - 1));
+          words.forEach((node, idx) => {
+            if (idx < wIdx) node.className = 'phonon-word is-spoken';
+            else if (idx === wIdx) node.className = 'phonon-word is-speaking';
+            else node.className = 'phonon-word is-upcoming';
+          });
+          const fill = document.querySelector('.phonon-teleprompter-progress-fill');
+          const pct = words.length ? Math.round(((wIdx + 1) / words.length) * 100) : 45;
+          if (fill) fill.style.width = pct + '%';
+          const st = document.querySelector('.phonon-now-playing');
+          if (st) st.textContent = '🔊 Speaking & Following Along — Word ' + (wIdx + 1) + ' of ' + words.length + ' (Zoey, 24 kHz WAV)…';
+        })()`);
+        await sleep(520);
+      }
     },
   },
   {
     id: "06_export_any_audio_format",
     voice: "Zoey",
-    voiceDesc: "Zoey (--voice Zoey · 9-Format Audio Export)",
-    badge: "06 / 06 · EXPORT FILES TO 9 AUDIO FORMATS",
-    title: "EXPORT TO WAV, MP3, FLAC,\nM4A, OGG, OPUS & AIFF.",
-    label: "🎵 9 AUDIO FORMATS · SINGLE OR BATCH FILE-TO-AUDIO CONVERTER",
+    voiceDesc: "Zoey (--voice Zoey · Audio + Read-Along Video Export)",
+    badge: "06 / 06 · EXPORT TO 9 AUDIO FORMATS OR READ-ALONG VIDEO",
+    title: "EXPORT TO AUDIO OR\nREAD-ALONG MP4 VIDEO.",
+    label: "🎬 MP4 / WEBM / MOV / MKV READ-ALONG VIDEO + WAV / MP3 / FLAC / M4A / OPUS",
     extra: "Narrated Live by ollama run phonon --voice Zoey · Free & Open Source on GitHub",
     bullets: [
-      "🎵 WAV, MP3, M4A, AAC, FLAC, OGG, OPUS, AIFF & WMA",
-      "📦 Batch-Convert Entire Folders of Files to Audiobooks",
-      "🍎 Free & Open Source for Apple Silicon Macs (M1–M4)",
+      "🎬 Save Read-Along Videos (MP4, WebM, MOV, MKV) with Highlighted Text",
+      "🎵 Save Audio in WAV, MP3, M4A, AAC, FLAC, OGG, OPUS, AIFF & WMA",
+      "🍎 Free & Open Source for Apple Silicon Macs (M1–M4 · MLX)",
     ],
-    say: "Every word of narration in this video was generated right on this Mac using ollama run phonon dash dash voice Zoey! When you're ready to export your own files, save your spoken text as W A V, M P 3, M 4 A, A A C, F L A C, O G G, Opus, A I F F, or W M A—or batch-convert an entire folder of documents into audiobooks in one click.",
+    say: "When you're ready to export, convert your text into a synchronized Read-Along M P 4, Web M, M O V, or M K V video where every word lights up on screen as you listen, complete with S R T and V T T subtitles—or save as W A V, M P 3, M 4 A, F L A C, O G G, Opus, or A I F F audio in one click!",
     record: async (c) => {
       await showKeynoteHud(
         c,
-        "🎵 Export Single or Batch Files to WAV, MP3, M4A, AAC, FLAC, OGG, OPUS, AIFF, WMA",
-        "Narrated by `ollama run phonon --voice Zoey` · 100% Local & Free on Apple Silicon Mac",
-        "🎙️ --VOICE ZOEY",
+        "🎬 Save as Read-Along Video (MP4/WebM/MOV/MKV) + 9 Audio Formats (WAV/MP3/FLAC/M4A)",
+        "Synchronized word-by-word karaoke text highlighting + companion .SRT & .VTT subtitles",
+        "🎬 AUDIO & VIDEO",
       );
       await c.eval(`(() => {
-        const p = document.querySelector('#power-body');
-        if (p) p.scrollTo({ top: 180, behavior: 'smooth' });
+        const exp = document.querySelector('.phonon-export-box');
+        if (exp) exp.scrollIntoView({ behavior: 'smooth', block: 'center' });
       })()`);
       await sleep(450);
-      for (const fmt of ["mp3", "flac", "m4a", "opus", "aiff", "wav"]) {
+      for (const fmt of ["mp3", "flac", "webm", "mov", "mp4"]) {
         await c.eval(`(() => {
           const sel = document.getElementById('phonon-format-select');
           if (sel) {
@@ -446,17 +436,18 @@ const sceneSpecs: SceneSpec[] = [
       await c.eval(`(() => {
         const ta = document.getElementById('phonon-text-editor');
         if (ta) {
-          ta.value = "Codecaine File Manager Phonon Voice Reader audiobook export complete.";
+          ta.value = "Welcome to Codecaine Phonon Read-Along Video! Follow along as every word highlights in sync with the neural voice.";
           ta.dispatchEvent(new Event('input', { bubbles: true }));
         }
         const nameInput = document.getElementById('phonon-out-name');
         if (nameInput) {
-          nameInput.value = "06_Phonon_Audiobook_Master";
+          nameInput.value = "06_Phonon_Read_Along_Video";
           nameInput.dispatchEvent(new Event('input', { bubbles: true }));
         }
       })()`);
-      await c.click('.phonon-save-audio-btn', { pause: 1400 }).catch(() => {});
-      await sleep(800);
+      await sleep(400);
+      await c.click('.phonon-save-video-btn', { pause: 1800 }).catch(() => {});
+      await sleep(900);
     },
   },
 ];

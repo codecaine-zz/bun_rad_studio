@@ -5,6 +5,7 @@ bun.lockb
 package-lock.json
 
 # Export Output Directories
+/bin/
 exported_project/
 .rad_preview/
 .build_check/

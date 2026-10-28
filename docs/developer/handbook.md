@@ -65,8 +65,8 @@ Requirements are on [Requirements](../getting-started/requirements.md). `--froze
 | `tests/` | `bun:test` files, `tests/db/` for the database layer, `tests/helpers/` for shared helpers |
 | `scripts/` | Build, wrapper generation, documentation tools, the type-check ratchet, screenshot capture scripts |
 | `docs/` | This handbook (`docs/nav.json` is its single navigation source) |
-| `bin/`, `Formula/` | Generated command wrappers (tracked) and the Homebrew formula |
-| `dist/`, `node_modules/`, `exported_project/`, `.rad_preview/` | Generated; git-ignored |
+| `Formula/` | The Homebrew formula (`bin/` command wrappers are generated on `bun install` and git-ignored) |
+| `bin/`, `dist/`, `node_modules/`, `exported_project/`, `.rad_preview/` | Generated; git-ignored |
 
 ## Before you commit
 
@@ -98,7 +98,7 @@ This recipe was followed with a throwaway file and checked against the automated
 3. **Put web assets in `resources/<name>/`** if it is mostly a page.
 4. **Add a `package.json` script** `app:<short>` (for example `"app:pong": "bun run applications/pong_studio.ts"`).
 5. **Give the launcher a description:** without an entry in `KNOWN_STUDIO_META` (`applications/launcher_studio.ts`) the launcher shows the file name as the title, the category "RAD Studio" and a generic description. Add an entry for a proper title, category and description. The generated application index falls back to the first comment at the top of the file.
-6. **Regenerate the wrappers** with `bun run scripts/generate_brew_suite.ts` and commit `bin/` changes.
+6. **Regenerate the wrappers** with `bun run scripts/generate_brew_suite.ts` (also run automatically by `bun install`).
 7. **Add tests** for the behavior (see `tests/breakout_studio.test.ts` for the style).
 8. **Give it tooltips** (a non-game app) or **name it in `GAME_APPS`** (a game), see [Help tooltips](#help-tooltips-for-every-app); take its screenshot and run `bun run showcase`.
 9. **Run `bun run docs:build`** so the application index lists it, and add a row to `features.json` if it is a feature worth tracking.

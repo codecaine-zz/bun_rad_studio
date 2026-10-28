@@ -119,7 +119,7 @@ export function buildWrapperDefinitions(): WrapperDefinition[] {
 
   // 2. Discover all tools using scanAllApplications
   // The launcher orders apps by the user's favorites and launch counts. Sort by path so the generated list, and the
-  // committed bin/manifest.json, are the same on every machine.
+  // generated bin/manifest.json, are the same on every machine.
   const apps = [...scanAllApplications().apps].sort((a, b) => a.displayPath.localeCompare(b.displayPath));
 
   // CLI tools

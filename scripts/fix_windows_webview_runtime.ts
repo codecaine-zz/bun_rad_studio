@@ -414,4 +414,8 @@ if (import.meta.main) {
       await ensureWindowsX64Bun().catch(() => undefined);
     }
   }
+  try {
+    const { generateAllWrappers } = await import("./generate_brew_suite.ts");
+    generateAllWrappers();
+  } catch {}
 }

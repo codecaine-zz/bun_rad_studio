@@ -5,18 +5,27 @@ import { join } from "path";
 import { createContext } from "../src/features/filemanager/fmCore";
 import {
   AUDIO_FORMAT_INFO,
+  buildAtempoFilter,
   cleanTextForSpeech,
+  computeReadAlongTimeline,
+  computeWordTimingsForText,
   convertWavFileToAiffNative,
   createWavHeader,
   DEFAULT_PHONON_VOICES,
+  estimateSpokenWordWeight,
   extractPlainTextFromFile,
+  formatAssKaraokeSubtitles,
+  formatSrtSubtitles,
+  formatVttSubtitles,
   getPhononStatus,
   isPhononSupportedPlatform,
+  isPhononVideoFormat,
   parseVoicesFromModelfile,
   parseWavPcm,
   PHONON_HARD_MAX_CHUNK_CHARS,
   splitTextForPhonon,
   startPhononInstall,
+  VIDEO_FORMAT_INFO,
 } from "../src/features/filemanager/fmPhonon";
 import { startFileManagerServer } from "../src/features/filemanager/fmServer";
 import { resolveTool } from "../src/features/filemanager/fmToolDetect";
@@ -73,11 +82,149 @@ describe("Ollama & Phonon tool registration and 38 voices catalog", () => {
     expect(parsed).toEqual(["Alfie", "Captain Silas Blackwater", "Zoey", "CustomFutureVoice"]);
   });
 
-  test("all 9 target audio formats are offered with WAV and AIFF working without ffmpeg", () => {
+  test("all 9 target audio formats and 4 Read-Along Video formats are offered", () => {
     expect(AUDIO_FORMAT_INFO.map((f) => f.id)).toEqual(["wav", "mp3", "m4a", "aac", "flac", "ogg", "opus", "aiff", "wma"]);
     expect(AUDIO_FORMAT_INFO.find((f) => f.id === "wav")!.needsFfmpeg).toBe(false);
     expect(AUDIO_FORMAT_INFO.find((f) => f.id === "aiff")!.needsFfmpeg).toBe(false);
     expect(AUDIO_FORMAT_INFO.find((f) => f.id === "mp3")!.needsFfmpeg).toBe(true);
+
+    expect(VIDEO_FORMAT_INFO.map((f) => f.id)).toEqual(["mp4", "webm", "mov", "mkv"]);
+    expect(isPhononVideoFormat("mp4")).toBe(true);
+    expect(isPhononVideoFormat("webm")).toBe(true);
+    expect(isPhononVideoFormat("wav")).toBe(false);
+  });
+
+  test("computes word-by-word timings and generates SRT, VTT, and ASS karaoke subtitles for Read-Along Video", () => {
+    const words = computeWordTimingsForText("Hello world, follow along with every word!", 2400, 100, 0);
+    expect(words.length).toBe(7);
+    expect(words[0]!.word).toBe("Hello");
+    expect(words[0]!.startMs).toBe(100);
+    expect(words[words.length - 1]!.endMs).toBe(2500);
+    for (let i = 1; i < words.length; i++) {
+      expect(words[i]!.startMs).toBeGreaterThanOrEqual(words[i - 1]!.endMs);
+    }
+
+    const timeline = computeReadAlongTimeline(
+      [
+        {
+          index: 0,
+          paragraphIndex: 0,
+          text: "Welcome to Codecaine Phonon Read-Along Video. Every word lights up in sync!",
+          startMs: 0,
+          endMs: 3200,
+          durationMs: 3200,
+        },
+        {
+          index: 1,
+          paragraphIndex: 1,
+          text: "Convert any document into both speech audio and synchronized video.",
+          startMs: 3400,
+          endMs: 6200,
+          durationMs: 2800,
+        },
+      ],
+      { aspectRatio: "16:9" },
+    );
+
+    expect(timeline.totalDurationMs).toBe(6200);
+    expect(timeline.cues.length).toBeGreaterThanOrEqual(2);
+    expect(timeline.words.length).toBe(22);
+
+    const srt = formatSrtSubtitles(timeline);
+    expect(srt).toContain("1\n00:00:00,000 -->");
+    expect(srt).toContain("Welcome to Codecaine Phonon Read-Along Video.");
+
+    const vtt = formatVttSubtitles(timeline);
+    expect(vtt.startsWith("WEBVTT\n")).toBe(true);
+    expect(vtt).toContain("00:00:00.000 -->");
+
+    const ass = formatAssKaraokeSubtitles(timeline, {
+      voice: "Zoey",
+      title: "Demo Read-Along",
+      aspectRatio: "16:9",
+      videoTheme: "midnight",
+    });
+    expect(ass).toContain("[Script Info]");
+    expect(ass).toContain("PlayResX: 1920");
+    expect(ass).toContain("PlayResY: 1080");
+    expect(ass).toContain("Style: ActiveKaraoke");
+    expect(ass).toMatch(/\{\\kf\d+\}Welcome/);
+    expect(ass).toMatch(/\{\\kf\d+\}video\./);
+  });
+
+  test("aligns word timings to 16-bit PCM speech waveform, pitch-inflection pause valleys, and spelled-out acronyms", () => {
+    // 1. Spelled-out acronyms (TTS, MLX, MP4) get higher spoken syllable weight than short function words
+    expect(estimateSpokenWordWeight("TTS").weight).toBeGreaterThan(estimateSpokenWordWeight("the").weight * 4);
+    expect(estimateSpokenWordWeight("MP4").weight).toBeGreaterThan(estimateSpokenWordWeight("and").weight * 4);
+
+    // 2. Build a 3.0s (24kHz) 16-bit PCM waveform with:
+    //    - 0..160ms: leading pre-roll silence
+    //    - 160..1200ms: Clause 1 ("Hello TTS world,") high-pitched voiced speech
+    //    - 1200..1720ms: 520ms mid-sentence pitch/prosody pause valley at the comma
+    //    - 1720..2600ms: Clause 2 ("follow along now.") lower-amplitude sentence-final pitch drop
+    //    - 2600..3000ms: trailing post-roll silence
+    const sampleRate = 24000;
+    const totalSamples = sampleRate * 3; // 3000ms
+    const pcm = Buffer.alloc(totalSamples * 2);
+    for (let i = 0; i < totalSamples; i++) {
+      const ms = (i / sampleRate) * 1000;
+      let amp = 0;
+      if (ms >= 160 && ms <= 1200) {
+        amp = 9000;
+      } else if (ms >= 1720 && ms <= 2600) {
+        // Sentence-final pitch drop has lower RMS amplitude (~1800) but is still actively voiced
+        amp = 1800;
+      }
+      const val = amp > 0 ? Math.round(Math.sin(i * 0.17) * amp) : 0;
+      pcm.writeInt16LE(val, i * 2);
+    }
+
+    const aligned = computeWordTimingsForText(
+      "Hello TTS world, follow along now.",
+      3000,
+      0,
+      0,
+      { pcmData: pcm, sampleRate, speed: 1 },
+    );
+    expect(aligned.length).toBe(6);
+    // Word 0 ("Hello") waits until pre-roll silence ends (~160ms)
+    expect(aligned[0]!.startMs).toBeGreaterThanOrEqual(140);
+    expect(aligned[0]!.startMs).toBeLessThanOrEqual(210);
+    // Word 2 ("world,") ends right at the start of the 1200..1720ms comma pause valley
+    expect(aligned[2]!.word).toBe("world,");
+    expect(aligned[2]!.endMs).toBeGreaterThanOrEqual(1160);
+    expect(aligned[2]!.endMs).toBeLessThanOrEqual(1240);
+    // Word 3 ("follow") does NOT start until the 520ms pause valley finishes at ~1720ms!
+    expect(aligned[3]!.word).toBe("follow");
+    expect(aligned[3]!.startMs).toBeGreaterThanOrEqual(1680);
+    expect(aligned[3]!.startMs).toBeLessThanOrEqual(1760);
+    // Word 5 ("now.") finishes near the end of voiced speech (~2600ms), before trailing silence
+    expect(aligned[5]!.endMs).toBeGreaterThanOrEqual(2560);
+    expect(aligned[5]!.endMs).toBeLessThanOrEqual(2650);
+
+    // 3. ASS karaoke subtitles emit {\k<gapCs>} pause holds during acoustic gaps
+    const timeline = computeReadAlongTimeline([
+      {
+        index: 0,
+        paragraphIndex: 0,
+        text: "Hello TTS world, follow along now.",
+        startMs: 0,
+        endMs: 3000,
+        durationMs: 3000,
+        pcmData: pcm,
+        sampleRate,
+        speed: 1,
+      },
+    ]);
+    const ass = formatAssKaraokeSubtitles(timeline, { voice: "Zoey", title: "Pause Hold Test" });
+    expect(ass).toMatch(/\{\\kf\d+\}/);
+
+    // 4. Time-locked pitch filter preserves duration via asetrate + aresample + atempo
+    const pitchUpFilter = buildAtempoFilter(1.0, 3, 24000).join(" ");
+    expect(pitchUpFilter).toContain("asetrate=");
+    expect(pitchUpFilter).toContain("aresample=24000");
+    expect(pitchUpFilter).toContain("atempo=");
+    expect(buildAtempoFilter(1.0, 0, 24000)).toEqual([]);
   });
 });
 
@@ -285,6 +432,28 @@ process.exit(0);
     writeFileSync(join(binDir, "ollama"), fakeOllama);
     chmodSync(join(binDir, "ollama"), 0o755);
 
+    const fakeFfmpeg = `#!/usr/bin/env bun
+import { appendFileSync, copyFileSync, existsSync, readFileSync, writeFileSync } from "fs";
+import { resolve } from "path";
+const args = process.argv.slice(2);
+appendFileSync(${JSON.stringify(logFile)}, "ffmpeg " + args.join(" ") + "\\n");
+const outArg = args[args.length - 1] ?? "";
+const outFile = outArg.startsWith("file:") ? outArg.slice(5) : resolve(process.cwd(), outArg);
+const inIdx = args.lastIndexOf("-i");
+const inArg = inIdx >= 0 ? (args[inIdx + 1] ?? "") : "";
+const inFile = inArg.startsWith("file:") ? inArg.slice(5) : resolve(process.cwd(), inArg);
+if (outFile.endsWith(".wav") && existsSync(inFile)) {
+  copyFileSync(inFile, outFile);
+  process.exit(0);
+}
+const assExists = existsSync(resolve(process.cwd(), "subtitles.ass"));
+const assBytes = assExists ? readFileSync(resolve(process.cwd(), "subtitles.ass"), "utf8") : "";
+writeFileSync(outFile, "FAKE_MP4_VIDEO\\n" + assBytes.slice(0, 200));
+process.exit(0);
+`;
+    writeFileSync(join(binDir, "ffmpeg"), fakeFfmpeg);
+    chmodSync(join(binDir, "ffmpeg"), 0o755);
+
     server = startFileManagerServer({
       port: 0,
       host: "127.0.0.1",
@@ -321,23 +490,39 @@ process.exit(0);
   });
 
   test("phonon/voice saves and persists the default voice in File Manager settings", async () => {
-    const res = await post("phonon/voice", { voice: "Captain Silas Blackwater", format: "aiff", speed: 1.15, pauseMs: 300 });
+    const res = await post("phonon/voice", {
+      voice: "Captain Silas Blackwater",
+      format: "aiff",
+      speed: 1.15,
+      pitch: 1.5,
+      syncOffsetMs: -40,
+      pauseMs: 300,
+    });
     expect(res.status).toBe(200);
     expect(res.json.voice).toBe("Captain Silas Blackwater");
     expect(res.json.format).toBe("aiff");
     expect(res.json.speed).toBe(1.15);
+    expect(res.json.pitch).toBe(1.5);
+    expect(res.json.syncOffsetMs).toBe(-40);
 
     const statusAfter = await post("phonon/status");
     expect(statusAfter.json.settings.voice).toBe("Captain Silas Blackwater");
     expect(statusAfter.json.settings.format).toBe("aiff");
+    expect(statusAfter.json.settings.pitch).toBe(1.5);
+    expect(statusAfter.json.settings.syncOffsetMs).toBe(-40);
   });
 
-  test("phonon/speak synthesizes a chunk and serves cached WAV audio over /api/phonon/audio", async () => {
+  test("phonon/speak synthesizes a chunk, returns word-level follow-along timings, and serves cached WAV audio over /api/phonon/audio", async () => {
     const speak = await post("phonon/speak", { text: "Testing live read out loud synthesis.", voice: "Zoey" });
     expect(speak.status).toBe(200);
     expect(speak.json.audioId).toMatch(/^[a-f0-9]+$/);
     expect(speak.json.sampleRate).toBe(24000);
     expect(speak.json.durationSec).toBeGreaterThan(0);
+    expect(Array.isArray(speak.json.words)).toBe(true);
+    expect(speak.json.words.length).toBe(6);
+    expect(speak.json.words[0].word).toBe("Testing");
+    expect(Array.isArray(speak.json.cues)).toBe(true);
+    expect(speak.json.cues.length).toBeGreaterThanOrEqual(1);
 
     const audioRes = await fetch(`http://127.0.0.1:${server.port}${speak.json.url}&token=${TOKEN}`);
     expect(audioRes.status).toBe(200);
@@ -346,6 +531,41 @@ process.exit(0);
     const parsed = parseWavPcm(wavBytes);
     expect(parsed.sampleRate).toBe(24000);
     expect(parsed.pcmData.length).toBe(4800);
+  });
+
+  test("phonon/video converts multi-chunk text into a synchronized Read-Along MP4 Video + companion .srt and .vtt subtitles", async () => {
+    const videoRes = await post("phonon/video", {
+      text: "First sentence of the read-along video. Second sentence lights up word by word as you follow along!",
+      voice: "Zoey",
+      format: "mp4",
+      aspectRatio: "16:9",
+      videoTheme: "midnight",
+      saveSubtitles: true,
+      outputDir: homeDir,
+      outputName: "follow-along-demo",
+      maxChunkChars: 120,
+    });
+    expect(videoRes.status).toBe(200);
+    expect(videoRes.json.isVideo).toBe(true);
+    const outVideoPath = videoRes.json.outputs[0];
+    expect(outVideoPath.endsWith(".mp4")).toBe(true);
+
+    for (let i = 0; i < 60; i++) {
+      const list = await post("jobs/list");
+      const job = list.json.jobs.find((j: any) => j.id === videoRes.json.job.id);
+      if (job && job.state === "done") break;
+      await Bun.sleep(40);
+    }
+
+    expect(existsSync(outVideoPath)).toBe(true);
+    expect(readFileSync(outVideoPath, "utf8")).toContain("[Script Info]");
+
+    const srtPath = outVideoPath.replace(/\.mp4$/, ".srt");
+    const vttPath = outVideoPath.replace(/\.mp4$/, ".vtt");
+    expect(existsSync(srtPath)).toBe(true);
+    expect(existsSync(vttPath)).toBe(true);
+    expect(readFileSync(srtPath, "utf8")).toContain("First sentence of the read-along video.");
+    expect(readFileSync(vttPath, "utf8")).toContain("WEBVTT");
   });
 
   test("phonon/save stitches multi-chunk large text into a continuous WAV and AIFF audio file on disk", async () => {
@@ -525,17 +745,41 @@ const hasRealPhonon = (() => {
 })();
 
 describe("with real Ollama & Phonon model", () => {
-  test.skipIf(!hasRealPhonon)("synthesizes real speech audio with `ollama run phonon --voice Zoey`", async () => {
+  test.skipIf(!hasRealPhonon)("synthesizes real speech audio and exports a real Read-Along MP4 Video with `ollama run phonon --voice Zoey`", async () => {
     const ctx = createContext({ home: root, dataDir: join(root, "real-data") });
     const status = await getPhononStatus(ctx);
     expect(status.ready).toBe(true);
     expect(status.voices.length).toBeGreaterThanOrEqual(38);
 
-    const { synthesizePhononChunkWav } = await import("../src/features/filemanager/fmPhonon");
+    const { synthesizePhononChunkWav, synthesizeAndExportAudioFile } = await import("../src/features/filemanager/fmPhonon");
     const wav = await synthesizePhononChunkWav(ctx, status.ollamaPath!, "Hello from Codecaine File Manager.", "Zoey");
     const parsed = parseWavPcm(wav);
     expect(parsed.sampleRate).toBe(24000);
     expect(parsed.bitsPerSample).toBe(16);
     expect(parsed.pcmData.length).toBeGreaterThan(10_000);
+
+    const ffmpegExe = resolveTool(ctx, "ffmpeg");
+    if (ffmpegExe) {
+      const outMp4 = join(root, "real-read-along.mp4");
+      const chunks = splitTextForPhonon("Welcome to Codecaine Phonon Read-Along Video! Follow along word by word.", { maxChars: 200 });
+      const videoOut = await synthesizeAndExportAudioFile(ctx, {
+        ollamaExe: status.ollamaPath!,
+        ffmpegExe,
+        chunks,
+        voice: "Zoey",
+        format: "mp4",
+        speed: 1,
+        pauseMs: 150,
+        outputPath: outMp4,
+        aspectRatio: "16:9",
+        videoTheme: "midnight",
+        saveSubtitles: true,
+        title: "Real Read-Along Demo",
+      });
+      expect(existsSync(videoOut.outputPath)).toBe(true);
+      expect(videoOut.sizeBytes).toBeGreaterThan(1000);
+      expect(videoOut.srtPath && existsSync(videoOut.srtPath)).toBe(true);
+      expect(videoOut.vttPath && existsSync(videoOut.vttPath)).toBe(true);
+    }
   });
 });

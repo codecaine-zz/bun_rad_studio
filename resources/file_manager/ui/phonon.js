@@ -1,4 +1,4 @@
-// Ollama Phonon Voice Reader, Plain-Text Format Converter, Large-Text Streaming Reader & Multi-Format Audio Exporter.
+// Ollama Phonon Voice Reader, Plain-Text Format Converter, Live Follow-Along Teleprompter & Multi-Format Audio/Video Exporter.
 import { ApiError, call, getToken, isPhononSupported } from "./api.js";
 import { announce, clear, h } from "./dom.js";
 import { toast } from "./menus.js";
@@ -18,7 +18,7 @@ function stemOf(name) {
 }
 
 /**
- * Checks whether a file entry can be read aloud or converted to plain text.
+ * Checks whether a file entry can be read aloud or converted to plain text / read-along video.
  * Supports plain text, source code, markup, documents, PDFs, e-books, spreadsheets, presentations, subtitles, data files, and OCR images.
  */
 const READABLE_EXTS = new Set([
@@ -56,6 +56,153 @@ function audioUrlWithToken(rawPath) {
   return `${rawPath}${sep}token=${encodeURIComponent(getToken())}`;
 }
 
+function rawFileUrl(absPath) {
+  return `/api/raw?path=${encodeURIComponent(absPath)}&token=${encodeURIComponent(getToken())}`;
+}
+
+const VIDEO_EXT_SET = new Set(["mp4", "webm", "mov", "mkv"]);
+
+const COMMON_FUNCTION_WORDS = new Set([
+  "a", "an", "the", "to", "of", "in", "on", "at", "by", "for", "or", "and", "as", "is", "it", "be", "we", "he", "me", "my", "so", "up", "if", "no", "do",
+]);
+
+/**
+ * Estimates relative spoken duration weight of a single word token, accounting for
+ * spelled-out uppercase/alphanumeric acronyms (TTS, MLX, MP4, MKV, MP3, M4A),
+ * digit strings, compound hyphenated words, and short function words.
+ */
+function estimateSpokenWordWeightClient(rawWord) {
+  const core = String(rawWord || "").replace(/^[^A-Za-z0-9\u00C0-\u024F]+|[^A-Za-z0-9\u00C0-\u024F]+$/g, "");
+  if (!core) return 1.2;
+
+  const lower = core.toLowerCase();
+  if (COMMON_FUNCTION_WORDS.has(lower)) {
+    return 1.15;
+  }
+
+  const upperCount = (core.match(/[A-Z]/g) || []).length;
+  const digitCount = (core.match(/[0-9]/g) || []).length;
+  const isAllUpperAcronym = core.length >= 2 && core.length <= 6 && upperCount === core.length;
+  const isAlphaNumAcronym = core.length >= 2 && core.length <= 8 && digitCount > 0 && (upperCount + digitCount === core.length || /^[A-Za-z]{1,4}\d+/.test(core));
+
+  let weight;
+  if (isAllUpperAcronym) {
+    weight = core.length * 2.85;
+  } else if (isAlphaNumAcronym) {
+    weight = (core.length - digitCount) * 2.6 + digitCount * 3.1;
+  } else if (digitCount > 0) {
+    const nonDigits = core.length - digitCount;
+    weight = Math.pow(Math.max(1, nonDigits), 0.78) + digitCount * 2.75;
+  } else {
+    const parts = core.split(/[-–—/]+/).filter(Boolean);
+    if (parts.length > 1) {
+      weight = parts.reduce((acc, p) => acc + Math.max(1.35, Math.pow(p.length, 0.78)), 0) + (parts.length - 1) * 0.45;
+    } else {
+      weight = Math.max(1.4, Math.pow(core.length, 0.78));
+      if (upperCount >= 2 && core.length <= 6) {
+        weight *= 1.35;
+      }
+    }
+  }
+
+  return weight;
+}
+
+/**
+ * Computes client-side word and caption-cue timings for any text chunk so the Follow-Along Teleprompter
+ * can render interactive word tokens immediately and synchronize at 60fps during audio playback.
+ */
+function buildClientWordCues(text, durationSec = 0) {
+  const clean = String(text || "").trim();
+  if (!clean) return { words: [], cues: [], durationMs: 0 };
+  const rawTokens = [];
+  const rx = /\S+/g;
+  let m;
+  while ((m = rx.exec(clean)) !== null) {
+    const word = m[0];
+    const speakWeight = estimateSpokenWordWeightClient(word);
+    let pauseAfterWeight = 0;
+    if (/[.!?…]['"”’)\]]*$/.test(word)) pauseAfterWeight = 3.2;
+    else if (/[;:—–]['"”’)\]]*$/.test(word)) pauseAfterWeight = 2.0;
+    else if (/,['"”’)\]]*$/.test(word)) pauseAfterWeight = 1.35;
+    rawTokens.push({
+      word,
+      charStart: m.index,
+      charEnd: m.index + word.length,
+      speakWeight,
+      pauseAfterWeight,
+      weight: speakWeight + pauseAfterWeight,
+    });
+  }
+  if (!rawTokens.length) return { words: [], cues: [], durationMs: 0 };
+
+  const estDurationMs = durationSec > 0
+    ? Math.max(80, Math.round(durationSec * 1000))
+    : Math.max(1000, Math.round((rawTokens.length / 2.5) * 1000));
+  const preRollMs = estDurationMs > 900 ? Math.min(130, Math.round(estDurationMs * 0.02)) : 0;
+  const postRollMs = estDurationMs > 1200 ? Math.min(380, Math.round(estDurationMs * 0.045)) : 0;
+  const activeSpanMs = Math.max(60, estDurationMs - preRollMs - postRollMs);
+
+  const totalWeight = rawTokens.reduce((acc, t) => acc + t.weight, 0) || 1;
+  const words = [];
+  let cum = 0;
+
+  for (let i = 0; i < rawTokens.length; i++) {
+    const tok = rawTokens[i];
+    const startMs = i === 0
+      ? preRollMs
+      : Math.max(words[i - 1].endMs, preRollMs + Math.round((cum / totalWeight) * activeSpanMs));
+    const wordSpeakEndCum = cum + tok.speakWeight;
+    cum += tok.weight;
+    const endMs = i === rawTokens.length - 1
+      ? Math.max(startMs + 1, preRollMs + activeSpanMs)
+      : Math.max(startMs + 1, preRollMs + Math.round((wordSpeakEndCum / totalWeight) * activeSpanMs));
+    words.push({
+      word: tok.word,
+      wordIndex: i,
+      cueIndex: 0,
+      charStart: tok.charStart,
+      charEnd: tok.charEnd,
+      startMs,
+      endMs,
+      durationMs: Math.max(1, endMs - startMs),
+    });
+  }
+
+  const cues = [];
+  let curWords = [];
+  let curChars = 0;
+  const flush = () => {
+    if (!curWords.length) return;
+    const cueIdx = cues.length;
+    for (const w of curWords) w.cueIndex = cueIdx;
+    cues.push({
+      index: cueIdx,
+      text: curWords.map((w) => w.word).join(" "),
+      startMs: curWords[0].startMs,
+      endMs: curWords[curWords.length - 1].endMs,
+      words: curWords,
+    });
+    curWords = [];
+    curChars = 0;
+  };
+
+  for (const w of words) {
+    const nextChars = curChars === 0 ? w.word.length : curChars + 1 + w.word.length;
+    if (curWords.length >= 10 || (curWords.length > 0 && nextChars > 56)) {
+      flush();
+    }
+    curWords.push(w);
+    curChars = curChars === 0 ? w.word.length : curChars + 1 + w.word.length;
+    if (/[.!?…]['"”’)\]]*$/.test(w.word) && (curWords.length >= 3 || curChars >= 18)) {
+      flush();
+    }
+  }
+  flush();
+
+  return { words, cues, durationMs: estDurationMs };
+}
+
 function mountPhononStudio(root, payload) {
   clear(root);
   root.classList.add("phonon-studio-root");
@@ -64,12 +211,90 @@ function mountPhononStudio(root, payload) {
   let status = null;
   let voices = [];
   let audioFormats = [];
+  let videoFormats = [];
   let selectedVoice = state.settings?.phononVoice || "Zoey";
   let selectedFormat = state.settings?.phononFormat || "wav";
   let speed = Number(state.settings?.phononSpeed) || 1;
+  let pitch = Number(state.settings?.phononPitch) || 0;
+  let syncOffsetMs = Number(state.settings?.phononSyncOffsetMs) || 0;
   let pauseMs = Number(state.settings?.phononPauseMs ?? 200);
   let cleanText = state.settings?.phononCleanText !== false;
   let maxChunkChars = 520;
+  let rateOrPitchChangedAt = 0;
+  let probedOutputLatencyMs = 72;
+
+  // Read-Along Video & Teleprompter state
+  let selectedAspectRatio = "16:9";
+  let selectedVideoTheme = "midnight";
+  let saveCompanionSubtitles = true;
+  let teleprompterSize = "lg"; // "sm" | "md" | "lg" | "xl"
+  let teleprompterAutoScroll = true;
+  let activeWordIndex = -1;
+  let activeCueIndex = -1;
+  let currentTeleprompterData = {
+    chunkIndex: 0,
+    words: [],
+    cues: [],
+    durationMs: 0,
+    pcmAligned: false,
+    synthesizedPitch: 0,
+  };
+  let wordSpanNodes = [];
+  let cueRowNodes = [];
+  let rafId = 0;
+
+  function formatPitchLabel(semitones) {
+    const p = Math.round((Number(semitones) || 0) * 10) / 10;
+    if (Math.abs(p) < 0.05) return "0 st (Natural)";
+    return `${p > 0 ? "+" : ""}${p.toFixed(1).replace(/\.0$/, "")} st`;
+  }
+
+  function formatSyncOffsetLabel(offset) {
+    const ms = Math.round(Number(offset) || 0);
+    if (ms === 0) return "0 ms (Auto Pitch-Sync)";
+    return ms < 0 ? `${ms} ms (Delay Text)` : `+${ms} ms (Advance Text)`;
+  }
+
+  function probeHardwareAudioLatency() {
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      const ctx = new Ctx();
+      const hwSec = (Number(ctx.outputLatency) || 0) + (Number(ctx.baseLatency) || 0);
+      if (hwSec > 0.01 && hwSec < 0.6) {
+        probedOutputLatencyMs = Math.round(hwSec * 1000);
+      }
+      void ctx.close().catch(() => {});
+    } catch {}
+  }
+  probeHardwareAudioLatency();
+
+  function getEffectiveAudioLatencyMs() {
+    const rateStretchLatency = Math.round(Math.abs(speed - 1) * 95);
+    const pitchShiftLatency = Math.abs(pitch) >= 0.25 ? Math.round(50 + Math.abs(pitch) * 8) : 0;
+    const elapsedSinceChange = performance.now() - rateOrPitchChangedAt;
+    const settleLatency = elapsedSinceChange >= 0 && elapsedSinceChange < 380
+      ? Math.round((1 - elapsedSinceChange / 380) * 110)
+      : 0;
+    return probedOutputLatencyMs + rateStretchLatency + pitchShiftLatency + settleLatency;
+  }
+
+  function applyAudioPlaybackSettings() {
+    const bakedPitch = Number(currentTeleprompterData.synthesizedPitch) || 0;
+    const residualPitch = pitch - bakedPitch;
+    if (Math.abs(residualPitch) >= 0.1) {
+      const residualFactor = Math.pow(2, residualPitch / 12);
+      audioEl.preservesPitch = false;
+      audioEl.webkitPreservesPitch = false;
+      audioEl.mozPreservesPitch = false;
+      audioEl.playbackRate = Math.max(0.25, Math.min(4.0, speed * residualFactor));
+    } else {
+      audioEl.preservesPitch = true;
+      audioEl.webkitPreservesPitch = true;
+      audioEl.mozPreservesPitch = true;
+      audioEl.playbackRate = Math.max(0.25, Math.min(4.0, speed));
+    }
+  }
 
   // Clean options
   let stripMarkdown = true;
@@ -92,7 +317,7 @@ function mountPhononStudio(root, payload) {
   let isPaused = false;
   let activeChunkIndex = -1;
   let playbackSessionId = 0;
-  const chunkAudioCache = new Map(); // `${voice}|${chunkText}` -> Promise<{ url, durationSec }>
+  const chunkAudioCache = new Map(); // `${voice}|${chunkText}` -> Promise<{ url, durationSec, words, cues }>
 
   const audioEl = new Audio();
   audioEl.preload = "auto";
@@ -113,6 +338,24 @@ function mountPhononStudio(root, payload) {
     value: String(speed),
   });
   const speedValueLabel = h("span", { class: "phonon-metric-val" }, `${speed.toFixed(2).replace(/\.00$/, ".0")}×`);
+  const pitchSlider = h("input", {
+    id: "phonon-pitch-range",
+    type: "range",
+    min: "-6",
+    max: "6",
+    step: "0.5",
+    value: String(pitch),
+  });
+  const pitchValueLabel = h("span", { class: "phonon-metric-val" }, formatPitchLabel(pitch));
+  const syncOffsetSlider = h("input", {
+    id: "phonon-sync-offset-range",
+    type: "range",
+    min: "-300",
+    max: "300",
+    step: "10",
+    value: String(syncOffsetMs),
+  });
+  const syncOffsetValueLabel = h("span", { class: "phonon-metric-val" }, formatSyncOffsetLabel(syncOffsetMs));
   const pauseSlider = h("input", {
     id: "phonon-pause-range",
     type: "range",
@@ -141,12 +384,23 @@ function mountPhononStudio(root, payload) {
   const textArea = h("textarea", {
     id: "phonon-text-editor",
     class: "input phonon-textarea",
-    rows: "9",
-    placeholder: "Paste or type any text here — or load any document/file above to convert it into plain text and read it out loud with Ollama Phonon. Arbitrarily large books and documents are automatically split into context-safe chunks.",
+    rows: "7",
+    placeholder: "Paste or type any text here — or load any document/file above to convert it into plain text, read it out loud with live word-by-word highlighting, and save as an Audio or Read-Along Video file.",
   });
 
   const formatSelect = h("select", { id: "phonon-format-select", class: "input phonon-select" });
   const formatHintEl = h("p", { class: "hint phonon-format-hint" }, "");
+  const videoAspectSelect = h("select", { id: "phonon-video-aspect", class: "input phonon-select" },
+    h("option", { value: "16:9", selected: true }, "16:9 Widescreen (1920×1080 — YouTube / Desktop)"),
+    h("option", { value: "9:16" }, "9:16 Vertical Short (1080×1920 — Shorts / Reels / TikTok)"),
+    h("option", { value: "1:1" }, "1:1 Square (1080×1080 — Social Feed)"),
+  );
+  const videoThemeSelect = h("select", { id: "phonon-video-theme", class: "input phonon-select" },
+    h("option", { value: "midnight", selected: true }, "Midnight Studio (Electric Cyan Highlight)"),
+    h("option", { value: "parchment" }, "Warm Book Page (Amber Gold Highlight)"),
+    h("option", { value: "cyber" }, "Cyber Neon (Neon Cyan & Violet Highlight)"),
+    h("option", { value: "high_contrast" }, "Accessible High Contrast (WCAG AAA Yellow)"),
+  );
   const outNameInput = h("input", {
     id: "phonon-out-name",
     type: "text",
@@ -167,14 +421,69 @@ function mountPhononStudio(root, payload) {
   const stopBtn = h("button", { type: "button", class: "btn", disabled: true, onclick: () => stopReading() }, "⏹ Stop");
   const prevChunkBtn = h("button", { type: "button", class: "btn", disabled: true, onclick: () => stepChunk(-1) }, "⏮ Prev");
   const nextChunkBtn = h("button", { type: "button", class: "btn", disabled: true, onclick: () => stepChunk(1) }, "⏭ Next");
-  const nowPlayingStatus = h("div", { class: "phonon-now-playing" }, "Ready to read. Select a voice and press Read Out Loud.");
+  const nowPlayingStatus = h("div", { class: "phonon-now-playing" }, "Ready to read. Press Read Out Loud to listen and follow along word by word.");
+
+  // Live Follow-Along Teleprompter DOM
+  const teleprompterWordBadge = h("span", { class: "phonon-badge phonon-badge-accent" }, "Follow-Along Ready");
+  const teleprompterStage = h("div", {
+    class: `phonon-teleprompter-stage theme-${selectedVideoTheme} size-${teleprompterSize}`,
+    role: "region",
+    "aria-label": "Follow-Along Synchronized Text Reader",
+  });
+  const teleprompterProgressFill = h("div", { class: "phonon-teleprompter-progress-fill" });
+  const teleprompterSizeSelect = h("select", {
+    class: "input phonon-select phonon-sm-select",
+    "aria-label": "Follow-along reader font size",
+    onchange: (e) => {
+      teleprompterSize = e.target.value;
+      updateTeleprompterClasses();
+    },
+  },
+    h("option", { value: "sm" }, "Text: Compact"),
+    h("option", { value: "md" }, "Text: Comfortable"),
+    h("option", { value: "lg", selected: true }, "Text: Large Teleprompter"),
+    h("option", { value: "xl" }, "Text: XL Cinema Stage"),
+  );
+
+  // Inline Read-Along Video Preview Player DOM
+  const videoPlayerEl = h("video", {
+    class: "phonon-video-player",
+    controls: true,
+    playsinline: true,
+    preload: "metadata",
+  });
+  const videoPlayerCaptionLabel = h("span", { class: "phonon-badge phonon-badge-accent" }, "🎬 Read-Along Video Preview");
+  const videoPlayerPathLabel = h("span", { class: "hint" }, "");
+  const videoPlayerBox = h("div", { class: "phonon-video-preview-card", hidden: true },
+    h("div", { class: "phonon-video-preview-head" },
+      h("div", { class: "phonon-inline-row" },
+        videoPlayerCaptionLabel,
+        videoPlayerPathLabel,
+      ),
+      h("div", { class: "phonon-inline-row" },
+        h("button", {
+          type: "button",
+          class: "btn phonon-sm-btn",
+          onclick: () => {
+            videoPlayerEl.pause();
+            videoPlayerBox.hidden = true;
+          },
+        }, "✕ Hide Video Player"),
+      ),
+    ),
+    videoPlayerEl,
+  );
 
   const chunkListContainer = h("div", { class: "phonon-chunk-list" });
   const chunkPagerContainer = h("div", { class: "phonon-chunk-pager" });
 
   // Populate default sample text so user can test immediately if no file was passed
   const DEFAULT_SAMPLE_TEXT =
-    "Welcome to the Codecaine Phonon Voice Studio! Powered by Ollama and Gradium Phonon TTS, you can choose your default voice from 38 expressive neural voices, convert documents and files from any format into clean plain text, read arbitrarily large texts out loud with automatic context-window chunking, and save speech as WAV, MP3, M4A, FLAC, OGG, Opus, AIFF, or WMA.";
+    "Welcome to the Codecaine Phonon Voice Studio! Powered by Ollama and Gradium Phonon TTS on Apple Silicon MLX, you can follow along word by word as your document is read out loud, convert any file format into clean plain text, and export synchronized Read-Along Videos in MP4, WebM, MOV, or MKV alongside WAV, MP3, M4A, and FLAC audio.";
+
+  function updateTeleprompterClasses() {
+    teleprompterStage.className = `phonon-teleprompter-stage theme-${selectedVideoTheme} size-${teleprompterSize}`;
+  }
 
   function updateVoiceDropdown() {
     clear(voiceSelect);
@@ -200,27 +509,49 @@ function mountPhononStudio(root, payload) {
     defaultVoiceBadge.textContent = `Default: ${state.settings?.phononVoice || "Zoey"}`;
   }
 
-  function updateFormatDropdown() {
-    clear(formatSelect);
-    const list = audioFormats.length
+  function allFormatsList() {
+    const aud = audioFormats.length
       ? audioFormats
       : [
-          { id: "wav", label: "WAV (24 kHz PCM — Native)", needsFfmpeg: false, desc: "Uncompressed studio WAV directly from Phonon." },
-          { id: "mp3", label: "MP3 (Universal Audio)", needsFfmpeg: true, desc: "Compact MP3 audio file." },
-          { id: "m4a", label: "M4A / AAC (Apple & Podcast)", needsFfmpeg: true, desc: "High-efficiency M4A audio." },
-          { id: "flac", label: "FLAC (Lossless)", needsFfmpeg: true, desc: "Lossless compressed FLAC." },
-          { id: "ogg", label: "OGG Vorbis", needsFfmpeg: true, desc: "Open-source Ogg Vorbis." },
-          { id: "opus", label: "Opus (Best Speech Compression)", needsFfmpeg: true, desc: "Modern speech codec." },
-          { id: "aiff", label: "AIFF (Apple PCM — Native)", needsFfmpeg: false, desc: "Uncompressed Apple AIFF." },
+          { id: "wav", label: "WAV (24 kHz PCM — Native)", needsFfmpeg: false, isVideo: false, desc: "Uncompressed studio WAV directly from Phonon." },
+          { id: "mp3", label: "MP3 (Universal Audio)", needsFfmpeg: true, isVideo: false, desc: "Compact MP3 audio file." },
+          { id: "m4a", label: "M4A / AAC (Apple & Podcast)", needsFfmpeg: true, isVideo: false, desc: "High-efficiency M4A audio." },
+          { id: "flac", label: "FLAC (Lossless)", needsFfmpeg: true, isVideo: false, desc: "Lossless compressed FLAC." },
+          { id: "ogg", label: "OGG Vorbis", needsFfmpeg: true, isVideo: false, desc: "Open-source Ogg Vorbis." },
+          { id: "opus", label: "Opus (Best Speech Compression)", needsFfmpeg: true, isVideo: false, desc: "Modern speech codec." },
+          { id: "aiff", label: "AIFF (Apple PCM — Native)", needsFfmpeg: false, isVideo: false, desc: "Uncompressed Apple AIFF." },
         ];
-    for (const fmt of list) {
+    const vid = videoFormats.length
+      ? videoFormats
+      : [
+          { id: "mp4", label: "MP4 Read-Along Video (H.264 + Highlighted Text)", needsFfmpeg: true, isVideo: true, desc: "Universal 1080p MP4 Read-Along Video with synchronized word-by-word text highlighting and .SRT/.VTT subtitles." },
+          { id: "webm", label: "WebM Read-Along Video (VP9 + Highlighted Text)", needsFfmpeg: true, isVideo: true, desc: "Open-web VP9/Opus Read-Along Video with synchronized text highlighting." },
+          { id: "mov", label: "MOV QuickTime Read-Along Video (Apple H.264)", needsFfmpeg: true, isVideo: true, desc: "Apple QuickTime MOV Read-Along Video with synchronized text highlighting." },
+          { id: "mkv", label: "MKV Matroska Read-Along Video (H.264 + Subtitles)", needsFfmpeg: true, isVideo: true, desc: "Archival MKV Read-Along Video with synchronized text highlighting." },
+        ];
+    return { aud, vid, all: [...aud, ...vid] };
+  }
+
+  function updateFormatDropdown() {
+    clear(formatSelect);
+    const { aud, vid, all } = allFormatsList();
+    const audioGroup = h("optgroup", { label: "🎵 Audio Formats (Speech Only)" });
+    for (const fmt of aud) {
       const needsFf = fmt.needsFfmpeg && status && !status.ffmpegInstalled;
-      formatSelect.append(
+      audioGroup.append(
         h("option", { value: fmt.id, selected: fmt.id === selectedFormat }, `${fmt.label}${needsFf ? " (install ffmpeg first)" : ""}`),
       );
     }
+    const videoGroup = h("optgroup", { label: "🎬 Read-Along Video Formats (Voice + Synchronized Highlighted Text)" });
+    for (const fmt of vid) {
+      const needsFf = fmt.needsFfmpeg && status && !status.ffmpegInstalled;
+      videoGroup.append(
+        h("option", { value: fmt.id, selected: fmt.id === selectedFormat }, `${fmt.label}${needsFf ? " (install ffmpeg first)" : ""}`),
+      );
+    }
+    formatSelect.append(audioGroup, videoGroup);
     formatSelect.value = selectedFormat;
-    const cur = list.find((f) => f.id === selectedFormat);
+    const cur = all.find((f) => f.id === selectedFormat);
     formatHintEl.textContent = cur ? cur.desc : "";
   }
 
@@ -240,7 +571,7 @@ function mountPhononStudio(root, payload) {
       h("span", { class: `phonon-pill ${status.supported !== false ? "ok" : "warn"}` }, status.supported !== false ? "🍎 Apple Silicon MLX (macOS ARM64)" : "⚠ Requires Apple Silicon Mac (MLX)"),
       h("span", { class: `phonon-pill ${ollamaOk ? "ok" : "warn"}` }, ollamaOk ? `✔ Ollama (${status.ollamaVersion || "installed"})` : "✖ Ollama not installed"),
       h("span", { class: `phonon-pill ${modelOk ? "ok" : "warn"}` }, modelOk ? "✔ Phonon TTS Model (38 voices)" : "✖ Phonon model not pulled"),
-      h("span", { class: `phonon-pill ${ffOk ? "ok" : "muted"}` }, ffOk ? "✔ ffmpeg (All audio formats)" : "ℹ WAV & AIFF ready (install ffmpeg for MP3/M4A/FLAC)"),
+      h("span", { class: `phonon-pill ${ffOk ? "ok" : "muted"}` }, ffOk ? "✔ ffmpeg (All Audio + Read-Along MP4 Video)" : "ℹ WAV & AIFF ready (install ffmpeg for MP3 & Read-Along Video)"),
       h("code", { class: "phonon-cli-badge" }, `ollama run phonon --voice ${selectedVoice.includes(" ") ? `"${selectedVoice}"` : selectedVoice}`),
     );
 
@@ -271,7 +602,7 @@ function mountPhononStudio(root, payload) {
         h("button", {
           type: "button",
           class: "btn phonon-sm-btn",
-          title: "Install ffmpeg with one click to unlock MP3, M4A, AAC, FLAC, OGG, Opus, and WMA export",
+          title: "Install ffmpeg with one click to unlock Read-Along Video (MP4/WebM/MOV/MKV) and MP3/M4A/FLAC export",
           onclick: () => installFfmpegHelper(),
         }, "⚡ 1-Click Install ffmpeg"),
       );
@@ -294,7 +625,7 @@ function mountPhononStudio(root, payload) {
       h("div", { class: `phonon-banner-card ${ready ? "is-ready" : "needs-setup"}` },
         h("div", { class: "phonon-banner-main" },
           h("div", { class: "phonon-banner-title" },
-            h("strong", {}, ready ? "🗣️ Ollama Phonon Neural TTS Studio — Ready" : "🗣️ Set Up Ollama Phonon Voice Engine"),
+            h("strong", {}, ready ? "🗣️ Ollama Phonon Neural TTS & Read-Along Video Studio — Ready" : "🗣️ Set Up Ollama Phonon Voice Engine"),
             h("span", { class: "hint" }, status.install?.note || ""),
           ),
           pills,
@@ -303,6 +634,216 @@ function mountPhononStudio(root, payload) {
       ),
     );
   }
+
+  // -------------------------------------------------------------------------------------------------------------
+  // Live Synchronized Follow-Along Teleprompter
+  // -------------------------------------------------------------------------------------------------------------
+
+  function renderTeleprompterForChunk(chunkIndex, customWords, customCues, durationSec, pcmAligned = false, synthesizedPitch = 0) {
+    clear(teleprompterStage);
+    wordSpanNodes = [];
+    cueRowNodes = [];
+    activeWordIndex = -1;
+    activeCueIndex = -1;
+
+    if (!chunks.length) {
+      teleprompterStage.append(
+        h("div", { class: "phonon-teleprompter-empty" }, "Load a document or type text above to follow along word by word as Phonon reads aloud."),
+      );
+      teleprompterWordBadge.textContent = "0 words";
+      teleprompterProgressFill.style.width = "0%";
+      return;
+    }
+
+    const idx = Math.max(0, Math.min(chunks.length - 1, chunkIndex < 0 ? 0 : chunkIndex));
+    const chunk = chunks[idx];
+    const fallback = buildClientWordCues(chunk.text, durationSec);
+    const hasCustomWords = Array.isArray(customWords) && customWords.length > 0;
+    const words = hasCustomWords ? customWords : fallback.words;
+    const cues = Array.isArray(customCues) && customCues.length ? customCues : fallback.cues;
+    const durationMs = durationSec > 0 ? Math.round(durationSec * 1000) : fallback.durationMs;
+
+    currentTeleprompterData = {
+      chunkIndex: idx,
+      words,
+      cues,
+      durationMs,
+      pcmAligned: Boolean(pcmAligned && hasCustomWords),
+      synthesizedPitch: Number(synthesizedPitch) || 0,
+    };
+
+    // Previous chunk context line (if available)
+    if (idx > 0 && chunks[idx - 1]) {
+      const prevText = chunks[idx - 1].text;
+      const snippet = prevText.length > 110 ? `…${prevText.slice(-110)}` : prevText;
+      teleprompterStage.append(
+        h("div", {
+          class: "phonon-teleprompter-context is-prev",
+          title: "Click to jump to previous segment",
+          onclick: () => playFromChunk(idx - 1),
+        }, `↑ Prev (#${idx}): ${snippet}`),
+      );
+    }
+
+    const cuesWrap = h("div", { class: "phonon-teleprompter-cues" });
+    for (let cIdx = 0; cIdx < cues.length; cIdx++) {
+      const cue = cues[cIdx];
+      const lineEl = h("div", {
+        class: `phonon-teleprompter-line${cIdx === 0 && !isPlaying ? " is-active-cue" : ""}`,
+        dataset: { cueIdx: String(cIdx) },
+      });
+      const cueWords = cue.words || words.filter((w) => w.cueIndex === cIdx);
+      for (let k = 0; k < cueWords.length; k++) {
+        const w = cueWords[k];
+        const wIdx = typeof w.wordIndex === "number" ? w.wordIndex : wordSpanNodes.length;
+        const span = h("span", {
+          class: "phonon-word is-upcoming",
+          dataset: {
+            wordIdx: String(wIdx),
+            startMs: String(w.startMs),
+            endMs: String(w.endMs),
+          },
+          title: `Click to read from "${w.word}" (${(w.startMs / 1000).toFixed(2)}s)`,
+          onclick: (ev) => {
+            ev.stopPropagation();
+            seekToWordInTeleprompter(idx, w);
+          },
+        }, w.word);
+        wordSpanNodes[wIdx] = span;
+        lineEl.append(span, k < cueWords.length - 1 ? " " : "");
+      }
+      cueRowNodes.push(lineEl);
+      cuesWrap.append(lineEl);
+    }
+    teleprompterStage.append(cuesWrap);
+
+    // Next chunk context preview (if available)
+    if (idx + 1 < chunks.length && chunks[idx + 1]) {
+      const nextText = chunks[idx + 1].text;
+      const snippet = nextText.length > 110 ? `${nextText.slice(0, 110)}…` : nextText;
+      teleprompterStage.append(
+        h("div", {
+          class: "phonon-teleprompter-context is-next",
+          title: "Click to jump to next segment",
+          onclick: () => playFromChunk(idx + 1),
+        }, `↓ Next (#${idx + 2}): ${snippet}`),
+      );
+    }
+
+    teleprompterWordBadge.textContent = `Segment ${idx + 1}/${chunks.length} · ${words.length} words${currentTeleprompterData.pcmAligned ? " · Waveform Synced" : ""}`;
+  }
+
+  function seekToWordInTeleprompter(chunkIdx, wordObj) {
+    const targetSec = Math.max(0, (Number(wordObj?.startMs) || 0) / 1000);
+    if (isPlaying && activeChunkIndex === chunkIdx && audioEl.src) {
+      audioEl.currentTime = Math.min(audioEl.duration || targetSec, targetSec);
+      if (isPaused) {
+        isPaused = false;
+        updateTransportButtons();
+        void audioEl.play().catch(() => {});
+      }
+      syncTeleprompterHighlight();
+    } else {
+      void playFromChunk(chunkIdx, targetSec);
+    }
+  }
+
+  function highlightWordAtTimeMs(currentMs, totalDurationMs) {
+    const { words, chunkIndex } = currentTeleprompterData;
+    if (!words.length) return;
+
+    const pct = totalDurationMs > 0 ? Math.min(100, Math.max(0, (currentMs / totalDurationMs) * 100)) : 0;
+    teleprompterProgressFill.style.width = `${pct.toFixed(1)}%`;
+
+    let foundIdx = -1;
+    // Do not highlight the first word until the voice actually finishes pre-roll silence and reaches words[0].startMs
+    if (currentMs >= words[0].startMs) {
+      for (let i = 0; i < words.length; i++) {
+        const w = words[i];
+        if (currentMs >= w.startMs && currentMs <= w.endMs) {
+          foundIdx = i;
+          break;
+        }
+        if (currentMs > w.endMs) {
+          foundIdx = i;
+        }
+      }
+    }
+
+    if (foundIdx === activeWordIndex) return;
+    activeWordIndex = foundIdx;
+
+    for (let i = 0; i < wordSpanNodes.length; i++) {
+      const node = wordSpanNodes[i];
+      if (!node) continue;
+      if (foundIdx < 0) {
+        node.className = "phonon-word is-upcoming";
+      } else if (i < foundIdx) {
+        node.className = "phonon-word is-spoken";
+      } else if (i === foundIdx) {
+        node.className = "phonon-word is-speaking";
+      } else {
+        node.className = "phonon-word is-upcoming";
+      }
+    }
+
+    const activeWordObj = foundIdx >= 0 ? words[foundIdx] : words[0];
+    const cueIdx = activeWordObj?.cueIndex ?? 0;
+    if (cueIdx !== activeCueIndex) {
+      activeCueIndex = cueIdx;
+      for (let c = 0; c < cueRowNodes.length; c++) {
+        const row = cueRowNodes[c];
+        if (!row) continue;
+        row.classList.toggle("is-active-cue", c === cueIdx);
+        row.classList.toggle("is-past-cue", c < cueIdx);
+      }
+      if (teleprompterAutoScroll && cueRowNodes[cueIdx]) {
+        cueRowNodes[cueIdx].scrollIntoView({ block: "nearest", behavior: "smooth" });
+      }
+    }
+
+    const displayWordNum = foundIdx >= 0 ? foundIdx + 1 : 1;
+    teleprompterWordBadge.textContent = `🔊 Word ${displayWordNum}/${words.length} · Segment ${chunkIndex + 1}/${chunks.length} · ${Math.round(pct)}%`;
+  }
+
+  function syncTeleprompterHighlight() {
+    if (!isPlaying || isPaused) return;
+    const durSec = Number.isFinite(audioEl.duration) && audioEl.duration > 0
+      ? audioEl.duration
+      : (currentTeleprompterData.durationMs / 1000) || 1;
+    // When word timings are aligned directly to the WAV PCM samples (pcmAligned),
+    // do not warp audioEl.currentTime by a synthetic duration scale factor.
+    const scale = (!currentTeleprompterData.pcmAligned && currentTeleprompterData.durationMs > 0)
+      ? currentTeleprompterData.durationMs / (durSec * 1000)
+      : 1;
+    const rawMediaMs = Math.max(0, audioEl.currentTime * 1000 * scale);
+    const latencyMs = getEffectiveAudioLatencyMs();
+    const currentMs = Math.max(0, rawMediaMs - latencyMs + syncOffsetMs);
+    highlightWordAtTimeMs(currentMs, currentTeleprompterData.durationMs || durSec * 1000);
+  }
+
+  function startTeleprompterLoop() {
+    cancelAnimationFrame(rafId);
+    const tick = () => {
+      if (!isPlaying || isPaused) return;
+      syncTeleprompterHighlight();
+      rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function stopTeleprompterLoop() {
+    cancelAnimationFrame(rafId);
+    rafId = 0;
+  }
+
+  audioEl.addEventListener("timeupdate", () => {
+    syncTeleprompterHighlight();
+  });
+
+  // -------------------------------------------------------------------------------------------------------------
+  // Setup & Status Helpers
+  // -------------------------------------------------------------------------------------------------------------
 
   async function triggerOneClickInstall() {
     try {
@@ -360,14 +901,21 @@ function mountPhononStudio(root, payload) {
       status = await call("phonon/status");
       voices = status.voices || [];
       audioFormats = status.audioFormats || [];
+      videoFormats = status.videoFormats || [];
       if (status.settings) {
         selectedVoice = status.settings.voice || selectedVoice;
         selectedFormat = status.settings.format || selectedFormat;
         speed = Number(status.settings.speed) || speed;
+        pitch = Number(status.settings.pitch ?? pitch);
+        syncOffsetMs = Number(status.settings.syncOffsetMs ?? syncOffsetMs);
         pauseMs = Number(status.settings.pauseMs ?? pauseMs);
         cleanText = status.settings.cleanText ?? cleanText;
         speedSlider.value = String(speed);
         speedValueLabel.textContent = `${speed.toFixed(2).replace(/\.00$/, ".0")}×`;
+        pitchSlider.value = String(pitch);
+        pitchValueLabel.textContent = formatPitchLabel(pitch);
+        syncOffsetSlider.value = String(syncOffsetMs);
+        syncOffsetValueLabel.textContent = formatSyncOffsetLabel(syncOffsetMs);
         pauseSlider.value = String(pauseMs);
         pauseValueLabel.textContent = `${pauseMs} ms`;
       }
@@ -385,6 +933,8 @@ function mountPhononStudio(root, payload) {
         voice: selectedVoice,
         format: selectedFormat,
         speed,
+        pitch,
+        syncOffsetMs,
         cleanText,
         pauseMs,
       });
@@ -399,14 +949,15 @@ function mountPhononStudio(root, payload) {
 
   async function previewSelectedVoice() {
     stopReading();
-    const sample = `Hello! I am ${selectedVoice}, speaking through Ollama Phonon in Codecaine File Manager.`;
+    const sample = `Hello! I am ${selectedVoice}, speaking through Ollama Phonon in Codecaine File Manager. Watch each word highlight as I speak!`;
     nowPlayingStatus.textContent = `Synthesizing voice preview for "${selectedVoice}"…`;
     try {
-      const res = await call("phonon/speak", { text: sample, voice: selectedVoice });
+      const res = await call("phonon/speak", { text: sample, voice: selectedVoice, pitch });
+      currentTeleprompterData.synthesizedPitch = Number(res.pitch) || 0;
       audioEl.src = audioUrlWithToken(res.url);
-      audioEl.playbackRate = speed;
+      applyAudioPlaybackSettings();
       await audioEl.play();
-      nowPlayingStatus.textContent = `Previewing voice "${selectedVoice}" (${res.durationSec}s, 24 kHz WAV).`;
+      nowPlayingStatus.textContent = `Previewing voice "${selectedVoice}" (${res.durationSec}s, 24 kHz WAV${pitch ? `, pitch ${formatPitchLabel(pitch)}` : ""}).`;
     } catch (err) {
       nowPlayingStatus.textContent = err instanceof ApiError ? err.message : "Voice preview failed.";
       toast(nowPlayingStatus.textContent, { kind: "error" });
@@ -431,6 +982,7 @@ function mountPhononStudio(root, payload) {
       chunks = [];
       statsSummaryBadge.textContent = "0 words · 0 chunks";
       renderChunkList();
+      renderTeleprompterForChunk(0);
       return;
     }
     try {
@@ -439,6 +991,9 @@ function mountPhononStudio(root, payload) {
       statsSummaryBadge.textContent = `${res.wordCount.toLocaleString()} words · ${res.charCount.toLocaleString()} chars · ${res.chunkCount.toLocaleString()} Phonon chunk${res.chunkCount === 1 ? "" : "s"} (~${formatDuration(res.estimatedSeconds)})`;
       if (chunkPage * CHUNKS_PER_PAGE >= chunks.length) chunkPage = 0;
       renderChunkList();
+      if (!isPlaying) {
+        renderTeleprompterForChunk(activeChunkIndex >= 0 ? activeChunkIndex : 0);
+      }
     } catch {
       // Fallback client-side count if server is busy
     }
@@ -479,7 +1034,7 @@ function mountPhononStudio(root, payload) {
 
     for (const chunk of visible) {
       const isCurrent = chunk.index === activeChunkIndex;
-      const cacheKey = `${selectedVoice}|${chunk.text}`;
+      const cacheKey = `${selectedVoice}|${pitch}|${chunk.text}`;
       const isCached = chunkAudioCache.has(cacheKey);
       const itemEl = h("div", {
         class: `phonon-chunk-item${isCurrent ? " is-active" : ""}${isCached ? " is-cached" : ""}`,
@@ -489,7 +1044,7 @@ function mountPhononStudio(root, payload) {
         h("div", { class: "phonon-chunk-meta" },
           h("span", { class: "phonon-chunk-num" }, `#${chunk.index + 1}`),
           h("span", { class: "phonon-chunk-info" }, `Para ${chunk.paragraphIndex + 1} · ${chunk.wordCount} words · ${chunk.charCount}/${maxChunkChars} chars`),
-          h("span", { class: "phonon-chunk-state" }, isCurrent ? (isPaused ? "⏸ Paused" : "🔊 Speaking") : isCached ? "✔ Cached" : "▶ Click to read here"),
+          h("span", { class: "phonon-chunk-state" }, isCurrent ? (isPaused ? "⏸ Paused" : "🔊 Speaking & Following Along") : isCached ? "✔ Cached" : "▶ Click to read & follow along"),
         ),
         h("div", { class: "phonon-chunk-text" }, chunk.text),
       );
@@ -532,6 +1087,7 @@ function mountPhononStudio(root, payload) {
       chunkPage = 0;
       statsSummaryBadge.textContent = `${res.wordCount.toLocaleString()} words · ${res.charCount.toLocaleString()} chars · ${res.chunkCount.toLocaleString()} Phonon chunk${res.chunkCount === 1 ? "" : "s"} (~${formatDuration(res.estimatedSeconds)})`;
       renderChunkList();
+      renderTeleprompterForChunk(0);
       nowPlayingStatus.textContent = `Converted "${baseName(filePath, state.sep)}" (${sourceFormatLabel}) into ${res.chunkCount.toLocaleString()} Phonon-safe plain-text chunk${res.chunkCount === 1 ? "" : "s"}.`;
       toast(`Converted ${baseName(filePath, state.sep)} to plain text (${res.wordCount.toLocaleString()} words).`, { kind: "info" });
     } catch (err) {
@@ -563,6 +1119,7 @@ function mountPhononStudio(root, payload) {
       sourceFormatBadge.textContent = "Plain Text (Cleaned for Speech)";
       statsSummaryBadge.textContent = `${res.wordCount.toLocaleString()} words · ${res.charCount.toLocaleString()} chars · ${res.chunkCount.toLocaleString()} Phonon chunk${res.chunkCount === 1 ? "" : "s"} (~${formatDuration(res.estimatedSeconds)})`;
       renderChunkList();
+      renderTeleprompterForChunk(0);
       toast("Converted & cleaned text into speech-ready plain text.", { kind: "info" });
     } catch (err) {
       toast(err instanceof ApiError ? err.message : "Could not clean text.", { kind: "error" });
@@ -600,16 +1157,17 @@ function mountPhononStudio(root, payload) {
   }
 
   // -------------------------------------------------------------------------------------------------------------
-  // Streaming Multi-Chunk Read Out Loud Player with Lookahead Prefetching
+  // Streaming Multi-Chunk Read Out Loud Player with Lookahead Prefetching & Word-by-Word Follow-Along
   // -------------------------------------------------------------------------------------------------------------
 
-  function fetchChunkAudio(chunkIndex, voiceName) {
+  function fetchChunkAudio(chunkIndex, voiceName, pitchSemitones = pitch) {
     const chunk = chunks[chunkIndex];
     if (!chunk) return Promise.reject(new Error("Chunk out of range"));
-    const key = `${voiceName}|${chunk.text}`;
+    const normPitch = Math.round((Number(pitchSemitones) || 0) * 10) / 10;
+    const key = `${voiceName}|${normPitch}|${chunk.text}`;
     let pending = chunkAudioCache.get(key);
     if (!pending) {
-      pending = call("phonon/speak", { text: chunk.text, voice: voiceName }).then((res) => {
+      pending = call("phonon/speak", { text: chunk.text, voice: voiceName, pitch: normPitch }).then((res) => {
         renderChunkList();
         return res;
       }).catch((err) => {
@@ -635,6 +1193,7 @@ function mountPhononStudio(root, payload) {
       isPaused = false;
       updateTransportButtons();
       renderChunkList();
+      startTeleprompterLoop();
       await audioEl.play().catch(() => {});
       return;
     }
@@ -652,10 +1211,12 @@ function mountPhononStudio(root, payload) {
     if (!isPlaying) return;
     if (isPaused) {
       isPaused = false;
+      startTeleprompterLoop();
       void audioEl.play().catch(() => {});
       nowPlayingStatus.textContent = `Reading chunk ${activeChunkIndex + 1} of ${chunks.length} with voice "${selectedVoice}"…`;
     } else {
       isPaused = true;
+      stopTeleprompterLoop();
       audioEl.pause();
       nowPlayingStatus.textContent = `Paused at chunk ${activeChunkIndex + 1} of ${chunks.length}.`;
     }
@@ -668,10 +1229,12 @@ function mountPhononStudio(root, payload) {
     isPlaying = false;
     isPaused = false;
     activeChunkIndex = -1;
+    stopTeleprompterLoop();
     audioEl.pause();
     audioEl.removeAttribute("src");
     updateTransportButtons();
     renderChunkList();
+    renderTeleprompterForChunk(0);
     nowPlayingStatus.textContent = "Stopped.";
   }
 
@@ -681,7 +1244,7 @@ function mountPhononStudio(root, payload) {
     void playFromChunk(nextIdx);
   }
 
-  async function playFromChunk(startIndex) {
+  async function playFromChunk(startIndex, seekSec = 0) {
     if (!chunks.length || startIndex < 0 || startIndex >= chunks.length) return;
     const session = ++playbackSessionId;
     isPlaying = true;
@@ -693,32 +1256,47 @@ function mountPhononStudio(root, payload) {
 
     updateTransportButtons();
     renderChunkList();
+    renderTeleprompterForChunk(startIndex);
 
     const activeRow = chunkListContainer.querySelector(`.phonon-chunk-item[data-index="${startIndex}"]`);
     activeRow?.scrollIntoView({ block: "nearest", behavior: "smooth" });
 
     const voiceToUse = selectedVoice;
-    nowPlayingStatus.textContent = `Synthesizing chunk ${startIndex + 1} of ${chunks.length} with voice "${voiceToUse}"…`;
+    const pitchToUse = pitch;
+    nowPlayingStatus.textContent = `Synthesizing chunk ${startIndex + 1} of ${chunks.length} with voice "${voiceToUse}"${pitchToUse ? ` (pitch ${formatPitchLabel(pitchToUse)})` : ""}…`;
 
     // Prefetch next 2 chunks in the background so large documents stream without gaps!
-    if (startIndex + 1 < chunks.length) void fetchChunkAudio(startIndex + 1, voiceToUse).catch(() => {});
+    if (startIndex + 1 < chunks.length) void fetchChunkAudio(startIndex + 1, voiceToUse, pitchToUse).catch(() => {});
     if (startIndex + 2 < chunks.length) {
       setTimeout(() => {
-        if (playbackSessionId === session) void fetchChunkAudio(startIndex + 2, voiceToUse).catch(() => {});
+        if (playbackSessionId === session) void fetchChunkAudio(startIndex + 2, voiceToUse, pitchToUse).catch(() => {});
       }, 300);
     }
 
     try {
-      const res = await fetchChunkAudio(startIndex, voiceToUse);
+      const res = await fetchChunkAudio(startIndex, voiceToUse, pitchToUse);
       if (playbackSessionId !== session) return;
 
+      renderTeleprompterForChunk(
+        startIndex,
+        res.words,
+        res.cues,
+        res.durationSec,
+        res.pcmAligned !== false,
+        res.pitch ?? pitchToUse,
+      );
       audioEl.src = audioUrlWithToken(res.url);
-      audioEl.playbackRate = speed;
-      nowPlayingStatus.textContent = `🔊 Speaking chunk ${startIndex + 1} of ${chunks.length} (${voiceToUse}, ${res.durationSec}s)…`;
+      applyAudioPlaybackSettings();
+      if (seekSec > 0) {
+        audioEl.currentTime = seekSec;
+      }
+      nowPlayingStatus.textContent = `🔊 Speaking chunk ${startIndex + 1} of ${chunks.length} (${voiceToUse}, ${res.durationSec}s${pitchToUse ? `, ${formatPitchLabel(pitchToUse)}` : ""}) — Waveform-synced follow along!`;
+      startTeleprompterLoop();
       await audioEl.play();
     } catch (err) {
       if (playbackSessionId !== session) return;
       isPlaying = false;
+      stopTeleprompterLoop();
       updateTransportButtons();
       renderChunkList();
       nowPlayingStatus.textContent = err instanceof ApiError ? err.message : "Could not synthesize speech chunk.";
@@ -728,6 +1306,7 @@ function mountPhononStudio(root, payload) {
 
   audioEl.addEventListener("ended", () => {
     if (!isPlaying || isPaused) return;
+    stopTeleprompterLoop();
     const session = playbackSessionId;
     const nextIdx = activeChunkIndex + 1;
     if (nextIdx < chunks.length) {
@@ -742,6 +1321,7 @@ function mountPhononStudio(root, payload) {
         }
       }, delay);
     } else {
+      highlightWordAtTimeMs(currentTeleprompterData.durationMs, currentTeleprompterData.durationMs);
       isPlaying = false;
       isPaused = false;
       activeChunkIndex = -1;
@@ -752,61 +1332,121 @@ function mountPhononStudio(root, payload) {
   });
 
   // -------------------------------------------------------------------------------------------------------------
-  // Save as Any Audio File Format (Single Text/Document or Batch Selected Files)
+  // Inline Read-Along Video Player Preview
   // -------------------------------------------------------------------------------------------------------------
 
-  async function saveEditorTextAsAudioFile() {
+  function loadExportedVideoIntoPreview(videoPath) {
+    if (!videoPath) return;
+    const ext = extensionOf(videoPath);
+    if (!VIDEO_EXT_SET.has(ext)) return;
+
+    clear(videoPlayerEl);
+    videoPlayerEl.src = rawFileUrl(videoPath);
+    // Attach companion .vtt subtitle track if saved alongside the video
+    const dotIdx = videoPath.lastIndexOf(".");
+    const vttPath = dotIdx > 0 ? `${videoPath.slice(0, dotIdx)}.vtt` : `${videoPath}.vtt`;
+    const trackEl = h("track", {
+      kind: "subtitles",
+      srclang: "en",
+      label: "Follow Along Captions",
+      src: rawFileUrl(vttPath),
+      default: true,
+    });
+    videoPlayerEl.append(trackEl);
+
+    videoPlayerPathLabel.textContent = baseName(videoPath, state.sep);
+    videoPlayerBox.hidden = false;
+    videoPlayerEl.load();
+    videoPlayerBox.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }
+
+  // -------------------------------------------------------------------------------------------------------------
+  // Save as Audio File OR Read-Along Video (Single Text/Document or Batch Selected Files)
+  // -------------------------------------------------------------------------------------------------------------
+
+  async function exportEditorTextWithFormat(targetFormat) {
     const raw = textArea.value.trim();
     if (!raw) {
-      toast("Enter or load some text before saving an audio file.", { kind: "info" });
+      toast("Enter or load some text before exporting.", { kind: "info" });
       return;
     }
+    const fmt = targetFormat || selectedFormat || "wav";
+    const isVid = VIDEO_EXT_SET.has(fmt);
     try {
-      const res = await call("phonon/save", {
+      const res = await call(isVid ? "phonon/video" : "phonon/save", {
         text: raw,
         voice: selectedVoice,
-        format: selectedFormat,
+        format: fmt,
         speed,
+        pitch,
         pauseMs,
-        cleanText: false, // Editor text is already visible/editable
+        cleanText: false,
         outputDir: outDirInput.value.trim() || currentPath() || state.home,
-        outputName: outNameInput.value.trim() || "speech",
+        outputName: outNameInput.value.trim() || (isVid ? "read-along-video" : "speech"),
         maxChunkChars: Math.max(maxChunkChars, 750),
+        aspectRatio: selectedAspectRatio,
+        videoTheme: selectedVideoTheme,
+        saveSubtitles: saveCompanionSubtitles,
+        title: outNameInput.value.trim() || "Ollama Phonon Read-Along",
       });
       emit("job-started", res.job);
-      nowPlayingStatus.textContent = `Saving audio as .${selectedFormat.toUpperCase()} (${chunks.length} chunks, voice: ${selectedVoice})… See Tasks tray for live progress.`;
-      toast(`Started saving .${selectedFormat.toUpperCase()} audio file with voice "${selectedVoice}".`, { kind: "info" });
+      const kindDesc = isVid ? `Read-Along Video (.${fmt.toUpperCase()}, ${selectedAspectRatio})` : `.${fmt.toUpperCase()} audio`;
+      nowPlayingStatus.textContent = `Rendering ${kindDesc} (${chunks.length} chunks, voice: ${selectedVoice})… See Tasks tray for live progress.`;
+      toast(`Started rendering ${kindDesc} with voice "${selectedVoice}".`, { kind: "info" });
       pollJobUntilDone(res.job.id, (finishedJob) => {
-        const out = finishedJob.outputs?.[0];
-        nowPlayingStatus.textContent = out ? `✔ Saved audio file: ${out}` : "✔ Audio export complete!";
-        toast(`Saved audio file: ${out ? baseName(out, state.sep) : selectedFormat.toUpperCase()}`, { kind: "success" });
+        const out = finishedJob.outputs?.[0] || res.outputs?.[0];
+        nowPlayingStatus.textContent = out
+          ? `✔ Saved ${isVid ? "Read-Along Video" : "audio file"}: ${out}`
+          : `✔ ${isVid ? "Read-Along Video" : "Audio"} export complete!`;
+        toast(`Saved ${isVid ? "Read-Along Video" : "audio"}: ${out ? baseName(out, state.sep) : fmt.toUpperCase()}`, { kind: "success" });
+        if (isVid && out) {
+          loadExportedVideoIntoPreview(out);
+        }
+        if (currentPath() && out && out.startsWith(currentPath())) {
+          void refresh().then(() => selectKeys([out]));
+        }
       });
     } catch (err) {
-      toast(err instanceof ApiError ? err.message : "Could not export audio file.", { kind: "error" });
+      toast(err instanceof ApiError ? err.message : "Could not start export.", { kind: "error" });
     }
   }
 
-  async function batchConvertSelectedFilesToAudio() {
+  async function batchConvertSelectedFiles(forceVideo = false) {
     const sel = selectedEntries().filter((e) => !e.isDir);
     if (!sel.length) {
       toast("Select one or more files in the File Manager list first.", { kind: "info" });
       return;
     }
+    const fmt = forceVideo
+      ? (VIDEO_EXT_SET.has(selectedFormat) ? selectedFormat : "mp4")
+      : selectedFormat;
+    const isVid = VIDEO_EXT_SET.has(fmt);
     try {
-      const res = await call("phonon/save", {
+      const res = await call(isVid ? "phonon/video" : "phonon/save", {
         paths: sel.map((e) => e.path),
         voice: selectedVoice,
-        format: selectedFormat,
+        format: fmt,
         speed,
+        pitch,
         pauseMs,
         cleanText,
         outputDir: outDirInput.value.trim() || currentPath() || "",
         maxChunkChars: Math.max(maxChunkChars, 800),
+        aspectRatio: selectedAspectRatio,
+        videoTheme: selectedVideoTheme,
+        saveSubtitles: saveCompanionSubtitles,
       });
       emit("job-started", res.job);
-      toast(`Converting ${sel.length} file${sel.length === 1 ? "" : "s"} to .${selectedFormat.toUpperCase()} audio with voice "${selectedVoice}"…`, { kind: "info" });
+      toast(
+        `Converting ${sel.length} file${sel.length === 1 ? "" : "s"} to .${fmt.toUpperCase()} ${isVid ? "Read-Along Video" : "audio"} with voice "${selectedVoice}"…`,
+        { kind: "info" },
+      );
+      pollJobUntilDone(res.job.id, (finishedJob) => {
+        const out = finishedJob.outputs?.[0] || res.outputs?.[0];
+        if (isVid && out) loadExportedVideoIntoPreview(out);
+      });
     } catch (err) {
-      toast(err instanceof ApiError ? err.message : "Could not start batch audio conversion.", { kind: "error" });
+      toast(err instanceof ApiError ? err.message : "Could not start batch conversion.", { kind: "error" });
     }
   }
 
@@ -814,7 +1454,7 @@ function mountPhononStudio(root, payload) {
     const paragraphs = [];
     for (let i = 1; i <= 18; i++) {
       paragraphs.push(
-        `Chapter ${i}: Large Text Context Window Optimization. When reading a long book, research paper, or technical manual with Ollama Phonon, passing the entire document at once would exceed the 8,192-token context limit shared between text tokens and generated audio codec frames. By splitting documents at natural paragraph, sentence, and clause boundaries, Codecaine File Manager streams chunk ${i} smoothly while prefetching upcoming chunks in the background and stitching 24 kHz 16-bit PCM audio frames seamlessly on disk.`,
+        `Chapter ${i}: Large Text Context Window Optimization & Read-Along Video. When reading a long book, research paper, or technical manual with Ollama Phonon, passing the entire document at once would exceed the 8,192-token context limit shared between text tokens and generated audio codec frames. By splitting documents at natural paragraph, sentence, and clause boundaries, Codecaine File Manager streams chunk ${i} smoothly with live word-by-word follow-along highlighting and stitches 24 kHz PCM audio into full Read-Along MP4 Videos.`,
       );
     }
     sourcePath = "";
@@ -822,7 +1462,7 @@ function mountPhononStudio(root, payload) {
     outNameInput.value = "large-audiobook-sample";
     textArea.value = paragraphs.join("\n\n");
     void recomputeChunksFromEditor();
-    toast("Loaded 18-paragraph large text sample to demonstrate multi-chunk Phonon streaming & stitching.", { kind: "info" });
+    toast("Loaded 18-paragraph large text sample to demonstrate multi-chunk Phonon streaming, follow-along & video stitching.", { kind: "info" });
   }
 
   // Event listeners for controls
@@ -836,18 +1476,55 @@ function mountPhononStudio(root, payload) {
 
   formatSelect.addEventListener("change", () => {
     selectedFormat = formatSelect.value;
-    const cur = audioFormats.find((f) => f.id === selectedFormat);
+    const { all } = allFormatsList();
+    const cur = all.find((f) => f.id === selectedFormat);
     formatHintEl.textContent = cur ? cur.desc : "";
     void saveSettings({ phononFormat: selectedFormat });
   });
 
+  videoAspectSelect.addEventListener("change", () => {
+    selectedAspectRatio = videoAspectSelect.value;
+  });
+
+  videoThemeSelect.addEventListener("change", () => {
+    selectedVideoTheme = videoThemeSelect.value;
+    updateTeleprompterClasses();
+  });
+
   speedSlider.addEventListener("input", () => {
     speed = Number(speedSlider.value) || 1;
+    rateOrPitchChangedAt = performance.now();
     speedValueLabel.textContent = `${speed.toFixed(2).replace(/\.00$/, ".0")}×`;
-    audioEl.playbackRate = speed;
+    applyAudioPlaybackSettings();
+    syncTeleprompterHighlight();
   });
   speedSlider.addEventListener("change", () => {
     void saveSettings({ phononSpeed: speed });
+  });
+
+  pitchSlider.addEventListener("input", () => {
+    pitch = Number(pitchSlider.value) || 0;
+    rateOrPitchChangedAt = performance.now();
+    pitchValueLabel.textContent = formatPitchLabel(pitch);
+    applyAudioPlaybackSettings();
+    syncTeleprompterHighlight();
+  });
+  pitchSlider.addEventListener("change", () => {
+    void saveSettings({ phononPitch: pitch });
+    renderChunkList();
+    if (isPlaying && activeChunkIndex >= 0 && status?.ffmpegInstalled !== false) {
+      const resumeSec = Number.isFinite(audioEl.currentTime) ? audioEl.currentTime : 0;
+      void playFromChunk(activeChunkIndex, resumeSec);
+    }
+  });
+
+  syncOffsetSlider.addEventListener("input", () => {
+    syncOffsetMs = Math.round(Number(syncOffsetSlider.value) || 0);
+    syncOffsetValueLabel.textContent = formatSyncOffsetLabel(syncOffsetMs);
+    syncTeleprompterHighlight();
+  });
+  syncOffsetSlider.addEventListener("change", () => {
+    void saveSettings({ phononSyncOffsetMs: syncOffsetMs });
   });
 
   pauseSlider.addEventListener("input", () => {
@@ -889,13 +1566,27 @@ function mountPhononStudio(root, payload) {
         h("span", { class: "hint" }, "Automatically splits books and huge texts into safe segments inside Phonon's 8,192-token limit."),
       ),
     ),
-    h("div", { class: "phonon-grid-2 phonon-sliders-row" },
+    h("div", { class: "phonon-grid-4 phonon-sliders-row" },
       h("div", { class: "phonon-field" },
         h("label", { class: "phonon-label", for: "phonon-speed-range" },
           h("span", {}, "Speaking Speed"),
           speedValueLabel,
         ),
         speedSlider,
+      ),
+      h("div", { class: "phonon-field" },
+        h("label", { class: "phonon-label", for: "phonon-pitch-range" },
+          h("span", {}, "Voice Pitch (Time-Locked)"),
+          pitchValueLabel,
+        ),
+        pitchSlider,
+      ),
+      h("div", { class: "phonon-field" },
+        h("label", { class: "phonon-label", for: "phonon-sync-offset-range" },
+          h("span", {}, "Audio-Text Sync Offset"),
+          syncOffsetValueLabel,
+        ),
+        syncOffsetSlider,
       ),
       h("div", { class: "phonon-field" },
         h("label", { class: "phonon-label", for: "phonon-pause-range" },
@@ -968,13 +1659,14 @@ function mountPhononStudio(root, payload) {
         },
       }, "Clear"),
     ),
-    h("label", { class: "sr-only", for: "phonon-text-editor" }, "Plain text content to read out loud or export as audio"),
+    h("label", { class: "sr-only", for: "phonon-text-editor" }, "Plain text content to read out loud or export as audio or video"),
     textArea,
   );
 
   const playerAndExportCard = h("section", { class: "phonon-card" },
     h("div", { class: "phonon-card-head" },
-      h("h3", { class: "phonon-card-title" }, "3. Read Out Loud & Save as Any Audio File Format"),
+      h("h3", { class: "phonon-card-title" }, "3. Read Out Loud, Follow Along Word-by-Word & Convert to Audio or Video"),
+      teleprompterWordBadge,
     ),
     h("div", { class: "phonon-player-bar" },
       h("div", { class: "phonon-transport-btns" },
@@ -987,15 +1679,33 @@ function mountPhononStudio(root, payload) {
       audioEl,
     ),
     nowPlayingStatus,
+    // Interactive Follow-Along Teleprompter Box
+    h("div", { class: "phonon-teleprompter-box" },
+      h("div", { class: "phonon-teleprompter-toolbar" },
+        h("div", { class: "phonon-inline-row" },
+          h("strong", { class: "phonon-teleprompter-title" }, "📖 Live Follow-Along Teleprompter"),
+          h("span", { class: "hint" }, "Words light up as they are spoken — click any word to jump!"),
+        ),
+        h("div", { class: "phonon-inline-row" },
+          teleprompterSizeSelect,
+          makeToggle("Auto-Scroll", teleprompterAutoScroll, (v) => { teleprompterAutoScroll = v; }),
+        ),
+      ),
+      teleprompterStage,
+      h("div", { class: "phonon-teleprompter-progress" }, teleprompterProgressFill),
+    ),
+    // Inline Read-Along Video Player Preview (revealed when a video is exported)
+    videoPlayerBox,
+    // Audio & Read-Along Video Export Box
     h("div", { class: "phonon-export-box" },
       h("div", { class: "phonon-grid-3" },
         h("div", { class: "phonon-field" },
-          h("label", { class: "phonon-label", for: "phonon-format-select" }, "Audio File Format"),
+          h("label", { class: "phonon-label", for: "phonon-format-select" }, "Output Format (Audio or Read-Along Video)"),
           formatSelect,
           formatHintEl,
         ),
         h("div", { class: "phonon-field" },
-          h("label", { class: "phonon-label", for: "phonon-out-name" }, "Output Audio Filename"),
+          h("label", { class: "phonon-label", for: "phonon-out-name" }, "Output Filename"),
           outNameInput,
         ),
         h("div", { class: "phonon-field" },
@@ -1011,18 +1721,51 @@ function mountPhononStudio(root, payload) {
           ),
         ),
       ),
+      h("div", { class: "phonon-grid-2 phonon-video-options-row" },
+        h("div", { class: "phonon-field" },
+          h("label", { class: "phonon-label", for: "phonon-video-aspect" }, "🎬 Read-Along Video Aspect Ratio"),
+          videoAspectSelect,
+        ),
+        h("div", { class: "phonon-field" },
+          h("label", { class: "phonon-label", for: "phonon-video-theme" }, "🎨 Read-Along Video & Teleprompter Theme"),
+          h("div", { class: "phonon-inline-row" },
+            videoThemeSelect,
+            makeToggle("Save .SRT & .VTT Subtitles", saveCompanionSubtitles, (v) => { saveCompanionSubtitles = v; }),
+          ),
+        ),
+      ),
       h("div", { class: "phonon-export-actions" },
         h("button", {
           type: "button",
           class: "btn primary phonon-save-audio-btn",
-          onclick: () => saveEditorTextAsAudioFile(),
+          onclick: () => {
+            const fmt = VIDEO_EXT_SET.has(selectedFormat) ? "wav" : selectedFormat;
+            void exportEditorTextWithFormat(fmt);
+          },
         }, "💾 Save Audio File"),
+        h("button", {
+          type: "button",
+          class: "btn primary phonon-save-video-btn",
+          title: "Convert text to speech AND render a synchronized Read-Along Video (.MP4/.WebM/.MOV/.MKV) where every word lights up as you follow along",
+          onclick: () => {
+            const vidFmt = VIDEO_EXT_SET.has(selectedFormat) ? selectedFormat : "mp4";
+            selectedFormat = vidFmt;
+            formatSelect.value = vidFmt;
+            void exportEditorTextWithFormat(vidFmt);
+          },
+        }, "🎬 Save Read-Along Video (.MP4)"),
         h("button", {
           type: "button",
           class: "btn",
           title: "Convert all selected files in the File Manager into audio files using your Phonon voice",
-          onclick: () => batchConvertSelectedFilesToAudio(),
-        }, "📚 Batch Save Selected File(s) as Audio"),
+          onclick: () => batchConvertSelectedFiles(false),
+        }, "📚 Batch Save Selected as Audio"),
+        h("button", {
+          type: "button",
+          class: "btn",
+          title: "Convert all selected files in the File Manager into synchronized Read-Along MP4 Videos",
+          onclick: () => batchConvertSelectedFiles(true),
+        }, "🎬 Batch Convert Selected to Video"),
         h("button", {
           type: "button",
           class: "btn",
@@ -1039,7 +1782,7 @@ function mountPhononStudio(root, payload) {
     ),
     h("div", { class: "phonon-chunks-section" },
       h("div", { class: "phonon-chunks-header" },
-        h("strong", {}, "Phonon Context-Safe Speech Queue (Click any segment to jump & read from there)"),
+        h("strong", {}, "Phonon Context-Safe Speech Queue (Click any segment to jump & follow along)"),
         chunkPagerContainer,
       ),
       chunkListContainer,
@@ -1059,15 +1802,30 @@ function mountPhononStudio(root, payload) {
     if (typeof p.path === "string" && p.path.trim()) {
       void loadFileAndExtract(p.path.trim()).then(() => {
         if (p.autoPlay) void startOrResumeReading();
+        if (p.autoExportVideo) {
+          selectedFormat = "mp4";
+          formatSelect.value = "mp4";
+          void exportEditorTextWithFormat("mp4");
+        }
       });
     } else if (Array.isArray(p.paths) && p.paths.length > 0) {
       void loadFileAndExtract(p.paths[0]).then(() => {
         if (p.autoPlay) void startOrResumeReading();
+        if (p.autoExportVideo) {
+          selectedFormat = "mp4";
+          formatSelect.value = "mp4";
+          void exportEditorTextWithFormat("mp4");
+        }
       });
     } else if (typeof p.text === "string" && p.text.trim()) {
       textArea.value = p.text.trim();
       void recomputeChunksFromEditor().then(() => {
         if (p.autoPlay) void startOrResumeReading();
+        if (p.autoExportVideo) {
+          selectedFormat = "mp4";
+          formatSelect.value = "mp4";
+          void exportEditorTextWithFormat("mp4");
+        }
       });
     } else {
       const sel = selectedEntries().filter((e) => !e.isDir && canReadWithPhonon(e));
@@ -1108,7 +1866,7 @@ if (isPhononSupported()) {
     id: "phonon",
     label: "Voice Reader",
     icon: "🗣️",
-    tip: "Read text and documents out loud with Ollama Phonon, convert formats to plain text, set your default voice, and save as any audio file.",
+    tip: "Read text and documents out loud with Ollama Phonon, follow along word-by-word, convert formats to plain text, and save as Audio or Read-Along Video.",
     group: "media",
     mount: mountPhononStudio,
   });

@@ -45,7 +45,7 @@ Everything the project reads or writes on your computer, sorted by how much it m
 | Environment Vault output | The path you choose | Your work, possibly sensitive | Environment Vault | n/a |
 | Installed packages | `node_modules/` | Regenerable (`bun install`) | Bun | yes |
 | Build output | `dist/` | Regenerable (`bun run build`, checked) | `scripts/build.ts` | yes |
-| Command wrappers and manifest | `bin/` | Regenerable (`bun run scripts/generate_brew_suite.ts`) | the generator | **no**, tracked |
+| Command wrappers and manifest | `bin/` | Regenerable (`bun install` or `bun run scripts/generate_brew_suite.ts`) | the generator | yes |
 | Test leftovers | `test_db_*.sqlite-shm` and similar files in the repository folder | Temporary | tests that open SQLite files | yes |
 | Screenshots | `screenshots/`, `.temp_screens/` | Regenerable (capture scripts) | `scripts/capture_*.ts` | `.temp_screens/` yes, `screenshots/` no |
 

@@ -1,4 +1,4 @@
-/* Ollama Phonon Voice Reader & Multi-Format Audio Studio */
+/* Ollama Phonon Voice Reader, Follow-Along Teleprompter & Read-Along Video Studio */
 .phonon-studio-root {
   display: flex;
   flex-direction: column;
@@ -153,6 +153,12 @@
   gap: 0.75rem;
 }
 
+.phonon-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(195px, 1fr));
+  gap: 0.75rem;
+}
+
 .phonon-field {
   display: flex;
   flex-direction: column;
@@ -220,7 +226,7 @@
 
 .phonon-textarea {
   width: 100%;
-  min-height: 145px;
+  min-height: 120px;
   resize: vertical;
   font-family: inherit;
   line-height: 1.5;
@@ -260,6 +266,231 @@
   padding: 0.15rem 0.2rem;
 }
 
+/* Live Follow-Along Teleprompter Stage */
+.phonon-teleprompter-box {
+  display: flex;
+  flex-direction: column;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--accent, #38bdf8) 38%, var(--border, rgba(128, 128, 128, 0.25)));
+  background: rgba(11, 16, 32, 0.92);
+  overflow: hidden;
+}
+
+.phonon-teleprompter-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.8rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(15, 23, 42, 0.75);
+}
+
+.phonon-teleprompter-title {
+  font-size: 0.84rem;
+  color: #f8fafc;
+}
+
+.phonon-sm-select {
+  padding: 0.22rem 0.5rem;
+  font-size: 0.78rem;
+  min-width: 145px;
+}
+
+.phonon-teleprompter-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.85rem 1rem;
+  max-height: 220px;
+  overflow-y: auto;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.phonon-teleprompter-stage.theme-midnight {
+  background: linear-gradient(180deg, #0b1020 0%, #11182d 100%);
+  color: #f8fafc;
+  --tp-accent: #38bdf8;
+  --tp-accent-bg: rgba(56, 189, 248, 0.26);
+  --tp-spoken: #bae6fd;
+  --tp-upcoming: #cbd5e1;
+  --tp-muted: #64748b;
+}
+
+.phonon-teleprompter-stage.theme-parchment {
+  background: linear-gradient(180deg, #1f1914 0%, #29211a 100%);
+  color: #fef3c7;
+  --tp-accent: #fbbf24;
+  --tp-accent-bg: rgba(245, 158, 11, 0.28);
+  --tp-spoken: #fde68a;
+  --tp-upcoming: #e7e5e4;
+  --tp-muted: #a8a29e;
+}
+
+.phonon-teleprompter-stage.theme-cyber {
+  background: linear-gradient(180deg, #070812 0%, #120924 100%);
+  color: #faecff;
+  --tp-accent: #22d3ee;
+  --tp-accent-bg: rgba(34, 211, 238, 0.28);
+  --tp-spoken: #f0abfc;
+  --tp-upcoming: #e2e8f0;
+  --tp-muted: #9333ea;
+}
+
+.phonon-teleprompter-stage.theme-high_contrast {
+  background: #000000;
+  color: #ffffff;
+  --tp-accent: #facc15;
+  --tp-accent-bg: rgba(250, 204, 21, 0.32);
+  --tp-spoken: #fef08a;
+  --tp-upcoming: #ffffff;
+  --tp-muted: #a3a3a3;
+}
+
+.phonon-teleprompter-stage.size-sm .phonon-teleprompter-line {
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.phonon-teleprompter-stage.size-md .phonon-teleprompter-line {
+  font-size: 1.06rem;
+  line-height: 1.62;
+}
+
+.phonon-teleprompter-stage.size-lg .phonon-teleprompter-line {
+  font-size: 1.22rem;
+  line-height: 1.68;
+}
+
+.phonon-teleprompter-stage.size-xl .phonon-teleprompter-line {
+  font-size: 1.46rem;
+  line-height: 1.72;
+}
+
+.phonon-teleprompter-cues {
+  display: flex;
+  flex-direction: column;
+  gap: 0.38rem;
+}
+
+.phonon-teleprompter-line {
+  padding: 0.38rem 0.65rem;
+  border-radius: 8px;
+  border-left: 3px solid transparent;
+  transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+
+.phonon-teleprompter-line.is-active-cue {
+  background: rgba(255, 255, 255, 0.06);
+  border-left-color: var(--tp-accent, #38bdf8);
+}
+
+.phonon-teleprompter-line.is-past-cue {
+  opacity: 0.72;
+}
+
+.phonon-word {
+  display: inline;
+  padding: 0.06rem 0.22rem;
+  margin: 0 -0.05rem;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.09s ease, color 0.09s ease, box-shadow 0.09s ease;
+}
+
+.phonon-word:hover {
+  background: rgba(255, 255, 255, 0.14);
+  text-decoration: underline;
+}
+
+.phonon-word.is-spoken {
+  color: var(--tp-spoken, #bae6fd);
+}
+
+.phonon-word.is-speaking {
+  color: #ffffff;
+  font-weight: 800;
+  background: var(--tp-accent-bg, rgba(56, 189, 248, 0.28));
+  box-shadow: 0 0 0 1px var(--tp-accent, #38bdf8), 0 0 12px rgba(56, 189, 248, 0.35);
+  text-decoration: underline;
+  text-decoration-color: var(--tp-accent, #38bdf8);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.phonon-word.is-upcoming {
+  color: var(--tp-upcoming, #cbd5e1);
+}
+
+.phonon-teleprompter-context {
+  font-size: 0.8rem;
+  color: var(--tp-muted, #94a3b8);
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.phonon-teleprompter-context:hover {
+  color: var(--tp-accent, #38bdf8);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.phonon-teleprompter-empty {
+  text-align: center;
+  padding: 1.1rem;
+  color: #94a3b8;
+  font-size: 0.88rem;
+}
+
+.phonon-teleprompter-progress {
+  height: 4px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.phonon-teleprompter-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #38bdf8, #a855f7);
+  transition: width 0.08s linear;
+}
+
+/* Inline Read-Along Video Preview Player */
+.phonon-video-preview-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--accent, #38bdf8) 45%, transparent);
+  background: rgba(11, 16, 32, 0.88);
+}
+
+.phonon-video-preview-card[hidden],
+.phonon-teleprompter-progress[hidden],
+.phonon-video-options-row[hidden] {
+  display: none !important;
+}
+
+.phonon-video-preview-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.phonon-video-player {
+  width: 100%;
+  max-height: 360px;
+  border-radius: 8px;
+  background: #000;
+}
+
 .phonon-export-box {
   display: flex;
   flex-direction: column;
@@ -270,11 +501,22 @@
   background: var(--bg, rgba(0, 0, 0, 0.14));
 }
 
+.phonon-video-options-row {
+  padding-top: 0.35rem;
+  border-top: 1px dashed var(--border, rgba(128, 128, 128, 0.2));
+}
+
 .phonon-export-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
+}
+
+.phonon-save-video-btn {
+  background: linear-gradient(135deg, #2563eb, #7c3aed) !important;
+  border-color: rgba(168, 85, 247, 0.55) !important;
+  color: #ffffff !important;
 }
 
 .phonon-chunks-section {
@@ -303,7 +545,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
-  max-height: 290px;
+  max-height: 250px;
   overflow-y: auto;
   padding-right: 0.25rem;
 }
