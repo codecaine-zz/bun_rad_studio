@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# Codecaine Utility Suite - Docker CLI (CLI)
+# Type: CLI | Script: cli_apps/docker_cli.ts
+# ==============================================================================
+set -e
+
+# Resolve target directory across symlinks (Homebrew /opt/homebrew/bin, etc.)
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do
+  DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+BIN_DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
+PROJECT_ROOT="$( cd -P "$BIN_DIR/.." >/dev/null 2>&1 && pwd )"
+
+# Resolve bun executable across macOS and Linux standard locations
+if command -v bun >/dev/null 2>&1; then
+  BUN_BIN="bun"
+elif [ -x "/opt/homebrew/bin/bun" ]; then
+  BUN_BIN="/opt/homebrew/bin/bun"
+elif [ -x "/usr/local/bin/bun" ]; then
+  BUN_BIN="/usr/local/bin/bun"
+elif [ -x "/home/linuxbrew/.linuxbrew/bin/bun" ]; then
+  BUN_BIN="/home/linuxbrew/.linuxbrew/bin/bun"
+elif [ -x "$HOME/.bun/bin/bun" ]; then
+  BUN_BIN="$HOME/.bun/bin/bun"
+else
+  echo "❌ Error: 'bun' runtime was not found on PATH." >&2
+  echo "   Install Bun via Homebrew: brew install bun" >&2
+  echo "   Or via native installer:  curl -fsSL https://bun.sh/install | bash" >&2
+  exit 1
+fi
+
+export CODECAINE_SUITE="1"
+export CODECAINE_HOME="$PROJECT_ROOT"
+
+exec "$BUN_BIN" run "$PROJECT_ROOT/cli_apps/docker_cli.ts" "$@"
