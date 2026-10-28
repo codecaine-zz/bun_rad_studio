@@ -159,7 +159,7 @@ Active Interfaces: ${netNames || "None"}
         Accept: "application/json",
         "User-Agent": "Bun-RAD-Studio/1.0",
       },
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(15000),
     });
     if (!response.ok) throw new Error(`Registry responded with HTTP ${response.status}`);
     return response.json();
@@ -195,9 +195,9 @@ Active Interfaces: ${netNames || "None"}
     win.appendConsole("brew_console", `[Package Info] Fetching metadata for '${pkg}'...\n`, 1);
     win.setStatus(`Fetching info for '${pkg}'...`);
     try {
-      const data = await fetchNpmRegistryJson(encodeURIComponent(pkg));
-      const latestVer = data["dist-tags"]?.latest || "latest";
-      const verData = data.versions?.[latestVer] || {};
+      const data = await fetchNpmRegistryJson(`${encodeURIComponent(pkg)}/latest`);
+      const latestVer = data["dist-tags"]?.latest || data.version || "latest";
+      const verData = data.versions?.[latestVer] || data;
 
       const report = `=== Package Info: ${data.name} (v${latestVer}) ===
 Description: ${data.description || "None"}

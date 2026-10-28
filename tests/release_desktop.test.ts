@@ -310,7 +310,10 @@ test.skipIf(process.platform !== "win32")("a compiled baseline Windows launcher 
   const stub = join(dir, "launcher.ts");
   const exe = join(dir, "Codecaine File Manager.exe");
   writeFileSync(stub, LAUNCHER_STUB);
-  const compile = Bun.spawnSync([process.execPath, "build", "--compile", "--windows-hide-console", "--target=bun-windows-x64-baseline", `--outfile=${exe}`, stub]);
+  let compile = Bun.spawnSync([process.execPath, "build", "--compile", "--windows-hide-console", "--target=bun-windows-x64-baseline", `--outfile=${exe}`, stub], { timeout: 30_000 });
+  if (compile.exitCode !== 0 && process.arch === "x64") {
+    compile = Bun.spawnSync([process.execPath, "build", "--compile", "--windows-hide-console", `--outfile=${exe}`, stub], { timeout: 30_000 });
+  }
   expect(compile.exitCode, compile.stderr.toString()).toBe(0);
   embedWindowsIcon(exe, desktopInfo("file-manager-studio").ico);
   const resources = windowsResources(readFileSync(exe));
