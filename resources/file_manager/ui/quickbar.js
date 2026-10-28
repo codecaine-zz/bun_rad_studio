@@ -14,6 +14,7 @@ import { busy, calculateFolderSizes, entryMatchesKindFilter, refresh, saveSettin
 import * as ops from "./ops.js";
 import { activePane, currentPath, inTrash, isFolderView, left } from "./pane.js";
 import { openInMediaDeck } from "./playerDeck.js";
+import { canReadWithPhonon } from "./phonon.js";
 import { openPower } from "./power.js";
 import { openQuickLook } from "./quicklook.js";
 import { clearSelection, focusIndex, matchEntriesByPattern, selectByPattern, selectKeys, selectSameKindOrExt, selectedEntries } from "./selection.js";
@@ -673,6 +674,12 @@ export function renderSelectionBar() {
   if (playable.length > 0) {
     addAct("mediadeck", "🎛️", playable.length > 1 ? `Play (${playable.length})` : "Play", "Play in Media Deck", () =>
       openInMediaDeck({ entries: playable, enqueue: false }),
+    );
+  }
+  const readableTts = items.filter((x) => !x.isDir && canReadWithPhonon(x));
+  if (readableTts.length > 0) {
+    addAct("phonon", "🗣️", readableTts.length > 1 ? `Read Out Loud (${readableTts.length})` : "Read Out Loud (TTS)", "Read out loud with Ollama Phonon TTS, convert to plain text, or export as MP3/WAV/FLAC/M4A/Opus audio", () =>
+      openPower("phonon", { paths: readableTts.map((x) => x.path) }),
     );
   }
   const archives = extractableEntries(items);

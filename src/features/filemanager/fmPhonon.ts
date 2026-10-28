@@ -1174,15 +1174,15 @@ export async function getPhononStatus(ctx: FmContext): Promise<PhononStatusRepor
       pauseMs: settings.phononPauseMs ?? 200,
     },
     install: {
-      canAutoInstallOllama: !!ollamaExe || plan.auto || ctx.platform === "darwin" || ctx.platform === "linux",
-      method: plan.method ?? (ctx.platform === "linux" || ctx.platform === "darwin" ? "official-installer" : null),
+      canAutoInstallOllama: true,
+      method: plan.method ?? "official-installer",
       displayCommand: !ollamaExe
         ? plan.display || (ctx.platform === "win32" ? "winget install Ollama.Ollama && ollama pull phonon" : "curl -fsSL https://ollama.com/install.sh | sh && ollama pull phonon")
         : "ollama pull phonon",
       note: !ollamaExe
         ? plan.auto
           ? `${plan.note} Then automatically downloads the Phonon voice model (112 MB).`
-          : "Installs Ollama and downloads the Phonon voice model (112 MB)."
+          : "Installs Ollama into your user profile (no administrator password required) and downloads the Phonon voice model (112 MB)."
         : modelInstalled
           ? "Ollama and the Phonon voice model are installed and ready."
           : "Ollama is installed. Click once to download the Phonon voice model (112 MB).",
@@ -1380,54 +1380,301 @@ export function getCachedAudioFile(ctx: FmContext, id: string): string | null {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// One-Click Auto-Install for Ollama + Phonon Voice Model
+// One-Click Auto-Install for Ollama + Phonon Voice Model (Linux x64/ARM64, Windows x64/ARM64, macOS ARM64/x64)
 // ---------------------------------------------------------------------------------------------------------------
 
-export function startPhononInstall(ctx: FmContext, body: { confirm?: unknown }): ReturnType<FmContext["jobs"]["start"]> {
-  if (body.confirm !== true) {
-    throw new FmError("NEEDS_CONFIRM", "Confirm to install Ollama and download the Phonon voice model.");
+async function runSpawnLogged(
+  argv: string[],
+  env: Record<string, string>,
+  signal: AbortSignal,
+  log: (text: string) => void,
+): Promise<{ code: number | null; out: string; err: string }> {
+  try {
+    const proc = Bun.spawn(argv, {
+      stdout: "pipe",
+      stderr: "pipe",
+      stdin: "ignore",
+      env,
+      windowsHide: true,
+    });
+    const onAbort = () => {
+      try {
+        proc.kill();
+      } catch {}
+    };
+    signal.addEventListener("abort", onAbort, { once: true });
+    try {
+      const [out, err, code] = await Promise.all([
+        new Response(proc.stdout).text(),
+        new Response(proc.stderr).text(),
+        proc.exited,
+      ]);
+      if (out) log(out);
+      if (err) log(err);
+      return { code, out, err };
+    } finally {
+      signal.removeEventListener("abort", onAbort);
+    }
+  } catch (err) {
+    const msg = (err as Error)?.message ?? String(err);
+    log(`${msg}\n`);
+    return { code: null, out: "", err: msg };
   }
+}
 
-  const existingOllama = resolveTool(ctx, "ollama");
-  const managers = detectManagers(ctx);
-  const plan = installPlan(ctx.platform, "ollama", managers);
-  const env = buildExecEnv(ctx);
-
-  const steps: Array<{
-    label: string;
-    argv?: string[];
-    env?: Record<string, string>;
-    prepare?: () => Promise<{ work: (signal: AbortSignal, log: (text: string) => void) => Promise<string | void> }>;
-    timeoutMs?: number;
-  }> = [];
-
-  if (!existingOllama) {
-    if (plan.argv && plan.auto) {
-      steps.push({
-        label: "Install Ollama",
-        argv: plan.argv,
-        env,
-        timeoutMs: 25 * 60 * 1000,
-      });
-    } else if (ctx.platform === "linux" || ctx.platform === "darwin") {
-      const sh = findExecutable(ctx.platform, ["bash", "sh"], ["/bin", "/usr/bin"]);
-      const curl = findExecutable(ctx.platform, ["curl"], ["/usr/bin", "/bin", "/usr/local/bin", "/opt/homebrew/bin"]);
-      if (sh && curl && ctx.platform === "linux") {
-        steps.push({
-          label: "Install Ollama (official installer)",
-          argv: [sh, "-c", "curl -fsSL https://ollama.com/install.sh | sh"],
-          env,
-          timeoutMs: 25 * 60 * 1000,
-        });
-      } else {
-        throw new FmError("MANUAL_INSTALL", plan.note);
-      }
-    } else {
-      throw new FmError("MANUAL_INSTALL", plan.note);
+async function downloadFileToPath(
+  ctx: FmContext,
+  url: string,
+  destPath: string,
+  env: Record<string, string>,
+  signal: AbortSignal,
+  log: (text: string) => void,
+): Promise<void> {
+  if (signal.aborted) throw new Error("Cancelled");
+  const curlExe = findExecutable(
+    ctx.platform,
+    ["curl"],
+    searchDirs(ctx),
+  );
+  if (curlExe) {
+    log(`Downloading ${url}…\n`);
+    const res = await runSpawnLogged(
+      [curlExe, "--fail", "--location", "--silent", "--show-error", "-o", destPath, url],
+      env,
+      signal,
+      log,
+    );
+    if (signal.aborted) throw new Error("Cancelled");
+    if (res.code === 0 && existsSync(destPath)) {
+      const st = await fsp.stat(destPath).catch(() => null);
+      if (st && st.size > 1024) return;
     }
   }
 
-  steps.push({
+  // Fallback to Bun's native streaming fetch
+  log(`Downloading ${url} via HTTP stream…\n`);
+  const res = await fetch(url, { redirect: "follow", signal });
+  if (!res.ok || !res.body) {
+    throw new Error(`Download failed (${res.status} ${res.statusText}) from ${url}`);
+  }
+  const fh = await fsp.open(destPath, "w");
+  try {
+    let offset = 0;
+    const reader = res.body.getReader();
+    while (true) {
+      if (signal.aborted) throw new Error("Cancelled");
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value && value.byteLength > 0) {
+        await fh.write(value, 0, value.byteLength, offset);
+        offset += value.byteLength;
+      }
+    }
+  } finally {
+    await fh.close();
+  }
+}
+
+function detectCpuArch(): "arm64" | "amd64" {
+  const arch = (process.arch || "").toLowerCase();
+  const winArch = `${process.env.PROCESSOR_ARCHITECTURE || ""} ${process.env.PROCESSOR_ARCHITEW6432 || ""}`.toLowerCase();
+  if (arch === "arm64" || arch === "aarch64" || winArch.includes("arm64")) {
+    return "arm64";
+  }
+  return "amd64";
+}
+
+/**
+ * Installs Ollama across Linux (x64 & ARM64 Parallels), Windows (x64 & ARM64 Parallels), and macOS without requiring
+ * an interactive root/sudo password prompt or pre-installed zstd.
+ */
+export async function installOllamaBinaryCrossPlatform(
+  ctx: FmContext,
+  signal: AbortSignal,
+  log: (text: string) => void,
+): Promise<string> {
+  const existing = resolveTool(ctx, "ollama");
+  if (existing) return existing;
+
+  const managers = detectManagers(ctx);
+  const plan = installPlan(ctx.platform, "ollama", managers);
+  const env = buildExecEnv(ctx);
+  const arch = detectCpuArch();
+
+  // 1. Try package manager first when available and non-interactive (brew on macOS / x64 Linux, winget/scoop on Windows)
+  if (plan.argv && plan.auto && !(ctx.platform === "linux" && arch === "arm64" && plan.method === "brew")) {
+    log(`Running ${plan.display}…\n`);
+    await runSpawnLogged(plan.argv, env, signal, log);
+    if (signal.aborted) throw new Error("Cancelled");
+    const resolvedAfterPlan = resolveTool(ctx, "ollama");
+    if (resolvedAfterPlan) return resolvedAfterPlan;
+  }
+
+  // 2. Platform-specific zero-password user-space installation fallback
+  if (ctx.platform === "linux") {
+    const installRoot = nodePath.join(ctx.home, ".local");
+    const binDir = nodePath.join(installRoot, "bin");
+    const libDir = nodePath.join(installRoot, "lib", "ollama");
+    const stageDir = nodePath.join(installRoot, "share", `ollama-install-${process.pid}-${randomBytes(4).toString("hex")}`);
+    await fsp.mkdir(binDir, { recursive: true });
+    await fsp.mkdir(libDir, { recursive: true });
+    await fsp.mkdir(stageDir, { recursive: true });
+
+    try {
+      const url = `https://ollama.com/download/ollama-linux-${arch}.tar.zst`;
+      const archiveZst = nodePath.join(stageDir, `ollama-linux-${arch}.tar.zst`);
+      log(`Installing Ollama for Linux (${arch}) into ${installRoot} (no root password needed)…\n`);
+      await downloadFileToPath(ctx, url, archiveZst, env, signal, log);
+      if (signal.aborted) throw new Error("Cancelled");
+
+      const search = searchDirs(ctx);
+      const zstdExe = findExecutable("linux", ["zstd", "unzstd"], search);
+      const bsdtarExe = findExecutable("linux", ["bsdtar"], search);
+      const tarExe = findExecutable("linux", ["tar"], [...search, "/usr/bin", "/bin"]) ?? "/bin/tar";
+      const shExe = findExecutable("linux", ["bash", "sh"], ["/bin", "/usr/bin"]) ?? "/bin/sh";
+
+      let extracted = false;
+      if (zstdExe) {
+        log("Extracting archive with zstd + tar…\n");
+        const cmd = `"$1" -dc "$2" | "$3" -xf - -C "$4"`;
+        const r = await runSpawnLogged([shExe, "-c", cmd, "--", zstdExe, archiveZst, tarExe, installRoot], env, signal, log);
+        extracted = r.code === 0;
+      }
+      if (!extracted && bsdtarExe) {
+        log("Extracting archive with bsdtar…\n");
+        const r = await runSpawnLogged([bsdtarExe, "-xf", archiveZst, "-C", installRoot], env, signal, log);
+        extracted = r.code === 0;
+      }
+      if (!extracted) {
+        log("Decompressing .tar.zst with built-in Zstandard decoder…\n");
+        const zstBytes = await fsp.readFile(archiveZst);
+        await fsp.rm(archiveZst, { force: true }).catch(() => {});
+        const tarBytes = Bun.zstdDecompressSync(zstBytes);
+        const archiveTar = nodePath.join(stageDir, `ollama-linux-${arch}.tar`);
+        await fsp.writeFile(archiveTar, tarBytes);
+        const r = await runSpawnLogged([tarExe, "-xf", archiveTar, "-C", installRoot], env, signal, log);
+        await fsp.rm(archiveTar, { force: true }).catch(() => {});
+        extracted = r.code === 0;
+      }
+
+      const binOllama = nodePath.join(binDir, "ollama");
+      const rootOllama = nodePath.join(installRoot, "ollama");
+      if (!existsSync(binOllama) && existsSync(rootOllama)) {
+        await fsp.rename(rootOllama, binOllama).catch(() => {});
+      }
+      if (existsSync(binOllama)) {
+        await fsp.chmod(binOllama, 0o755).catch(() => {});
+      }
+    } finally {
+      await fsp.rm(stageDir, { recursive: true, force: true }).catch(() => {});
+    }
+  } else if (ctx.platform === "win32") {
+    const localAppData = process.env.LOCALAPPDATA || nodePath.win32.join(ctx.home, "AppData", "Local");
+    const installDir = nodePath.win32.join(localAppData, "Programs", "Ollama");
+    const stageDir = nodePath.win32.join(localAppData, "Temp", `ollama-install-${process.pid}-${randomBytes(4).toString("hex")}`);
+    await fsp.mkdir(installDir, { recursive: true });
+    await fsp.mkdir(stageDir, { recursive: true });
+
+    try {
+      const zipUrl = `https://ollama.com/download/ollama-windows-${arch}.zip`;
+      const zipPath = nodePath.win32.join(stageDir, `ollama-windows-${arch}.zip`);
+      log(`Downloading Ollama for Windows (${arch}) into ${installDir}…\n`);
+      await downloadFileToPath(ctx, zipUrl, zipPath, env, signal, log);
+      if (signal.aborted) throw new Error("Cancelled");
+
+      const sys32 = "C:\\Windows\\System32";
+      const tarExe = findExecutable("win32", ["tar"], [sys32, ...searchDirs(ctx)]);
+      let extracted = false;
+      if (tarExe) {
+        log("Extracting Ollama archive with Windows tar…\n");
+        const r = await runSpawnLogged([tarExe, "-xf", zipPath, "-C", installDir], env, signal, log);
+        extracted = r.code === 0;
+      }
+      if (!extracted) {
+        const psExe = findExecutable("win32", ["powershell", "pwsh"], [
+          `${sys32}\\WindowsPowerShell\\v1.0`,
+          ...searchDirs(ctx),
+        ]) ?? "powershell.exe";
+        log("Extracting Ollama archive with PowerShell Expand-Archive…\n");
+        const r = await runSpawnLogged(
+          [psExe, "-NoProfile", "-NonInteractive", "-Command", `Expand-Archive -LiteralPath '${zipPath.replace(/'/g, "''")}' -DestinationPath '${installDir.replace(/'/g, "''")}' -Force`],
+          env,
+          signal,
+          log,
+        );
+        extracted = r.code === 0;
+      }
+
+      if (!resolveTool(ctx, "ollama")) {
+        // Fallback to silent Inno Setup installer
+        const setupExe = nodePath.win32.join(stageDir, "OllamaSetup.exe");
+        await downloadFileToPath(ctx, "https://ollama.com/download/OllamaSetup.exe", setupExe, env, signal, log);
+        log("Running OllamaSetup.exe silently…\n");
+        await runSpawnLogged([setupExe, "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART"], env, signal, log);
+      }
+    } finally {
+      await fsp.rm(stageDir, { recursive: true, force: true }).catch(() => {});
+    }
+  } else if (ctx.platform === "darwin") {
+    const stageDir = nodePath.join(tmpdir(), `ollama-mac-install-${process.pid}-${randomBytes(4).toString("hex")}`);
+    await fsp.mkdir(stageDir, { recursive: true });
+    try {
+      const zipPath = nodePath.join(stageDir, "Ollama-darwin.zip");
+      log("Downloading Ollama for macOS…\n");
+      await downloadFileToPath(ctx, "https://ollama.com/download/Ollama-darwin.zip", zipPath, env, signal, log);
+      if (signal.aborted) throw new Error("Cancelled");
+      const unzipExe = findExecutable("darwin", ["unzip"], ["/usr/bin", "/bin", ...searchDirs(ctx)]) ?? "/usr/bin/unzip";
+      await runSpawnLogged([unzipExe, "-q", zipPath, "-d", stageDir], env, signal, log);
+      const extractedApp = nodePath.join(stageDir, "Ollama.app");
+      if (existsSync(extractedApp)) {
+        const userApps = nodePath.join(ctx.home, "Applications");
+        await fsp.mkdir(userApps, { recursive: true });
+        const targetSystem = "/Applications/Ollama.app";
+        const targetUser = nodePath.join(userApps, "Ollama.app");
+        let moved = false;
+        try {
+          if (existsSync(targetSystem)) await fsp.rm(targetSystem, { recursive: true, force: true });
+          await fsp.rename(extractedApp, targetSystem);
+          moved = true;
+        } catch {
+          try {
+            if (existsSync(targetUser)) await fsp.rm(targetUser, { recursive: true, force: true });
+            await fsp.rename(extractedApp, targetUser);
+            moved = true;
+          } catch {}
+        }
+        if (!moved) {
+          await runSpawnLogged(["/bin/cp", "-R", extractedApp, targetUser], env, signal, log);
+        }
+      }
+    } finally {
+      await fsp.rm(stageDir, { recursive: true, force: true }).catch(() => {});
+    }
+  }
+
+  const found = resolveTool(ctx, "ollama");
+  if (!found) {
+    throw new Error(`Ollama could not be installed automatically. Download it from ${TOOLS.ollama.website} and try again.`);
+  }
+  return found;
+}
+
+export function createOllamaInstallStep(ctx: FmContext) {
+  return {
+    label: "Install Ollama",
+    timeoutMs: 30 * 60 * 1000,
+    prepare: async () => ({
+      work: async (signal: AbortSignal, log: (text: string) => void) => {
+        const exe = await installOllamaBinaryCrossPlatform(ctx, signal, log);
+        log(`Ollama installed at ${exe}\n`);
+      },
+    }),
+  };
+}
+
+export function createPhononPullStep(ctx: FmContext) {
+  const env = buildExecEnv(ctx);
+  return {
     label: "Download Phonon Voice Model (ollama pull phonon)",
     timeoutMs: 25 * 60 * 1000,
     prepare: async () => ({
@@ -1438,36 +1685,26 @@ export function startPhononInstall(ctx: FmContext, body: { confirm?: unknown }):
         }
         log("Starting Ollama service & pulling Phonon voice model…\n");
         await ensureOllamaDaemon(ctx, ollamaExe);
-        const proc = Bun.spawn([ollamaExe, "pull", "phonon"], {
-          stdout: "pipe",
-          stderr: "pipe",
-          stdin: "ignore",
-          env,
-        });
-        const onAbort = () => {
-          try {
-            proc.kill();
-          } catch {}
-        };
-        signal.addEventListener("abort", onAbort, { once: true });
-        try {
-          const [out, err, code] = await Promise.all([
-            new Response(proc.stdout).text(),
-            new Response(proc.stderr).text(),
-            proc.exited,
-          ]);
-          if (out) log(out);
-          if (err) log(err);
-          if (signal.aborted) throw new Error("Cancelled");
-          if (code !== 0) {
-            throw new Error(explainFailure("ollama", `${out}\n${err}`, code));
-          }
-        } finally {
-          signal.removeEventListener("abort", onAbort);
+        const res = await runSpawnLogged([ollamaExe, "pull", "phonon"], env, signal, log);
+        if (signal.aborted) throw new Error("Cancelled");
+        if (res.code !== 0) {
+          throw new Error(explainFailure("ollama", `${res.out}\n${res.err}`, res.code));
         }
       },
     }),
-  });
+  };
+}
+
+export function startPhononInstall(ctx: FmContext, body: { confirm?: unknown }): ReturnType<FmContext["jobs"]["start"]> {
+  if (body.confirm !== true) {
+    throw new FmError("NEEDS_CONFIRM", "Confirm to install Ollama and download the Phonon voice model.");
+  }
+
+  const existingOllama = resolveTool(ctx, "ollama");
+  const steps = [
+    ...(!existingOllama ? [createOllamaInstallStep(ctx)] : []),
+    createPhononPullStep(ctx),
+  ];
 
   return ctx.jobs.start({
     kind: "install",

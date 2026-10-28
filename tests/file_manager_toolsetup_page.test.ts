@@ -95,12 +95,12 @@ describe("one-click setup of the helper programs", () => {
     const d = top();
     expect(d.querySelector(".dialog-title").textContent).toBe("Install helper programs");
     const boxes = () => [...d.querySelectorAll(".setup-row input[type=checkbox]")];
-    expect(boxes().length).toBe(15);
+    expect(boxes().length).toBe(16);
     expect(boxes().every((b: any) => b.checked)).toBe(true);
     expect([...d.querySelectorAll("input[type=radio]")].map((r: any) => r.value)).toEqual(["apt", "brew"]);
     expect(d.querySelector("input[type=radio]").checked).toBe(true);
     expect(d.textContent).toContain("Asks for your computer's password in the Terminal");
-    expect(button("Install 15", d)).toBeTruthy();
+    expect(button("Install 16", d)).toBeTruthy();
     for (const b of d.querySelectorAll("button")) expect(b.title || b.textContent.trim(), b.outerHTML.slice(0, 80)).toBeTruthy();
 
     button("Select none", d).click();
@@ -110,7 +110,7 @@ describe("one-click setup of the helper programs", () => {
     expect(boxes().filter((b: any) => b.checked).length).toBe(4);
     expect(button("Install 4", d)).toBeTruthy();
     button("Select all", d).click();
-    expect(button("Install 15", d)).toBeTruthy();
+    expect(button("Install 16", d)).toBeTruthy();
 
     // Homebrew has no package for LibreOffice on Linux: switching to it unticks and grays that one out
     const brewRadio = [...d.querySelectorAll("input[type=radio]")].find((r: any) => r.value === "brew");
@@ -131,7 +131,7 @@ describe("one-click setup of the helper programs", () => {
     pandoc.checked = false;
     pandoc.dispatchEvent(new doc.defaultView.Event("change", { bubbles: true }));
     const expected = boxes().filter((b: any) => b.checked).length;
-    expect(expected).toBe(12); // 15, minus LibreOffice and calibre (Mac applications with no Linux Homebrew package) and pandoc
+    expect(expected).toBe(13); // 16, minus LibreOffice and calibre (Mac applications with no Linux Homebrew package) and pandoc
     expect(button(`Install ${expected} programs`, d)).toBeTruthy();
     button(`Install ${expected} programs`, d).click();
     const plan = await started;
@@ -164,13 +164,13 @@ describe("one-click setup of the helper programs", () => {
     const started = setup.startSetup({ mode: "everything", startJob: () => { throw new Error("no job"); }, closeOuter: () => {} });
     await until(() => top()?.textContent.includes("Install everything that is missing?"), "the question");
     const text = top().textContent;
-    expect(text).toContain("15 programs");
+    expect(text).toContain("16 programs");
     expect(text).toContain("apt (the Debian and Ubuntu installer)");
     expect(text).toContain("password");
     expect(text).toContain("LibreOffice");
-    button("Install all 15", top()).click();
+    button("Install all 16", top()).click();
     const plan = await started;
-    expect(plan.tools.length).toBe(15);
+    expect(plan.tools.length).toBe(16);
     expect(typed.length).toBe(1);
     expect(toastText()).not.toMatch(/\bnull\b|\bundefined\b/);
   });
@@ -186,7 +186,7 @@ describe("one-click setup of the helper programs", () => {
     button("Install all", top()).click();
     expect(await started).toBe("job");
     expect(jobs.length).toBe(1);
-    expect(jobs[0]!.length).toBe(15);
+    expect(jobs[0]!.length).toBe(16);
     expect(typed.length).toBe(0);
   });
 

@@ -8,6 +8,9 @@ import { tagsSection } from "./tags.js";
 import { $, clear, h, placeIconFor } from "./dom.js";
 import { goTo, showTrash } from "./nav.js";
 import * as ops from "./ops.js";
+import { openPower } from "./power.js";
+import { selectedEntries } from "./selection.js";
+import { canReadWithPhonon } from "./phonon.js";
 import { emit, inTrash, on, state } from "./state.js";
 import { driveFor, formatSize, plural } from "./util.js";
 
@@ -64,6 +67,17 @@ export function renderSidebar() {
         { label: "Open terminal in CLI Utilities (./)", icon: "⌨️", action: () => { goTo(state.cliUtilsDir); emit("terminal-here", state.cliUtilsDir); } },
         { label: "Browse CLI Utilities catalog…", icon: "🛠️", action: () => emit("open-cliutils-tool") },
       ], { ...pt, label: "CLI Utilities" }),
+    }));
+    places.push(sideItem({
+      icon: "🗣️",
+      label: "Ollama TTS",
+      placeId: "phonon",
+      title: "Ollama Phonon Voice Reader — Read text & documents out loud, convert to plain text, set default voice, and save as any audio file",
+      active: state.powerOpen && state.powerTab === "phonon",
+      onClick: () => {
+        const readable = selectedEntries().filter((e) => !e.isDir && canReadWithPhonon(e));
+        openPower("phonon", readable.length ? { paths: readable.map((e) => e.path) } : undefined);
+      },
     }));
   }
   const activeDrive = here ? driveFor(here, state.drives, state.sep) : null;

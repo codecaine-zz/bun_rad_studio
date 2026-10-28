@@ -437,6 +437,68 @@ chmod +x "${instBin}/ollama"
     expect(statusAfter.ollamaInstalled).toBe(true);
     expect(statusAfter.modelInstalled).toBe(true);
   });
+
+  test("Linux 1-click install extracts ollama-linux-arm64.tar.zst into ~/.local/bin/ollama without sudo or zstd CLI", async () => {
+    const linuxDir = join(root, "linux-install");
+    const linuxHome = join(linuxDir, "home");
+    const linuxBin = join(linuxDir, "bin");
+    const archiveStaging = join(linuxDir, "archive-src");
+    mkdirSync(join(archiveStaging, "bin"), { recursive: true });
+    mkdirSync(join(archiveStaging, "lib", "ollama"), { recursive: true });
+    mkdirSync(linuxHome, { recursive: true });
+    mkdirSync(linuxBin, { recursive: true });
+    const linuxLog = join(linuxDir, "linux-install.log");
+
+    // Build a stand-in `bin/ollama` inside a tar archive and compress with Bun.zstdCompressSync
+    const fakeLinuxOllama = `#!/bin/sh
+echo "linux-ollama $@" >> "${linuxLog}"
+if [ "$1" = "--version" ]; then echo "ollama version is 0.40.12"; exit 0; fi
+if [ "$1" = "serve" ]; then sleep 2; exit 0; fi
+if [ "$1" = "list" ]; then echo "phonon:latest"; exit 0; fi
+if [ "$1" = "pull" ]; then echo "pulled $2"; exit 0; fi
+exit 0
+`;
+    writeFileSync(join(archiveStaging, "bin", "ollama"), fakeLinuxOllama);
+    chmodSync(join(archiveStaging, "bin", "ollama"), 0o755);
+    writeFileSync(join(archiveStaging, "lib", "ollama", "libggml-cpu.so"), "fake-so");
+
+    const tarPath = join(linuxDir, "ollama-linux.tar");
+    const tarRes = Bun.spawnSync(["tar", "-cf", tarPath, "-C", archiveStaging, "bin", "lib"]);
+    expect(tarRes.exitCode).toBe(0);
+    const zstBytes = Bun.zstdCompressSync(readFileSync(tarPath));
+
+    // Mock global fetch for https://ollama.com/download/ollama-linux-*.tar.zst
+    const origFetch = globalThis.fetch;
+    globalThis.fetch = (async (input: any, init?: any) => {
+      const url = typeof input === "string" ? input : input?.url ?? "";
+      if (url.startsWith("https://ollama.com/download/ollama-linux-") && url.endsWith(".tar.zst")) {
+        return new Response(zstBytes, { status: 200, headers: { "Content-Type": "application/zstd" } });
+      }
+      return origFetch(input, init);
+    }) as typeof fetch;
+
+    try {
+      const linuxCtx = createContext({
+        platform: "linux",
+        home: linuxHome,
+        dataDir: join(linuxDir, "data"),
+        toolDirs: [linuxBin, join(linuxHome, ".local", "bin")],
+      });
+
+      const job = startPhononInstall(linuxCtx, { confirm: true });
+      const done = await linuxCtx.jobs.whenDone(job.id);
+      expect(done.state).toBe("done");
+      expect(existsSync(join(linuxHome, ".local", "bin", "ollama"))).toBe(true);
+      expect(existsSync(join(linuxHome, ".local", "lib", "ollama", "libggml-cpu.so"))).toBe(true);
+      expect(readFileSync(linuxLog, "utf8")).toContain("linux-ollama pull phonon");
+
+      const statusAfter = await getPhononStatus(linuxCtx);
+      expect(statusAfter.ollamaInstalled).toBe(true);
+      expect(statusAfter.modelInstalled).toBe(true);
+    } finally {
+      globalThis.fetch = origFetch;
+    }
+  });
 });
 
 // Real Ollama + Phonon integration test when installed on the host machine

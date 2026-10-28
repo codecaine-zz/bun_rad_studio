@@ -216,7 +216,7 @@ describe("the Convert & process window in a browser-like page", () => {
     expect(names.slice(0, 3)).toEqual(["ffmpeg", "ImageMagick", "pandoc"]);
     expect(names).toContain("LibreOffice");
     expect(names).toContain("calibre");
-    expect(names.length).toBe(15);
+    expect(names.length).toBe(16);
     button("← Back to the list").click();
     expect(box().querySelector(".cv-question")).not.toBeNull();
     await closeDialog();
@@ -226,7 +226,7 @@ describe("the Convert & process window in a browser-like page", () => {
     select([]);
     await tools.showToolsDialog();
     expect(box().textContent).toContain("Select some files or folders first");
-    expect(box().querySelectorAll(".tool-block").length).toBe(15);
+    expect(box().querySelectorAll(".tool-block").length).toBe(16);
     await closeDialog();
   });
 

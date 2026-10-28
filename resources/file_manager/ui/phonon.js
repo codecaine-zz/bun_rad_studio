@@ -7,7 +7,7 @@ import { currentPath } from "./pane.js";
 import { registerPowerTab } from "./power.js";
 import { selectKeys, selectedEntries } from "./selection.js";
 import { emit, on, state } from "./state.js";
-import { startSetup } from "./toolsetup.js";
+import { showToolsDialog } from "./tools.js";
 import { baseName, extensionOf } from "./util.js";
 
 function stemOf(name) {
@@ -282,7 +282,7 @@ function mountPhononStudio(root, payload) {
       h("button", {
         type: "button",
         class: "btn phonon-sm-btn",
-        onclick: () => startSetup(() => refreshStatus()),
+        onclick: () => showToolsDialog(),
       }, "All Helper Apps…"),
     );
 
@@ -311,7 +311,7 @@ function mountPhononStudio(root, payload) {
       });
     } catch (err) {
       if (err instanceof ApiError && err.code === "MANUAL_INSTALL") {
-        startSetup(() => refreshStatus());
+        showToolsDialog();
       } else {
         toast(err instanceof ApiError ? err.message : "Could not start installation.", { kind: "error" });
       }
@@ -325,7 +325,7 @@ function mountPhononStudio(root, payload) {
       toast("Installing ffmpeg in the background…", { kind: "info" });
       pollJobUntilDone(job.id, () => refreshStatus());
     } catch {
-      startSetup(() => refreshStatus());
+      showToolsDialog();
     }
   }
 
@@ -335,7 +335,14 @@ function mountPhononStudio(root, payload) {
         const { jobs } = await call("jobs/list");
         const found = jobs.find((j) => j.id === jobId);
         if (!found || found.state === "done" || found.state === "failed" || found.state === "cancelled") {
-          if (found?.state === "done") onDone?.(found);
+          if (found?.state === "done") {
+            onDone?.(found);
+          } else if (found?.state === "failed") {
+            const failedStep = (found.steps || []).find((s) => s.state === "failed");
+            const msg = failedStep?.message || "Installation or export step failed. Check the Tasks panel for details.";
+            toast(msg, { kind: "error" });
+            refreshStatus();
+          }
           return;
         }
         setTimeout(check, 900);

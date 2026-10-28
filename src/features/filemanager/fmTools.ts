@@ -150,12 +150,12 @@ export const TOOLS: Record<ToolId, ToolDef> = {
   ollama: {
     id: "ollama", name: "Ollama", what: "Runs local speech and AI models on your computer (including Phonon text-to-speech).",
     executables: ["ollama"], versionArgs: ["--version"], website: "https://ollama.com/download",
-    brew: "ollama", winget: "Ollama.Ollama", scoop: "ollama", choco: "ollama", apt: "", dnf: "", pacman: "ollama",
+    brew: "ollama", winget: "Ollama.Ollama", scoop: "ollama", choco: "ollama", apt: "ollama", dnf: "ollama", pacman: "ollama",
     optional: true, versionMatch: /ollama/i,
     dirs: {
       darwin: ["/Applications/Ollama.app/Contents/Resources", "{HOME}/Applications/Ollama.app/Contents/Resources"],
-      linux: ["/usr/local/bin", "/usr/bin"],
-      win32: ["{LOCAL}\\Programs\\Ollama", "{PF}\\Ollama"],
+      linux: ["{HOME}/.local/bin", "/usr/local/bin", "/usr/bin"],
+      win32: ["{LOCAL}\\Programs\\Ollama", "{LOCAL}\\Ollama", "{PF}\\Ollama", "{PF86}\\Ollama"],
     },
   },
 };

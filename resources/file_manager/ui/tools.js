@@ -15,6 +15,7 @@ import { formatSize, plural } from "./util.js";
 import { renderChooser } from "./convert.js";
 import { extensionsOf } from "./convertdata.js";
 import { buildDestination, buildOptions, optionsIntro, renderPreview } from "./convertopts.js";
+import { openPower } from "./power.js";
 
 const MANAGER_NAMES = { brew: "Homebrew", winget: "winget", scoop: "Scoop", choco: "Chocolatey", apt: "apt", dnf: "dnf", pacman: "pacman" };
 
@@ -72,6 +73,15 @@ function toolBlock(tool, close, startInstall) {
       h("p", { class: "hint" }, plan.note),
       commandBlock(plan.display),
       h("div", { class: "tool-row-buttons" }, h("button", { type: "button", class: "btn primary", onclick: () => startInstall([tool.id]) }, `Install ${tool.name} with ${MANAGER_NAMES[plan.method] ?? plan.method}`)),
+    );
+  } else if (tool.id === "ollama") {
+    body.push(
+      h("p", { class: "hint" }, "Downloads and installs Ollama + Gradium Phonon automatically into your user folder (no administrator password required), or use the terminal command below:"),
+      commandBlock(plan.display),
+      h("div", { class: "tool-row-buttons" },
+        h("button", { type: "button", class: "btn primary", title: "Download and install Ollama + Phonon automatically", onclick: () => startInstall(["ollama"]) }, "⚡ Install Ollama & Phonon (1-Click)"),
+      ),
+      commandButtons(plan.display, close),
     );
   } else if (plan.missingManager) {
     const m = plan.missingManager;
@@ -155,7 +165,10 @@ export async function showToolsDialog() {
     }
     const view = renderChooser({ box, data, entries, pick: showOptions, install, showTools: showHelpers });
     if (!data.actions.length) box.append(h("p", { class: "hint" }, "Nothing can be made from these items. Try other files, or choose several of the same kind."));
-    box.append(h("div", { class: "tool-row-buttons" }, h("button", { type: "button", class: "btn", title: "Install or check the programs that do the work", onclick: showHelpers }, "Helper programs…")));
+    box.append(h("div", { class: "tool-row-buttons" },
+      h("button", { type: "button", class: "btn", title: "Install or check the programs that do the work", onclick: showHelpers }, "Helper programs…"),
+      h("button", { type: "button", class: "btn", title: "Open Ollama Text-to-Speech (Phonon Voice Reader) to read text out loud or export audiobooks", onclick: () => { dlg.close(); openPower("phonon", paths.length ? { paths } : undefined); } }, "🗣️ Ollama Text-to-Speech…"),
+    ));
     view.focus();
   }
 

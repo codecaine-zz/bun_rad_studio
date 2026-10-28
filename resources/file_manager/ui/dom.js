@@ -379,6 +379,7 @@ export const BUTTON_ICON_CATALOG = [
   { id: "secrets", group: "security", label: "Secrets & Key Vault", icon: "🗝️", macos: "🗝️", fluent: "🛡️", studio: "🔐", cyber: "🛡️", inferno: "🔱", slime: "☣️", storm: "⚡", cryo: "🧊", arcane: "🗝️", royal: "👑", godmode: "🛡️" },
   { id: "imagestudio", group: "studio", label: "HDR Image Studio", icon: "🎨", macos: "🏞️", fluent: "🎨", studio: "📸", cyber: "🔮", inferno: "🌅", slime: "🦠", storm: "🌈", cryo: "❄️", arcane: "🎭", royal: "🖼️", godmode: "🌈" },
   { id: "mediadeck", group: "studio", label: "Cinema Media Deck", icon: "🎬", macos: "🎬", fluent: "📽️", studio: "🎞️", cyber: "📡", inferno: "🎆", slime: "👁️", storm: "🌩️", cryo: "🏔️", arcane: "🔮", royal: "🎬", godmode: "🎬" },
+  { id: "phonon", group: "studio", label: "Ollama Text-to-Speech & Voice Reader", icon: "🗣️", macos: "🗣️", fluent: "🎙️", studio: "🎙️", cyber: "🗣️", inferno: "🗣️", slime: "🗣️", storm: "🗣️", cryo: "🗣️", arcane: "🗣️", royal: "🎙️", godmode: "🗣️" },
   // Quickbar Kind Filter Chips
   { id: "chip.all", group: "chip", label: "All Items Chip", icon: "✦", macos: "✦", fluent: "✨", studio: "🎛️", cyber: "💠", inferno: "🔥", slime: "🧪", storm: "⚡", cryo: "❄️", arcane: "🔮", royal: "👑", godmode: "🪐" },
   { id: "chip.folder", group: "chip", label: "Folders Filter Chip", icon: "📁", macos: "📁", fluent: "🗂️", studio: "🗄️", cyber: "💠", inferno: "🔥", slime: "🧪", storm: "🌪️", cryo: "🧊", arcane: "📜", royal: "👑", godmode: "🪐" },
