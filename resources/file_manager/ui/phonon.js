@@ -1,5 +1,5 @@
 // Ollama Phonon Voice Reader, Plain-Text Format Converter, Large-Text Streaming Reader & Multi-Format Audio Exporter.
-import { ApiError, call, getToken, phononSupported } from "./api.js";
+import { ApiError, call, getToken, isPhononSupported, phononSupported } from "./api.js";
 import { announce, clear, h } from "./dom.js";
 import { toast } from "./menus.js";
 import { goTo, refresh, saveSettings } from "./nav.js";
@@ -10,7 +10,7 @@ import { emit, on, state } from "./state.js";
 import { showToolsDialog } from "./tools.js";
 import { baseName, extensionOf } from "./util.js";
 
-export const isPhononSupported = () => phononSupported;
+export { isPhononSupported };
 
 function stemOf(name) {
   const dot = name.lastIndexOf(".");
@@ -32,7 +32,7 @@ const READABLE_EXTS = new Set([
 ]);
 
 export function canReadWithPhonon(entry) {
-  if (!phononSupported) return false;
+  if (!isPhononSupported()) return false;
   if (!entry || entry.isDir) return false;
   const ext = extensionOf(entry.name);
   if (READABLE_EXTS.has(ext)) return true;
@@ -1103,7 +1103,7 @@ function mountPhononStudio(root, payload) {
   };
 }
 
-if (phononSupported) {
+if (isPhononSupported()) {
   registerPowerTab({
     id: "phonon",
     label: "Voice Reader",

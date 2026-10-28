@@ -9,9 +9,13 @@ export const getToken = () => INITIAL_TOKEN || meta("fm-token");
 export const platform = meta("fm-platform") || (typeof process !== "undefined" ? process.platform : "linux");
 export const arch = meta("fm-arch") || (typeof process !== "undefined" ? process.arch : "");
 /** Ollama Phonon TTS uses Apple's MLX framework and is only enabled on macOS ARM64 (Apple Silicon). */
-export const phononSupported =
-  platform === "darwin" &&
-  (meta("fm-phonon") === "1" || arch === "arm64" || (!arch && !meta("fm-phonon")));
+export const isPhononSupported = () => {
+  const p = meta("fm-platform") || (typeof process !== "undefined" ? process.platform : "linux");
+  const a = meta("fm-arch") || (typeof process !== "undefined" ? process.arch : "");
+  const ph = meta("fm-phonon");
+  return p === "darwin" && (ph === "1" || a === "arm64" || (!a && !ph));
+};
+export const phononSupported = isPhononSupported();
 
 export class ApiError extends Error {
   /** @param {string} message @param {string} code @param {number} status @param {any} [details] extra facts the server sent with the error */
