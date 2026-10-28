@@ -29,7 +29,13 @@ import { resetWindowPrefs, windowDataDir } from "../src/features/filemanager/fmW
 import { createWindowNative } from "../src/windowNative";
 import { openCommand } from "../src/features/filemanager/fmOpen";
 import { DESKTOP_SHORTCUTS_SCRIPT } from "../src/shared/desktopShortcuts";
-import { ensureValidWindowsWebViewLoader, ensureWindowsX64Bun, initWindowsComSta } from "../scripts/fix_windows_webview_runtime";
+import {
+  ensureValidWindowsWebViewLoader,
+  ensureWindowsX64Bun,
+  ensureWindowsX64VcRuntimeAndWebViewLoader,
+   initWindowsComSta,
+  isPeX64,
+} from "../scripts/fix_windows_webview_runtime";
 
 export interface FileManagerStudioOptions extends FileManagerServerOptions {
   /** A one-off window size (--width / --height): used as is, and not remembered. */
@@ -109,7 +115,7 @@ export function createFileManagerStudio(options: FileManagerStudioOptions = {}):
       // 3. Initialize COM in Single-Threaded Apartment (STA) mode on the main thread before async fetch/spawn.
       if (process.platform === "win32" && !openBrowser) {
         ensureValidWindowsWebViewLoader();
-        if (process.arch === "arm64" && process.env.FM_REEXEC_X64 !== "1") {
+        if ((process.arch === "arm64" || !isPeX64(process.execPath)) && process.env.FM_REEXEC_X64 !== "1") {
           const bunX64 = await ensureWindowsX64Bun();
           if (bunX64) {
             console.log(`📁 Windows ARM64 detected: launching native WebView window via x64 Bun runtime (${bunX64})...`);
@@ -128,6 +134,7 @@ export function createFileManagerStudio(options: FileManagerStudioOptions = {}):
             process.exit(exitCode);
           }
         }
+        await ensureWindowsX64VcRuntimeAndWebViewLoader();
         await initWindowsComSta();
       }
 

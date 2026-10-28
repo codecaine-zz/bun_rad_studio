@@ -144,13 +144,19 @@ export function ensureValidWindowsWebViewLoader(rootDir = process.cwd()): string
     mkdirSync(webviewBuildDir, { recursive: true });
     prependWindowsDllSearchPath(webviewBuildDir);
 
-    if (existsSync(target)) {
-      if (isPeX64(target)) {
-        return target;
+    // Remove any non-x64 (ARM64 0xaa64 or x86 0x014c) DLL sitting inside webview-bun/build
+    for (const entry of readdirSync(webviewBuildDir, { withFileTypes: true })) {
+      if (entry.isFile() && entry.name.toLowerCase().endsWith(".dll")) {
+        const fullDll = join(webviewBuildDir, entry.name);
+        if (!isPeX64(fullDll)) {
+          rmSync(fullDll, { force: true });
+          console.log(`[windows-webview] Removed non-x64 DLL at ${fullDll}`);
+        }
       }
-      // A non-x64 (e.g. ARM64 0xaa64 or x86 0x014c) WebView2Loader.dll breaks x64 libwebview.dll!
-      rmSync(target, { force: true });
-      console.log(`[windows-webview] Removed non-x64 WebView2Loader.dll at ${target}`);
+    }
+
+    if (existsSync(target) && isPeX64(target)) {
+      return target;
     }
 
     const source = findWebView2Loader();
@@ -168,6 +174,114 @@ export function ensureValidWindowsWebViewLoader(rootDir = process.cwd()): string
     console.warn(`[windows-webview] Note: Unable to verify/copy WebView2Loader.dll (${err?.message ?? err}).`);
     return undefined;
   }
+}
+
+const VC_RUNTIME_DLLS = ["msvcp140.dll", "vcruntime140.dll", "vcruntime140_1.dll"] as const;
+
+function extractZipOnWindows(zipPath: string, destDir: string): boolean {
+  const tar = Bun.spawnSync(["tar.exe", "-xf", zipPath, "-C", destDir], { stdout: "ignore", stderr: "ignore" });
+  if (tar.exitCode === 0) return true;
+  const ps = Bun.spawnSync(
+    [
+      "powershell.exe",
+      "-NoProfile",
+      "-NonInteractive",
+      "-Command",
+      `Expand-Archive -LiteralPath '${zipPath.replace(/'/g, "''")}' -DestinationPath '${destDir.replace(/'/g, "''")}' -Force`,
+    ],
+    { stdout: "ignore", stderr: "ignore" },
+  );
+  return ps.exitCode === 0;
+}
+
+/**
+ * Ensures `node_modules/webview-bun/build/` contains valid x64 (`0x8664`) copies of `msvcp140.dll`,
+ * `vcruntime140.dll`, `vcruntime140_1.dll`, and `WebView2Loader.dll`, and registers the folder via
+ * `SetDllDirectoryW` so ARM64/x86 DLLs in `System32` or `PATH` on Windows 11 ARM64 (Parallels) never
+ * trigger Win32 Error 193 (`ERROR_BAD_EXE_FORMAT`) when loading `libwebview.dll`.
+ */
+export async function ensureWindowsX64VcRuntimeAndWebViewLoader(rootDir = process.cwd()): Promise<void> {
+  if (process.platform !== "win32") return;
+  const webviewBuildDir = join(rootDir, "node_modules", "webview-bun", "build");
+  ensureValidWindowsWebViewLoader(rootDir);
+
+  // 1. Copy local x64 (0x8664) VC++ runtime DLLs if already present in System32
+  const sys32 = "C:\\Windows\\System32";
+  for (const dll of VC_RUNTIME_DLLS) {
+    const dest = join(webviewBuildDir, dll);
+    if (existsSync(dest) && isPeX64(dest)) continue;
+    const candidate = join(sys32, dll);
+    if (existsSync(candidate) && isPeX64(candidate)) {
+      try {
+        copyFileSync(candidate, dest);
+      } catch {}
+    }
+  }
+
+  // 2. If any of msvcp140.dll, vcruntime140.dll, vcruntime140_1.dll is still missing or non-x64,
+  //    download Microsoft's official x64 Desktop VCLibs appx (standard zip, no UAC/admin required)
+  const missingVc = VC_RUNTIME_DLLS.some((dll) => !isPeX64(join(webviewBuildDir, dll)));
+  if (missingVc) {
+    const stageDir = join(tmpdir(), `vc-x64-${process.pid}-${Date.now()}`);
+    const zipPath = join(stageDir, "vclibs-x64.zip");
+    try {
+      mkdirSync(stageDir, { recursive: true });
+      console.log("[windows-webview] Provisioning Microsoft x64 Visual C++ Runtime DLLs for native WebView2...");
+      const res = await fetch("https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx");
+      if (res.ok) {
+        writeFileSync(zipPath, new Uint8Array(await res.arrayBuffer()));
+        if (extractZipOnWindows(zipPath, stageDir)) {
+          for (const dll of VC_RUNTIME_DLLS) {
+            const extracted = join(stageDir, dll);
+            const dest = join(webviewBuildDir, dll);
+            if (isPeX64(extracted)) {
+              copyFileSync(extracted, dest);
+            }
+          }
+          console.log("[windows-webview] Installed x64 msvcp140.dll, vcruntime140.dll, and vcruntime140_1.dll.");
+        }
+      }
+    } catch (err: any) {
+      console.warn(`[windows-webview] Note: Could not auto-download VCLibs x64 (${err?.message ?? err}).`);
+    } finally {
+      try { rmSync(stageDir, { recursive: true, force: true }); } catch {}
+    }
+  }
+
+  // 3. If x64 WebView2Loader.dll was not found locally (e.g. Windows 11 ARM64 with only arm64 Edge installed),
+  //    fetch Microsoft's official Microsoft.Web.WebView2 NuGet package and extract runtimes/win-x64/native/WebView2Loader.dll
+  const loaderTarget = join(webviewBuildDir, "WebView2Loader.dll");
+  if (!isPeX64(loaderTarget)) {
+    const stageDir = join(tmpdir(), `wv2-x64-${process.pid}-${Date.now()}`);
+    const zipPath = join(stageDir, "webview2.zip");
+    try {
+      mkdirSync(stageDir, { recursive: true });
+      console.log("[windows-webview] Provisioning Microsoft x64 WebView2Loader.dll...");
+      const res = await fetch("https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2");
+      if (res.ok) {
+        writeFileSync(zipPath, new Uint8Array(await res.arrayBuffer()));
+        if (extractZipOnWindows(zipPath, stageDir)) {
+          const extracted = join(stageDir, "runtimes", "win-x64", "native", "WebView2Loader.dll");
+          if (isPeX64(extracted)) {
+            copyFileSync(extracted, loaderTarget);
+            console.log("[windows-webview] Installed x64 WebView2Loader.dll.");
+          }
+        }
+      }
+    } catch {} finally {
+      try { rmSync(stageDir, { recursive: true, force: true }); } catch {}
+    }
+  }
+
+  // 4. Register webviewBuildDir via SetDllDirectoryW so Windows resolves libwebview.dll's dependencies from here first
+  try {
+    const { dlopen, FFIType, ptr } = await import("bun:ffi");
+    const kernel32 = dlopen("kernel32.dll", {
+      SetDllDirectoryW: { args: [FFIType.pointer], returns: FFIType.i32 },
+    });
+    const utf16 = Buffer.from(webviewBuildDir + "\0", "utf16le");
+    kernel32.symbols.SetDllDirectoryW(ptr(utf16));
+  } catch {}
 }
 
 function isRunnableWindowsX64Bun(candidate: string): boolean {
@@ -294,9 +408,9 @@ export async function initWindowsComSta(): Promise<boolean> {
 if (import.meta.main) {
   if (process.platform === "win32") {
     try {
-      ensureValidWindowsWebViewLoader();
+      await ensureWindowsX64VcRuntimeAndWebViewLoader();
     } catch {}
-    if (process.arch === "arm64") {
+    if (process.arch === "arm64" || !isPeX64(process.execPath)) {
       await ensureWindowsX64Bun().catch(() => undefined);
     }
   }
