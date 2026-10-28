@@ -4,6 +4,14 @@ import { tmpdir } from "os";
 import { join, resolve } from "path";
 import { bundleApps, copyAppBundle } from "../scripts/release/suite";
 import { LAUNCHER_STUB } from "../scripts/release/build_file_manager";
+import {
+  PE_MACHINE_ARM64,
+  PE_MACHINE_X64,
+  PE_MACHINE_X86,
+  ensureValidWindowsWebViewLoader,
+  getPeMachineType,
+  isPeX64,
+} from "../scripts/fix_windows_webview_runtime";
 
 const script = resolve(import.meta.dir, "../applications/file_manager_studio.ts");
 
@@ -35,7 +43,7 @@ test("the server process started by the window stops when the window's process i
   }
 }, 20000);
 
-test("the packaged File Manager serves and opens a browser when the native library is missing", async () => {
+test("the packaged File Manager never opens a browser unless --browser is explicitly passed", async () => {
   if (process.platform === "win32") return;
   const dir = mkdtempSync(join(tmpdir(), "fm-no-webview-"));
   let child: ReturnType<typeof Bun.spawn> | undefined;
@@ -83,8 +91,19 @@ test("the packaged File Manager serves and opens a browser when the native libra
     child.kill();
     await child.exited;
 
-    const desktop = Bun.spawn([process.execPath, app, "--home", dir, "--data-dir", dir], { env, stdout: "pipe", stderr: "pipe" });
-    child = desktop;
+    // 1. Default invocation (without --browser): must NOT open a web browser when native library is missing
+    const desktopNoBrowser = Bun.spawn([process.execPath, app, "--home", dir, "--data-dir", dir], { env, stdout: "pipe", stderr: "pipe" });
+    child = desktopNoBrowser;
+    const exitCode = await desktopNoBrowser.exited;
+    expect(exitCode).not.toBe(0);
+    expect(existsSync(urlFile)).toBe(false);
+    const noBrowserErrors = await new Response(desktopNoBrowser.stderr).text();
+    expect(noBrowserErrors).toContain("The desktop window isn't available");
+    expect(noBrowserErrors).toContain("--browser");
+
+    // 2. Explicit --browser invocation: serves and opens the URL in the browser
+    const desktopWithBrowser = Bun.spawn([process.execPath, app, "--browser", "--home", dir, "--data-dir", dir], { env, stdout: "pipe", stderr: "pipe" });
+    child = desktopWithBrowser;
     for (let i = 0; i < 150 && !existsSync(urlFile); i++) await Bun.sleep(100);
     expect(existsSync(urlFile)).toBe(true);
     const url = readFileSync(urlFile, "utf8");
@@ -94,15 +113,63 @@ test("the packaged File Manager serves and opens a browser when the native libra
     expect(await response.text()).toContain("Codecaine File Manager");
     child.kill();
     await child.exited;
-    const errors = await new Response(desktop.stderr).text();
-    expect(errors).toContain("The desktop window isn't available");
-    expect(errors).toContain("Opening the File Manager in your browser");
+    const browserStdout = await new Response(desktopWithBrowser.stdout).text();
+    expect(browserStdout).toContain("Opening the File Manager in your browser");
   } finally {
     child?.kill();
     if (child) await child.exited;
     rmSync(dir, { recursive: true, force: true });
   }
 }, 30000);
+
+test("Windows WebView runtime validator accepts only x64 (0x8664) PE DLLs and removes ARM64/x86 WebView2Loader.dll", () => {
+  const realLibwebview = resolve(import.meta.dir, "../node_modules/webview-bun/build/libwebview.dll");
+  expect(getPeMachineType(realLibwebview)).toBe(PE_MACHINE_X64);
+  expect(isPeX64(realLibwebview)).toBe(true);
+
+  const dir = mkdtempSync(join(tmpdir(), "fm-win-pe-"));
+  try {
+    const buildFakePe = (machine: number): Buffer => {
+      const buf = Buffer.alloc(128);
+      buf[0] = 0x4d; // 'M'
+      buf[1] = 0x5a; // 'Z'
+      buf.writeUInt32LE(0x40, 0x3c); // e_lfanew = 0x40
+      buf[0x40] = 0x50; // 'P'
+      buf[0x41] = 0x45; // 'E'
+      buf[0x42] = 0x00;
+      buf[0x43] = 0x00;
+      buf.writeUInt16LE(machine, 0x44);
+      return buf;
+    };
+
+    const arm64Dll = join(dir, "arm64.dll");
+    const x86Dll = join(dir, "x86.dll");
+    const x64Dll = join(dir, "x64.dll");
+    writeFileSync(arm64Dll, buildFakePe(PE_MACHINE_ARM64));
+    writeFileSync(x86Dll, buildFakePe(PE_MACHINE_X86));
+    writeFileSync(x64Dll, buildFakePe(PE_MACHINE_X64));
+
+    expect(getPeMachineType(arm64Dll)).toBe(PE_MACHINE_ARM64);
+    expect(isPeX64(arm64Dll)).toBe(false);
+    expect(getPeMachineType(x86Dll)).toBe(PE_MACHINE_X86);
+    expect(isPeX64(x86Dll)).toBe(false);
+    expect(getPeMachineType(x64Dll)).toBe(PE_MACHINE_X64);
+    expect(isPeX64(x64Dll)).toBe(true);
+
+    // Verify ensureValidWindowsWebViewLoader removes a wrong-arch ARM64 WebView2Loader.dll
+    const buildDir = join(dir, "node_modules", "webview-bun", "build");
+    mkdirSync(buildDir, { recursive: true });
+    const targetLoader = join(buildDir, "WebView2Loader.dll");
+    writeFileSync(targetLoader, buildFakePe(PE_MACHINE_ARM64));
+    expect(isPeX64(targetLoader)).toBe(false);
+    ensureValidWindowsWebViewLoader(dir);
+    if (existsSync(targetLoader)) {
+      expect(isPeX64(targetLoader)).toBe(true);
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
 
 test("the compiled download launcher records hidden startup failures and preserves server output", async () => {
   const dir = mkdtempSync(join(tmpdir(), "fm-launcher-"));

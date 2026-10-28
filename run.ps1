@@ -72,11 +72,18 @@ function Get-BunX64ForArm64 {
     if ($env:LOCALAPPDATA) { $localApp = $env:LOCALAPPDATA }
 
     $targetDir = Join-Path $localApp 'bun-x64'
+    $baselineExe = Join-Path $targetDir 'bun-windows-x64-baseline\bun.exe'
+    if (Test-Path $baselineExe) { return $baselineExe }
+
     $targetExe = Join-Path $targetDir 'bun-windows-x64\bun.exe'
     if (Test-Path $targetExe) { return $targetExe }
 
     $altExe = Join-Path $targetDir 'bun.exe'
     if (Test-Path $altExe) { return $altExe }
+
+    if (Test-Path 'C:\Tools\bun-x64\bun-windows-x64-baseline\bun.exe') {
+        return 'C:\Tools\bun-x64\bun-windows-x64-baseline\bun.exe'
+    }
 
     if (Test-Path 'C:\Tools\bun-x64\bun-windows-x64\bun.exe') {
         return 'C:\Tools\bun-x64\bun-windows-x64\bun.exe'
@@ -86,21 +93,25 @@ function Get-BunX64ForArm64 {
     Write-Host "[!] Windows ARM64 Architecture Notice:" -ForegroundColor Yellow
     Write-Host "    The desktop webview library (libwebview.dll) is an x86_64 DLL." -ForegroundColor Gray
     Write-Host "    Native Bun ARM64 cannot dlopen an x64 DLL (Windows error 193)." -ForegroundColor Gray
-    Write-Host "    Windows ARM64 runs Bun x64 smoothly via built-in x64 emulation." -ForegroundColor Gray
-    Write-Host "[+] Automatically setting up Bun x64 for Windows ARM64 (one-time setup)..." -ForegroundColor Cyan
+    Write-Host "    Windows ARM64 runs Bun x64-baseline smoothly via built-in x64 emulation." -ForegroundColor Gray
+    Write-Host "[+] Automatically setting up Bun x64-baseline for Windows ARM64 (one-time setup)..." -ForegroundColor Cyan
 
     $tempDir = 'C:\Temp'
     if ($env:TEMP) { $tempDir = $env:TEMP }
-    $zipPath = Join-Path $tempDir 'bun-windows-x64.zip'
+    $zipPath = Join-Path $tempDir 'bun-windows-x64-baseline.zip'
 
     try {
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-        Write-Host "    Downloading bun-windows-x64 from GitHub releases (~25 MB)..." -ForegroundColor DarkGray
-        Invoke-WebRequest -Uri 'https://github.com/oven-sh/bun/releases/latest/download/bun-windows-x64.zip' -OutFile $zipPath -UseBasicParsing
+        Write-Host "    Downloading bun-windows-x64-baseline from GitHub releases (~25 MB)..." -ForegroundColor DarkGray
+        Invoke-WebRequest -Uri 'https://github.com/oven-sh/bun/releases/latest/download/bun-windows-x64-baseline.zip' -OutFile $zipPath -UseBasicParsing
         New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
         Expand-Archive -Path $zipPath -DestinationPath $targetDir -Force
         Remove-Item $zipPath -ErrorAction SilentlyContinue
 
+        if (Test-Path $baselineExe) {
+            Write-Host "[OK] Bun x64-baseline configured at: $baselineExe" -ForegroundColor Green
+            return $baselineExe
+        }
         if (Test-Path $targetExe) {
             Write-Host "[OK] Bun x64 configured at: $targetExe" -ForegroundColor Green
             return $targetExe

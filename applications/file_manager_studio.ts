@@ -5,16 +5,18 @@
  * sidebar, breadcrumb address bar, three views, drag and drop, a details panel and full keyboard support.
  *
  * How it runs: a small local web server (127.0.0.1 only, protected by a per-session token) does the file work, and
- * the window shows its page. `--server` runs just the server so you can open it in a browser.
+ * the native desktop WebView window shows its page. `--browser` (`-b`) opens it in your web browser instead, and
+ * `--server` runs just the server.
  *
- *   bun run app:files                      open the window
+ *   bun run app:files                      open the native desktop window
  *   bun run app:files --path ~/Documents   open it at a folder
+ *   bun run app:files --browser            open it in a web browser instead of the native window
  *   bun run app:files --server             server only; prints READY:<port>
  *
  * The window opens filling the screen. When you change it (resize, move, maximise, full screen) the app remembers that
  * and uses it next time; Settings → Window (or --reset-window) goes back to filling the screen.
  *
- * Options: --port N, --path DIR, --width N, --height N (a one-off window size: nothing is restored or remembered),
+ * Options: --port N, --path DIR, --browser / -b, --width N, --height N (a one-off window size: nothing is restored or remembered),
  * --reset-window (forget the remembered window and fill the screen), --home DIR and --data-dir DIR (where the settings,
  * the remembered window and the Recycle Bin live) and --tool-dirs A:B (look for ffmpeg, ImageMagick and pandoc only
  * there); the last three are mainly for testing.
@@ -27,6 +29,7 @@ import { resetWindowPrefs, windowDataDir } from "../src/features/filemanager/fmW
 import { createWindowNative } from "../src/windowNative";
 import { openCommand } from "../src/features/filemanager/fmOpen";
 import { DESKTOP_SHORTCUTS_SCRIPT } from "../src/shared/desktopShortcuts";
+import { ensureValidWindowsWebViewLoader, ensureWindowsX64Bun, initWindowsComSta } from "../scripts/fix_windows_webview_runtime";
 
 export interface FileManagerStudioOptions extends FileManagerServerOptions {
   /** A one-off window size (--width / --height): used as is, and not remembered. */
@@ -40,6 +43,8 @@ export interface FileManagerStudioOptions extends FileManagerServerOptions {
   startGame?: string;
   /** Start with the tool expanded to fill the window (--max). */
   startMax?: boolean;
+  /** Explicitly open in the system web browser instead of the native WebView window (--browser / -b). */
+  openBrowser?: boolean;
 }
 
 export interface FileManagerStudioInstance {
@@ -91,14 +96,43 @@ export function createFileManagerStudio(options: FileManagerStudioOptions = {}):
   const width = options.width ?? 1280;
   const height = options.height ?? 820;
   const title = APP_NAME;
+  const openBrowser = Boolean(options.openBrowser || process.env.FM_OPEN_BROWSER === "1");
   const app: FileManagerStudioInstance = {
     title,
     width,
     height,
     run: async () => {
+      // On Windows, prepare the WebView2 runtime before starting the window:
+      // 1. Ensure no wrong-architecture (ARM64/x86) WebView2Loader.dll is blocking x64 libwebview.dll.
+      // 2. If running under native ARM64 bun.exe on Windows 11 ARM64, automatically switch to x64-baseline bun.exe
+      //    so the x86_64 libwebview.dll loads natively instead of failing with Win32 Error 193.
+      // 3. Initialize COM in Single-Threaded Apartment (STA) mode on the main thread before async fetch/spawn.
+      if (process.platform === "win32" && !openBrowser) {
+        ensureValidWindowsWebViewLoader();
+        if (process.arch === "arm64" && process.env.FM_REEXEC_X64 !== "1") {
+          const bunX64 = await ensureWindowsX64Bun();
+          if (bunX64) {
+            console.log(`📁 Windows ARM64 detected: launching native WebView window via x64 Bun runtime (${bunX64})...`);
+            const reexec = Bun.spawn([bunX64, ...process.argv.slice(1)], {
+              stdin: "inherit",
+              stdout: "inherit",
+              stderr: "inherit",
+              env: { ...process.env, FM_REEXEC_X64: "1" },
+            });
+            const forwardStop = () => {
+              try { reexec.kill(); } catch {}
+            };
+            process.on("SIGINT", forwardStop);
+            process.on("SIGTERM", forwardStop);
+            const exitCode = await reexec.exited;
+            process.exit(exitCode);
+          }
+        }
+        await initWindowsComSta();
+      }
+
       console.log(`📁 Launching ${APP_NAME}...`);
-      // The window's event loop blocks this process, so the server must live in its own process (as in the
-      // other studios). If that fails, the server runs here and is opened in a browser instead of a window.
+      // The window's event loop blocks this process, so the server lives in its own background process.
       let child: ReturnType<typeof Bun.spawn> | undefined;
       const stop = () => {
         try { child?.kill(); } catch {}
@@ -108,14 +142,27 @@ export function createFileManagerStudio(options: FileManagerStudioOptions = {}):
       process.on("SIGINT", stop);
       process.on("SIGTERM", stop);
       let port = 0;
-      try {
-        child = Bun.spawn(serverCommand(options), { stdout: "pipe", stderr: "inherit" });
-        port = await readyPort(child.stdout as ReadableStream<Uint8Array>, 8000);
-      } catch (err) {
-        console.warn("Could not start the background File Manager server:", err);
+      if (!openBrowser) {
+        for (let attempt = 1; attempt <= 2 && !port; attempt++) {
+          try {
+            child = Bun.spawn(serverCommand(options), { stdout: "pipe", stderr: "inherit" });
+            // Allow up to 30s on first launch (e.g. cold Windows Defender scan right after `bun install`).
+            port = await readyPort(child.stdout as ReadableStream<Uint8Array>, attempt === 1 ? 30000 : 20000);
+            if (!port) {
+              try { child?.kill(); } catch {}
+              child = undefined;
+            }
+          } catch (err) {
+            console.warn("Could not start the background File Manager server:", err);
+            try { child?.kill(); } catch {}
+            child = undefined;
+          }
+        }
       }
       if (!port) {
-        console.warn("The background server did not become ready; starting the File Manager server in this process.");
+        if (!openBrowser) {
+          console.warn("The background server did not become ready; starting the File Manager server in this process.");
+        }
         try { child?.kill(); } catch {}
         child = undefined;
         app.server = startFileManagerServer({ port: options.port ?? 0, host: "127.0.0.1", context: options.context, startPath: options.startPath });
@@ -128,6 +175,24 @@ export function createFileManagerStudio(options: FileManagerStudioOptions = {}):
       const qs = query.toString();
       app.url = `http://127.0.0.1:${port}/${qs ? `?${qs}` : ""}`;
       console.log(`📁 ${APP_NAME} server running at: ${app.url}`);
+
+      // Only open in a web browser when the user explicitly opts in via `--browser` / `-b` (or FM_OPEN_BROWSER=1).
+      if (openBrowser) {
+        console.log(`🌐 Opening the File Manager in your browser at: ${app.url}`);
+        const cmd = openCommand(process.platform === "win32" ? "win32" : process.platform === "darwin" ? "darwin" : "linux", app.url);
+        try {
+          const browser = Bun.spawn([cmd.command, ...cmd.args], { stdout: "ignore", stderr: "pipe" });
+          const [code, stderr] = await Promise.all([browser.exited, new Response(browser.stderr).text()]);
+          if (code !== 0) throw new Error(stderr.trim() || `browser opener exited with code ${code}`);
+        } catch (openError) {
+          try { child?.kill(); } catch {}
+          try { app.server?.stop(true); } catch {}
+          throw new Error(`The browser could not be opened: ${String(openError)}`);
+        }
+        await new Promise(() => {});
+        return;
+      }
+
       try {
         await fetch(`http://127.0.0.1:${port}/`).catch(() => {});
         if (app.server) throw new Error("the server could not be started in the background");
@@ -162,20 +227,18 @@ export function createFileManagerStudio(options: FileManagerStudioOptions = {}):
         webview.run();
         stop();
       } catch (err: any) {
-        console.warn(`The desktop window isn't available (${err?.message || err}). Opening the File Manager in your browser at: ${app.url}`);
-        if (process.platform === "linux") console.warn("For a native window, install GTK 4 and WebKitGTK 6.0 and run inside a graphical desktop session.");
-        if (process.platform === "win32") console.warn("For a native window, install Microsoft Edge WebView2 and the Microsoft Visual C++ 2015-2022 Redistributable (x64).");
-        const cmd = openCommand(process.platform === "win32" ? "win32" : process.platform === "darwin" ? "darwin" : "linux", app.url);
-        try {
-          const browser = Bun.spawn([cmd.command, ...cmd.args], { stdout: "ignore", stderr: "pipe" });
-          const [code, stderr] = await Promise.all([browser.exited, new Response(browser.stderr).text()]);
-          if (code !== 0) throw new Error(stderr.trim() || `browser opener exited with code ${code}`);
-        } catch (openError) {
-          child?.kill();
-          app.server?.stop(true);
-          throw new Error(`The desktop window failed (${String(err)}), and the browser could not be opened: ${String(openError)}`);
+        try { child?.kill(); } catch {}
+        try { app.server?.stop(true); } catch {}
+        console.error(`The desktop window isn't available (${err?.message || err}).`);
+        if (process.platform === "linux") {
+          console.error("For a native window, install GTK 4 and WebKitGTK 6.0 and run inside a graphical desktop session.");
         }
-        await new Promise(() => {});
+        if (process.platform === "win32") {
+          console.error("For a native window, install Microsoft Edge WebView2 and the Microsoft Visual C++ 2015-2022 Redistributable (x64).");
+        }
+        console.error("To open the File Manager in your web browser instead, pass --browser (or --server for server-only mode).");
+        process.exitCode = 1;
+        throw new Error(`The desktop window could not be opened: ${err?.message || err}`);
       }
     },
   };
@@ -194,6 +257,7 @@ if (import.meta.main) {
   const startTool = argValue(args, "--tool");
   const startGame = argValue(args, "--game");
   const startMax = args.includes("--max");
+  const openBrowser = args.includes("--browser") || args.includes("-b") || process.env.FM_OPEN_BROWSER === "1";
   const home = argValue(args, "--home");
   const dataDir = argValue(args, "--data-dir");
   const toolDirs = argValue(args, "--tool-dirs");
@@ -218,6 +282,10 @@ if (import.meta.main) {
   } else {
     const width = Number(argValue(args, "--width")) || undefined;
     const height = Number(argValue(args, "--height")) || undefined;
-    await createFileManagerStudio({ port, startPath, context, width, height, resetWindow, startTool, startGame, startMax }).run();
+    try {
+      await createFileManagerStudio({ port, startPath, context, width, height, resetWindow, startTool, startGame, startMax, openBrowser }).run();
+    } catch {
+      process.exit(1);
+    }
   }
 }
