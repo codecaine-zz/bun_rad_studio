@@ -722,22 +722,26 @@ export async function extractPlainTextFromFile(
   // 1. Spreadsheets (.xlsx, .xlsm, .ods, .csv, .tsv) via full built-in reader
   if (["xlsx", "xlsm", "ods", "csv", "tsv"].includes(lastExt) && st.size <= 50 * 1024 * 1024) {
     try {
-      const bytes = await fsp.readFile(filePath);
       const kind = lastExt === "ods" ? "ods" : lastExt === "csv" ? "csv" : lastExt === "tsv" ? "tsv" : "xlsx";
       if (kind === "xlsx" || kind === "ods") {
-        const sheet = readSpreadsheet(bytes, kind);
+        const sheets = await readSpreadsheet(filePath);
         const lines: string[] = [];
-        for (const row of sheet.rows) {
-          const line = row
-            .map((v, i) => {
-              const s = v === null || v === undefined ? "" : String(v).trim();
-              if (!s) return "";
-              const col = sheet.columns[i]?.trim();
-              return col ? `${col}: ${s}` : s;
-            })
-            .filter(Boolean)
-            .join(", ");
-          if (line) lines.push(line);
+        for (const sheet of sheets) {
+          if (sheets.length > 1 && sheet.name) lines.push(`Sheet: ${sheet.name}.`);
+          const headerRow = sheet.rows[0] ?? [];
+          const dataRows = sheet.rows.length > 1 ? sheet.rows.slice(1) : sheet.rows;
+          for (const row of dataRows) {
+            const line = row
+              .map((v, i) => {
+                const s = v === null || v === undefined ? "" : String(v).trim();
+                if (!s) return "";
+                const col = sheet.rows.length > 1 && headerRow[i] !== null && headerRow[i] !== undefined ? String(headerRow[i]).trim() : "";
+                return col ? `${col}: ${s}` : s;
+              })
+              .filter(Boolean)
+              .join(", ");
+            if (line) lines.push(line);
+          }
         }
         rawText = lines.join("\n");
         formatLabel = kind === "ods" ? "OpenDocument Spreadsheet (ODS)" : "Excel Workbook (XLSX)";
@@ -2071,7 +2075,7 @@ export async function savePlainTextToFile(
 
 export const PHONON_OPS: Record<string, FmHandler> = {
   "phonon/status": (ctx) => getPhononStatus(ctx),
-  "phonon/install": (ctx, b) => ({ job: startPhononInstall(ctx, (b ?? {}) as { confirm?: unknown }) }),
+  "phonon/install": async (ctx, b) => ({ job: startPhononInstall(ctx, (b ?? {}) as { confirm?: unknown }) }),
   "phonon/voice": async (ctx, b) => {
     const rec = (b ?? {}) as Record<string, unknown>;
     const patch: Record<string, unknown> = {};

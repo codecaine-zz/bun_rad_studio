@@ -600,7 +600,7 @@ ${stamps}
 }
 
 function runOllamaPhononWav(text: string, voice: string, outWav: string): void {
-  const chunks = splitTextForPhonon(text, { maxChunkChars: 480 });
+  const chunks = splitTextForPhonon(text, { maxChars: 480 });
   const pcmParts: Buffer[] = [];
   let sampleRate = 24000;
   let numChannels = 1;

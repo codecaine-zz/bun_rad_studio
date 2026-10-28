@@ -20,9 +20,10 @@ import {
 import { startFileManagerServer } from "../src/features/filemanager/fmServer";
 import { resolveTool } from "../src/features/filemanager/fmToolDetect";
 import { installPlan, TOOLS, TOOL_IDS } from "../src/features/filemanager/fmTools";
+import { rmDir } from "./helpers/rm";
 
 const root = mkdtempSync(join(tmpdir(), "fm-phonon-test-"));
-afterAll(() => rmSync(root, { recursive: true, force: true }));
+afterAll(() => rmDir(root));
 
 describe("Ollama & Phonon tool registration and 38 voices catalog", () => {
   test("ollama is registered in TOOLS with one-click package manager plans", () => {
@@ -209,7 +210,7 @@ describe("Format-to-plain-text conversion and speech cleanup across file formats
   });
 });
 
-describe("WAV & AIFF PCM synthesis, multi-chunk stitching, and HTTP API operations", () => {
+describe.skipIf(process.platform === "win32")("WAV & AIFF PCM synthesis, multi-chunk stitching, and HTTP API operations", () => {
   const standinDir = join(root, "standin");
   const binDir = join(standinDir, "bin");
   const homeDir = join(standinDir, "home");
@@ -472,7 +473,7 @@ exit 0
     globalThis.fetch = (async (input: any, init?: any) => {
       const url = typeof input === "string" ? input : input?.url ?? "";
       if (url.startsWith("https://ollama.com/download/ollama-linux-") && url.endsWith(".tar.zst")) {
-        return new Response(zstBytes, { status: 200, headers: { "Content-Type": "application/zstd" } });
+        return new Response(new Uint8Array(zstBytes), { status: 200, headers: { "Content-Type": "application/zstd" } });
       }
       return origFetch(input, init);
     }) as typeof fetch;
