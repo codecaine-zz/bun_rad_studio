@@ -325,9 +325,9 @@ export function inspectOllamaHardware(
   if (totalRamGb < 8) {
     ramTier = "under_8gb";
     tierLabel = "Under 8 GB RAM (Tiny & Utility Tier)";
-    maxParametersB = 3.6;
+    maxParametersB = 4.2;
     blockedAboveParametersB = 7;
-    policySummary = `Under 8 GB RAM (${totalRamGb} GB total · ${safeMemoryBudgetGb} GB 70% Safe Budget): Only tiny models (1B–3B parameters) plus phonon, nimble, and clef-flash are allowed. 7B+ models are blocked.`;
+    policySummary = `Under 8 GB RAM (${totalRamGb} GB total · ${safeMemoryBudgetGb} GB 70% Safe Budget): Only compact models (1B–4B parameters like qwen3.5:4b, qwen3.5:2b, lfm3-omni) plus phonon, nimble, and clef-flash are allowed. 7B+ models are blocked.`;
   } else if (totalRamGb <= 16) {
     ramTier = "8gb_to_16gb";
     tierLabel = "8 GB – 16 GB RAM (Standard 7B–8B Tier)";
@@ -817,6 +817,16 @@ export const CURATED_MODEL_CATALOG: CatalogModelSpec[] = [
     description: "Apple Silicon MLX 8.4B multimodal decision & vision scorer (requires 16+ GB RAM).",
   },
   {
+    name: "lfm3-omni:latest",
+    label: "Liquid LFM3-Omni 2B (Official Omni Audio, Speech, Vision & Chat — Cross-Platform & MLX)",
+    parameterSize: "2B",
+    parameterBillions: 2.0,
+    estimatedRamGb: 1.9,
+    runner: "mlx",
+    capabilities: ["completion", "speech", "audio", "vision", "tools", "mlx"],
+    description: "Liquid AI LFM3-Omni 2B multimodal model supporting Audio/Speech, Vision, Chat, and Tool Calling (`ollama run lfm3-omni`).",
+  },
+  {
     name: "orpheus:latest",
     label: "Orpheus TTS 3B (Cross-Platform Text-to-Audio LLM — Linux, Windows & Mac)",
     parameterSize: "3B",
@@ -855,6 +865,36 @@ export const CURATED_MODEL_CATALOG: CatalogModelSpec[] = [
     runner: "standard",
     capabilities: ["speech", "audio"],
     description: "Cross-platform Text-to-Audio model that generates natural speech on Linux and Windows without Apple MLX.",
+  },
+  {
+    name: "qwen3.5:4b",
+    label: "Qwen 3.5 4B (Compact Multimodal Vision, Deep Thinking & Tools — Smaller Memory Computers)",
+    parameterSize: "4B",
+    parameterBillions: 4.0,
+    estimatedRamGb: 3.1,
+    runner: "standard",
+    capabilities: ["completion", "vision", "tools", "thinking"],
+    description: "Official Qwen 3.5 4B (`qwen3.5:4b`) multimodal Chat, Vision, Deep Thinking & Tool-Calling model tailored for smaller memory computers on Windows and Linux.",
+  },
+  {
+    name: "qwen3.5:latest",
+    label: "Qwen 3.5 (Cross-Platform Multimodal Chat, Vision, Code & Tools — Linux & Windows)",
+    parameterSize: "4B",
+    parameterBillions: 4.0,
+    estimatedRamGb: 3.1,
+    runner: "standard",
+    capabilities: ["completion", "vision", "tools", "thinking"],
+    description: "Newest Qwen 3.5 multimodal Chat, Vision, Code & Tool-Calling model for Windows and Linux.",
+  },
+  {
+    name: "qwen3.5:2b",
+    label: "Qwen 3.5 2B (Ultra-Fast Cross-Platform Multimodal — Ultra-Low RAM)",
+    parameterSize: "2B",
+    parameterBillions: 2.0,
+    estimatedRamGb: 1.9,
+    runner: "standard",
+    capabilities: ["completion", "vision", "tools", "thinking"],
+    description: "Ultra-compact Qwen 3.5 2B multimodal model for ultra-low memory Windows and Linux machines.",
   },
   {
     name: "qwen2.5:3b",
@@ -949,9 +989,13 @@ export function evaluateModelHardwareGuard(
           ? "kokoro:latest"
           : "orpheus:latest";
     } else if (taskCap === "vision" && hardware.safeMemoryBudgetGb >= 4.2) {
-      suggestedLocalModel = hardware.isAppleSiliconMac ? "lfm3-vl:2b-mlx-bf16" : "moondream:latest";
+      suggestedLocalModel = hardware.isAppleSiliconMac ? "lfm3-vl:2b-mlx-bf16" : "qwen3.5:4b";
     } else {
-      suggestedLocalModel = hardware.isAppleSiliconMac ? "lfm3:latest" : "qwen2.5:3b";
+      suggestedLocalModel = hardware.isAppleSiliconMac
+        ? "lfm3:latest"
+        : hardware.ramTier === "under_8gb" || hardware.ramTier === "8gb_to_16gb"
+          ? "qwen3.5:4b"
+          : "qwen3.5:latest";
     }
   }
 
@@ -1722,6 +1766,14 @@ export function getSpeechCapabilitiesForHost(ctx?: FmContext): {
   const phononSupported = hw.isAppleSiliconMac;
   const crossPlatformModels = [
     {
+      name: "lfm3-omni:latest",
+      label: "Liquid LFM3-Omni 2B (Official Omni Audio, Speech, Vision & Chat LLM)",
+      parameterSize: "2B",
+      estimatedRamGb: 1.9,
+      requiresAppleMlx: false,
+      description: "Official Ollama LFM3-Omni 2B audio, speech, vision & chat LLM (`ollama run lfm3-omni`) for Windows, Linux, and macOS.",
+    },
+    {
       name: "orpheus:latest",
       label: "Orpheus TTS 3B (Expressive Text-to-Audio LLM)",
       parameterSize: "3B",
@@ -1781,12 +1833,12 @@ export function getSpeechCapabilitiesForHost(ctx?: FmContext): {
     ? "phonon"
     : hw.ramTier === "under_8gb"
       ? "kokoro:latest"
-      : "orpheus:latest";
+      : "lfm3-omni:latest";
 
   const osName = hw.platform === "win32" ? "Windows" : hw.platform === "linux" ? "Linux" : "macOS";
   const platformSpeechNote = phononSupported
-    ? "Apple Silicon MLX detected: Gradium Phonon TTS (phonon) is natively accelerated, alongside cross-platform Text-to-Audio LLMs."
-    : `${osName} (${hw.arch}) detected: Gradium Phonon requires Apple Silicon MLX and is not available on ${osName}. Using cross-platform Text-to-Audio LLMs (${defaultSpeechModel}, kokoro:latest, oute-tts:latest, parler-tts:latest) + OS speech synthesis.`;
+    ? "Apple Silicon MLX detected: Gradium Phonon TTS (phonon) and Liquid LFM3-Omni (lfm3-omni) are natively accelerated."
+    : `${osName} (${hw.arch}) detected: Gradium Phonon requires Apple Silicon MLX and is not available on ${osName}. Using cross-platform Omni & Text-to-Audio LLMs (${defaultSpeechModel}, orpheus:latest, kokoro:latest, oute-tts:latest) + OS speech synthesis.`;
 
   return {
     platform: hw.platform,
@@ -1808,10 +1860,10 @@ export async function getOllamaInstallStatus(ctx: FmContext) {
   ]);
   const binaryInstalled = Boolean(binaryPath) || versionStatus.reachable;
   const recommendedStarterModels = hw.isAppleSiliconMac
-    ? ["lfm3:latest", "phonon", "nimble"]
-    : hw.ramTier === "under_8gb"
-      ? ["qwen2.5:3b", "kokoro:latest", "nimble"]
-      : ["qwen2.5:3b", "orpheus:latest", "kokoro:latest", "nimble"];
+    ? ["lfm3:latest", "lfm3-omni:latest", "phonon", "nimble"]
+    : hw.ramTier === "under_8gb" || hw.ramTier === "8gb_to_16gb"
+      ? ["qwen3.5:4b", "lfm3-omni:latest", "kokoro:latest", "nimble"]
+      : ["qwen3.5:latest", "qwen3.5:4b", "lfm3-omni:latest", "orpheus:latest", "kokoro:latest", "nimble"];
 
   const installMethodLabel =
     hw.platform === "linux"
@@ -1853,9 +1905,9 @@ export async function pullModelWithHardwareGuard(
   if (!trimmed) throw new FmError("INVALID_INPUT", "Model name is required to pull.");
 
   const { hardware, models } = await listModelsWithBadgesAndHardwareFilter(ctx);
-  const catalogMatch = CURATED_MODEL_CATALOG.find(
-    (c) => c.name.toLowerCase() === trimmed.toLowerCase() || baseModelName(c.name) === baseModelName(trimmed),
-  );
+  const catalogMatch =
+    CURATED_MODEL_CATALOG.find((c) => c.name.toLowerCase() === trimmed.toLowerCase()) ||
+    CURATED_MODEL_CATALOG.find((c) => baseModelName(c.name) === baseModelName(trimmed));
   const verdict = evaluateModelHardwareGuard(
     {
       name: trimmed,
@@ -2370,9 +2422,10 @@ export async function runOllamaAutoInstall(
     const requestedModels = Array.isArray(payload?.models) && payload!.models!.length > 0
       ? payload!.models!
       : hw.isAppleSiliconMac
-        ? [payload?.chatModel || "lfm3:latest", payload?.speechModel || "phonon"]
+        ? [payload?.chatModel || "lfm3:latest", "lfm3-omni:latest", payload?.speechModel || "phonon"]
         : [
-            payload?.chatModel || "qwen2.5:3b",
+            payload?.chatModel || (hw.ramTier === "under_8gb" || hw.ramTier === "8gb_to_16gb" ? "qwen3.5:4b" : "qwen3.5:latest"),
+            "lfm3-omni:latest",
             payload?.speechModel || speechCaps.defaultSpeechModel,
           ];
 

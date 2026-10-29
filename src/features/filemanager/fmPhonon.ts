@@ -4827,8 +4827,8 @@ export function createPhononPullStep(ctx: FmContext) {
         if (signal.aborted) throw new Error("Cancelled");
         if (res.code !== 0) {
           if (ctx.platform !== "darwin") {
-            log("Phonon requires Apple Silicon MLX; pulling cross-platform Text-to-Audio LLM (legraphista/Orpheus:latest)…\n");
-            const fallbackRes = await runSpawnLogged([ollamaExe, "pull", "legraphista/Orpheus:latest"], env, signal, log);
+            log("Phonon requires Apple Silicon MLX; pulling cross-platform Audio/Speech LLM (lfm3-omni:latest)…\n");
+            const fallbackRes = await runSpawnLogged([ollamaExe, "pull", "lfm3-omni:latest"], env, signal, log);
             if (signal.aborted) throw new Error("Cancelled");
             if (fallbackRes.code === 0) return;
           }

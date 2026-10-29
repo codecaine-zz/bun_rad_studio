@@ -837,7 +837,8 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
 
     const linuxSpeechCaps = getSpeechCapabilitiesForHost(linuxCtx);
     expect(linuxSpeechCaps.phononSupported).toBe(false);
-    expect(linuxSpeechCaps.defaultSpeechModel).toBe("orpheus:latest");
+    expect(linuxSpeechCaps.defaultSpeechModel).toBe("lfm3-omni:latest");
+    expect(linuxSpeechCaps.availableSpeechModels.map((m) => m.name)).toContain("lfm3-omni:latest");
     expect(linuxSpeechCaps.availableSpeechModels.map((m) => m.name)).toContain("orpheus:latest");
     expect(linuxSpeechCaps.availableSpeechModels.map((m) => m.name)).toContain("kokoro:latest");
     expect(linuxSpeechCaps.availableSpeechModels.map((m) => m.name)).not.toContain("phonon");
@@ -845,8 +846,9 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
     const winSpeechCaps = getSpeechCapabilitiesForHost(winCtx);
     expect(winSpeechCaps.phononSupported).toBe(false);
     expect(winSpeechCaps.defaultSpeechModel).toBe("kokoro:latest");
+    expect(winSpeechCaps.availableSpeechModels.map((m) => m.name)).toContain("lfm3-omni:latest");
 
-    // 2. Linux 1-Click Auto-Install replaces "phonon" with cross-platform Text-to-Audio LLM and tracks live progress steps
+    // 2. Linux 1-Click Auto-Install defaults to qwen3.5:latest + lfm3-omni:latest + nimble and replaces "phonon"
     const recordedSteps: Array<{ step: string; pct: number }> = [];
     linuxCtx.ollama.installBinaryHook = async (_plat: string, _arch: string, onProgress: (s: string, p: number) => void) => {
       onProgress("Downloading ollama-linux-amd64.tar.zst (48.0 MB / 120.0 MB)...", 28);
@@ -854,13 +856,21 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
       return { installedPath: `${tempRoot}/home/.local/bin/ollama` };
     };
 
+    const linuxDefaultInstallRes = await runOllamaAutoInstall(linuxCtx);
+    expect(linuxDefaultInstallRes.ok).toBe(true);
+    expect(linuxDefaultInstallRes.pulledModels).toContain("qwen3.5:4b");
+    expect(linuxDefaultInstallRes.pulledModels).toContain("lfm3-omni:latest");
+    expect(linuxDefaultInstallRes.installStatus.recommendedStarterModels).toContain("qwen3.5:4b");
+    expect(linuxDefaultInstallRes.installStatus.recommendedStarterModels).toContain("lfm3-omni:latest");
+
     const linuxInstallRes = await runOllamaAutoInstall(linuxCtx, {
-      models: ["qwen2.5:3b", "phonon"], // "phonon" must be automatically replaced on Linux!
+      models: ["qwen3.5:4b", "phonon"], // "phonon" must be automatically replaced on Linux with lfm3-omni:latest!
     });
     expect(linuxInstallRes.ok).toBe(true);
     expect(linuxInstallRes.platform).toBe("linux");
     expect(linuxInstallRes.skippedPhononForNonMlxOs).toBe(true);
-    expect(linuxInstallRes.pulledModels).toContain("orpheus:latest");
+    expect(linuxInstallRes.pulledModels).toContain("qwen3.5:4b");
+    expect(linuxInstallRes.pulledModels).toContain("lfm3-omni:latest");
     expect(linuxInstallRes.pulledModels).not.toContain("phonon");
     expect(linuxInstallRes.installSteps.length).toBeGreaterThanOrEqual(3);
     expect(linuxInstallRes.installStatus.longTask.percent).toBe(100);
@@ -915,13 +925,22 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
     expect(resolveSpeechModelRegistryFallback("kokoro:latest")).toBe("lfm3-omni:latest");
     expect(resolveSpeechModelRegistryFallback("oute-tts:latest")).toBe("mannix/outetts:0.3");
 
-    // 5. Verify UI modules expose Ollama AI on Windows, Linux, and macOS and include live progress spinner CSS
+    // 5. Verify UI modules expose Ollama AI on Windows, Linux, and macOS and include live progress spinner + Copy/Clear output console
     const toolbarSrc = await Bun.file("resources/file_manager/ui/toolbar.js").text();
     const sidebarSrc = await Bun.file("resources/file_manager/ui/sidebar.js").text();
+    const ollamaJsSrc = await Bun.file("resources/file_manager/ui/ollama.js").text();
     const cssSrc = await Bun.file("resources/file_manager/ui/ollama.css").text();
     expect(toolbarSrc).toContain('id: "ollama"');
     expect(sidebarSrc).toContain('placeId: "ollama"');
+    expect(ollamaJsSrc).toContain("copyOllamaOutput");
+    expect(ollamaJsSrc).toContain("clearOllamaOutput");
+    expect(ollamaJsSrc).toContain("renderStudioOutputConsole");
+    expect(ollamaJsSrc).toContain("lfm3-omni:latest");
+    expect(ollamaJsSrc).toContain("qwen3.5:4b");
+    expect(ollamaJsSrc).toContain("qwen3.5:latest");
     expect(cssSrc).toContain(".ollama-spinner");
     expect(cssSrc).toContain(".ollama-live-progress-banner");
+    expect(cssSrc).toContain(".ollama-output-console");
+    expect(cssSrc).toContain("field-sizing: content");
   });
 });

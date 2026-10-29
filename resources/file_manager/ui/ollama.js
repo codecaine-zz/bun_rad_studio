@@ -142,6 +142,323 @@ function stopLiveTaskTicker() {
   }
 }
 
+async function copyOllamaOutput(text, label = "Ollama output", btnEl = null) {
+  const clean = String(text ?? "");
+  if (!clean.trim()) {
+    toast("No output to copy yet.");
+    return false;
+  }
+  let copiedOk = false;
+  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(clean);
+      copiedOk = true;
+    } catch {
+      // fallback to server clipboard below
+    }
+  }
+  if (!copiedOk) {
+    try {
+      await call("copytext", { text: clean });
+      copiedOk = true;
+    } catch {
+      copiedOk = false;
+    }
+  }
+  if (btnEl && btnEl instanceof HTMLElement) {
+    const origText = btnEl.dataset.origLabel || btnEl.textContent || "📋 Copy";
+    btnEl.dataset.origLabel = origText;
+    btnEl.textContent = "✓ Copied!";
+    btnEl.classList.add("is-copied");
+    setTimeout(() => {
+      btnEl.textContent = origText;
+      btnEl.classList.remove("is-copied");
+    }, 1800);
+  }
+  toast(`Copied ${label} to clipboard (${clean.length.toLocaleString()} chars)`);
+  return true;
+}
+
+function clearOllamaOutput(scope = "assistant") {
+  if (scope === "assistant" || scope === "all") {
+    uiState.answerOutput = "";
+    uiState.thinkingOutput = "";
+    uiState.structuredOutput = null;
+    uiState.routeBanner = "";
+    uiState.refusalBanner = null;
+    uiState.lastAudioUrl = "";
+    uiState.autoPlayedAudioUrl = "";
+  }
+  if (scope === "decision" || scope === "all") {
+    uiState.decisionResult = null;
+  }
+  if (scope === "speech" || scope === "all") {
+    uiState.speechResult = null;
+    uiState.lastAudioUrl = "";
+    uiState.autoPlayedAudioUrl = "";
+  }
+  if (scope === "meaning" || scope === "all") {
+    uiState.meaningMatches = [];
+  }
+  if (scope === "web" || scope === "all") {
+    uiState.webResult = null;
+  }
+  if (scope === "inspector" || scope === "all") {
+    uiState.inspectedModelInfo = null;
+  }
+  if (scope === "all") {
+    uiState.promptText = "";
+    uiState.speechText = "";
+    if (assistantTextareaEl) assistantTextareaEl.value = "";
+    if (speechTextareaEl) speechTextareaEl.value = "";
+  }
+  toast(scope === "all" ? "Cleared all prompts and Ollama outputs." : "Cleared Ollama output.");
+  renderOllamaPanel();
+}
+
+async function saveOllamaOutputToFolder(text, baseName = "ollama-output") {
+  const clean = String(text ?? "").trim();
+  if (!clean) {
+    toast("No output to save yet.");
+    return;
+  }
+  try {
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+    const res = await call("phonon/savetxt", {
+      text: clean,
+      outputDir: currentFolderRel(),
+      outputName: `${baseName}-${stamp}`,
+    });
+    toast(`Saved output to ${res.path}`);
+    refresh();
+  } catch (err) {
+    toast(err.message || "Could not save output to folder", { kind: "error" });
+  }
+}
+
+async function speakTextWithOllama(text) {
+  const clean = String(text ?? "").trim();
+  if (!clean) {
+    toast("No output text to read aloud.");
+    return;
+  }
+  uiState.loading = true;
+  startLiveTaskTicker("Reading Output Aloud", "Synthesizing speech audio for AI output...", 25, false);
+  renderOllamaPanel();
+  try {
+    const res = await call("ollama/speech", {
+      model: uiState.speechModel || undefined,
+      input: clean,
+      voice: uiState.selectedVoice,
+      mode: "speaker",
+    });
+    if (res.audioUrl) {
+      uiState.lastAudioUrl = `${res.audioUrl}&token=${encodeURIComponent(getToken())}`;
+    }
+    toast(`Speaking output aloud with ${res.model || "speech engine"} (${res.voice})`);
+  } catch (err) {
+    toast(err.message || "Could not speak output", { kind: "error" });
+  } finally {
+    stopLiveTaskTicker();
+    uiState.loading = false;
+    renderOllamaPanel();
+  }
+}
+
+function computeTextTelemetry(text) {
+  const s = String(text ?? "");
+  if (!s.trim()) return { chars: 0, words: 0, lines: 0 };
+  const chars = s.length;
+  const words = s.trim().split(/\s+/).filter(Boolean).length;
+  const lines = s.split(/\r?\n/).length;
+  return { chars, words, lines };
+}
+
+function renderFormattedOutputBody(rawText) {
+  const text = String(rawText ?? "");
+  if (!text.includes("```")) {
+    return h("div", { class: "ollama-output-box ollama-prose" }, text);
+  }
+  const parts = [];
+  const regex = /```([a-zA-Z0-9_+-]*)\n([\s\S]*?)```/g;
+  let lastIndex = 0;
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      const proseChunk = text.slice(lastIndex, match.index).trim();
+      if (proseChunk) {
+        parts.push(h("div", { class: "ollama-prose-segment" }, proseChunk));
+      }
+    }
+    const lang = (match[1] || "code").trim();
+    const codeBody = match[2] || "";
+    parts.push(
+      h("div", { class: "ollama-code-block" }, [
+        h("div", { class: "ollama-code-header" }, [
+          h("span", { class: "ollama-code-lang" }, lang.toUpperCase()),
+          h(
+            "button",
+            {
+              type: "button",
+              class: "ollama-btn is-mini",
+              title: `Copy ${lang} snippet to clipboard`,
+              onclick: (e) => void copyOllamaOutput(codeBody, `${lang} code snippet`, e.currentTarget),
+            },
+            "📋 Copy Code",
+          ),
+        ]),
+        h("pre", { class: "ollama-code-pre" }, codeBody),
+      ]),
+    );
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < text.length) {
+    const tail = text.slice(lastIndex).trim();
+    if (tail) {
+      parts.push(h("div", { class: "ollama-prose-segment" }, tail));
+    }
+  }
+  return h("div", { class: "ollama-output-box is-structured" }, parts);
+}
+
+function renderStudioOutputConsole({
+  title = "Ollama AI Output Console",
+  badge = "",
+  content = "",
+  thinking = "",
+  audioUrl = "",
+  clearScope = "assistant",
+  saveName = "ollama-output",
+  showWhenEmpty = false,
+  emptyHint = "Output will appear here — use Copy Output, Save to Folder, Speak Output, or Clear Output anytime.",
+}) {
+  const hasContent = Boolean(String(content || "").trim());
+  const hasThinking = Boolean(String(thinking || "").trim());
+  if (!hasContent && !hasThinking && !audioUrl && !showWhenEmpty) return null;
+
+  const stats = computeTextTelemetry(content || thinking);
+  const combinedCopyText =
+    hasThinking && hasContent
+      ? `[Step-by-Step Thinking]\n${thinking}\n\n[Final Answer]\n${content}`
+      : hasContent
+        ? content
+        : thinking;
+
+  return h("div", { class: "ollama-output-console", "data-ollama-output-console": clearScope }, [
+    h("div", { class: "ollama-output-header" }, [
+      h("div", { class: "ollama-output-title-group" }, [
+        h("span", { class: "ollama-status-pulse" }),
+        h("strong", { class: "ollama-output-title" }, title),
+        badge ? h("span", { class: "ollama-pill is-mlx" }, badge) : null,
+        hasContent || hasThinking
+          ? h(
+              "span",
+              { class: "ollama-pill is-ram" },
+              `${stats.words.toLocaleString()} words • ${stats.chars.toLocaleString()} chars • ${stats.lines} line${stats.lines === 1 ? "" : "s"}`,
+            )
+          : h("span", { class: "ollama-pill" }, "Ready"),
+      ]),
+      h("div", { class: "ollama-output-toolbar" }, [
+        h(
+          "button",
+          {
+            type: "button",
+            class: "ollama-btn is-copy-btn",
+            "data-ollama-action": "copy-output",
+            disabled: !hasContent && !hasThinking ? "disabled" : null,
+            title: "Copy Ollama output to clipboard",
+            onclick: (e) => void copyOllamaOutput(hasContent ? content : thinking, title, e.currentTarget),
+          },
+          "📋 Copy Output",
+        ),
+        hasThinking
+          ? h(
+              "button",
+              {
+                type: "button",
+                class: "ollama-btn is-mini",
+                "data-ollama-action": "copy-thinking",
+                title: "Copy only the step-by-step thinking trace",
+                onclick: (e) => void copyOllamaOutput(thinking, "Thinking trace", e.currentTarget),
+              },
+              "🧠 Copy Thinking",
+            )
+          : null,
+        hasThinking && hasContent
+          ? h(
+              "button",
+              {
+                type: "button",
+                class: "ollama-btn is-mini",
+                "data-ollama-action": "copy-both",
+                title: "Copy both Thinking trace and Final Answer",
+                onclick: (e) => void copyOllamaOutput(combinedCopyText, "Thinking + Answer", e.currentTarget),
+              },
+              "📋 Copy Both",
+            )
+          : null,
+        hasContent
+          ? h(
+              "button",
+              {
+                type: "button",
+                class: "ollama-btn is-mini",
+                "data-ollama-action": "speak-output",
+                title: "Read this output out loud",
+                onclick: () => void speakTextWithOllama(content),
+              },
+              "🔊 Read Aloud",
+            )
+          : null,
+        hasContent || hasThinking
+          ? h(
+              "button",
+              {
+                type: "button",
+                class: "ollama-btn is-mini",
+                "data-ollama-action": "save-output",
+                title: "Save this output as a .txt file in the active folder pane",
+                onclick: () => void saveOllamaOutputToFolder(combinedCopyText, saveName),
+              },
+              "💾 Save to Folder",
+            )
+          : null,
+        h(
+          "button",
+          {
+            type: "button",
+            class: "ollama-btn is-danger is-clear-btn",
+            "data-ollama-action": "clear-output",
+            disabled: !hasContent && !hasThinking && !audioUrl ? "disabled" : null,
+            title: "Clear this Ollama output console",
+            onclick: () => clearOllamaOutput(clearScope),
+          },
+          "🧹 Clear Output",
+        ),
+      ]),
+    ]),
+    hasThinking
+      ? h("details", { class: "ollama-thinking-details", open: "open" }, [
+          h("summary", { class: "ollama-thinking-summary" }, [
+            h("span", {}, `🧠 Step-by-Step Deep Reasoning Trace (${thinking.length.toLocaleString()} chars)`),
+          ]),
+          h("div", { class: "ollama-thinking-box" }, thinking),
+        ])
+      : null,
+    hasContent
+      ? renderFormattedOutputBody(content)
+      : !hasThinking
+        ? h("div", { class: "ollama-output-empty" }, emptyHint)
+        : null,
+    audioUrl
+      ? h("div", { class: "ollama-audio-bar" }, [
+          h("span", { class: "ollama-pill is-mlx" }, "🔊 Synthesized 24kHz Audio Ready"),
+          createAudioPlayerEl(audioUrl),
+        ])
+      : null,
+  ]);
+}
+
 async function runOneClickAutoInstall() {
   if (uiState.installing) return;
   const hw = uiState.statusData?.hardware;
@@ -458,7 +775,7 @@ async function runLiveStreamChat() {
           renderOllamaPanel();
         } else {
           if (updatedThinking && thinkingBox) {
-            thinkingBox.textContent = `[Step-by-Step Thinking]\n${uiState.thinkingOutput}`;
+            thinkingBox.textContent = uiState.thinkingOutput;
           }
           if (updatedAnswer && outputBox) {
             outputBox.textContent = uiState.answerOutput;
@@ -822,6 +1139,7 @@ function renderPendingConfirmations() {
 function renderAssistantTab() {
   const models = (uiState.statusData?.models || []).filter((m) => !m.badges?.includes("Speech") || m.badges?.includes("Chat"));
   const voices = uiState.statusData?.phononVoices || ["default", "Zoey", "Easton", "Freya"];
+  const installedModelNames = new Set(models.map((m) => m.name));
 
   const modelOptions = [
     h("option", { value: "" }, "Auto-Select Best MLX / Fitting Model"),
@@ -835,6 +1153,36 @@ function renderAssistantTab() {
         `${m.name} (${m.parameterSize}, ~${m.estimatedRamGb} GB) [${(m.badges || []).join(", ")}]`,
       ),
     ),
+    !installedModelNames.has("lfm3-omni:latest")
+      ? h(
+          "option",
+          {
+            value: "lfm3-omni:latest",
+            selected: uiState.selectedModel === "lfm3-omni:latest" ? "selected" : null,
+          },
+          "lfm3-omni:latest (Liquid LFM3-Omni 2B — Omni Audio, Speech, Vision & Chat)",
+        )
+      : null,
+    !installedModelNames.has("qwen3.5:4b")
+      ? h(
+          "option",
+          {
+            value: "qwen3.5:4b",
+            selected: uiState.selectedModel === "qwen3.5:4b" ? "selected" : null,
+          },
+          "qwen3.5:4b (Qwen 3.5 4B — Compact Multimodal for Smaller Memory Computers)",
+        )
+      : null,
+    !installedModelNames.has("qwen3.5:latest")
+      ? h(
+          "option",
+          {
+            value: "qwen3.5:latest",
+            selected: uiState.selectedModel === "qwen3.5:latest" ? "selected" : null,
+          },
+          "qwen3.5:latest (Qwen 3.5 — Multimodal Vision, Deep Thinking & Tools)",
+        )
+      : null,
     h(
       "option",
       {
@@ -843,7 +1191,7 @@ function renderAssistantTab() {
       },
       "gemma4:cloud (Hybrid Cloud — 0 GB Local RAM)",
     ),
-  ];
+  ].filter(Boolean);
 
   const quickPrompts = [
     { label: "Summarize Selected File", text: "Summarize the selected file in plain English and highlight key takeaways." },
@@ -1003,7 +1351,7 @@ function renderAssistantTab() {
           class: "ollama-btn is-primary",
           onclick: () => void runSmartAutoRouter(),
         },
-        uiState.loading ? "Running..." : "Send & Auto-Route Request",
+        uiState.loading ? [h("span", { class: "ollama-spinner" }), " Running..."] : "Send & Auto-Route Request",
       ),
       h(
         "button",
@@ -1031,18 +1379,47 @@ function renderAssistantTab() {
         },
         sel.length > 0 ? "Clear & Read Selected File Aloud" : "Clear Prompt",
       ),
+      h(
+        "button",
+        {
+          type: "button",
+          class: "ollama-btn",
+          title: "Copy AI output to system clipboard",
+          onclick: (e) => void copyOllamaOutput(uiState.answerOutput || uiState.thinkingOutput, "AI response", e.currentTarget),
+        },
+        "📋 Copy Output",
+      ),
+      h(
+        "button",
+        {
+          type: "button",
+          class: "ollama-btn",
+          title: "Clear AI output console",
+          onclick: () => clearOllamaOutput("assistant"),
+        },
+        "🧹 Clear Output",
+      ),
+      h(
+        "button",
+        {
+          type: "button",
+          class: "ollama-btn",
+          title: "Clear prompt, thinking, and all output panels",
+          onclick: () => clearOllamaOutput("all"),
+        },
+        "🧹 Clear All",
+      ),
     ]),
-    uiState.routeBanner ? h("div", { class: "ollama-pill is-mlx" }, uiState.routeBanner) : null,
-    uiState.thinkingOutput
-      ? h("div", { class: "ollama-thinking-box" }, `[Step-by-Step Thinking]\n${uiState.thinkingOutput}`)
-      : null,
-    uiState.answerOutput ? h("div", { class: "ollama-output-box" }, uiState.answerOutput) : null,
-    uiState.lastAudioUrl
-      ? h("div", { class: "ollama-row" }, [
-          h("span", {}, "Phonon Audio Output:"),
-          createAudioPlayerEl(uiState.lastAudioUrl),
-        ])
-      : null,
+    renderStudioOutputConsole({
+      title: "AI Assistant & Capability Router Output",
+      badge: uiState.routeBanner || "Ready",
+      content: uiState.answerOutput,
+      thinking: uiState.thinkingOutput,
+      audioUrl: uiState.lastAudioUrl,
+      clearScope: "assistant",
+      saveName: "ollama-assistant-output",
+      showWhenEmpty: true,
+    }),
   ]);
 }
 
@@ -1157,6 +1534,17 @@ function renderDecisionTab() {
         },
         uiState.loading ? "Scoring..." : "Run Multi-Question SystemOne Check",
       ),
+      uiState.decisionResult
+        ? h(
+            "button",
+            {
+              type: "button",
+              class: "ollama-btn",
+              onclick: () => clearOllamaOutput("decision"),
+            },
+            "🧹 Clear Decision Output",
+          )
+        : null,
     ]),
     ...uiState.decisionQuestions.map((q, idx) =>
       h("div", { class: "ollama-model-card" }, [
@@ -1237,11 +1625,13 @@ function renderDecisionTab() {
       ]),
     ),
     uiState.decisionResult
-      ? h(
-          "div",
-          { class: "ollama-output-box" },
-          `Model: ${uiState.decisionResult.model}\nAnswers:\n${JSON.stringify(uiState.decisionResult.answers, null, 2)}`,
-        )
+      ? renderStudioOutputConsole({
+          title: "SystemOne Decision Engine Output",
+          badge: `Model: ${uiState.decisionResult.model}`,
+          content: JSON.stringify(uiState.decisionResult.answers, null, 2),
+          clearScope: "decision",
+          saveName: "systemone-decision-output",
+        })
       : null,
   ]);
 }
@@ -1251,6 +1641,7 @@ function renderSpeechTab() {
   const speechCaps = uiState.statusData?.speechCapabilities;
   const availableSpeechModels = speechCaps?.availableSpeechModels || [
     { name: "phonon", label: "Gradium Phonon TTS (Apple Silicon MLX)" },
+    { name: "lfm3-omni:latest", label: "Liquid LFM3-Omni 2B (Cross-Platform Omni Audio, Speech, Vision & Chat LLM)" },
     { name: "orpheus:latest", label: "Orpheus TTS 3B (Cross-Platform Text-to-Audio LLM)" },
     { name: "kokoro:latest", label: "Kokoro 82M TTS (Ultra-Light Cross-Platform Speech)" },
     { name: "oute-tts:latest", label: "OuteTTS 1B (Cross-Platform Voice & Audio LLM)" },
@@ -1464,22 +1855,38 @@ function renderSpeechTab() {
         },
         sel.length > 0 ? "Clear & Read Selected File" : "Clear Text",
       ),
+      uiState.speechResult
+        ? h(
+            "button",
+            {
+              type: "button",
+              class: "ollama-btn",
+              onclick: (e) => void copyOllamaOutput(uiState.speechResult.cleanedText || "", "Cleaned speech text", e.currentTarget),
+            },
+            "📋 Copy Cleaned Text",
+          )
+        : null,
+      uiState.speechResult
+        ? h(
+            "button",
+            {
+              type: "button",
+              class: "ollama-btn",
+              onclick: () => clearOllamaOutput("speech"),
+            },
+            "🧹 Clear Speech Output",
+          )
+        : null,
     ]),
     uiState.speechResult
-      ? h("div", { class: "ollama-output-box" }, [
-          h(
-            "div",
-            {},
-            `Model: ${uiState.speechResult.model || activeSpeechModel} | Voice: ${uiState.speechResult.voice} | Chunks: ${uiState.speechResult.chunksCount} | Duration: ~${uiState.speechResult.durationSecondsEstimate}s | Player: ${uiState.speechResult.playerCommand}${uiState.speechResult.savedRelativePath ? ` | Saved to: ${uiState.speechResult.savedRelativePath}` : ""}`,
-          ),
-          uiState.speechResult.engineNote ? h("div", {}, `Engine Note: ${uiState.speechResult.engineNote}`) : null,
-          h("div", {}, `\nCleaned Spoken Text:\n${uiState.speechResult.cleanedText}`),
-        ])
-      : null,
-    uiState.lastAudioUrl
-      ? h("div", { class: "ollama-row" }, [
-          createAudioPlayerEl(uiState.lastAudioUrl),
-        ])
+      ? renderStudioOutputConsole({
+          title: "Speech Synthesis Output & Cleaned Text",
+          badge: `${uiState.speechResult.model || activeSpeechModel} • Voice: ${uiState.speechResult.voice} • ~${uiState.speechResult.durationSecondsEstimate}s`,
+          content: `${uiState.speechResult.engineNote ? `[Engine Note: ${uiState.speechResult.engineNote}]\n\n` : ""}${uiState.speechResult.cleanedText || ""}`,
+          audioUrl: uiState.lastAudioUrl,
+          clearScope: "speech",
+          saveName: "speech-transcript",
+        })
       : null,
   ]);
 }
@@ -1523,6 +1930,17 @@ function renderMeaningAndWebTab() {
         },
         "Search Folder by Meaning (/api/embed)",
       ),
+      uiState.meaningMatches.length > 0
+        ? h(
+            "button",
+            {
+              type: "button",
+              class: "ollama-btn",
+              onclick: () => clearOllamaOutput("meaning"),
+            },
+            "🧹 Clear Meaning Results",
+          )
+        : null,
     ]),
     uiState.meaningMatches.length > 0
       ? h(
@@ -1536,22 +1954,33 @@ function renderMeaningAndWebTab() {
               ]),
               h("div", {}, m.path),
               h("div", {}, m.preview),
-              h(
-                "button",
-                {
-                  type: "button",
-                  class: "ollama-btn",
-                  onclick: async () => {
-                    const { folderPath, filePath } = resolveMatchTargetPaths(m);
-                    const ok = await goTo(folderPath, { select: filePath });
-                    if (ok) {
-                      if (state.workspace !== "split") closePower();
-                      toast(`Opened folder and selected ${m.name}`);
-                    }
+              h("div", { class: "ollama-row" }, [
+                h(
+                  "button",
+                  {
+                    type: "button",
+                    class: "ollama-btn",
+                    onclick: async () => {
+                      const { folderPath, filePath } = resolveMatchTargetPaths(m);
+                      const ok = await goTo(folderPath, { select: filePath });
+                      if (ok) {
+                        if (state.workspace !== "split") closePower();
+                        toast(`Opened folder and selected ${m.name}`);
+                      }
+                    },
                   },
-                },
-                "Open Containing Folder",
-              ),
+                  "Open Containing Folder",
+                ),
+                h(
+                  "button",
+                  {
+                    type: "button",
+                    class: "ollama-btn is-mini",
+                    onclick: (e) => void copyOllamaOutput(m.preview || m.path, `${m.name} preview`, e.currentTarget),
+                  },
+                  "📋 Copy Snippet",
+                ),
+              ]),
             ]),
           ),
         )
@@ -1593,8 +2022,27 @@ function renderMeaningAndWebTab() {
         },
         "Run Web Search / Fetch",
       ),
+      uiState.webResult
+        ? h(
+            "button",
+            {
+              type: "button",
+              class: "ollama-btn",
+              onclick: () => clearOllamaOutput("web"),
+            },
+            "🧹 Clear Web Output",
+          )
+        : null,
     ]),
-    uiState.webResult ? h("div", { class: "ollama-output-box" }, JSON.stringify(uiState.webResult, null, 2)) : null,
+    uiState.webResult
+      ? renderStudioOutputConsole({
+          title: "Web Search & Fetch Output",
+          badge: "32,000+ num_ctx Grounded",
+          content: JSON.stringify(uiState.webResult, null, 2),
+          clearScope: "web",
+          saveName: "web-search-output",
+        })
+      : null,
   ]);
 }
 
@@ -1620,7 +2068,7 @@ function renderModelsAndAccountTab() {
     h("div", { class: "ollama-row" }, [
       h("input", {
         class: "ollama-input",
-        placeholder: "Pull model (e.g. lfm3:latest, nimble, llama3:70b to test RAM guard)...",
+        placeholder: "Pull model (e.g. qwen3.5:4b, lfm3-omni:latest, qwen3.5:latest, lfm3:latest, nimble, llama3:70b)...",
         value: uiState.pullModelName,
         oninput: (e) => {
           uiState.pullModelName = e.target.value;
@@ -1748,11 +2196,13 @@ function renderModelsAndAccountTab() {
       ),
     ),
     uiState.inspectedModelInfo
-      ? h(
-          "div",
-          { class: "ollama-output-box" },
-          `POST /api/show (${uiState.inspectedModelInfo.name}):\n${JSON.stringify(uiState.inspectedModelInfo.info?.details || uiState.inspectedModelInfo.info, null, 2)}`,
-        )
+      ? renderStudioOutputConsole({
+          title: `Model Inspector (/api/show: ${uiState.inspectedModelInfo.name})`,
+          badge: "Manifest & Tensor Metadata",
+          content: JSON.stringify(uiState.inspectedModelInfo.info?.details || uiState.inspectedModelInfo.info, null, 2),
+          clearScope: "inspector",
+          saveName: `model-inspect-${String(uiState.inspectedModelInfo.name || "model").replace(/[^a-z0-9_-]/gi, "-")}`,
+        })
       : null,
     h("div", { class: "ollama-card-title" }, [
       h("span", {}, "Custom Modelfile Preset (/api/create, /api/copy, /api/push) & Cloud API Key (/api/usage, /api/balance)"),
@@ -1768,7 +2218,7 @@ function renderModelsAndAccountTab() {
       }),
       h("input", {
         class: "ollama-input",
-        placeholder: "Base model (e.g. lfm3:latest)",
+        placeholder: "Base model (e.g. lfm3-omni:latest, qwen3.5:latest, lfm3:latest)",
         value: uiState.customModelFrom,
         oninput: (e) => {
           uiState.customModelFrom = e.target.value;
@@ -1858,7 +2308,55 @@ function renderModelsAndAccountTab() {
               c.hardwareVerdict?.allowed ? `Fits RAM (~${c.estimatedRamGb} GB)` : "Blocked by RAM Guard",
             ),
           ]),
+          h("div", { class: "ollama-badge-row" }, (c.badges || []).map(createBadgeEl)),
           h("div", {}, c.description),
+          c.hardwareVerdict?.allowed && !c.name.endsWith(":cloud")
+            ? h("div", { class: "ollama-row" }, [
+                h(
+                  "button",
+                  {
+                    type: "button",
+                    class: "ollama-btn is-mini",
+                    onclick: async () => {
+                      uiState.pullModelName = c.name;
+                      uiState.loading = true;
+                      startLiveTaskTicker(
+                        `Pulling ${c.name}`,
+                        `Downloading ${c.label} (${c.name}) via POST /api/pull...`,
+                        8,
+                        true,
+                      );
+                      renderOllamaPanel();
+                      try {
+                        const res = await call("ollama/pull", { model: c.name });
+                        if (res.ok) {
+                          toast(`Pulled ${c.name}`);
+                          void refreshOllamaStatus(true);
+                        } else {
+                          toast(res.status || `Failed to pull ${c.name}`, { kind: "error" });
+                        }
+                      } catch (e) {
+                        toast(e.message, { kind: "error" });
+                      } finally {
+                        stopLiveTaskTicker();
+                        uiState.loading = false;
+                        renderOllamaPanel();
+                      }
+                    },
+                  },
+                  `⬇ Pull ${c.name}`,
+                ),
+                h(
+                  "button",
+                  {
+                    type: "button",
+                    class: "ollama-btn is-mini",
+                    onclick: (e) => void copyOllamaOutput(`ollama run ${c.name}`, `ollama run ${c.name}`, e.currentTarget),
+                  },
+                  `📋 Copy CLI: ollama run ${c.name}`,
+                ),
+              ])
+            : null,
         ]),
       ),
     ),
