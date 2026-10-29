@@ -20,6 +20,7 @@ import { absolutePath, type FmContext, type FmHandler } from "./fmCore";
 import { decodeBytes, htmlToText } from "./fmConvText";
 import { readSpreadsheet } from "./fmConvSheet";
 import { extensionOf, FmError, protectedReason, splitName, uniqueName } from "./fmPaths";
+import { recordSessionLoadedModel, registerSpawnedOllamaDaemon } from "./fmOllama";
 
 async function publishStagedFile(srcPath: string, destPath: string): Promise<void> {
   try {
@@ -1946,6 +1947,7 @@ export async function ensureOllamaDaemon(ctx: FmContext, ollamaExe: string): Pro
       env,
     });
     proc.unref?.();
+    registerSpawnedOllamaDaemon(proc, ctx);
   } catch {
     return false;
   }

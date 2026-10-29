@@ -15,6 +15,12 @@ import {
   runOllamaAutoInstall,
   runOllamaSpeech,
   splitSpeechTextIntoChunks,
+  captureOllamaStartupSnapshot,
+  recordSessionLoadedModel,
+  registerSpawnedOllamaDaemon,
+  setOllamaExitPolicy,
+  getOllamaLifecycleStatus,
+  shutdownOllamaForFileManager,
 } from "../src/features/filemanager/fmOllama";
 
 describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capability Router", () => {
@@ -955,5 +961,90 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
     expect(ollamaJsSrc).toContain('data-ollama-action": "scroll-bottom"');
     expect(ollamaJsSrc).toContain('data-ollama-action": "toggle-expand-output"');
     expect(ollamaJsSrc).toContain("savedBoxScrolls");
+    expect(ollamaJsSrc).toContain('data-ollama-select": "exit-policy"');
+    expect(ollamaJsSrc).toContain("/api/ollama/shutdown");
+  });
+
+  test("11. Session-Aware Ollama Lifecycle & On-Close Policy (Pre-Existing Daemon vs. Spawned by File Manager)", async () => {
+    // Case A: Ollama was ALREADY running before File Manager opened (with lfm3:latest already loaded in /api/ps)
+    const preRunningCtx: any = {
+      platform: "darwin",
+      home: `${tempRoot}/home`,
+      dataDir: `${tempRoot}/data-pre`,
+      ollama: {
+        baseUrl: mockOllamaUrl,
+        platform: "darwin",
+        arch: "arm64",
+        totalRamBytes: 32 * 1024 ** 3,
+      },
+    };
+    const snapA = await captureOllamaStartupSnapshot(preRunningCtx);
+    expect(snapA.wasRunningBeforeFileManager).toBe(true);
+    expect(snapA.daemonSpawnedByFileManager).toBe(false);
+    expect(snapA.preExistingLoadedModels.has("lfm3:latest")).toBe(true);
+
+    // User keeps "lfm3:latest" untouched and only uses "phonon:latest" during the File Manager session
+    recordSessionLoadedModel(preRunningCtx, "phonon:latest");
+
+    const lifeStatusA = getOllamaLifecycleStatus(preRunningCtx);
+    expect(lifeStatusA.wasRunningBeforeFileManager).toBe(true);
+    expect(lifeStatusA.willStopDaemonOnClose).toBe(false);
+    expect(lifeStatusA.willUnloadModelsOnClose).toBe(true);
+
+    // On close with default "smart" policy:
+    // - Keeps pre-existing "lfm3:latest" in RAM (not touched by session)
+    // - Unloads "phonon:latest" (used during session)
+    // - Does NOT stop the pre-existing Ollama daemon!
+    const closeSmartA = await shutdownOllamaForFileManager(preRunningCtx);
+    expect(closeSmartA.exitPolicyUsed).toBe("smart");
+    expect(closeSmartA.wasRunningBeforeFileManager).toBe(true);
+    expect(closeSmartA.daemonStopped).toBe(false);
+    expect(closeSmartA.keptPreExistingModels).toContain("lfm3:latest");
+    expect(closeSmartA.unloaded).toContain("phonon:latest");
+
+    // If user sets exitPolicy to "keep_open", nothing is unloaded on close
+    await setOllamaExitPolicy(preRunningCtx, "keep_open");
+    const closeKeepA = await shutdownOllamaForFileManager(preRunningCtx);
+    expect(closeKeepA.exitPolicyUsed).toBe("keep_open");
+    expect(closeKeepA.unloaded.length).toBe(0);
+    expect(closeKeepA.daemonStopped).toBe(false);
+
+    // If user sets exitPolicy to "unload_all", ALL models in /api/ps (even pre-existing) are unloaded on close while daemon stays open
+    await setOllamaExitPolicy(preRunningCtx, "unload_all");
+    const closeUnloadAllA = await shutdownOllamaForFileManager(preRunningCtx);
+    expect(closeUnloadAllA.exitPolicyUsed).toBe("unload_all");
+    expect(closeUnloadAllA.unloaded).toContain("lfm3:latest");
+    expect(closeUnloadAllA.daemonStopped).toBe(false);
+
+    // Case B: Ollama was NOT running before File Manager opened — File Manager spawned `ollama serve`
+    const spawnedCtx: any = {
+      platform: "linux",
+      home: `${tempRoot}/home`,
+      dataDir: `${tempRoot}/data-spawned`,
+      ollama: {
+        baseUrl: mockOllamaUrl,
+        platform: "linux",
+        arch: "x64",
+        totalRamBytes: 16 * 1024 ** 3,
+      },
+    };
+    let daemonKilled = false;
+    registerSpawnedOllamaDaemon(
+      {
+        kill() {
+          daemonKilled = true;
+        },
+      },
+      spawnedCtx,
+    );
+    const lifeStatusB = getOllamaLifecycleStatus(spawnedCtx);
+    expect(lifeStatusB.wasRunningBeforeFileManager).toBe(false);
+    expect(lifeStatusB.daemonSpawnedByFileManager).toBe(true);
+    expect(lifeStatusB.willStopDaemonOnClose).toBe(true);
+
+    const closeSmartB = await shutdownOllamaForFileManager(spawnedCtx);
+    expect(closeSmartB.unloaded).toContain("lfm3:latest");
+    expect(closeSmartB.daemonStopped).toBe(true);
+    expect(daemonKilled).toBe(true);
   });
 });

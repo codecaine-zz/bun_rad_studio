@@ -24,6 +24,7 @@
 import type { Webview } from "webview-bun";
 import { delimiter, resolve } from "path";
 import { APP_NAME, startFileManagerServer, type FileManagerServerOptions } from "../src/features/filemanager/fmServer";
+import { shutdownOllamaForFileManager } from "../src/features/filemanager/fmOllama";
 import { openManagedWindow } from "../src/features/filemanager/fmWindowControl";
 import { readWindowPrefs, reduceReport, resetWindowPrefs, sanitizeWindowState, windowDataDir, writeWindowPrefs } from "../src/features/filemanager/fmWindow";
 import { createWindowNative } from "../src/windowNative";
@@ -141,7 +142,18 @@ export function createFileManagerStudio(options: FileManagerStudioOptions = {}):
       console.log(`📁 Launching ${APP_NAME}...`);
       // The window's event loop blocks this process, so the server lives in its own background process.
       let child: ReturnType<typeof Bun.spawn> | undefined;
+      let stopping = false;
       const stop = () => {
+        if (stopping) return;
+        stopping = true;
+        if (app.server?.context) {
+          void shutdownOllamaForFileManager(app.server.context, { timeoutMs: 1800 }).finally(() => {
+            try { child?.kill(); } catch {}
+            try { app.server?.stop(true); } catch {}
+            process.exit(0);
+          });
+          return;
+        }
         try { child?.kill(); } catch {}
         try { app.server?.stop(true); } catch {}
         process.exit(0);
@@ -306,11 +318,22 @@ if (import.meta.main) {
     const server = startFileManagerServer({ port, startPath, context });
     console.log(`📁 ${APP_NAME} server running at: http://127.0.0.1:${server.port}/`);
     console.log(`READY:${server.port}`);
+    let serverStopping = false;
+    const gracefulServerStop = () => {
+      if (serverStopping) return;
+      serverStopping = true;
+      void shutdownOllamaForFileManager(server.context, { timeoutMs: 1800 }).finally(() => {
+        try { server.stop(true); } catch {}
+        process.exit(0);
+      });
+    };
+    process.on("SIGINT", gracefulServerStop);
+    process.on("SIGTERM", gracefulServerStop);
     // Started by a window: stop when that window's process is gone, so no server is left running.
     const parentPid = Number(argValue(args, "--parent-pid")) || 0;
     if (parentPid) {
       setInterval(() => {
-        try { process.kill(parentPid, 0); } catch { process.exit(0); }
+        try { process.kill(parentPid, 0); } catch { gracefulServerStop(); }
       }, 2000);
     }
     await new Promise(() => {});

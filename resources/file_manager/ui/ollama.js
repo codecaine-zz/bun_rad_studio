@@ -906,6 +906,8 @@ function renderHeroBanner() {
   const ver = uiState.statusData?.version;
   const running = uiState.statusData?.running;
   const speechCaps = uiState.statusData?.speechCapabilities;
+  const lifecycle = uiState.statusData?.lifecycle;
+  const activeExitPolicy = lifecycle?.exitPolicy || "smart";
 
   const pills = [];
   if (hw) {
@@ -929,6 +931,19 @@ function renderHeroBanner() {
         "span",
         { class: `ollama-pill${ver.reachable ? "" : " is-warn"}` },
         ver.reachable ? `Ollama v${ver.version}` : "Ollama Offline — 1-Click Auto-Install Ready",
+      ),
+    );
+  }
+  if (lifecycle?.summaryLabel) {
+    pills.push(
+      h(
+        "span",
+        {
+          class: `ollama-pill ${lifecycle.wasRunningBeforeFileManager ? "is-ram" : "is-mlx"}`,
+          title:
+            "Session-aware lifecycle tracker: knows whether Ollama was already running before you opened File Manager vs. started by File Manager.",
+        },
+        lifecycle.summaryLabel,
       ),
     );
   }
@@ -967,6 +982,69 @@ function renderHeroBanner() {
       ),
     ]),
     h("div", { class: "ollama-row" }, [
+      h(
+        "label",
+        {
+          class: "ollama-row",
+          title:
+            "Choose how Ollama and loaded models are handled when you close Codecaine File Manager",
+        },
+        [
+          h("span", { style: "font-size: 11px; font-weight: 600; color: #cbd5e1;" }, "On Close:"),
+          h(
+            "select",
+            {
+              class: "ollama-select",
+              "data-ollama-select": "exit-policy",
+              onchange: async (e) => {
+                const nextPolicy = e.target.value;
+                try {
+                  const updated = await call("ollama/lifecycle", { exitPolicy: nextPolicy });
+                  if (uiState.statusData) uiState.statusData.lifecycle = updated;
+                  toast(`Updated Ollama close behavior: ${updated.summaryLabel}`);
+                  renderOllamaPanel();
+                } catch (err) {
+                  toast(err.message || "Could not update exit policy", { kind: "error" });
+                }
+              },
+            },
+            [
+              h(
+                "option",
+                {
+                  value: "smart",
+                  selected: activeExitPolicy === "smart" ? "selected" : null,
+                },
+                "Smart (Keep Pre-Existing Ollama / Auto-Stop If Started Here)",
+              ),
+              h(
+                "option",
+                {
+                  value: "unload_all",
+                  selected: activeExitPolicy === "unload_all" ? "selected" : null,
+                },
+                "Unload All Models on Close (Keep Ollama Open)",
+              ),
+              h(
+                "option",
+                {
+                  value: "stop_all",
+                  selected: activeExitPolicy === "stop_all" ? "selected" : null,
+                },
+                "Unload All Models & Stop Ollama on Close",
+              ),
+              h(
+                "option",
+                {
+                  value: "keep_open",
+                  selected: activeExitPolicy === "keep_open" ? "selected" : null,
+                },
+                "Keep Ollama & Loaded Models Open on Close",
+              ),
+            ],
+          ),
+        ],
+      ),
       h(
         "button",
         {
@@ -2561,6 +2639,24 @@ export function mountOllamaTool(container) {
       offSelection?.();
     },
   };
+}
+
+if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
+  window.addEventListener("pagehide", () => {
+    try {
+      const token = getToken();
+      if (!token) return;
+      void fetch("/api/ollama/shutdown", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-fm-token": token,
+        },
+        body: "{}",
+        keepalive: true,
+      }).catch(() => {});
+    } catch {}
+  });
 }
 
 registerPowerTab({

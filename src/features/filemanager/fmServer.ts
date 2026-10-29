@@ -50,7 +50,12 @@ import { cliUtilsDir, cliUtilsOperations, ensureCliUtilsFolder, findCliSourceRoo
 import { taskManagerOperations } from "./fmTaskManagerOps";
 import { sysinfoOperations } from "./fmSysinfoOps";
 import { PHONON_OPS, getCachedAudioFile, isPhononSupportedPlatform } from "./fmPhonon";
-import { OLLAMA_OPS, getCachedOllamaAudioFile, handleOllamaStreamRequest } from "./fmOllama";
+import {
+  OLLAMA_OPS,
+  getCachedOllamaAudioFile,
+  handleOllamaStreamRequest,
+  shutdownOllamaForFileManager,
+} from "./fmOllama";
 import type { HostedPeer, HostedSession } from "../../simplegui_host";
 import { dbState } from "./fmDbState";
 import { watchOperations } from "./fmWatchOps";
@@ -938,11 +943,12 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
     },
   });
 
-  // Stopping the server must also end every shell it started.
+  // Stopping the server must also end every shell it started and run session-aware Ollama cleanup.
   const stopServer = server.stop.bind(server);
   server.stop = (closeActiveConnections?: boolean) => {
     terminals.closeAll();
     ctx.jobs.cancelAll();
+    void shutdownOllamaForFileManager(ctx, { timeoutMs: 1800 });
     for (const dispose of ctx.disposers.splice(0)) {
       try { dispose(); } catch {}
     }

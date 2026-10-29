@@ -1215,6 +1215,22 @@ export async function ollamaFetchJson(
     headers.set("Authorization", `Bearer ${apiKey}`);
   }
   const timeoutMs = init?.timeoutMs ?? 45_000;
+  if (
+    typeof init?.body === "string" &&
+    (endpointPath === "/api/chat" ||
+      endpointPath === "/api/generate" ||
+      endpointPath === "/v1/systemone" ||
+      endpointPath === "/v1/audio/speech" ||
+      endpointPath === "/api/embed")
+  ) {
+    await captureOllamaStartupSnapshot(ctx);
+    try {
+      const parsedBody = JSON.parse(init.body);
+      if (parsedBody?.model && parsedBody?.keep_alive !== 0) {
+        recordSessionLoadedModel(ctx, String(parsedBody.model));
+      }
+    } catch {}
+  }
   try {
     const res = await fetch(url, {
       ...init,
@@ -1649,6 +1665,308 @@ export async function unloadModelsFromRam(
     unloaded,
     freedBytes,
     freedGb: Math.round((freedBytes / 1024 ** 3) * 100) / 100,
+  };
+}
+
+const spawnedOllamaDaemons = new Set<{ kill: () => void }>();
+
+export type OllamaExitPolicy = "smart" | "unload_all" | "stop_all" | "keep_open";
+
+interface OllamaLifecycleSessionState {
+  snapshotCaptured: boolean;
+  wasRunningBeforeFileManager: boolean;
+  daemonSpawnedByFileManager: boolean;
+  preExistingLoadedModels: Set<string>;
+  sessionLoadedModels: Set<string>;
+  exitPolicy: OllamaExitPolicy;
+}
+
+const lifecycleByCtx = new WeakMap<object, OllamaLifecycleSessionState>();
+const defaultLifecycleState: OllamaLifecycleSessionState = {
+  snapshotCaptured: false,
+  wasRunningBeforeFileManager: false,
+  daemonSpawnedByFileManager: false,
+  preExistingLoadedModels: new Set<string>(),
+  sessionLoadedModels: new Set<string>(),
+  exitPolicy: "smart",
+};
+
+function getLifecycleState(ctx?: FmContext): OllamaLifecycleSessionState {
+  if (!ctx || typeof ctx !== "object") return defaultLifecycleState;
+  let st = lifecycleByCtx.get(ctx);
+  if (!st) {
+    let savedPolicy: OllamaExitPolicy = "smart";
+    try {
+      const dataDir = (ctx as any).dataDir || joinPath([ctx.home || "/tmp", ".codecaine-fm"], ctx.platform);
+      const cfgPath = joinPath([dataDir, "ollama-lifecycle.json"], ctx.platform);
+      const raw = readTextFileSyncPure(cfgPath);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (
+          parsed?.exitPolicy === "smart" ||
+          parsed?.exitPolicy === "unload_all" ||
+          parsed?.exitPolicy === "stop_all" ||
+          parsed?.exitPolicy === "keep_open"
+        ) {
+          savedPolicy = parsed.exitPolicy;
+        }
+      }
+    } catch {}
+    st = {
+      snapshotCaptured: false,
+      wasRunningBeforeFileManager: false,
+      daemonSpawnedByFileManager: false,
+      preExistingLoadedModels: new Set<string>(),
+      sessionLoadedModels: new Set<string>(),
+      exitPolicy: savedPolicy,
+    };
+    lifecycleByCtx.set(ctx, st);
+  }
+  return st;
+}
+
+/**
+ * Captures whether `ollama serve` was already running and which models were already loaded in RAM
+ * BEFORE Codecaine File Manager opened or started Ollama.
+ */
+export async function captureOllamaStartupSnapshot(ctx: FmContext): Promise<OllamaLifecycleSessionState> {
+  const st = getLifecycleState(ctx);
+  if (st.snapshotCaptured) return st;
+  st.snapshotCaptured = true;
+
+  try {
+    const vRes = await ollamaFetchJson(ctx, "/api/version", { method: "GET", timeoutMs: 1200 });
+    if (vRes.ok && vRes.data?.version) {
+      st.wasRunningBeforeFileManager = true;
+      const psRes = await listRunningModelsPs(ctx);
+      for (const m of psRes.models) {
+        if (m.name) st.preExistingLoadedModels.add(m.name);
+      }
+    } else {
+      st.wasRunningBeforeFileManager = false;
+    }
+  } catch {
+    st.wasRunningBeforeFileManager = false;
+  }
+  return st;
+}
+
+/**
+ * Records that a model was actively loaded/used by Codecaine File Manager during this session.
+ */
+export function recordSessionLoadedModel(ctx: FmContext | undefined, modelName: string | undefined): void {
+  const clean = String(modelName || "").trim();
+  if (!clean) return;
+  const st = getLifecycleState(ctx);
+  st.sessionLoadedModels.add(clean);
+}
+
+/**
+ * Updates the user's preferred behavior when closing the File Manager:
+ * - `"smart"` (default): If Ollama was already running before opening File Manager, keep the daemon open
+ *   and only unload models that File Manager loaded during the session. If File Manager started the
+ *   daemon itself, unload all models and stop the spawned daemon on close.
+ * - `"unload_all"`: Unload all models from RAM (`keep_alive: 0`) on close, but leave `ollama serve` running.
+ * - `"stop_all"`: Unload all models from RAM and stop the `ollama serve` daemon on close.
+ * - `"keep_open"`: Leave both the `ollama serve` daemon and loaded models in RAM untouched on close.
+ */
+export async function setOllamaExitPolicy(ctx: FmContext, policy: OllamaExitPolicy) {
+  const valid: OllamaExitPolicy =
+    policy === "unload_all" || policy === "stop_all" || policy === "keep_open" ? policy : "smart";
+  const st = getLifecycleState(ctx);
+  st.exitPolicy = valid;
+  try {
+    const dataDir = (ctx as any).dataDir || joinPath([ctx.home || "/tmp", ".codecaine-fm"], ctx.platform);
+    ensureDirectoryPure(dataDir, ctx.platform);
+    const cfgPath = joinPath([dataDir, "ollama-lifecycle.json"], ctx.platform);
+    await Bun.write(cfgPath, JSON.stringify({ exitPolicy: valid }, null, 2));
+  } catch {}
+  return getOllamaLifecycleStatus(ctx);
+}
+
+export function getOllamaLifecycleStatus(ctx: FmContext) {
+  const st = getLifecycleState(ctx);
+  const policy = st.exitPolicy;
+  const willStopDaemonOnClose =
+    policy === "stop_all" ||
+    (policy === "smart" && (st.daemonSpawnedByFileManager || (!st.wasRunningBeforeFileManager && spawnedOllamaDaemons.size > 0)));
+  const willUnloadModelsOnClose = policy !== "keep_open";
+
+  const originLabel = st.daemonSpawnedByFileManager
+    ? "Started by File Manager"
+    : st.wasRunningBeforeFileManager
+      ? "Running Before File Manager Opened"
+      : "Standby";
+
+  const summaryLabel =
+    policy === "keep_open"
+      ? `${originLabel} • Stays Open & Keeps Models in RAM on Close`
+      : policy === "stop_all"
+        ? `${originLabel} • Unloads All Models & Stops Daemon on Close`
+        : policy === "unload_all"
+          ? `${originLabel} • Unloads All Models & Keeps Daemon Open on Close`
+          : willStopDaemonOnClose
+            ? "Started by File Manager • Auto-Unloads Models & Stops Daemon on Close"
+            : "Pre-Existing Ollama • Unloads Session Models & Stays Open on Close";
+
+  return {
+    snapshotCaptured: st.snapshotCaptured,
+    wasRunningBeforeFileManager: st.wasRunningBeforeFileManager,
+    daemonSpawnedByFileManager: st.daemonSpawnedByFileManager,
+    preExistingLoadedModels: [...st.preExistingLoadedModels],
+    sessionLoadedModels: [...st.sessionLoadedModels],
+    exitPolicy: policy,
+    willStopDaemonOnClose,
+    willUnloadModelsOnClose,
+    summaryLabel,
+  };
+}
+
+/**
+ * Registers an `ollama serve` daemon process spawned by Codecaine File Manager so it is
+ * tracked and stopped (when appropriate per the exit policy) when the File Manager closes.
+ */
+export function registerSpawnedOllamaDaemon(proc: { kill: () => void } | null | undefined, ctx?: FmContext): void {
+  if (!proc || typeof proc.kill !== "function") return;
+  const st = getLifecycleState(ctx);
+  if (!st.snapshotCaptured) {
+    st.snapshotCaptured = true;
+    st.wasRunningBeforeFileManager = false;
+  }
+  st.daemonSpawnedByFileManager = true;
+  spawnedOllamaDaemons.add(proc);
+}
+
+/**
+ * Executes session-aware Ollama cleanup when the File Manager closes (or when triggered manually):
+ * - Respects whether Ollama was already running before the user opened File Manager (`wasRunningBeforeFileManager`).
+ * - Respects the user's configured `exitPolicy` (`"smart"` | `"unload_all"` | `"stop_all"` | `"keep_open"`).
+ */
+export async function shutdownOllamaForFileManager(
+  ctx: FmContext,
+  opts?: {
+    forcePolicy?: OllamaExitPolicy;
+    stopSpawnedDaemon?: boolean;
+    timeoutMs?: number;
+  },
+): Promise<{
+  ok: boolean;
+  exitPolicyUsed: OllamaExitPolicy;
+  wasRunningBeforeFileManager: boolean;
+  daemonSpawnedByFileManager: boolean;
+  unloaded: string[];
+  keptPreExistingModels: string[];
+  freedBytes: number;
+  freedGb: number;
+  daemonStopped: boolean;
+}> {
+  const st = getLifecycleState(ctx);
+  const policy: OllamaExitPolicy = opts?.forcePolicy || st.exitPolicy || "smart";
+
+  if (policy === "keep_open" && opts?.stopSpawnedDaemon !== true) {
+    return {
+      ok: true,
+      exitPolicyUsed: policy,
+      wasRunningBeforeFileManager: st.wasRunningBeforeFileManager,
+      daemonSpawnedByFileManager: st.daemonSpawnedByFileManager,
+      unloaded: [],
+      keptPreExistingModels: [...st.preExistingLoadedModels],
+      freedBytes: 0,
+      freedGb: 0,
+      daemonStopped: false,
+    };
+  }
+
+  let unloaded: string[] = [];
+  const keptPreExistingModels: string[] = [];
+  let freedBytes = 0;
+  let freedGb = 0;
+
+  try {
+    const work = async () => {
+      if (policy === "smart" && st.wasRunningBeforeFileManager && !st.daemonSpawnedByFileManager) {
+        // Ollama was already running before File Manager opened:
+        // Only unload models that were loaded during this File Manager session (or weren't in preExistingLoadedModels).
+        const running = await listRunningModelsPs(ctx);
+        for (const m of running.models) {
+          const wasPreExisting = st.preExistingLoadedModels.has(m.name);
+          const loadedBySession = st.sessionLoadedModels.has(m.name);
+          if (wasPreExisting && !loadedBySession) {
+            keptPreExistingModels.push(m.name);
+            continue;
+          }
+          const r = await unloadModelsFromRam(ctx, m.name);
+          unloaded.push(...r.unloaded);
+          freedBytes += r.freedBytes;
+        }
+        for (const sessionModel of st.sessionLoadedModels) {
+          if (!unloaded.includes(sessionModel)) {
+            const r = await unloadModelsFromRam(ctx, sessionModel);
+            unloaded.push(...r.unloaded);
+            freedBytes += r.freedBytes;
+          }
+        }
+        freedGb = Math.round((freedBytes / 1024 ** 3) * 100) / 100;
+      } else {
+        // Either File Manager started Ollama, or user selected "unload_all" / "stop_all": unload all models in RAM.
+        const r = await unloadModelsFromRam(ctx);
+        unloaded = r.unloaded;
+        freedBytes = r.freedBytes;
+        freedGb = r.freedGb;
+      }
+    };
+
+    await Promise.race([
+      work(),
+      new Promise<void>((resolve) => setTimeout(resolve, opts?.timeoutMs ?? 2500)),
+    ]);
+  } catch {}
+
+  const shouldStopDaemon =
+    opts?.stopSpawnedDaemon === true ||
+    policy === "stop_all" ||
+    (policy === "smart" && (st.daemonSpawnedByFileManager || (!st.wasRunningBeforeFileManager && spawnedOllamaDaemons.size > 0)));
+
+  let daemonStopped = false;
+  if (shouldStopDaemon) {
+    if (spawnedOllamaDaemons.size > 0) {
+      for (const proc of [...spawnedOllamaDaemons]) {
+        try {
+          proc.kill();
+          daemonStopped = true;
+        } catch {}
+        spawnedOllamaDaemons.delete(proc);
+      }
+    } else if (policy === "stop_all" && (ctx.platform || process.platform) === process.platform) {
+      try {
+        if (process.platform === "win32") {
+          const res = Bun.spawnSync(["taskkill", "/F", "/IM", "ollama.exe"], {
+            stdout: "ignore",
+            stderr: "ignore",
+            windowsHide: true,
+          });
+          daemonStopped = res.exitCode === 0;
+        } else {
+          const res = Bun.spawnSync(["pkill", "-f", "ollama serve"], {
+            stdout: "ignore",
+            stderr: "ignore",
+          });
+          daemonStopped = res.exitCode === 0;
+        }
+      } catch {}
+    }
+  }
+
+  return {
+    ok: true,
+    exitPolicyUsed: policy,
+    wasRunningBeforeFileManager: st.wasRunningBeforeFileManager,
+    daemonSpawnedByFileManager: st.daemonSpawnedByFileManager,
+    unloaded,
+    keptPreExistingModels,
+    freedBytes,
+    freedGb,
+    daemonStopped,
   };
 }
 
@@ -2141,6 +2459,7 @@ export async function runOllamaAutoInstall(
   });
 
   try {
+    await captureOllamaStartupSnapshot(ctx);
     let binPath = await detectOllamaBinaryPure(ctx);
     const versionPreCheck = await getOllamaVersionStatus(ctx);
 
@@ -2414,12 +2733,14 @@ export async function runOllamaAutoInstall(
           step: `Starting background daemon: ${binPath} serve...`,
           percent: 58,
         });
-        Bun.spawn([binPath, "serve"], {
+        const daemonProc = Bun.spawn([binPath, "serve"], {
           stdout: "ignore",
           stderr: "ignore",
           windowsHide: true,
           env: { ...process.env, OLLAMA_HOST: "127.0.0.1:11434" },
         });
+        daemonProc.unref?.();
+        registerSpawnedOllamaDaemon(daemonProc, ctx);
         daemonStarted = true;
         for (let i = 0; i < 40; i++) {
           await Bun.sleep(300);
@@ -4669,6 +4990,7 @@ export async function handleOllamaStreamRequest(ctx: FmContext, req: Request): P
       body.model,
       imagesBase64.length > 0,
     );
+    recordSessionLoadedModel(ctx, model);
 
     const speakReply = Boolean(body.speakReply);
     const think = speakReply ? false : Boolean(body.think);
@@ -4740,6 +5062,7 @@ export async function handleOllamaStreamRequest(ctx: FmContext, req: Request): P
 }
 
 export async function getFullOllamaStatus(ctx: FmContext, payload?: any) {
+  await captureOllamaStartupSnapshot(ctx);
   const [version, modelList, runningPs, cloudAccount, voices, installStatus] = await Promise.all([
     getOllamaVersionStatus(ctx),
     listModelsWithBadgesAndHardwareFilter(ctx, {
@@ -4763,6 +5086,7 @@ export async function getFullOllamaStatus(ctx: FmContext, payload?: any) {
     phononVoices: voices,
     installStatus,
     speechCapabilities: getSpeechCapabilitiesForHost(ctx),
+    lifecycle: getOllamaLifecycleStatus(ctx),
     longTask: getLiveOllamaLongTaskStatus(),
     pendingActions: listPendingToolActions(),
   };
@@ -4772,6 +5096,9 @@ export const OLLAMA_OPS: Record<string, (ctx: FmContext, payload: any) => Promis
   "ollama/status": (ctx, p) => getFullOllamaStatus(ctx, p),
   "ollama/installStatus": (ctx) => getOllamaInstallStatus(ctx),
   "ollama/install": (ctx, p) => runOllamaAutoInstall(ctx, p || {}),
+  "ollama/lifecycle": async (ctx, p) =>
+    p?.exitPolicy ? setOllamaExitPolicy(ctx, p.exitPolicy) : getOllamaLifecycleStatus(ctx),
+  "ollama/shutdown": (ctx, p) => shutdownOllamaForFileManager(ctx, p || {}),
   "ollama/hardware": async (ctx) => inspectOllamaHardware(ctx),
   "ollama/guard": async (ctx, p) => {
     const hw = inspectOllamaHardware(ctx);
