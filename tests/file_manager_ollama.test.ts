@@ -935,6 +935,7 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
     expect(ollamaJsSrc).toContain("copyOllamaOutput");
     expect(ollamaJsSrc).toContain("clearOllamaOutput");
     expect(ollamaJsSrc).toContain("renderStudioOutputConsole");
+    expect(ollamaJsSrc).toContain('selectedModel: "qwen3.5:latest"');
     expect(ollamaJsSrc).toContain("lfm3-omni:latest");
     expect(ollamaJsSrc).toContain("qwen3.5:4b");
     expect(ollamaJsSrc).toContain("qwen3.5:latest");

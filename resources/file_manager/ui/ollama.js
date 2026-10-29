@@ -12,7 +12,7 @@ const uiState = {
   subTab: "assistant", // "assistant" | "decision" | "speech" | "meaning" | "models"
   statusData: null,
   loading: false,
-  selectedModel: "",
+  selectedModel: "qwen3.5:latest",
   selectedVoice: "Zoey",
   thinkEnabled: false,
   speakReply: false,
@@ -77,7 +77,7 @@ const uiState = {
   pullModelName: "",
   pullResult: null,
   customModelName: "",
-  customModelFrom: "lfm3:latest",
+  customModelFrom: "qwen3.5:latest",
   customModelSystem: "You are a helpful coding and file organization assistant.",
   apiKeyInput: "",
   inspectedModelInfo: null,
@@ -1142,25 +1142,22 @@ function renderAssistantTab() {
   const installedModelNames = new Set(models.map((m) => m.name));
 
   const modelOptions = [
-    h("option", { value: "" }, "Auto-Select Best MLX / Fitting Model"),
-    ...models.map((m) =>
-      h(
-        "option",
-        {
-          value: m.name,
-          selected: uiState.selectedModel === m.name ? "selected" : null,
-        },
-        `${m.name} (${m.parameterSize}, ~${m.estimatedRamGb} GB) [${(m.badges || []).join(", ")}]`,
-      ),
+    h(
+      "option",
+      {
+        value: "",
+        selected: uiState.selectedModel === "" ? "selected" : null,
+      },
+      "Auto-Select Best Model (Default: qwen3.5)",
     ),
-    !installedModelNames.has("lfm3-omni:latest")
+    !installedModelNames.has("qwen3.5:latest")
       ? h(
           "option",
           {
-            value: "lfm3-omni:latest",
-            selected: uiState.selectedModel === "lfm3-omni:latest" ? "selected" : null,
+            value: "qwen3.5:latest",
+            selected: uiState.selectedModel === "qwen3.5:latest" ? "selected" : null,
           },
-          "lfm3-omni:latest (Liquid LFM3-Omni 2B — Omni Audio, Speech, Vision & Chat)",
+          "qwen3.5:latest (Default General-Purpose Chat, Vision, Deep Thinking & Tools)",
         )
       : null,
     !installedModelNames.has("qwen3.5:4b")
@@ -1173,16 +1170,26 @@ function renderAssistantTab() {
           "qwen3.5:4b (Qwen 3.5 4B — Compact Multimodal for Smaller Memory Computers)",
         )
       : null,
-    !installedModelNames.has("qwen3.5:latest")
+    !installedModelNames.has("lfm3-omni:latest")
       ? h(
           "option",
           {
-            value: "qwen3.5:latest",
-            selected: uiState.selectedModel === "qwen3.5:latest" ? "selected" : null,
+            value: "lfm3-omni:latest",
+            selected: uiState.selectedModel === "lfm3-omni:latest" ? "selected" : null,
           },
-          "qwen3.5:latest (Qwen 3.5 — Multimodal Vision, Deep Thinking & Tools)",
+          "lfm3-omni:latest (Liquid LFM3-Omni 2B — Omni Audio, Speech, Vision & Chat)",
         )
       : null,
+    ...models.map((m) =>
+      h(
+        "option",
+        {
+          value: m.name,
+          selected: uiState.selectedModel === m.name ? "selected" : null,
+        },
+        `${m.name} (${m.parameterSize}, ~${m.estimatedRamGb} GB) [${(m.badges || []).join(", ")}]`,
+      ),
+    ),
     h(
       "option",
       {

@@ -574,13 +574,14 @@ export function isMlxOptimizedModel(model: {
     nameLower.includes("mxfp") ||
     nameLower.includes("nvfp4") ||
     nameLower.startsWith("lfm3") ||
-    nameLower.startsWith("d3:")
+    nameLower.startsWith("d3:") ||
+    nameLower.startsWith("qwen3.5")
   ) {
     return true;
   }
   if (quantLower.includes("mxfp") || quantLower.includes("nvfp")) return true;
   if (formatLower === "safetensors") return true;
-  if (familyLower.includes("phonon") || familyLower.includes("lfm3")) return true;
+  if (familyLower.includes("phonon") || familyLower.includes("lfm3") || familyLower.includes("qwen35") || familyLower.includes("qwen3.5")) return true;
   if (isUtilityModelName(nameLower)) return true;
   return false;
 }
@@ -725,7 +726,30 @@ export interface CatalogModelSpec {
   description: string;
 }
 
+export const DEFAULT_GENERAL_CHAT_MODEL = "qwen3.5:latest";
+export const DEFAULT_COMPACT_CHAT_MODEL = "qwen3.5:4b";
+
 export const CURATED_MODEL_CATALOG: CatalogModelSpec[] = [
+  {
+    name: "qwen3.5:latest",
+    label: "Qwen 3.5 (Default General-Purpose Multimodal Chat, Vision, Deep Thinking & Tools — macOS, Windows & Linux)",
+    parameterSize: "4B",
+    parameterBillions: 4.0,
+    estimatedRamGb: 3.1,
+    runner: "mlx",
+    capabilities: ["completion", "vision", "tools", "thinking", "mlx"],
+    description: "Default general-purpose LLM across macOS, Windows, and Linux supporting Chat, Vision, Code, Deep Thinking, and Tool Calling (`ollama run qwen3.5`).",
+  },
+  {
+    name: "qwen3.5:4b",
+    label: "Qwen 3.5 4B (Compact Multimodal Vision, Deep Thinking & Tools — Smaller Memory Computers)",
+    parameterSize: "4B",
+    parameterBillions: 4.0,
+    estimatedRamGb: 3.1,
+    runner: "mlx",
+    capabilities: ["completion", "vision", "tools", "thinking", "mlx"],
+    description: "Official Qwen 3.5 4B (`qwen3.5:4b`) multimodal Chat, Vision, Deep Thinking & Tool-Calling model tailored for smaller memory computers on macOS, Windows, and Linux.",
+  },
   {
     name: "lfm3:latest",
     label: "LFM3 1.7B MLX (Ultra-Fast Chat, Tools & Thinking)",
@@ -867,34 +891,14 @@ export const CURATED_MODEL_CATALOG: CatalogModelSpec[] = [
     description: "Cross-platform Text-to-Audio model that generates natural speech on Linux and Windows without Apple MLX.",
   },
   {
-    name: "qwen3.5:4b",
-    label: "Qwen 3.5 4B (Compact Multimodal Vision, Deep Thinking & Tools — Smaller Memory Computers)",
-    parameterSize: "4B",
-    parameterBillions: 4.0,
-    estimatedRamGb: 3.1,
-    runner: "standard",
-    capabilities: ["completion", "vision", "tools", "thinking"],
-    description: "Official Qwen 3.5 4B (`qwen3.5:4b`) multimodal Chat, Vision, Deep Thinking & Tool-Calling model tailored for smaller memory computers on Windows and Linux.",
-  },
-  {
-    name: "qwen3.5:latest",
-    label: "Qwen 3.5 (Cross-Platform Multimodal Chat, Vision, Code & Tools — Linux & Windows)",
-    parameterSize: "4B",
-    parameterBillions: 4.0,
-    estimatedRamGb: 3.1,
-    runner: "standard",
-    capabilities: ["completion", "vision", "tools", "thinking"],
-    description: "Newest Qwen 3.5 multimodal Chat, Vision, Code & Tool-Calling model for Windows and Linux.",
-  },
-  {
     name: "qwen3.5:2b",
     label: "Qwen 3.5 2B (Ultra-Fast Cross-Platform Multimodal — Ultra-Low RAM)",
     parameterSize: "2B",
     parameterBillions: 2.0,
     estimatedRamGb: 1.9,
-    runner: "standard",
-    capabilities: ["completion", "vision", "tools", "thinking"],
-    description: "Ultra-compact Qwen 3.5 2B multimodal model for ultra-low memory Windows and Linux machines.",
+    runner: "mlx",
+    capabilities: ["completion", "vision", "tools", "thinking", "mlx"],
+    description: "Ultra-compact Qwen 3.5 2B multimodal model for ultra-low memory machines across macOS, Windows, and Linux.",
   },
   {
     name: "qwen2.5:3b",
@@ -989,11 +993,10 @@ export function evaluateModelHardwareGuard(
           ? "kokoro:latest"
           : "orpheus:latest";
     } else if (taskCap === "vision" && hardware.safeMemoryBudgetGb >= 4.2) {
-      suggestedLocalModel = hardware.isAppleSiliconMac ? "lfm3-vl:2b-mlx-bf16" : "qwen3.5:4b";
+      suggestedLocalModel = hardware.ramTier === "under_8gb" || hardware.ramTier === "8gb_to_16gb" ? "qwen3.5:4b" : "qwen3.5:latest";
     } else {
-      suggestedLocalModel = hardware.isAppleSiliconMac
-        ? "lfm3:latest"
-        : hardware.ramTier === "under_8gb" || hardware.ramTier === "8gb_to_16gb"
+      suggestedLocalModel =
+        hardware.ramTier === "under_8gb" || hardware.ramTier === "8gb_to_16gb"
           ? "qwen3.5:4b"
           : "qwen3.5:latest";
     }
@@ -1859,8 +1862,9 @@ export async function getOllamaInstallStatus(ctx: FmContext) {
     getOllamaVersionStatus(ctx),
   ]);
   const binaryInstalled = Boolean(binaryPath) || versionStatus.reachable;
+  const defaultChatModel = hw.ramTier === "under_8gb" || hw.ramTier === "8gb_to_16gb" ? "qwen3.5:4b" : "qwen3.5:latest";
   const recommendedStarterModels = hw.isAppleSiliconMac
-    ? ["lfm3:latest", "lfm3-omni:latest", "phonon", "nimble"]
+    ? [defaultChatModel, "lfm3-omni:latest", "phonon", "nimble", "lfm3:latest"]
     : hw.ramTier === "under_8gb" || hw.ramTier === "8gb_to_16gb"
       ? ["qwen3.5:4b", "lfm3-omni:latest", "kokoro:latest", "nimble"]
       : ["qwen3.5:latest", "qwen3.5:4b", "lfm3-omni:latest", "orpheus:latest", "kokoro:latest", "nimble"];
@@ -2419,12 +2423,13 @@ export async function runOllamaAutoInstall(
     // Step 3: Determine OS-appropriate starter models to pull
     // Note: On Linux and Windows, Phonon is NOT supported (Apple Silicon MLX only), so we automatically
     // replace any "phonon" request with a cross-platform Text-to-Audio LLM (`orpheus:latest` or `kokoro:latest`)!
+    const defaultChatModel = hw.ramTier === "under_8gb" || hw.ramTier === "8gb_to_16gb" ? "qwen3.5:4b" : "qwen3.5:latest";
     const requestedModels = Array.isArray(payload?.models) && payload!.models!.length > 0
       ? payload!.models!
       : hw.isAppleSiliconMac
-        ? [payload?.chatModel || "lfm3:latest", "lfm3-omni:latest", payload?.speechModel || "phonon"]
+        ? [payload?.chatModel || defaultChatModel, "lfm3-omni:latest", payload?.speechModel || "phonon"]
         : [
-            payload?.chatModel || (hw.ramTier === "under_8gb" || hw.ramTier === "8gb_to_16gb" ? "qwen3.5:4b" : "qwen3.5:latest"),
+            payload?.chatModel || defaultChatModel,
             "lfm3-omni:latest",
             payload?.speechModel || speechCaps.defaultSpeechModel,
           ];
@@ -4049,12 +4054,18 @@ export async function selectBestChatOrVisionModel(
 
   let chosen = reqTrimmed;
   if (!chosen) {
+    const defaultQwenModel = hardware.ramTier === "under_8gb" || hardware.ramTier === "8gb_to_16gb" ? "qwen3.5:4b" : "qwen3.5:latest";
+    const installedQwen = allowedChatModels.find((m) => m.name.toLowerCase().startsWith("qwen3.5"));
     if (requireVision) {
-      const vis = allowedChatModels.find((m) => m.badges.includes("Vision") && m.badges.includes("Chat"));
-      chosen = vis?.name || allowedChatModels.find((m) => m.badges.includes("Vision"))?.name || "lfm3-vl:2b-mlx-bf16";
+      const vis =
+        installedQwen ||
+        allowedChatModels.find((m) => m.badges.includes("Vision") && m.badges.includes("Chat"));
+      chosen = vis?.name || allowedChatModels.find((m) => m.badges.includes("Vision"))?.name || defaultQwenModel;
     } else {
-      const chat = allowedChatModels.find((m) => m.badges.includes("Chat") && !m.badges.includes("Decision"));
-      chosen = chat?.name || allowedChatModels[0]?.name || "lfm3:latest";
+      const chat =
+        installedQwen ||
+        allowedChatModels.find((m) => m.badges.includes("Chat") && !m.badges.includes("Decision"));
+      chosen = chat?.name || allowedChatModels[0]?.name || defaultQwenModel;
     }
   }
 
