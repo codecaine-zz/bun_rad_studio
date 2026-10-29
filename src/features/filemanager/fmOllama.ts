@@ -411,8 +411,10 @@ export function resolveSandboxPath(ctx: FmContext, relOrAbs: string): string {
 }
 
 export function toSandboxRelative(ctx: FmContext, absPath: string): string {
-  const base = (ctx.sandboxRoot || ctx.home).replace(/\\/g, "/").replace(/\/+$/, "");
-  const norm = absPath.replace(/\\/g, "/");
+  const baseResolved = absolutePath(ctx, ctx.sandboxRoot || ctx.home);
+  const absResolved = absolutePath(ctx, absPath);
+  const base = baseResolved.replace(/\\/g, "/").replace(/\/+$/, "");
+  const norm = absResolved.replace(/\\/g, "/");
   const isWin = ctx.platform === "win32" || process.platform === "win32";
   const cmpBase = isWin ? base.toLowerCase() : base;
   const cmpNorm = isWin ? norm.toLowerCase() : norm;
