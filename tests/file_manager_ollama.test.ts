@@ -5,11 +5,13 @@ import {
   cleanTextForPhononSpeech,
   compareSemver,
   convertNumericDatesToWords,
+  detectNativeHostArch,
   evaluateModelHardwareGuard,
   formatSystemOneQuestions,
   getOllamaInstallStatus,
   getSpeechCapabilitiesForHost,
   inspectOllamaHardware,
+  resolveSpeechModelRegistryFallback,
   runOllamaAutoInstall,
   runOllamaSpeech,
   splitSpeechTextIntoChunks,
@@ -887,7 +889,33 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
     expect(wavBytes.byteLength).toBeGreaterThan(44);
     expect(String.fromCharCode(wavBytes[0]!, wavBytes[1]!, wavBytes[2]!, wavBytes[3]!)).toBe("RIFF");
 
-    // 4. Verify UI modules expose Ollama AI on Windows, Linux, and macOS and include live progress spinner CSS
+    // 4. Verify Windows 11 ARM64 in Parallels Desktop detection (when running x64 Bun under ARM64 emulation with PROCESSOR_ARCHITEW6432=ARM64)
+    const prevWow = process.env.PROCESSOR_ARCHITEW6432;
+    process.env.PROCESSOR_ARCHITEW6432 = "ARM64";
+    try {
+      expect(detectNativeHostArch("win32")).toBe("arm64");
+      const winArmHw = inspectOllamaHardware({
+        platform: "win32",
+        home: `${tempRoot}/home`,
+        ollama: {
+          platform: "win32",
+          totalRamBytes: 16 * 1024 ** 3,
+        },
+      } as any);
+      expect(winArmHw.platform).toBe("win32");
+      expect(winArmHw.arch).toBe("arm64");
+      expect(winArmHw.isAppleSiliconMac).toBe(false);
+    } finally {
+      if (prevWow === undefined) delete process.env.PROCESSOR_ARCHITEW6432;
+      else process.env.PROCESSOR_ARCHITEW6432 = prevWow;
+    }
+
+    // Verify speech model registry fallback mapping for real registry.ollama.ai manifests
+    expect(resolveSpeechModelRegistryFallback("orpheus:latest")).toBe("legraphista/Orpheus:latest");
+    expect(resolveSpeechModelRegistryFallback("kokoro:latest")).toBe("lfm3-omni:latest");
+    expect(resolveSpeechModelRegistryFallback("oute-tts:latest")).toBe("mannix/outetts:0.3");
+
+    // 5. Verify UI modules expose Ollama AI on Windows, Linux, and macOS and include live progress spinner CSS
     const toolbarSrc = await Bun.file("resources/file_manager/ui/toolbar.js").text();
     const sidebarSrc = await Bun.file("resources/file_manager/ui/sidebar.js").text();
     const cssSrc = await Bun.file("resources/file_manager/ui/ollama.css").text();

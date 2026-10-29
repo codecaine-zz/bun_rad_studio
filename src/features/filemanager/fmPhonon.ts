@@ -4632,8 +4632,15 @@ export async function installOllamaBinaryCrossPlatform(
   const env = buildExecEnv(ctx);
   const arch = detectCpuArch();
 
-  // 1. Try package manager first when available and non-interactive (brew on macOS / x64 Linux, winget/scoop on Windows)
-  if (plan.argv && plan.auto && !(ctx.platform === "linux" && arch === "arm64" && plan.method === "brew")) {
+  // 1. Try package manager first when available and non-interactive (brew on macOS / x64 Linux, scoop on Windows)
+  // Note: On Windows (especially ARM64 Parallels), prefer direct extraction of `ollama-windows-${arch}.zip`
+  // into `%LOCALAPPDATA%\Programs\Ollama` before winget so we get the native ARM64 build without installer/msstore blocks.
+  if (
+    plan.argv &&
+    plan.auto &&
+    !(ctx.platform === "linux" && arch === "arm64" && plan.method === "brew") &&
+    !(ctx.platform === "win32" && plan.method === "winget")
+  ) {
     log(`Running ${plan.display}…\n`);
     await runSpawnLogged(plan.argv, env, signal, log);
     if (signal.aborted) throw new Error("Cancelled");
@@ -4819,6 +4826,12 @@ export function createPhononPullStep(ctx: FmContext) {
         const res = await runSpawnLogged([ollamaExe, "pull", "phonon"], env, signal, log);
         if (signal.aborted) throw new Error("Cancelled");
         if (res.code !== 0) {
+          if (ctx.platform !== "darwin") {
+            log("Phonon requires Apple Silicon MLX; pulling cross-platform Text-to-Audio LLM (legraphista/Orpheus:latest)…\n");
+            const fallbackRes = await runSpawnLogged([ollamaExe, "pull", "legraphista/Orpheus:latest"], env, signal, log);
+            if (signal.aborted) throw new Error("Cancelled");
+            if (fallbackRes.code === 0) return;
+          }
           throw new Error(explainFailure("ollama", `${res.out}\n${res.err}`, res.code));
         }
       },

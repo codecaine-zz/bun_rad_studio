@@ -245,11 +245,24 @@ export function searchDirs(ctx: Pick<FmContext, "platform" | "home" | "toolDirs"
 function isRunnable(file: string, platform: FmContext["platform"]): boolean {
   try {
     const st = statSync(file);
-    return st.isFile() && (platform === "win32" || process.platform === "win32" || (st.mode & 0o111) !== 0);
+    if (st.isFile()) {
+      return platform === "win32" || process.platform === "win32" || (st.mode & 0o111) !== 0;
+    }
+    if (platform === "win32" && !st.isDirectory() && st.isSymbolicLink()) {
+      return true;
+    }
+    return false;
   } catch (error) {
-    // App Execution Aliases (winget.exe) are launchable reparse points, but stat may return EACCES.
-    if (platform === "win32" && (error as NodeJS.ErrnoException).code === "EACCES") {
-      try { return lstatSync(file).isSymbolicLink(); } catch { return false; }
+    // App Execution Aliases (winget.exe in WindowsApps) are launchable reparse points (IO_REPARSE_TAG_APPEXECLINK),
+    // where statSync may throw EACCES, EINVAL, EPERM, or UNKNOWN on Windows 11.
+    const code = (error as NodeJS.ErrnoException).code;
+    if (platform === "win32" && (code === "EACCES" || code === "EINVAL" || code === "EPERM" || code === "UNKNOWN")) {
+      try {
+        const lst = lstatSync(file);
+        return lst.isSymbolicLink() || !lst.isDirectory();
+      } catch {
+        return false;
+      }
     }
     return false;
   }

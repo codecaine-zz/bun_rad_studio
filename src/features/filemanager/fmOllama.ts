@@ -205,6 +205,23 @@ let cachedNativeHostCpuModel = "";
 let cachedNativeHostCpuCores = 0;
 
 /**
+ * Detects the true native host CPU architecture, even when running an x64 Bun binary
+ * under Windows 11 ARM64 emulation (e.g., Parallels Desktop on Apple Silicon Mac where
+ * `process.arch` is `"x64"` but `PROCESSOR_ARCHITEW6432` / `PROCESSOR_ARCHITECTURE` is `"ARM64"`).
+ */
+export function detectNativeHostArch(platform: string, overrideArch?: string): string {
+  if (overrideArch) return overrideArch;
+  if (platform === "darwin" && process.platform !== "darwin") return "arm64";
+  if (platform === "win32") {
+    const winEnvArch = `${process.env.PROCESSOR_ARCHITEW6432 || ""} ${process.env.PROCESSOR_ARCHITECTURE || ""}`.toLowerCase();
+    if (winEnvArch.includes("arm64") || winEnvArch.includes("aarch64")) {
+      return "arm64";
+    }
+  }
+  return process.arch === "aarch64" ? "arm64" : process.arch;
+}
+
+/**
  * Inspects the computer's hardware specs using native `Bun.spawnSync` system calls.
  * Calculates the strict 70% Safe Memory Budget (keeping 30% free for the OS and Codecaine File Manager).
  */
@@ -219,10 +236,7 @@ export function inspectOllamaHardware(
   },
 ): OllamaHardwareSpecs {
   const platform = overrides?.platform ?? ctx?.ollama?.platform ?? ctx?.platform ?? process.platform;
-  const arch =
-    overrides?.arch ??
-    ctx?.ollama?.arch ??
-    (platform === "darwin" && process.platform !== "darwin" ? "arm64" : process.arch);
+  const arch = detectNativeHostArch(platform, overrides?.arch ?? ctx?.ollama?.arch);
   const isAppleSiliconMac = platform === "darwin" && arch === "arm64";
 
   let totalRamBytes = overrides?.totalRamBytes ?? ctx?.ollama?.totalRamBytes ?? 0;
@@ -465,10 +479,27 @@ export const CROSS_PLATFORM_SPEECH_MODEL_NAMES = new Set([
   "outetts",
   "parler-tts",
   "llasa",
+  "lfm3-omni",
   "bark",
   "csm",
   "fish-speech",
 ]);
+
+/**
+ * Maps shorthand cross-platform speech model tags (`orpheus:latest`, `kokoro:latest`, `oute-tts:latest`)
+ * to verified upstream `registry.ollama.ai` model tags (`legraphista/Orpheus:latest`, `lfm3-omni:latest`, `mannix/outetts:0.3`)
+ * whenever a real Ollama daemon reports `pull model manifest: file does not exist` for the un-namespaced alias.
+ */
+export function resolveSpeechModelRegistryFallback(modelName: string): string | null {
+  const base = baseModelName(modelName);
+  const lower = String(modelName || "").trim().toLowerCase();
+  if (lower.includes("/")) return null;
+  if (base === "orpheus" || base === "orpheus-tts") return "legraphista/Orpheus:latest";
+  if (base === "kokoro") return "lfm3-omni:latest";
+  if (base === "oute-tts" || base === "outetts") return "mannix/outetts:0.3";
+  if (base === "parler-tts" || base === "llasa") return "legraphista/Orpheus:latest";
+  return null;
+}
 
 export const DECISION_MODEL_NAMES = new Set(["nimble", "tev1", "clef", "clef-flash", "clef:cloud", "d3"]);
 
@@ -1786,7 +1817,7 @@ export async function getOllamaInstallStatus(ctx: FmContext) {
     hw.platform === "linux"
       ? `1-Click Linux Auto-Install (ollama-linux-${hw.arch === "arm64" ? "arm64" : "amd64"}.tar.zst → ~/.local/bin/ollama, zero sudo required)`
       : hw.platform === "win32"
-        ? `1-Click Windows Auto-Install (winget / OllamaSetup.exe → %LOCALAPPDATA%\\Programs\\Ollama\\ollama.exe)`
+        ? `1-Click Windows Auto-Install (ollama-windows-${hw.arch === "arm64" ? "arm64" : "amd64"}.zip → %LOCALAPPDATA%\\Programs\\Ollama\\ollama.exe)`
         : `1-Click macOS Auto-Install (Homebrew / Ollama-darwin.zip → ~/.ollama/bin/ollama)`;
 
   return {
@@ -1877,17 +1908,18 @@ export async function pullModelWithHardwareGuard(
 
   const baseUrl = resolveOllamaBaseUrl(ctx, false);
   const progressSteps: Array<{ status: string; completed?: number; total?: number; percent?: number }> = [];
-  try {
+
+  const attemptPullStream = async (targetTag: string): Promise<void> => {
     const res = await fetch(`${baseUrl}/api/pull`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model: trimmed, stream: true }),
+      body: JSON.stringify({ model: targetTag, stream: true }),
       signal: AbortSignal.timeout(300_000),
     });
 
     if (!res.ok) {
       const errText = await res.text();
-      throw new FmError("OLLAMA_PULL_ERROR", `Failed to pull "${trimmed}": ${errText || res.statusText}`);
+      throw new FmError("OLLAMA_PULL_ERROR", `Failed to pull "${targetTag}": ${errText || res.statusText}`);
     }
 
     const processLine = (line: string) => {
@@ -1915,7 +1947,7 @@ export async function pullModelWithHardwareGuard(
             ? ` (${(completed / 1024 ** 2).toFixed(1)} MB / ${(total / 1024 ** 2).toFixed(1)} MB — ${percent}%)`
             : "";
         updateOllamaLongTask({
-          step: `Pulling ${trimmed}: ${statusStr}${mbInfo}`,
+          step: `Pulling ${targetTag}: ${statusStr}${mbInfo}`,
           ...(scaledPct !== undefined ? { percent: scaledPct } : {}),
           ...(completed !== undefined ? { completedBytes: completed } : {}),
           ...(total !== undefined ? { totalBytes: total } : {}),
@@ -1941,6 +1973,23 @@ export async function pullModelWithHardwareGuard(
     } else {
       const text = await res.text();
       for (const line of text.split("\n")) processLine(line);
+    }
+  };
+
+  try {
+    try {
+      await attemptPullStream(trimmed);
+    } catch (firstErr) {
+      const fallbackTag = resolveSpeechModelRegistryFallback(trimmed);
+      const errMsg = String((firstErr as Error)?.message || "");
+      if (fallbackTag && /manifest|does not exist|not found|404/i.test(errMsg)) {
+        updateOllamaLongTask({
+          step: `Resolving ${trimmed} to verified registry manifest ${fallbackTag}...`,
+        });
+        await attemptPullStream(fallbackTag);
+      } else {
+        throw firstErr;
+      }
     }
 
     modelShowCache.clear();
@@ -1971,10 +2020,12 @@ export async function pullModelWithHardwareGuard(
 }
 
 /**
- * 1-Click Cross-Platform Auto-Installer for Ollama on Linux, Windows, and macOS.
+ * 1-Click Cross-Platform Auto-Installer for Ollama on Linux, Windows (x64 & ARM64 Parallels), and macOS.
  * - Linux (`linux`): Downloads `ollama-linux-${arch}.tar.zst` into `~/.local/bin/ollama` using pure Bun
  *   (`Bun.zstdDecompressSync` + `tar -xf`) with zero `sudo` or root password required.
- * - Windows (`win32`): Installs via `winget` or silent `OllamaSetup.exe` into `%LOCALAPPDATA%\Programs\Ollama\ollama.exe`.
+ * - Windows (`win32`): Downloads `ollama-windows-${arch}.zip` (`ollama-windows-arm64.zip` on ARM64 Windows in Parallels,
+ *   `ollama-windows-amd64.zip` on x64) and extracts into `%LOCALAPPDATA%\Programs\Ollama\ollama.exe` via Windows `tar.exe`
+ *   or PowerShell `Expand-Archive`, with fallback to `winget` / `OllamaSetup.exe`.
  * - macOS (`darwin`): Installs via Homebrew or `Ollama-darwin.zip` into `~/.ollama/bin/ollama`.
  * - Starts `ollama serve` in the background and pulls OS-appropriate starter models (including
  *   cross-platform Text-to-Audio LLMs `orpheus:latest` / `kokoro:latest` on Linux & Windows instead of MLX-only `phonon`).
@@ -2042,7 +2093,7 @@ export async function runOllamaAutoInstall(
         if (ctx.ollama) ctx.ollama.ollamaBinPath = binPath;
       } else if (hw.platform === "linux") {
         // Pure-Bun Linux user-space install into ~/.local/bin/ollama (no root/sudo needed!)
-        const home = ctx.homeDir || process.env.HOME || "/tmp";
+        const home = (ctx as any).homeDir || ctx.home || process.env.HOME || "/tmp";
         const localDir = joinPath([home, ".local"], "linux");
         const localBinDir = joinPath([localDir, "bin"], "linux");
         ensureDirectoryPure(localBinDir, "linux");
@@ -2114,44 +2165,144 @@ export async function runOllamaAutoInstall(
         Bun.spawnSync(["chmod", "0755", candidateBin], { stdout: "ignore", stderr: "ignore" });
         binPath = candidateBin;
       } else if (hw.platform === "win32") {
-        // Pure-Bun Windows user-space install via winget or OllamaSetup.exe
-        const home = ctx.homeDir || process.env.USERPROFILE || "C:\\Users\\Default";
-        const winTarget = joinPath(
-          [process.env.LOCALAPPDATA || joinPath([home, "AppData", "Local"], "win32"), "Programs", "Ollama", "ollama.exe"],
-          "win32",
-        );
+        // Pure-Bun Windows user-space install (supports both native Windows 11 ARM64 in Parallels and Windows x64)
+        const home = (ctx as any).homeDir || ctx.home || process.env.USERPROFILE || process.env.HOME || "C:\\Users\\Default";
+        const localAppData = process.env.LOCALAPPDATA || joinPath([home, "AppData", "Local"], "win32");
+        const installDir = joinPath([localAppData, "Programs", "Ollama"], "win32");
+        const winTarget = joinPath([installDir, "ollama.exe"], "win32");
+        ensureDirectoryPure(installDir, "win32");
+
+        const archSlug = hw.arch === "arm64" || hw.arch === "aarch64" ? "arm64" : "amd64";
+        const zipUrl = `https://ollama.com/download/ollama-windows-${archSlug}.zip`;
         updateOllamaLongTask({
-          step: "Installing Ollama on Windows via winget / OllamaSetup.exe...",
-          percent: 22,
+          step: `Downloading Windows ${archSlug.toUpperCase()} package (${zipUrl})...`,
+          percent: 16,
         });
-        const winget = Bun.which("winget");
-        if (winget) {
-          Bun.spawnSync(
-            [winget, "install", "-e", "--id", "Ollama.Ollama", "--accept-package-agreements", "--accept-source-agreements", "--silent"],
-            { stdout: "ignore", stderr: "ignore" },
-          );
+
+        try {
+          const dlRes = await fetch(zipUrl, {
+            redirect: "follow",
+            signal: AbortSignal.timeout(300_000),
+          });
+          if (dlRes.ok) {
+            const totalBytes = Number(dlRes.headers.get("content-length") || 0);
+            const chunks: Uint8Array[] = [];
+            let received = 0;
+            if (dlRes.body) {
+              const reader = dlRes.body.getReader();
+              while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                if (value) {
+                  chunks.push(value);
+                  received += value.byteLength;
+                  const dlPct = totalBytes > 0 ? Math.min(42, 16 + Math.round((received / totalBytes) * 26)) : 30;
+                  updateOllamaLongTask({
+                    step: `Downloading ollama-windows-${archSlug}.zip (${(received / 1024 ** 2).toFixed(1)} MB)...`,
+                    percent: dlPct,
+                    completedBytes: received,
+                    totalBytes,
+                  });
+                }
+              }
+            }
+            const zipBytes = new Uint8Array(received);
+            let offset = 0;
+            for (const c of chunks) {
+              zipBytes.set(c, offset);
+              offset += c.byteLength;
+            }
+            const tmpZipPath = joinPath([tempDirPath("win32"), `ollama-windows-${archSlug}-${Date.now()}.zip`], "win32");
+            await Bun.write(tmpZipPath, zipBytes);
+
+            updateOllamaLongTask({
+              step: `Extracting ollama-windows-${archSlug}.zip into ${installDir}...`,
+              percent: 45,
+            });
+
+            const sysTar = "C:\\Windows\\System32\\tar.exe";
+            const tarCmd = (await fileExistsPure(sysTar)) ? sysTar : (Bun.which("tar") || "tar");
+            const tarRes = Bun.spawnSync([tarCmd, "-xf", tmpZipPath, "-C", installDir], {
+              stdout: "ignore",
+              stderr: "pipe",
+              windowsHide: true,
+            });
+            if (tarRes.exitCode !== 0 || !(await fileExistsPure(winTarget))) {
+              Bun.spawnSync(
+                [
+                  "powershell",
+                  "-NoProfile",
+                  "-NonInteractive",
+                  "-Command",
+                  "Expand-Archive -LiteralPath $env:FM_ZIP_PATH -DestinationPath $env:FM_DEST_DIR -Force",
+                ],
+                {
+                  stdout: "ignore",
+                  stderr: "ignore",
+                  windowsHide: true,
+                  env: { ...process.env, FM_ZIP_PATH: tmpZipPath, FM_DEST_DIR: installDir },
+                },
+              );
+            }
+            try {
+              Bun.spawnSync(["cmd", "/c", "del", "/f", "/q", tmpZipPath], {
+                stdout: "ignore",
+                stderr: "ignore",
+                windowsHide: true,
+              });
+            } catch {}
+          }
+        } catch {}
+
+        // Fallback to winget / OllamaSetup.exe if the standalone zip did not produce ollama.exe
+        if (!(await fileExistsPure(winTarget))) {
+          const winget = Bun.which("winget");
+          if (winget) {
+            updateOllamaLongTask({
+              step: "Installing Ollama on Windows via winget...",
+              percent: 47,
+            });
+            Bun.spawnSync(
+              [winget, "install", "-e", "--id", "Ollama.Ollama", "--accept-package-agreements", "--accept-source-agreements", "--silent"],
+              { stdout: "ignore", stderr: "ignore", windowsHide: true },
+            );
+          }
         }
         if (!(await fileExistsPure(winTarget))) {
           const setupUrl = "https://ollama.com/download/OllamaSetup.exe";
           updateOllamaLongTask({
             step: `Downloading Windows installer (${setupUrl})...`,
-            percent: 30,
+            percent: 49,
           });
-          const dlRes = await fetch(setupUrl, { redirect: "follow", signal: AbortSignal.timeout(300_000) });
-          if (dlRes.ok) {
-            const tmpExe = joinPath([tempDirPath("win32"), `OllamaSetup-${Date.now()}.exe`], "win32");
-            await Bun.write(tmpExe, new Uint8Array(await dlRes.arrayBuffer()));
-            updateOllamaLongTask({
-              step: "Running silent Windows Ollama installer (/VERYSILENT /NORESTART)...",
-              percent: 44,
-            });
-            Bun.spawnSync([tmpExe, "/VERYSILENT", "/NORESTART"], { stdout: "ignore", stderr: "ignore" });
+          try {
+            const dlRes = await fetch(setupUrl, { redirect: "follow", signal: AbortSignal.timeout(300_000) });
+            if (dlRes.ok) {
+              const tmpExe = joinPath([tempDirPath("win32"), `OllamaSetup-${Date.now()}.exe`], "win32");
+              await Bun.write(tmpExe, new Uint8Array(await dlRes.arrayBuffer()));
+              updateOllamaLongTask({
+                step: "Running silent Windows Ollama installer (/VERYSILENT /SUPPRESSMSGBOXES /NORESTART)...",
+                percent: 52,
+              });
+              Bun.spawnSync([tmpExe, "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART"], {
+                stdout: "ignore",
+                stderr: "ignore",
+                windowsHide: true,
+              });
+            }
+          } catch {}
+        }
+
+        if (await fileExistsPure(winTarget)) {
+          const curPath = process.env.Path || process.env.PATH || "";
+          if (!curPath.toLowerCase().includes(installDir.toLowerCase())) {
+            process.env.Path = `${installDir};${curPath}`;
+            process.env.PATH = process.env.Path;
           }
         }
         binPath = (await detectOllamaBinaryPure(ctx)) || winTarget;
       } else {
         // macOS install via Homebrew or Ollama-darwin.zip
-        const home = ctx.homeDir || process.env.HOME || "/tmp";
+        const home = (ctx as any).homeDir || ctx.home || process.env.HOME || "/tmp";
         updateOllamaLongTask({
           step: "Installing Ollama on macOS via Homebrew / Ollama-darwin.zip...",
           percent: 22,
@@ -2201,10 +2352,11 @@ export async function runOllamaAutoInstall(
         Bun.spawn([binPath, "serve"], {
           stdout: "ignore",
           stderr: "ignore",
+          windowsHide: true,
           env: { ...process.env, OLLAMA_HOST: "127.0.0.1:11434" },
         });
         daemonStarted = true;
-        for (let i = 0; i < 16; i++) {
+        for (let i = 0; i < 40; i++) {
           await Bun.sleep(300);
           vCheck = await getOllamaVersionStatus(ctx);
           if (vCheck.reachable) break;
@@ -2251,13 +2403,20 @@ export async function runOllamaAutoInstall(
           percent: startPct,
           model: targetModel,
         });
-        const pullRes = await pullModelWithHardwareGuard(ctx, targetModel, {
-          keepExistingLongTask: true,
-          progressBasePercent: startPct,
-          progressSpanPercent: perModelSpan,
-        });
-        if (pullRes.ok) {
-          pulledModels.push(targetModel);
+        try {
+          const pullRes = await pullModelWithHardwareGuard(ctx, targetModel, {
+            keepExistingLongTask: true,
+            progressBasePercent: startPct,
+            progressSpanPercent: perModelSpan,
+          });
+          if (pullRes.ok) {
+            pulledModels.push(targetModel);
+          }
+        } catch (pullErr) {
+          updateOllamaLongTask({
+            step: `Starter model ${targetModel} skipped (${(pullErr as Error).message || "unavailable"}); continuing setup...`,
+            percent: Math.min(95, startPct + perModelSpan),
+          });
         }
       }
     }
