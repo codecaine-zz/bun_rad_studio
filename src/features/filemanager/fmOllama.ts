@@ -411,10 +411,14 @@ export function resolveSandboxPath(ctx: FmContext, relOrAbs: string): string {
 }
 
 export function toSandboxRelative(ctx: FmContext, absPath: string): string {
-  const base = (ctx.sandboxRoot || ctx.home).replace(/\/+$/, "");
-  if (absPath === base) return ".";
-  if (absPath.startsWith(base + "/")) {
-    return absPath.slice(base.length + 1);
+  const base = (ctx.sandboxRoot || ctx.home).replace(/\\/g, "/").replace(/\/+$/, "");
+  const norm = absPath.replace(/\\/g, "/");
+  const isWin = ctx.platform === "win32" || process.platform === "win32";
+  const cmpBase = isWin ? base.toLowerCase() : base;
+  const cmpNorm = isWin ? norm.toLowerCase() : norm;
+  if (cmpNorm === cmpBase) return ".";
+  if (cmpNorm.startsWith(cmpBase + "/")) {
+    return norm.slice(base.length + 1);
   }
   return absPath;
 }

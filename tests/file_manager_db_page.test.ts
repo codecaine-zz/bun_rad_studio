@@ -83,9 +83,11 @@ const selectRow = async (name: string) => {
 };
 async function openTab(opts?: Record<string, unknown>) {
   closeAll();
+  db.db.loaded = false;
+  if (db.db.settings.detect.auto) detect.detected.loaded = false;
   power.openPower("databases", opts);
   await until(() => pane() && !pane().hidden && pane().querySelector(".db-toolbar"), "the Databases tab");
-  await until(() => db.db.loaded && !pane().querySelector(".db-listbox")?.textContent.includes("Loading"), "the list");
+  await until(() => db.db.loaded && (!db.db.settings.detect.auto || detect.detected.loaded) && !pane().querySelector(".db-listbox")?.textContent.includes("Loading"), "the list");
   await sleep(60);
 }
 const reopen = async (opts?: Record<string, unknown>) => {

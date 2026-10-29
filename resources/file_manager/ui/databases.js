@@ -198,13 +198,13 @@ function mount(root) {
       syncStudioChrome();
       try {
         await loadOverview();
-        if (db.settings.detect.auto || !detected.loaded) await refreshDetect().catch(() => {});
       } catch (err) {
         detail.replaceChildren(h("p", { class: "power-error", role: "alert" }, err instanceof ApiError ? err.message : "The Databases tool couldn't load."));
         return;
       }
       if (opts.select && profileById(opts.select)) db.selectedId = opts.select;
       renderAll();
+      if (db.settings.detect.auto || !detected.loaded) await refreshDetect().catch(() => {});
       if (opts.engine) await openEngine(opts.engine);
       else if (opts.sqlitePath) await openStudio({ engine: "sqlite", path: opts.sqlitePath });
       else if (opts.profileId) await openStudio({ profileId: opts.profileId });

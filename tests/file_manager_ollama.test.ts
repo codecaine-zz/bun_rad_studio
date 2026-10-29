@@ -691,8 +691,8 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
     expect(semRes.data.routedCapability).toBe("semantic_search");
     const firstMatch = semRes.data.result.matches[0];
     expect(firstMatch.name).toBe("auth_login.ts");
-    expect(firstMatch.absPath.startsWith("/")).toBe(true);
-    expect(firstMatch.folderPath.startsWith("/")).toBe(true);
+    expect(/^(\/|[A-Za-z]:[\\/])/.test(firstMatch.absPath)).toBe(true);
+    expect(/^(\/|[A-Za-z]:[\\/])/.test(firstMatch.folderPath)).toBe(true);
 
     // Verify "Open Containing Folder" (calling `list` with `firstMatch.folderPath`) succeeds with a full path
     const listContainingRes = await apiCall("list", { path: firstMatch.folderPath });
