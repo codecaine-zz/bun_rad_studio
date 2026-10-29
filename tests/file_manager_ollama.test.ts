@@ -946,5 +946,14 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
     expect(cssSrc).toContain(".ollama-live-progress-banner");
     expect(cssSrc).toContain(".ollama-output-console");
     expect(cssSrc).toContain("field-sizing: content");
+    expect(cssSrc).toContain("overscroll-behavior: contain");
+    expect(cssSrc).toContain("scrollbar-gutter: stable");
+    expect(cssSrc).toContain("resize: vertical");
+    expect(cssSrc).toContain(".ollama-output-console.is-expanded .ollama-output-box");
+    expect(ollamaJsSrc).toContain("scrollConsoleOutput");
+    expect(ollamaJsSrc).toContain('data-ollama-action": "scroll-top"');
+    expect(ollamaJsSrc).toContain('data-ollama-action": "scroll-bottom"');
+    expect(ollamaJsSrc).toContain('data-ollama-action": "toggle-expand-output"');
+    expect(ollamaJsSrc).toContain("savedBoxScrolls");
   });
 });

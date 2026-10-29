@@ -23,6 +23,7 @@ const uiState = {
   thinkingOutput: "",
   answerOutput: "",
   structuredOutput: null,
+  outputExpanded: false,
   refusalBanner: null,
   lastAudioUrl: "",
   autoPlayedAudioUrl: "",
@@ -274,10 +275,19 @@ function computeTextTelemetry(text) {
   return { chars, words, lines };
 }
 
-function renderFormattedOutputBody(rawText) {
+function renderFormattedOutputBody(rawText, title = "Ollama AI Output") {
   const text = String(rawText ?? "");
   if (!text.includes("```")) {
-    return h("div", { class: "ollama-output-box ollama-prose" }, text);
+    return h(
+      "div",
+      {
+        class: "ollama-output-box ollama-prose",
+        tabindex: "0",
+        role: "region",
+        "aria-label": title,
+      },
+      text,
+    );
   }
   const parts = [];
   const regex = /```([a-zA-Z0-9_+-]*)\n([\s\S]*?)```/g;
@@ -307,7 +317,7 @@ function renderFormattedOutputBody(rawText) {
             "📋 Copy Code",
           ),
         ]),
-        h("pre", { class: "ollama-code-pre" }, codeBody),
+        h("pre", { class: "ollama-code-pre", tabindex: "0" }, codeBody),
       ]),
     );
     lastIndex = match.index + match[0].length;
@@ -318,7 +328,31 @@ function renderFormattedOutputBody(rawText) {
       parts.push(h("div", { class: "ollama-prose-segment" }, tail));
     }
   }
-  return h("div", { class: "ollama-output-box is-structured" }, parts);
+  return h(
+    "div",
+    {
+      class: "ollama-output-box is-structured",
+      tabindex: "0",
+      role: "region",
+      "aria-label": title,
+    },
+    parts,
+  );
+}
+
+function scrollConsoleOutput(btnEl, direction) {
+  const consoleEl = btnEl?.closest?.(".ollama-output-console") || rootContainer?.querySelector(".ollama-output-console");
+  if (!consoleEl) return;
+  const boxes = consoleEl.querySelectorAll(".ollama-output-box, .ollama-thinking-box");
+  for (const box of boxes) {
+    if (direction === "top") {
+      box.scrollTo({ top: 0, behavior: "smooth" });
+      box.scrollTop = 0;
+    } else {
+      box.scrollTo({ top: box.scrollHeight, behavior: "smooth" });
+      box.scrollTop = box.scrollHeight;
+    }
+  }
 }
 
 function renderStudioOutputConsole({
@@ -344,119 +378,179 @@ function renderStudioOutputConsole({
         ? content
         : thinking;
 
-  return h("div", { class: "ollama-output-console", "data-ollama-output-console": clearScope }, [
-    h("div", { class: "ollama-output-header" }, [
-      h("div", { class: "ollama-output-title-group" }, [
-        h("span", { class: "ollama-status-pulse" }),
-        h("strong", { class: "ollama-output-title" }, title),
-        badge ? h("span", { class: "ollama-pill is-mlx" }, badge) : null,
-        hasContent || hasThinking
-          ? h(
-              "span",
-              { class: "ollama-pill is-ram" },
-              `${stats.words.toLocaleString()} words • ${stats.chars.toLocaleString()} chars • ${stats.lines} line${stats.lines === 1 ? "" : "s"}`,
-            )
-          : h("span", { class: "ollama-pill" }, "Ready"),
+  return h(
+    "div",
+    {
+      class: `ollama-output-console${uiState.outputExpanded ? " is-expanded" : ""}`,
+      "data-ollama-output-console": clearScope,
+    },
+    [
+      h("div", { class: "ollama-output-header" }, [
+        h("div", { class: "ollama-output-title-group" }, [
+          h("span", { class: "ollama-status-pulse" }),
+          h("strong", { class: "ollama-output-title" }, title),
+          badge ? h("span", { class: "ollama-pill is-mlx" }, badge) : null,
+          hasContent || hasThinking
+            ? h(
+                "span",
+                { class: "ollama-pill is-ram" },
+                `${stats.words.toLocaleString()} words • ${stats.chars.toLocaleString()} chars • ${stats.lines} line${stats.lines === 1 ? "" : "s"}`,
+              )
+            : h("span", { class: "ollama-pill" }, "Ready"),
+        ]),
+        h("div", { class: "ollama-output-toolbar" }, [
+          hasContent || hasThinking
+            ? h(
+                "button",
+                {
+                  type: "button",
+                  class: "ollama-btn is-mini",
+                  "data-ollama-action": "scroll-top",
+                  title: "Scroll output to top",
+                  onclick: (e) => scrollConsoleOutput(e.currentTarget, "top"),
+                },
+                "⬆ Top",
+              )
+            : null,
+          hasContent || hasThinking
+            ? h(
+                "button",
+                {
+                  type: "button",
+                  class: "ollama-btn is-mini",
+                  "data-ollama-action": "scroll-bottom",
+                  title: "Scroll output to bottom",
+                  onclick: (e) => scrollConsoleOutput(e.currentTarget, "bottom"),
+                },
+                "⬇ Bottom",
+              )
+            : null,
+          hasContent || hasThinking
+            ? h(
+                "button",
+                {
+                  type: "button",
+                  class: "ollama-btn is-mini",
+                  "data-ollama-action": "toggle-expand-output",
+                  title: uiState.outputExpanded
+                    ? "Restore default output box height"
+                    : "Expand output box height for reading long responses",
+                  onclick: () => {
+                    uiState.outputExpanded = !uiState.outputExpanded;
+                    renderOllamaPanel();
+                  },
+                },
+                uiState.outputExpanded ? "⤡ Compact" : "⤢ Expand",
+              )
+            : null,
+          h(
+            "button",
+            {
+              type: "button",
+              class: "ollama-btn is-copy-btn",
+              "data-ollama-action": "copy-output",
+              disabled: !hasContent && !hasThinking ? "disabled" : null,
+              title: "Copy Ollama output to clipboard",
+              onclick: (e) => void copyOllamaOutput(hasContent ? content : thinking, title, e.currentTarget),
+            },
+            "📋 Copy Output",
+          ),
+          hasThinking
+            ? h(
+                "button",
+                {
+                  type: "button",
+                  class: "ollama-btn is-mini",
+                  "data-ollama-action": "copy-thinking",
+                  title: "Copy only the step-by-step thinking trace",
+                  onclick: (e) => void copyOllamaOutput(thinking, "Thinking trace", e.currentTarget),
+                },
+                "🧠 Copy Thinking",
+              )
+            : null,
+          hasThinking && hasContent
+            ? h(
+                "button",
+                {
+                  type: "button",
+                  class: "ollama-btn is-mini",
+                  "data-ollama-action": "copy-both",
+                  title: "Copy both Thinking trace and Final Answer",
+                  onclick: (e) => void copyOllamaOutput(combinedCopyText, "Thinking + Answer", e.currentTarget),
+                },
+                "📋 Copy Both",
+              )
+            : null,
+          hasContent
+            ? h(
+                "button",
+                {
+                  type: "button",
+                  class: "ollama-btn is-mini",
+                  "data-ollama-action": "speak-output",
+                  title: "Read this output out loud",
+                  onclick: () => void speakTextWithOllama(content),
+                },
+                "🔊 Read Aloud",
+              )
+            : null,
+          hasContent || hasThinking
+            ? h(
+                "button",
+                {
+                  type: "button",
+                  class: "ollama-btn is-mini",
+                  "data-ollama-action": "save-output",
+                  title: "Save this output as a .txt file in the active folder pane",
+                  onclick: () => void saveOllamaOutputToFolder(combinedCopyText, saveName),
+                },
+                "💾 Save to Folder",
+              )
+            : null,
+          h(
+            "button",
+            {
+              type: "button",
+              class: "ollama-btn is-danger is-clear-btn",
+              "data-ollama-action": "clear-output",
+              disabled: !hasContent && !hasThinking && !audioUrl ? "disabled" : null,
+              title: "Clear this Ollama output console",
+              onclick: () => clearOllamaOutput(clearScope),
+            },
+            "🧹 Clear Output",
+          ),
+        ]),
       ]),
-      h("div", { class: "ollama-output-toolbar" }, [
-        h(
-          "button",
-          {
-            type: "button",
-            class: "ollama-btn is-copy-btn",
-            "data-ollama-action": "copy-output",
-            disabled: !hasContent && !hasThinking ? "disabled" : null,
-            title: "Copy Ollama output to clipboard",
-            onclick: (e) => void copyOllamaOutput(hasContent ? content : thinking, title, e.currentTarget),
-          },
-          "📋 Copy Output",
-        ),
-        hasThinking
-          ? h(
-              "button",
+      hasThinking
+        ? h("details", { class: "ollama-thinking-details", open: "open" }, [
+            h("summary", { class: "ollama-thinking-summary" }, [
+              h("span", {}, `🧠 Step-by-Step Deep Reasoning Trace (${thinking.length.toLocaleString()} chars)`),
+            ]),
+            h(
+              "div",
               {
-                type: "button",
-                class: "ollama-btn is-mini",
-                "data-ollama-action": "copy-thinking",
-                title: "Copy only the step-by-step thinking trace",
-                onclick: (e) => void copyOllamaOutput(thinking, "Thinking trace", e.currentTarget),
+                class: "ollama-thinking-box",
+                tabindex: "0",
+                role: "region",
+                "aria-label": "Step-by-step deep reasoning trace",
               },
-              "🧠 Copy Thinking",
-            )
-          : null,
-        hasThinking && hasContent
-          ? h(
-              "button",
-              {
-                type: "button",
-                class: "ollama-btn is-mini",
-                "data-ollama-action": "copy-both",
-                title: "Copy both Thinking trace and Final Answer",
-                onclick: (e) => void copyOllamaOutput(combinedCopyText, "Thinking + Answer", e.currentTarget),
-              },
-              "📋 Copy Both",
-            )
-          : null,
-        hasContent
-          ? h(
-              "button",
-              {
-                type: "button",
-                class: "ollama-btn is-mini",
-                "data-ollama-action": "speak-output",
-                title: "Read this output out loud",
-                onclick: () => void speakTextWithOllama(content),
-              },
-              "🔊 Read Aloud",
-            )
-          : null,
-        hasContent || hasThinking
-          ? h(
-              "button",
-              {
-                type: "button",
-                class: "ollama-btn is-mini",
-                "data-ollama-action": "save-output",
-                title: "Save this output as a .txt file in the active folder pane",
-                onclick: () => void saveOllamaOutputToFolder(combinedCopyText, saveName),
-              },
-              "💾 Save to Folder",
-            )
-          : null,
-        h(
-          "button",
-          {
-            type: "button",
-            class: "ollama-btn is-danger is-clear-btn",
-            "data-ollama-action": "clear-output",
-            disabled: !hasContent && !hasThinking && !audioUrl ? "disabled" : null,
-            title: "Clear this Ollama output console",
-            onclick: () => clearOllamaOutput(clearScope),
-          },
-          "🧹 Clear Output",
-        ),
-      ]),
-    ]),
-    hasThinking
-      ? h("details", { class: "ollama-thinking-details", open: "open" }, [
-          h("summary", { class: "ollama-thinking-summary" }, [
-            h("span", {}, `🧠 Step-by-Step Deep Reasoning Trace (${thinking.length.toLocaleString()} chars)`),
-          ]),
-          h("div", { class: "ollama-thinking-box" }, thinking),
-        ])
-      : null,
-    hasContent
-      ? renderFormattedOutputBody(content)
-      : !hasThinking
-        ? h("div", { class: "ollama-output-empty" }, emptyHint)
+              thinking,
+            ),
+          ])
         : null,
-    audioUrl
-      ? h("div", { class: "ollama-audio-bar" }, [
-          h("span", { class: "ollama-pill is-mlx" }, "🔊 Synthesized 24kHz Audio Ready"),
-          createAudioPlayerEl(audioUrl),
-        ])
-      : null,
-  ]);
+      hasContent
+        ? renderFormattedOutputBody(content, title)
+        : !hasThinking
+          ? h("div", { class: "ollama-output-empty" }, emptyHint)
+          : null,
+      audioUrl
+        ? h("div", { class: "ollama-audio-bar" }, [
+            h("span", { class: "ollama-pill is-mlx" }, "🔊 Synthesized 24kHz Audio Ready"),
+            createAudioPlayerEl(audioUrl),
+          ])
+        : null,
+    ],
+  );
 }
 
 async function runOneClickAutoInstall() {
@@ -775,10 +869,14 @@ async function runLiveStreamChat() {
           renderOllamaPanel();
         } else {
           if (updatedThinking && thinkingBox) {
+            const stickBottom = thinkingBox.scrollHeight - thinkingBox.scrollTop - thinkingBox.clientHeight <= 80;
             thinkingBox.textContent = uiState.thinkingOutput;
+            if (stickBottom) thinkingBox.scrollTop = thinkingBox.scrollHeight;
           }
           if (updatedAnswer && outputBox) {
+            const stickBottom = outputBox.scrollHeight - outputBox.scrollTop - outputBox.clientHeight <= 80;
             outputBox.textContent = uiState.answerOutput;
+            if (stickBottom) outputBox.scrollTop = outputBox.scrollHeight;
           }
         }
       }
@@ -2375,6 +2473,24 @@ function renderModelsAndAccountTab() {
 
 export function renderOllamaPanel() {
   if (!rootContainer) return;
+
+  const prevRootScrollTop = rootContainer.scrollTop || 0;
+  const prevSuiteEl = rootContainer.querySelector?.(".ollama-suite");
+  const prevSuiteScrollTop = prevSuiteEl ? prevSuiteEl.scrollTop || 0 : 0;
+  const savedBoxScrolls = new Map();
+  if (rootContainer.querySelectorAll) {
+    for (const consoleEl of rootContainer.querySelectorAll("[data-ollama-output-console]")) {
+      const scope = consoleEl.getAttribute("data-ollama-output-console") || "default";
+      const outBox = consoleEl.querySelector(".ollama-output-box");
+      const thinkBox = consoleEl.querySelector(".ollama-thinking-box");
+      savedBoxScrolls.set(scope, {
+        outTop: outBox ? outBox.scrollTop || 0 : 0,
+        outLeft: outBox ? outBox.scrollLeft || 0 : 0,
+        thinkTop: thinkBox ? thinkBox.scrollTop || 0 : 0,
+      });
+    }
+  }
+
   clear(rootContainer);
 
   const suite = h("div", { class: "ollama-suite" }, [
@@ -2397,6 +2513,25 @@ export function renderOllamaPanel() {
   ]);
 
   rootContainer.appendChild(suite);
+
+  if (prevRootScrollTop > 0) rootContainer.scrollTop = prevRootScrollTop;
+  if (prevSuiteScrollTop > 0) suite.scrollTop = prevSuiteScrollTop;
+  if (savedBoxScrolls.size > 0 && rootContainer.querySelectorAll) {
+    for (const consoleEl of rootContainer.querySelectorAll("[data-ollama-output-console]")) {
+      const scope = consoleEl.getAttribute("data-ollama-output-console") || "default";
+      const saved = savedBoxScrolls.get(scope);
+      if (!saved) continue;
+      const outBox = consoleEl.querySelector(".ollama-output-box");
+      const thinkBox = consoleEl.querySelector(".ollama-thinking-box");
+      if (outBox) {
+        if (saved.outTop > 0) outBox.scrollTop = saved.outTop;
+        if (saved.outLeft > 0) outBox.scrollLeft = saved.outLeft;
+      }
+      if (thinkBox && saved.thinkTop > 0) {
+        thinkBox.scrollTop = saved.thinkTop;
+      }
+    }
+  }
 }
 
 export function mountOllamaTool(container) {
