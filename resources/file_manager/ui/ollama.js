@@ -1051,7 +1051,7 @@ function renderSelectedFilesStrip() {
 function renderRefusalBanner() {
   if (!uiState.refusalBanner) return null;
   const hw = uiState.statusData?.hardware;
-  const suggestedLocal = hw?.safeMemoryBudgetGb >= 4.2 ? "lfm3-vl:2b-mlx-bf16" : "lfm3:latest";
+  const suggestedLocal = hw?.safeMemoryBudgetGb >= 12 ? "qwen3.5:latest" : "qwen3.5:4b";
   return h("div", { class: "ollama-refusal-banner" }, [
     h("strong", {}, "Polite Hardware Safety Protection Triggered"),
     h("div", {}, uiState.refusalBanner.message),
@@ -1064,7 +1064,7 @@ function renderRefusalBanner() {
           onclick: () => {
             uiState.selectedModel = suggestedLocal;
             uiState.refusalBanner = null;
-            toast(`Switched to hardware-approved MLX model: ${suggestedLocal}`);
+            toast(`Switched to hardware-approved model: ${suggestedLocal}`);
             renderOllamaPanel();
           },
         },
