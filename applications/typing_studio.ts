@@ -10,6 +10,7 @@ import { serve } from "bun";
 import { join, resolve } from "path";
 import { existsSync, readFileSync } from "fs";
 import { startStaticStudioServer } from "../src/studio_server";
+import { guardLocalRequest } from "../src/localGuard";
 import {
   setAlwaysOnTopNative,
   setWindowPositionNative,
@@ -215,7 +216,10 @@ export class TypingStudio {
   private startServer() {
     serve({
       port: this.port,
+      hostname: "127.0.0.1",
       fetch: (req) => {
+        const blocked = guardLocalRequest(req);
+        if (blocked) return blocked;
         const url = new URL(req.url);
 
         if (url.pathname === "/api/health") {

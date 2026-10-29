@@ -114,44 +114,45 @@ export async function readDirectoryEntries(
 ): Promise<FdEntry[]> {
   try {
     const dirEntries = await readdir(dirPath, { withFileTypes: true });
-    const results: FdEntry[] = [];
     const rootDir = resolve(basePath);
+    const visible = showHidden ? dirEntries : dirEntries.filter((d) => !d.name.startsWith("."));
 
-    for (const d of dirEntries) {
-      if (!showHidden && d.name.startsWith(".")) continue;
-      const fullPath = join(dirPath, d.name);
-      const isSymlink = d.isSymbolicLink();
-      const isDirectory = d.isDirectory();
-      const isFile = d.isFile();
+    const results = await Promise.all(
+      visible.map(async (d): Promise<FdEntry> => {
+        const fullPath = join(dirPath, d.name);
+        const isSymlink = d.isSymbolicLink();
+        const isDirectory = d.isDirectory();
+        const isFile = d.isFile();
 
-      let isExecutable = false;
-      let size: number | undefined = undefined;
-      let mtime: Date | undefined = undefined;
-      try {
-        const s = await stat(fullPath);
-        size = s.size;
-        mtime = s.mtime;
-        isExecutable = isFile && isEntryExecutable(s.mode);
-      } catch {
-        // Unreadable file or broken symlink
-      }
+        let isExecutable = false;
+        let size: number | undefined = undefined;
+        let mtime: Date | undefined = undefined;
+        try {
+          const s = await stat(fullPath);
+          size = s.size;
+          mtime = s.mtime;
+          isExecutable = isFile && isEntryExecutable(s.mode);
+        } catch {
+          // Unreadable file or broken symlink
+        }
 
-      const relFromRoot = relative(rootDir, fullPath);
-      const displayPath = basePath === "." ? relFromRoot : join(basePath, relFromRoot);
+        const relFromRoot = relative(rootDir, fullPath);
+        const displayPath = basePath === "." ? relFromRoot : join(basePath, relFromRoot);
 
-      results.push({
-        path: fullPath,
-        displayPath: displayPath || fullPath,
-        name: d.name,
-        isDirectory,
-        isFile,
-        isSymlink,
-        isExecutable,
-        depth: currentDepth,
-        size,
-        mtime,
-      });
-    }
+        return {
+          path: fullPath,
+          displayPath: displayPath || fullPath,
+          name: d.name,
+          isDirectory,
+          isFile,
+          isSymlink,
+          isExecutable,
+          depth: currentDepth,
+          size,
+          mtime,
+        };
+      }),
+    );
     return results;
   } catch {
     return [];
@@ -167,24 +168,22 @@ export async function collectAllEntries(
 ): Promise<FdEntry[]> {
   if (maxDepth !== undefined && currentDepth > maxDepth) return [];
   const entries = await readDirectoryEntries(currentDir, currentDepth, basePath, showHidden);
-  const collected: FdEntry[] = [];
-
-  for (const entry of entries) {
-    collected.push(entry);
-    if (entry.isDirectory && !entry.isSymlink) {
-      if (maxDepth === undefined || currentDepth < maxDepth) {
+  const subLists = await Promise.all(
+    entries.map(async (entry) => {
+      if (entry.isDirectory && !entry.isSymlink && (maxDepth === undefined || currentDepth < maxDepth)) {
         const sub = await collectAllEntries(
           entry.path,
           currentDepth + 1,
           basePath,
           maxDepth,
-          showHidden
+          showHidden,
         );
-        collected.push(...sub);
+        return [entry, ...sub];
       }
-    }
-  }
-  return collected;
+      return [entry];
+    }),
+  );
+  return subLists.flat();
 }
 
 export function formatFdEntry(entry: FdEntry, useAbsolute: boolean): string {

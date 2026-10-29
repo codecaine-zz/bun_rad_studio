@@ -169,7 +169,7 @@ export async function withAskpass<T>(
 ): Promise<T> {
   const askpassScript = join(
     tmpdir(),
-    `bun_rad_askpass_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.sh`
+    `bun_rad_askpass_${Date.now()}_${crypto.randomUUID()}.sh`
   );
   try {
     const content = `#!/bin/sh\nprintf '%s\\n' "$BUN_RAD_SUDO_PASS"\n`;
@@ -215,22 +215,23 @@ export function prepareElevatedCommand(
   }
 
   if (mode === "macos_prompt" && process.platform === "darwin") {
-    const escaped = innerCmd.replace(/'/g, "'\\''");
+    const escaped = innerCmd.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/'/g, "'\\''");
     return {
       command: `osascript -e 'do shell script "${escaped}" with administrator privileges'`,
       isElevated: true,
     };
   }
 
+  const singleQuoted = `'${innerCmd.replace(/'/g, "'\\''")}'`;
   if (options.askpassScriptPath) {
     return {
-      command: `sudo -A sh -c "${innerCmd.replace(/"/g, '\\"')}"`,
+      command: `sudo -A sh -c ${singleQuoted}`,
       isElevated: true,
     };
   }
 
   return {
-    command: `sudo -n sh -c "${innerCmd.replace(/"/g, '\\"')}"`,
+    command: `sudo -n sh -c ${singleQuoted}`,
     isElevated: true,
   };
 }

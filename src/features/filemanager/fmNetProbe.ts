@@ -123,7 +123,7 @@ function exchange(state: NetState, o: ProbeOptions, ip: string, ms: number, out:
       : new Socket();
     state.sockets.add(socket);
     const marks = { start: performance.now(), connect: 0, secure: 0, sent: 0, first: 0 };
-    let buffer = Buffer.alloc(0);
+    let buffer: Buffer = Buffer.alloc(0);
     let totalBytes = 0;
     let head: ParsedHead | null = null;
     let headEnd = -1;
@@ -172,19 +172,30 @@ function exchange(state: NetState, o: ProbeOptions, ip: string, ms: number, out:
       marks.secure = performance.now();
       sendRequest();
     });
+    const headChunks: Buffer[] = [];
+    let headBytes = 0;
     socket.on("data", (chunk: Buffer) => {
       if (!marks.first) marks.first = performance.now();
       totalBytes += chunk.length;
       if (!head) {
-        buffer = Buffer.concat([buffer, chunk]);
-        const at = buffer.indexOf("\r\n\r\n");
-        if (at < 0) {
-          if (buffer.length > NET_LIMITS.maxHeaderBytes) end(Object.assign(new Error("That server's answer is too large to be a normal web page header."), { code: "TOO_BIG" }));
-          return;
+        headChunks.push(chunk);
+        headBytes += chunk.length;
+        if (headBytes > NET_LIMITS.maxHeaderBytes) {
+          buffer = headChunks.length === 1 ? headChunks[0]! : Buffer.concat(headChunks, headBytes);
+          const at = buffer.indexOf("\r\n\r\n");
+          if (at < 0) {
+            end(Object.assign(new Error("That server's answer is too large to be a normal web page header."), { code: "TOO_BIG" }));
+            return;
+          }
         }
+        if (!chunk.includes(10)) return;
+        buffer = headChunks.length === 1 ? headChunks[0]! : Buffer.concat(headChunks, headBytes);
+        const at = buffer.indexOf("\r\n\r\n");
+        if (at < 0) return;
         head = parseHead(buffer.subarray(0, at).toString("latin1"));
         headEnd = at + 4;
         buffer = Buffer.alloc(0);
+        headChunks.length = 0;
         if (!head) return end(Object.assign(new Error("That port didn't answer like a web server (it isn't speaking HTTP)."), { code: "NOT_HTTP" }));
         if (o.method === "HEAD") return end();
       }

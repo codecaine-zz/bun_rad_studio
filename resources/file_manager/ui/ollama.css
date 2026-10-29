@@ -1,0 +1,483 @@
+/* Built-In Ollama AI Assistant & Full Capability Router UI */
+
+.ollama-suite {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  min-height: 0;
+  padding: 12px 14px;
+  color: var(--fg-0, #f1f5f9);
+  font-size: 12.5px;
+  overflow-y: auto;
+}
+
+.ollama-hero-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 11px 14px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.14), rgba(59, 130, 246, 0.12), rgba(168, 85, 247, 0.12));
+  border: 1px solid rgba(56, 189, 248, 0.28);
+}
+
+.ollama-hero-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ollama-hero-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ollama-hero-title {
+  font-size: 14.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--fg-0, #ffffff);
+}
+
+.ollama-hero-sub {
+  font-size: 11.5px;
+  color: var(--fg-1, #cbd5e1);
+}
+
+.ollama-hw-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.ollama-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  color: var(--fg-0, #e2e8f0);
+}
+
+.ollama-pill.is-mlx {
+  background: rgba(16, 185, 129, 0.18);
+  border-color: rgba(16, 185, 129, 0.48);
+  color: #6ee7b7;
+}
+
+.ollama-pill.is-ram {
+  background: rgba(56, 189, 248, 0.16);
+  border-color: rgba(56, 189, 248, 0.44);
+  color: #7dd3fc;
+}
+
+.ollama-pill.is-warn {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: rgba(245, 158, 11, 0.5);
+  color: #fcd34d;
+}
+
+.ollama-pill.is-cloud {
+  background: rgba(168, 85, 247, 0.18);
+  border-color: rgba(168, 85, 247, 0.45);
+  color: #d8b4fe;
+}
+
+.ollama-mode-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border, rgba(148, 163, 184, 0.18));
+}
+
+.ollama-mode-btn {
+  padding: 6px 11px;
+  border-radius: 7px;
+  border: 1px solid var(--border, rgba(148, 163, 184, 0.22));
+  background: var(--bg-2, rgba(30, 41, 59, 0.7));
+  color: var(--fg-1, #cbd5e1);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+.ollama-mode-btn:hover {
+  border-color: rgba(56, 189, 248, 0.5);
+  color: var(--fg-0, #fff);
+}
+
+.ollama-mode-btn.is-active {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.24), rgba(59, 130, 246, 0.25));
+  border-color: rgba(56, 189, 248, 0.68);
+  color: #ffffff;
+}
+
+.ollama-context-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 11px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.52);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  font-size: 11.5px;
+}
+
+.ollama-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+}
+
+.ollama-file-chip {
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: rgba(59, 130, 246, 0.16);
+  border: 1px solid rgba(59, 130, 246, 0.36);
+  color: #93c5fd;
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+}
+
+.ollama-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 9px;
+  background: var(--bg-1, rgba(15, 23, 42, 0.6));
+  border: 1px solid var(--border, rgba(148, 163, 184, 0.2));
+}
+
+.ollama-card-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fg-0, #f8fafc);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ollama-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.ollama-input,
+.ollama-select,
+.ollama-textarea {
+  background: rgba(15, 23, 42, 0.82);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 7px;
+  color: var(--fg-0, #f8fafc);
+  padding: 6px 9px;
+  font-size: 12px;
+  font-family: inherit;
+}
+
+.ollama-row > .ollama-input {
+  flex: 1 1 240px;
+  min-width: 200px;
+}
+
+.ollama-textarea {
+  width: 100%;
+  min-height: 68px;
+  resize: vertical;
+  line-height: 1.45;
+}
+
+.ollama-btn {
+  padding: 6px 12px;
+  border-radius: 7px;
+  border: 1px solid rgba(56, 189, 248, 0.42);
+  background: rgba(56, 189, 248, 0.16);
+  color: #e0f2fe;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+.ollama-btn:hover {
+  background: rgba(56, 189, 248, 0.28);
+  border-color: rgba(56, 189, 248, 0.72);
+}
+
+.ollama-btn.is-primary {
+  background: linear-gradient(135deg, #10b981, #0284c7);
+  border-color: rgba(16, 185, 129, 0.75);
+  color: #ffffff;
+}
+
+.ollama-btn.is-danger {
+  background: rgba(239, 68, 68, 0.16);
+  border-color: rgba(239, 68, 68, 0.45);
+  color: #fca5a5;
+}
+
+.ollama-quick-prompts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ollama-quick-chip {
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  background: rgba(30, 41, 59, 0.85);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  color: var(--fg-1, #cbd5e1);
+  cursor: pointer;
+}
+
+.ollama-quick-chip:hover {
+  border-color: rgba(16, 185, 129, 0.55);
+  color: #ffffff;
+}
+
+.ollama-output-box {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(2, 6, 23, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--font-mono, monospace);
+  font-size: 11.5px;
+  line-height: 1.5;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.ollama-thinking-box {
+  padding: 8px 10px;
+  border-radius: 7px;
+  background: rgba(168, 85, 247, 0.1);
+  border: 1px dashed rgba(168, 85, 247, 0.42);
+  color: #e9d5ff;
+  font-size: 11px;
+  white-space: pre-wrap;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.ollama-refusal-banner {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.14);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  color: #fecaca;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.ollama-confirm-card {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.14);
+  border: 1px solid rgba(245, 158, 11, 0.52);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ollama-model-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(255px, 1fr));
+  gap: 9px;
+}
+
+.ollama-model-card {
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ollama-badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.ollama-cap-badge {
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: rgba(56, 189, 248, 0.16);
+  color: #7dd3fc;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+}
+
+.ollama-cap-badge.badge-mlx {
+  background: rgba(16, 185, 129, 0.2);
+  color: #6ee7b7;
+  border-color: rgba(16, 185, 129, 0.45);
+}
+
+.ollama-cap-badge.badge-decision {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fcd34d;
+  border-color: rgba(245, 158, 11, 0.45);
+}
+
+.ollama-cap-badge.badge-speech {
+  background: rgba(236, 72, 153, 0.2);
+  color: #f9a8d4;
+  border-color: rgba(236, 72, 153, 0.45);
+}
+
+.ollama-cap-badge.badge-vision {
+  background: rgba(168, 85, 247, 0.2);
+  color: #d8b4fe;
+  border-color: rgba(168, 85, 247, 0.45);
+}
+
+.ollama-meter-bar {
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(30, 41, 59, 0.9);
+  overflow: hidden;
+}
+
+.ollama-meter-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #38bdf8);
+}
+
+/* Live Status Symbol, Spinner & Progress Bar for Long Installs / Model Downloads */
+@keyframes ollama-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes ollama-pulse-glow {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.65);
+  }
+  50% {
+    opacity: 0.72;
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+  }
+}
+
+@keyframes ollama-progress-stripes {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 32px 0;
+  }
+}
+
+.ollama-spinner {
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  border: 2.5px solid rgba(56, 189, 248, 0.28);
+  border-top-color: #10b981;
+  border-right-color: #38bdf8;
+  border-radius: 50%;
+  animation: ollama-spin 0.75s linear infinite;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.ollama-status-pulse {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #10b981;
+  animation: ollama-pulse-glow 1.4s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.ollama-live-progress-banner {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.16), rgba(56, 189, 248, 0.14));
+  border: 1px solid rgba(16, 185, 129, 0.55);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ollama-progress-track {
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  overflow: hidden;
+}
+
+.ollama-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    #10b981 0%,
+    #38bdf8 50%,
+    #10b981 100%
+  );
+  background-size: 32px 100%;
+  animation: ollama-progress-stripes 0.9s linear infinite;
+  transition: width 0.25s ease;
+}
+
+.ollama-autoinstall-card {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.12), rgba(168, 85, 247, 0.1));
+  border: 1px solid rgba(56, 189, 248, 0.42);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ollama-step-log {
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  color: #cbd5e1;
+  background: rgba(2, 6, 23, 0.65);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 6px;
+  padding: 6px 9px;
+  max-height: 92px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}

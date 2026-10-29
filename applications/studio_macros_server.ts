@@ -181,31 +181,40 @@ export interface RunMacroOptions {
 const MAX_MACRO_DEPTH = 8;
 const DDL_PATTERN = /^\s*(CREATE|DROP|ALTER|TRUNCATE|RENAME)\b/i;
 const FORBIDDEN_STUDIO_MACRO_RE =
-  /\b(?:process\s*\.|Bun\s*\.\s*(?:spawn|spawnSync|serve|file|write|env|dlopen|mmap)|globalThis\b|require\s*\(|import\s*\(|child_process\b|Function\s*\(|eval\s*\()/;
+  /(?:\b(?:process\b|Bun\b|globalThis\b|Reflect\b|Proxy\b|constructor\b|__proto__\b|prototype\b|require\s*\(|import\s*\(|child_process\b|Function\b|eval\b|WebSocket\b|XMLHttpRequest\b|fetch\b|Worker\b|Deno\b)|\[\s*(?:['"`]|[^\]]*\+))/;
 
 function evaluateCondition(condition: string, variables: Record<string, any>): boolean {
-  if (FORBIDDEN_STUDIO_MACRO_RE.test(condition)) {
-    throw new Error("Macro condition references restricted host or process APIs");
-  }
   const expr = condition.trim().replace(/\[([a-zA-Z0-9_]+)\]/g, (_, name) => {
-    if (name in variables) {
+    if (Object.prototype.hasOwnProperty.call(variables, name)) {
       const val = variables[name];
       return typeof val === "number" || typeof val === "boolean" ? String(val) : JSON.stringify(val);
     }
     return "0";
   });
+  if (FORBIDDEN_STUDIO_MACRO_RE.test(expr) || /[;\[\]]/.test(expr)) {
+    throw new Error("Macro condition references restricted host or process APIs");
+  }
+  const safeKeys = Object.keys(variables).filter(
+    (k) =>
+      /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(k) &&
+      k !== "constructor" &&
+      k !== "__proto__" &&
+      k !== "prototype" &&
+      k !== "eval" &&
+      k !== "arguments",
+  );
+  const safeVals = safeKeys.map((k) => variables[k]);
   const fn = new Function(
-    "vars",
     "process",
     "globalThis",
     "global",
     "Bun",
     "Function",
-    "eval",
     "require",
-    `with(vars) { return Boolean(${expr}); }`,
+    ...safeKeys,
+    `"use strict"; return Boolean(${expr});`,
   );
-  return Boolean(fn(variables, undefined, undefined, undefined, undefined, undefined, undefined, undefined));
+  return Boolean(fn.call(null, undefined, undefined, undefined, undefined, undefined, undefined, ...safeVals));
 }
 
 function resolvePrompts(sql: string, values: Record<string, any>, dialect: MacroDialect): string {

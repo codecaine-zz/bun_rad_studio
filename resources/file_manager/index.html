@@ -39,6 +39,7 @@
 <link rel="stylesheet" href="/ui/tasks.css">
 <link rel="stylesheet" href="/ui/sysinfo.css">
 <link rel="stylesheet" href="/ui/phonon.css">
+<link rel="stylesheet" href="/ui/ollama.css">
 <link rel="stylesheet" href="/ui/themeEffects.css">
 </head>
 <body spellcheck="false" autocorrect="off" autocapitalize="off">
@@ -49,6 +50,7 @@
       <button id="sidebar-toggle" type="button" class="vb-btn" aria-controls="sidebar" aria-expanded="true" title="Show or hide the list of places on the left (Alt+7)"><span aria-hidden="true">☰</span><span class="vb-label">Places</span></button>
       <div id="view-switch" role="radiogroup" aria-label="Choose a view of the window. Use the arrow keys to move between them."></div>
       <button id="viewbar-themes" type="button" class="vb-btn" aria-haspopup="menu" aria-label="Themes" title="Change the colors: standard light or dark, themes you used lately, or all of them"><span class="vb-icon" aria-hidden="true">🎨</span><span class="vb-label">Themes</span><span class="vb-caret" aria-hidden="true">▾</span></button>
+      <button id="viewbar-ollama" type="button" class="vb-btn" aria-label="Ollama AI Assistant" title="Open the Built-In Ollama AI Assistant & Full Capability Router"><span class="vb-icon" aria-hidden="true">🤖</span><span class="vb-label">Ollama AI</span></button>
       <button id="viewbar-phonon" type="button" class="vb-btn" aria-label="Ollama Text-to-Speech (Phonon Voice Reader)" title="Open Ollama Text-to-Speech (Phonon Voice Reader): read text & documents out loud, convert to plain text, set default voice, and save as any audio file"><span class="vb-icon" aria-hidden="true">🗣️</span><span class="vb-label">Ollama TTS</span></button>
       <button id="viewbar-palette" type="button" class="vb-btn" aria-haspopup="dialog" aria-label="Command Palette" title="Open the Command Palette & Quick Jump (Mod+Shift+P or Mod+P)"><span class="vb-icon" aria-hidden="true">⚡</span><span class="vb-label">Command</span></button>
       <div id="view-extras">
@@ -84,7 +86,6 @@
       <nav id="sidebar" aria-label="Places"></nav>
 
       <main id="main">
-        <div id="tasks" class="tasks" role="region" aria-label="Background tasks" hidden></div>
         <div id="banner" class="banner" hidden></div>
         <div id="quickbar" class="quickbar" role="region" aria-label="Quick filter and view controls">
           <div class="qb-filter-wrap">
@@ -155,6 +156,7 @@
     <section id="dual-pane" aria-label="Second folder" hidden></section>
 
     <section id="home" aria-label="Home" hidden></section>
+    <div id="tasks" class="tasks" role="region" aria-label="Background tasks" hidden></div>
     </div>
 
     <section id="terminal-panel" aria-label="Terminal" hidden>

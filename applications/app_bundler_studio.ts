@@ -1165,7 +1165,7 @@ Status:        Ready to produce standalone binary or macOS / Windows / Linux app
 
       const macosBin = join(macosDir, name);
       const extraFlags = [minify ? "--minify" : "", sourcemap ? "--sourcemap" : "", targetFlag].filter(Boolean).join(" ");
-      const compileCmd = `bun build "${absEntry}" --compile --outfile="${macosBin}" ${extraFlags}`;
+      const compileCmd = `bun build "${absEntry.replace(/["$`\\]/g, "\\$&")}" --compile --outfile="${macosBin}" ${extraFlags}`;
 
       win.appendConsole("bundler_console", `[Compiler] Compiling native binary for .app bundle...\n  Command: ${compileCmd}\n`, 1);
       win.setStatus(`Compiling executable for ${name}.app...`);
@@ -1357,7 +1357,7 @@ Status:        Ready to produce standalone binary or macOS / Windows / Linux app
 
       const linuxBin = join(binDir, name);
       const extraFlags = [minify ? "--minify" : "", sourcemap ? "--sourcemap" : "", targetFlag].filter(Boolean).join(" ");
-      const compileCmd = `bun build "${absEntry}" --compile --outfile="${linuxBin}" ${extraFlags}`;
+      const compileCmd = `bun build "${absEntry.replace(/["$`\\]/g, "\\$&")}" --compile --outfile="${linuxBin}" ${extraFlags}`;
 
       win.appendConsole("bundler_console", `[Compiler] Compiling Linux ELF binary for .AppDir bundle...\n  Command: ${compileCmd}\n`, 1);
       win.setStatus(`Compiling executable for ${name}.AppDir...`);

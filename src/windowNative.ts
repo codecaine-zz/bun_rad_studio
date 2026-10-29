@@ -82,9 +82,15 @@ function send(args: FFIType[], returns: FFIType): any {
   return fn;
 }
 
+const selectors = new Map<string, Pointer>();
+
 function sel(name: string): Pointer {
+  let cached = selectors.get(name);
+  if (cached !== undefined) return cached;
   registerSelector ??= dlopen("libobjc.dylib", { sel_registerName: { args: [FFIType.cstring], returns: P } }).symbols.sel_registerName as unknown as (name: Buffer) => Pointer;
-  return registerSelector(Buffer.from(`${name}\0`));
+  cached = registerSelector(Buffer.from(`${name}\0`));
+  selectors.set(name, cached);
+  return cached;
 }
 
 const ok = (fn: () => void): boolean => {
@@ -191,11 +197,20 @@ function macNative(wv: Webview): WindowNative {
 
   const flag = (name: string): boolean => Boolean(send([P, P], FFIType.u8)(win(), sel(name)));
   const isFullscreen = (): boolean => (BigInt(send([P, P], FFIType.u64)(win(), sel("styleMask"))) & (1n << 14n)) !== 0n;
+  const activateAndOrderFront = () => {
+    send([P, P, P], FFIType.void)(win(), sel("makeKeyAndOrderFront:"), null);
+    try {
+      const objc = dlopen("libobjc.dylib", { objc_getClass: { args: [FFIType.cstring], returns: P } }).symbols;
+      const nsAppClass = objc.objc_getClass(Buffer.from("NSApplication\0"));
+      const nsApp = nsAppClass ? send([P, P], P)(nsAppClass, sel("sharedApplication")) : null;
+      if (nsApp) send([P, P, FFIType.bool], FFIType.void)(nsApp, sel("activateIgnoringOtherApps:"), true);
+    } catch {}
+  };
 
   return {
     getScreens,
     hide: () => void ok(() => send([P, P, P], FFIType.void)(win(), sel("orderOut:"), null)),
-    show: () => void ok(() => send([P, P, P], FFIType.void)(win(), sel("makeKeyAndOrderFront:"), null)),
+    show: () => void ok(activateAndOrderFront),
     setBounds({ width, height, x, y }) {
       ok(() => { wv.size = { width, height, hint: NO_HINT }; });
       if (x !== null && y !== null) {
@@ -223,6 +238,7 @@ function macNative(wv: Webview): WindowNative {
         // The window needs the full-screen behavior switched on first (NSWindowCollectionBehaviorFullScreenPrimary).
         const behavior = BigInt(send([P, P], FFIType.u64)(win(), sel("collectionBehavior")));
         send([P, P, FFIType.u64], FFIType.void)(win(), sel("setCollectionBehavior:"), behavior | 128n);
+        if (on && !flag("isVisible")) activateAndOrderFront();
         send([P, P, P], FFIType.void)(win(), sel("toggleFullScreen:"), null);
         return true;
       } catch {

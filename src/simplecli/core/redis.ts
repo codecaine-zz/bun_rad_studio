@@ -424,7 +424,7 @@ export class NamespacedRedis {
    */
   public async acquireLock(lockKey: string, ttlMs: number = 5000): Promise<string | null> {
     const fullLockKey = this.prefixKey(`lock:${lockKey}`);
-    const token = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const token = `${Date.now()}-${crypto.randomUUID()}`;
     const result = await (this.client as any).set(fullLockKey, token, 'PX', ttlMs, 'NX');
     return result === 'OK' ? token : null;
   }

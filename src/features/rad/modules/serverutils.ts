@@ -1,6 +1,6 @@
 // Feature: RAD - serverutils
 // High-performance HTTP server, router, static file serving, and WebSocket hub powered by Bun.serve
-import { join } from "node:path";
+import { join, resolve, sep } from "node:path";
 import type { Server, ServerWebSocket } from "bun";
 
 export type HttpHandler = (req: Request, server: Server<any>) => Response | Promise<Response>;
@@ -128,13 +128,24 @@ export interface StaticServerOptions {
 
 // Coordinator: Launch zero-config static file server
 export function serveStatic(options: StaticServerOptions): ServerInstance {
+  const rootDir = resolve(options.dir);
   const server = Bun.serve({
     port: options.port ?? 0,
     hostname: options.hostname ?? "127.0.0.1",
     async fetch(req) {
       const url = new URL(req.url);
-      const relativePath = url.pathname === "/" ? "index.html" : url.pathname.slice(1);
-      const filePath = join(options.dir, relativePath);
+      let decodedPath = url.pathname;
+      try {
+        decodedPath = decodeURIComponent(url.pathname);
+      } catch {
+        return new Response("Bad Request", { status: 400 });
+      }
+      if (decodedPath.includes("\0")) return new Response("Bad Request", { status: 400 });
+      const relativePath = decodedPath === "/" ? "index.html" : decodedPath.replace(/^\/+/, "");
+      const filePath = resolve(rootDir, relativePath);
+      if (filePath !== rootDir && !filePath.startsWith(rootDir + sep)) {
+        return new Response("Forbidden", { status: 403 });
+      }
       const file = Bun.file(filePath);
 
       if (await file.exists()) {
@@ -142,7 +153,7 @@ export function serveStatic(options: StaticServerOptions): ServerInstance {
       }
 
       if (options.spaFallback) {
-        const fallback = Bun.file(join(options.dir, "index.html"));
+        const fallback = Bun.file(join(rootDir, "index.html"));
         if (await fallback.exists()) {
           return new Response(fallback);
         }
@@ -179,10 +190,25 @@ export interface WebSocketHub {
 
 // Coordinator: Launch WebSocket broadcast and pub/sub hub
 export function createWsHub(options: WsHubOptions = {}): WebSocketHub {
+  const bindHost = options.hostname ?? "127.0.0.1";
+  const isLoopback = bindHost === "127.0.0.1" || bindHost === "localhost" || bindHost === "::1";
   const server = Bun.serve<{ topic: string }>({
     port: options.port ?? 0,
-    hostname: options.hostname ?? "127.0.0.1",
+    hostname: bindHost,
     fetch(req, s) {
+      if (isLoopback) {
+        const origin = req.headers.get("origin");
+        if (origin && origin !== "null") {
+          try {
+            const originHost = new URL(origin).hostname.toLowerCase();
+            if (originHost !== "127.0.0.1" && originHost !== "localhost" && originHost !== "::1" && originHost !== "[::1]") {
+              return new Response("Forbidden: cross-origin WebSocket blocked", { status: 403 });
+            }
+          } catch {
+            return new Response("Forbidden: invalid Origin", { status: 403 });
+          }
+        }
+      }
       const url = new URL(req.url);
       const topic = url.searchParams.get("topic") ?? "default";
       const success = s.upgrade(req, { data: { topic } });

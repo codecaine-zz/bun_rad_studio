@@ -651,8 +651,10 @@ export interface MacroValidationResult {
   errors: { message: string; line?: number; column?: number }[];
 }
 
+const tsTranspiler = new Bun.Transpiler({ loader: "ts", target: "bun" });
+
 export const FORBIDDEN_MACRO_CODE_RE =
-  /\b(?:process\s*\.\s*(?:env|binding|dlopen|exit|kill|mainModule)|Bun\s*\.\s*(?:spawn|spawnSync|serve|file|write|mmap|dlopen|unsafe|plugin)|globalThis\b|Reflect\b|Proxy\b|constructor\b|__proto__\b|prototype\b|import\s*\.\s*meta\b|require\s*\(|import\s*\(|child_process\b|Function\s*\(|eval\s*\()/;
+  /(?:\b(?:process\s*\.\s*(?:env|binding|dlopen|exit|kill|mainModule)|Bun\s*\.\s*(?:spawn|spawnSync|serve|file|write|mmap|dlopen|unsafe|plugin)|globalThis\b|Reflect\b|Proxy\b|constructor\b|__proto__\b|prototype\b|import\s*\.\s*meta\b|require\s*\(|import\s*\(|child_process\b|Function\s*\(|eval\s*\(|WebSocket\b|XMLHttpRequest\b|SharedArrayBuffer\b|FinalizationRegistry\b|WeakRef\b|Worker\b|Deno\b)|\[\s*["'`]\s*(?:constructor|__proto__|prototype)\b|["'`]con["'`]\s*\+\s*["'`]structor["'`])/;
 
 export function validateBunMacroCode(code: string): MacroValidationResult {
   const warnings: string[] = [];
@@ -669,11 +671,10 @@ export function validateBunMacroCode(code: string): MacroValidationResult {
   }
 
   const normalized = normalizeMacroSourceForAsyncBody(code);
-  const wrapped = `async function __bunMacroEntry(__ctx: any) {\n${normalized}\n}`;
+  const wrapped = `async function __userMain(__ctx: any) {\n${normalized}\n}`;
 
   try {
-    const transpiler = new Bun.Transpiler({ loader: "ts", target: "bun" });
-    const js = transpiler.transformSync(wrapped);
+    const js = tsTranspiler.transformSync(wrapped);
     if (/\bDROP\s+TABLE\b/i.test(code)) {
       warnings.push("Macro contains DROP TABLE — consider running with Dry Run enabled first.");
     }
@@ -2165,8 +2166,7 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
       if (FORBIDDEN_MACRO_CODE_RE.test(trimmed)) {
         throw new FmError("SYNTAX_ERROR", "Access to host process, filesystem, or OS process APIs is restricted inside database macros.");
       }
-      const transpiler = new Bun.Transpiler({ loader: "ts", target: "bun" });
-      const js = transpiler.transformSync(`async function __eval(__c: any) { return (${trimmed}); }`);
+      const js = tsTranspiler.transformSync(`async function __eval(__c: any) { return (\n${trimmed}\n); }`);
       const body = `${js}\nreturn await __eval(__ctx);`;
       const fn = new Function(
         "__ctx",
@@ -2236,9 +2236,7 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
         const err = new FmError("SYNTAX_ERROR", first.message, { line: first.line, column: first.column });
         throw err;
       }
-      const normalized = normalizeMacroSourceForAsyncBody(codeSource);
-      const transpiler = new Bun.Transpiler({ loader: "ts", target: "bun" });
-      const jsBody = transpiler.transformSync(`async function __userMain() {\n${normalized}\n}`);
+      const jsBody = check.transpiledJs ?? tsTranspiler.transformSync(`async function __userMain(__ctx: any) {\n${normalizeMacroSourceForAsyncBody(codeSource)}\n}`);
       const runnerSource = `
         const __exports = {};
         ${jsBody}

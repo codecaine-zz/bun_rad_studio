@@ -210,6 +210,27 @@ function mountPhononStudio(root, payload) {
   // Studio state
   let status = null;
   let voices = [];
+  let customVoices = [];
+  let calibrationScripts = [
+    {
+      id: "rainbow",
+      label: "Studio Calibration Passage (Recommended · ~10s)",
+      durationHint: "8–12 sec",
+      text: "When sunlight strikes raindrops in the air, they act as a prism and form a rainbow. My voice has its own natural pitch, rhythm, and warmth, and Phonon will use this recording to read any document aloud in my own voice.",
+    },
+    {
+      id: "storyteller",
+      label: "Expressive Audiobook & Storytelling (~12s)",
+      durationHint: "10–14 sec",
+      text: "Deep in the quiet library, the old clock chimed midnight as a warm breeze turned the pages of the manuscript. Every sentence carries a distinct melody—from calm, low reflections to bright, lively questions.",
+    },
+    {
+      id: "technical",
+      label: "Crisp Article & Technical Briefing (~10s)",
+      durationHint: "8–12 sec",
+      text: "Local neural text to speech runs entirely on your computer with zero cloud latency. Convert PDF reports, markdown notes, and source code into clear spoken audio and synchronized read-along video.",
+    },
+  ];
   let audioFormats = [];
   let videoFormats = [];
   let selectedVoice = state.settings?.phononVoice || "Zoey";
@@ -222,6 +243,27 @@ function mountPhononStudio(root, payload) {
   let maxChunkChars = 520;
   let rateOrPitchChangedAt = 0;
   let probedOutputLatencyMs = 72;
+
+  // AI Voice Recorder & Cloning state
+  let isRecordingVoice = false;
+  let isCloningVoice = false;
+  let recStartTimeMs = 0;
+  let recTimerId = 0;
+  let recRafId = 0;
+  let recStream = null;
+  let recAudioCtx = null;
+  let recSourceNode = null;
+  let recAnalyserNode = null;
+  let recProcessorNode = null;
+  let recFloatChunks = [];
+  let recSampleRate = 24000;
+  let recordedWavBlob = null;
+  let recordedWavBase64 = "";
+  let recordedDurationSec = 0;
+  let recordedSamplesPreview = null;
+  let selectedMicDeviceId = "";
+  let selectedCalibrationScriptId = "rainbow";
+  const samplePreviewAudioEl = new Audio();
 
   // Read-Along Video & Teleprompter state
   let selectedAspectRatio = "16:9";
@@ -874,7 +916,7 @@ function mountPhononStudio(root, payload) {
     }
   }
 
-  function pollJobUntilDone(jobId, onDone) {
+  function pollJobUntilDone(jobId, onDone, onProgress) {
     const check = async () => {
       try {
         const { jobs } = await call("jobs/list");
@@ -885,11 +927,15 @@ function mountPhononStudio(root, payload) {
           } else if (found?.state === "failed") {
             const failedStep = (found.steps || []).find((s) => s.state === "failed");
             const msg = failedStep?.message || "Installation or export step failed. Check the Tasks panel for details.";
+            nowPlayingStatus.textContent = `❌ Export failed: ${msg}`;
             toast(msg, { kind: "error" });
             refreshStatus();
+          } else if (found?.state === "cancelled") {
+            nowPlayingStatus.textContent = "⏹ Export cancelled.";
           }
           return;
         }
+        onProgress?.(found);
         setTimeout(check, 900);
       } catch {}
     };
@@ -900,6 +946,10 @@ function mountPhononStudio(root, payload) {
     try {
       status = await call("phonon/status");
       voices = status.voices || [];
+      customVoices = status.customVoices || [];
+      if (Array.isArray(status.calibrationScripts) && status.calibrationScripts.length) {
+        calibrationScripts = status.calibrationScripts;
+      }
       audioFormats = status.audioFormats || [];
       videoFormats = status.videoFormats || [];
       if (status.settings) {
@@ -922,6 +972,8 @@ function mountPhononStudio(root, payload) {
       updateVoiceDropdown();
       updateFormatDropdown();
       renderStatusBanner();
+      renderCustomVoicesList();
+      renderActiveVoiceFingerprint();
     } catch (err) {
       toast(err instanceof ApiError ? err.message : "Could not check Phonon status.", { kind: "error" });
     }
@@ -949,17 +1001,33 @@ function mountPhononStudio(root, payload) {
 
   async function previewSelectedVoice() {
     stopReading();
-    const sample = `Hello! I am ${selectedVoice}, speaking through Ollama Phonon in Codecaine File Manager. Watch each word highlight as I speak!`;
-    nowPlayingStatus.textContent = `Synthesizing voice preview for "${selectedVoice}"…`;
+    samplePreviewAudioEl.pause();
+    const matchedCustom = customVoices.find((cv) => cv.id === selectedVoice);
+    const spokenName = matchedCustom ? matchedCustom.label : selectedVoice;
+    const sample = matchedCustom
+      ? `Hello! This is ${spokenName}, speaking in my own cloned voice at ${matchedCustom.profile?.medianF0Hz || 110} hertz through Ollama Phonon.`
+      : `Hello! I am ${spokenName}, speaking through Ollama Phonon in Codecaine File Manager. Watch each word highlight as I speak!`;
+    nowPlayingStatus.textContent = `Synthesizing voice preview for "${spokenName}"…`;
+    if (matchedCustom) {
+      recStateBadge.textContent = `⏳ Synthesizing AI Voice preview for "${spokenName}" (${matchedCustom.profile?.medianF0Hz} Hz)…`;
+    }
     try {
       const res = await call("phonon/speak", { text: sample, voice: selectedVoice, pitch });
       currentTeleprompterData.synthesizedPitch = Number(res.pitch) || 0;
       audioEl.src = audioUrlWithToken(res.url);
       applyAudioPlaybackSettings();
       await audioEl.play();
-      nowPlayingStatus.textContent = `Previewing voice "${selectedVoice}" (${res.durationSec}s, 24 kHz WAV${pitch ? `, pitch ${formatPitchLabel(pitch)}` : ""}).`;
+      const statusMsg = matchedCustom
+        ? `🔊 Speaking with your cloned AI voice "${spokenName}" (${matchedCustom.profile?.medianF0Hz} Hz ${matchedCustom.profile?.voiceRegister} · ${res.durationSec}s)`
+        : `Previewing voice "${spokenName}" (${res.durationSec}s, 24 kHz WAV${pitch ? `, pitch ${formatPitchLabel(pitch)}` : ""}).`;
+      nowPlayingStatus.textContent = statusMsg;
+      if (matchedCustom) {
+        recStateBadge.textContent = statusMsg;
+        toast(statusMsg, { kind: "info" });
+      }
     } catch (err) {
       nowPlayingStatus.textContent = err instanceof ApiError ? err.message : "Voice preview failed.";
+      if (matchedCustom) recStateBadge.textContent = `⚠ ${nowPlayingStatus.textContent}`;
       toast(nowPlayingStatus.textContent, { kind: "error" });
     }
   }
@@ -1265,16 +1333,20 @@ function mountPhononStudio(root, payload) {
     const pitchToUse = pitch;
     nowPlayingStatus.textContent = `Synthesizing chunk ${startIndex + 1} of ${chunks.length} with voice "${voiceToUse}"${pitchToUse ? ` (pitch ${formatPitchLabel(pitchToUse)})` : ""}…`;
 
-    // Prefetch next 2 chunks in the background so large documents stream without gaps!
-    if (startIndex + 1 < chunks.length) void fetchChunkAudio(startIndex + 1, voiceToUse, pitchToUse).catch(() => {});
-    if (startIndex + 2 < chunks.length) {
-      setTimeout(() => {
-        if (playbackSessionId === session) void fetchChunkAudio(startIndex + 2, voiceToUse, pitchToUse).catch(() => {});
-      }, 300);
-    }
-
     try {
-      const res = await fetchChunkAudio(startIndex, voiceToUse, pitchToUse);
+      // Start current chunk synthesis first so it is queued ahead of background lookahead prefetches
+      const currentFetchPromise = fetchChunkAudio(startIndex, voiceToUse, pitchToUse);
+      if (startIndex + 1 < chunks.length) {
+        setTimeout(() => {
+          if (playbackSessionId === session) void fetchChunkAudio(startIndex + 1, voiceToUse, pitchToUse).catch(() => {});
+        }, 60);
+      }
+      if (startIndex + 2 < chunks.length) {
+        setTimeout(() => {
+          if (playbackSessionId === session) void fetchChunkAudio(startIndex + 2, voiceToUse, pitchToUse).catch(() => {});
+        }, 350);
+      }
+      const res = await currentFetchPromise;
       if (playbackSessionId !== session) return;
 
       renderTeleprompterForChunk(
@@ -1354,6 +1426,18 @@ function mountPhononStudio(root, payload) {
     });
     videoPlayerEl.append(trackEl);
 
+    const activateSubtitleTrack = () => {
+      try {
+        if (videoPlayerEl.textTracks && videoPlayerEl.textTracks.length > 0) {
+          for (let i = 0; i < videoPlayerEl.textTracks.length; i++) {
+            videoPlayerEl.textTracks[i].mode = i === 0 ? "showing" : "disabled";
+          }
+        }
+      } catch {}
+    };
+    videoPlayerEl.addEventListener("loadedmetadata", activateSubtitleTrack, { once: true });
+    setTimeout(activateSubtitleTrack, 120);
+
     videoPlayerPathLabel.textContent = baseName(videoPath, state.sep);
     videoPlayerBox.hidden = false;
     videoPlayerEl.load();
@@ -1369,6 +1453,9 @@ function mountPhononStudio(root, payload) {
     if (!raw) {
       toast("Enter or load some text before exporting.", { kind: "info" });
       return;
+    }
+    if (isPlaying || isPaused) {
+      stopReading();
     }
     const fmt = targetFormat || selectedFormat || "wav";
     const isVid = VIDEO_EXT_SET.has(fmt);
@@ -1391,21 +1478,32 @@ function mountPhononStudio(root, payload) {
       });
       emit("job-started", res.job);
       const kindDesc = isVid ? `Read-Along Video (.${fmt.toUpperCase()}, ${selectedAspectRatio})` : `.${fmt.toUpperCase()} audio`;
-      nowPlayingStatus.textContent = `Rendering ${kindDesc} (${chunks.length} chunks, voice: ${selectedVoice})… See Tasks tray for live progress.`;
+      nowPlayingStatus.textContent = `⏳ Rendering ${kindDesc} (${chunks.length} chunks, voice: ${selectedVoice})… See Tasks tray for live progress.`;
       toast(`Started rendering ${kindDesc} with voice "${selectedVoice}".`, { kind: "info" });
-      pollJobUntilDone(res.job.id, (finishedJob) => {
-        const out = finishedJob.outputs?.[0] || res.outputs?.[0];
-        nowPlayingStatus.textContent = out
-          ? `✔ Saved ${isVid ? "Read-Along Video" : "audio file"}: ${out}`
-          : `✔ ${isVid ? "Read-Along Video" : "Audio"} export complete!`;
-        toast(`Saved ${isVid ? "Read-Along Video" : "audio"}: ${out ? baseName(out, state.sep) : fmt.toUpperCase()}`, { kind: "success" });
-        if (isVid && out) {
-          loadExportedVideoIntoPreview(out);
-        }
-        if (currentPath() && out && out.startsWith(currentPath())) {
-          void refresh().then(() => selectKeys([out]));
-        }
-      });
+      pollJobUntilDone(
+        res.job.id,
+        (finishedJob) => {
+          const out = finishedJob.outputs?.[0] || res.outputs?.[0];
+          nowPlayingStatus.textContent = out
+            ? `✔ Saved ${isVid ? "Read-Along Video" : "audio file"}: ${out}`
+            : `✔ ${isVid ? "Read-Along Video" : "Audio"} export complete!`;
+          toast(`Saved ${isVid ? "Read-Along Video" : "audio"}: ${out ? baseName(out, state.sep) : fmt.toUpperCase()}`, { kind: "success" });
+          if (isVid && out) {
+            loadExportedVideoIntoPreview(out);
+          }
+          if (currentPath() && out && out.startsWith(currentPath())) {
+            void refresh().then(() => selectKeys([out]));
+          }
+        },
+        (runningJob) => {
+          if (runningJob.log) {
+            const lastLine = runningJob.log.trim().split(/\r?\n/).pop();
+            if (lastLine) {
+              nowPlayingStatus.textContent = `⏳ Rendering ${kindDesc}: ${lastLine}`;
+            }
+          }
+        },
+      );
     } catch (err) {
       toast(err instanceof ApiError ? err.message : "Could not start export.", { kind: "error" });
     }
@@ -1417,10 +1515,14 @@ function mountPhononStudio(root, payload) {
       toast("Select one or more files in the File Manager list first.", { kind: "info" });
       return;
     }
+    if (isPlaying || isPaused) {
+      stopReading();
+    }
     const fmt = forceVideo
       ? (VIDEO_EXT_SET.has(selectedFormat) ? selectedFormat : "mp4")
       : selectedFormat;
     const isVid = VIDEO_EXT_SET.has(fmt);
+    const kindDesc = isVid ? `Read-Along Video (.${fmt.toUpperCase()}, ${selectedAspectRatio})` : `.${fmt.toUpperCase()} audio`;
     try {
       const res = await call(isVid ? "phonon/video" : "phonon/save", {
         paths: sel.map((e) => e.path),
@@ -1437,14 +1539,33 @@ function mountPhononStudio(root, payload) {
         saveSubtitles: saveCompanionSubtitles,
       });
       emit("job-started", res.job);
+      nowPlayingStatus.textContent = `⏳ Converting ${sel.length} file${sel.length === 1 ? "" : "s"} to ${kindDesc} (${selectedVoice})…`;
       toast(
         `Converting ${sel.length} file${sel.length === 1 ? "" : "s"} to .${fmt.toUpperCase()} ${isVid ? "Read-Along Video" : "audio"} with voice "${selectedVoice}"…`,
         { kind: "info" },
       );
-      pollJobUntilDone(res.job.id, (finishedJob) => {
-        const out = finishedJob.outputs?.[0] || res.outputs?.[0];
-        if (isVid && out) loadExportedVideoIntoPreview(out);
-      });
+      pollJobUntilDone(
+        res.job.id,
+        (finishedJob) => {
+          const out = finishedJob.outputs?.[0] || res.outputs?.[0];
+          nowPlayingStatus.textContent = out
+            ? `✔ Saved ${isVid ? "Read-Along Video" : "audio file"}: ${out}`
+            : `✔ ${isVid ? "Read-Along Video" : "Audio"} batch export complete!`;
+          toast(`Saved ${isVid ? "Read-Along Video" : "audio"}: ${out ? baseName(out, state.sep) : fmt.toUpperCase()}`, { kind: "success" });
+          if (isVid && out) loadExportedVideoIntoPreview(out);
+          if (currentPath() && out && out.startsWith(currentPath())) {
+            void refresh().then(() => selectKeys(finishedJob.outputs || [out]));
+          }
+        },
+        (runningJob) => {
+          if (runningJob.log) {
+            const lastLine = runningJob.log.trim().split(/\r?\n/).pop();
+            if (lastLine) {
+              nowPlayingStatus.textContent = `⏳ Converting to ${kindDesc}: ${lastLine}`;
+            }
+          }
+        },
+      );
     } catch (err) {
       toast(err instanceof ApiError ? err.message : "Could not start batch conversion.", { kind: "error" });
     }
@@ -1465,6 +1586,637 @@ function mountPhononStudio(root, payload) {
     toast("Loaded 18-paragraph large text sample to demonstrate multi-chunk Phonon streaming, follow-along & video stitching.", { kind: "info" });
   }
 
+  // -------------------------------------------------------------------------------------------------------------
+  // AI Voice Recorder, Waveform Oscilloscope & Custom Voice Cloning Studio
+  // -------------------------------------------------------------------------------------------------------------
+
+  const customVoiceNameInput = h("input", {
+    id: "phonon-custom-voice-name",
+    type: "text",
+    class: "input",
+    value: "My Studio Voice",
+    placeholder: "Name your AI voice (e.g. My Voice, Alex Narrator)",
+  });
+  const micDeviceSelect = h("select", { id: "phonon-mic-select", class: "input phonon-select" },
+    h("option", { value: "" }, "🎙️ Default System Microphone"),
+  );
+  const calibrationScriptSelect = h("select", { id: "phonon-calibration-script", class: "input phonon-select" });
+  const calibrationPromptBox = h("div", { class: "phonon-calibration-prompt" }, "");
+  const recStateBadge = h("span", { class: "phonon-badge phonon-badge-accent" }, "🎙️ 24 kHz Studio Recorder Ready");
+  const recTimerLabel = h("span", { class: "phonon-rec-timer" }, "00:00.0 / 00:15.0");
+  const recDbMeterFill = h("div", { class: "phonon-db-meter-fill" });
+  const recDbLabel = h("span", { class: "phonon-rec-db-label" }, "-∞ dB");
+  const waveformCanvas = h("canvas", {
+    class: "phonon-waveform-canvas",
+    width: "760",
+    height: "74",
+    "aria-label": "Voice recording waveform oscilloscope",
+  });
+
+  const recordVoiceBtn = h("button", {
+    type: "button",
+    class: "btn phonon-record-btn",
+    onclick: () => toggleVoiceRecording(),
+  }, "🔴 Record My Voice");
+
+  const playRecordedSampleBtn = h("button", {
+    type: "button",
+    class: "btn",
+    disabled: true,
+    onclick: () => playCurrentRecordedSample(),
+  }, "🎧 Hear My Recording");
+
+  const hiddenVoiceFileInput = h("input", {
+    type: "file",
+    class: "phonon-hidden-file-input",
+    hidden: true,
+    accept: "audio/*,.wav,.mp3,.m4a,.flac,.ogg,.webm",
+    style: { display: "none" },
+    onchange: (e) => {
+      const file = e.target.files?.[0];
+      if (file) void importVoiceAudioFileFromPicker(file);
+      e.target.value = "";
+    },
+  });
+
+  const importVoiceFileBtn = h("button", {
+    type: "button",
+    class: "btn",
+    title: "Import an existing voice recording file (.WAV, .MP3, .M4A, .FLAC, .OGG) from your computer",
+    onclick: () => hiddenVoiceFileInput.click(),
+  }, "📂 Import Voice File");
+
+  const cloneVoiceBtn = h("button", {
+    type: "button",
+    class: "btn primary phonon-clone-btn",
+    disabled: true,
+    onclick: () => createMyAiVoiceNow(),
+  }, "✨ Create My AI Voice & Use for Reading");
+
+  const voiceFingerprintBox = h("div", { class: "phonon-voice-fingerprint-box" });
+  const customVoicesListBox = h("div", { class: "phonon-custom-voices-list" });
+
+  function updateCalibrationScriptUI() {
+    clear(calibrationScriptSelect);
+    for (const sc of calibrationScripts) {
+      calibrationScriptSelect.append(
+        h("option", { value: sc.id, selected: sc.id === selectedCalibrationScriptId }, sc.label),
+      );
+    }
+    calibrationScriptSelect.append(
+      h("option", { value: "editor", selected: selectedCalibrationScriptId === "editor" }, "📖 Read from Current Editor Text"),
+    );
+    const matched = calibrationScripts.find((s) => s.id === selectedCalibrationScriptId);
+    const promptText = selectedCalibrationScriptId === "editor"
+      ? (textArea.value.trim().slice(0, 260) || calibrationScripts[0].text)
+      : (matched?.text || calibrationScripts[0].text);
+    clear(calibrationPromptBox);
+    calibrationPromptBox.append(
+      h("div", { class: "phonon-calibration-prompt-head" },
+        h("strong", {}, "📜 Guided Reading Script (Read this out loud at a natural, comfortable pace):"),
+        h("span", { class: "hint" }, matched?.durationHint ? `Target length: ${matched.durationHint}` : "8–15 sec recommended"),
+      ),
+      h("div", { class: "phonon-calibration-prompt-text" }, `"${promptText}"`),
+    );
+  }
+
+  calibrationScriptSelect.addEventListener("change", () => {
+    selectedCalibrationScriptId = calibrationScriptSelect.value;
+    updateCalibrationScriptUI();
+  });
+
+  async function refreshMicrophoneDevices() {
+    if (!navigator.mediaDevices?.enumerateDevices) return;
+    try {
+      const devs = await navigator.mediaDevices.enumerateDevices();
+      const mics = devs.filter((d) => d.kind === "audioinput");
+      clear(micDeviceSelect);
+      micDeviceSelect.append(h("option", { value: "" }, "🎙️ Default System Microphone"));
+      mics.forEach((m, idx) => {
+        if (!m.deviceId || m.deviceId === "default") return;
+        micDeviceSelect.append(
+          h("option", { value: m.deviceId, selected: m.deviceId === selectedMicDeviceId }, `🎙️ ${m.label || `Microphone ${idx + 1}`}`),
+        );
+      });
+    } catch {}
+  }
+
+  micDeviceSelect.addEventListener("change", () => {
+    selectedMicDeviceId = micDeviceSelect.value;
+  });
+
+  function drawIdleOrStaticWaveform(samplesFloat32, isActiveRec = false) {
+    const ctx2d = waveformCanvas.getContext("2d");
+    if (!ctx2d) return;
+    const W = waveformCanvas.width;
+    const H = waveformCanvas.height;
+    ctx2d.clearRect(0, 0, W, H);
+
+    // Subtle studio grid
+    ctx2d.fillStyle = "rgba(9, 14, 28, 0.92)";
+    ctx2d.fillRect(0, 0, W, H);
+    ctx2d.strokeStyle = "rgba(148, 163, 184, 0.16)";
+    ctx2d.lineWidth = 1;
+    ctx2d.beginPath();
+    ctx2d.moveTo(0, H / 2);
+    ctx2d.lineTo(W, H / 2);
+    ctx2d.stroke();
+
+    if (!samplesFloat32 || !samplesFloat32.length) {
+      ctx2d.fillStyle = "rgba(148, 163, 184, 0.65)";
+      ctx2d.font = "12px ui-monospace, SFMono-Regular, Menlo, monospace";
+      ctx2d.textAlign = "center";
+      ctx2d.fillText("Click '🔴 Record My Voice' and read the passage above (or import an audio file)", W / 2, H / 2 + 4);
+      return;
+    }
+
+    const numBars = 140;
+    const barW = Math.max(2, Math.floor(W / numBars) - 2);
+    const step = Math.max(1, Math.floor(samplesFloat32.length / numBars));
+    ctx2d.fillStyle = isActiveRec ? "#fb7185" : "#38bdf8";
+
+    for (let b = 0; b < numBars; b++) {
+      const start = b * step;
+      const end = Math.min(samplesFloat32.length, start + step);
+      let peak = 0;
+      for (let i = start; i < end; i++) {
+        const a = Math.abs(samplesFloat32[i] || 0);
+        if (a > peak) peak = a;
+      }
+      const barH = Math.max(3, Math.min(H - 8, Math.round(peak * (H - 8))));
+      const x = b * (W / numBars) + 1;
+      const y = Math.round((H - barH) / 2);
+      ctx2d.fillRect(x, y, barW, barH);
+    }
+  }
+
+  function encodeFloat32ToWav24k(monoFloats, srcRate) {
+    const targetRate = 24000;
+    const maxOutSamples = targetRate * 18; // Cap at 18 seconds
+    const rawOutSamples = srcRate === targetRate
+      ? monoFloats.length
+      : Math.max(1, Math.round((monoFloats.length * targetRate) / srcRate));
+    const outSamples = Math.min(maxOutSamples, rawOutSamples);
+    const resampled = new Float32Array(outSamples);
+
+    if (srcRate === targetRate) {
+      resampled.set(monoFloats.subarray(0, outSamples));
+    } else {
+      const ratio = srcRate / targetRate;
+      for (let i = 0; i < outSamples; i++) {
+        const pos = i * ratio;
+        const i0 = Math.min(monoFloats.length - 1, Math.floor(pos));
+        const i1 = Math.min(monoFloats.length - 1, i0 + 1);
+        const frac = pos - i0;
+        resampled[i] = monoFloats[i0] * (1 - frac) + monoFloats[i1] * frac;
+      }
+    }
+
+    const pcmBytes = outSamples * 2;
+    const buffer = new ArrayBuffer(44 + pcmBytes);
+    const view = new DataView(buffer);
+    const writeAscii = (off, str) => {
+      for (let i = 0; i < str.length; i++) view.setUint8(off + i, str.charCodeAt(i));
+    };
+    writeAscii(0, "RIFF");
+    view.setUint32(4, 36 + pcmBytes, true);
+    writeAscii(8, "WAVE");
+    writeAscii(12, "fmt ");
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true); // PCM
+    view.setUint16(22, 1, true); // Mono
+    view.setUint32(24, targetRate, true);
+    view.setUint32(28, targetRate * 2, true);
+    view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true);
+    writeAscii(36, "data");
+    view.setUint32(40, pcmBytes, true);
+
+    for (let i = 0; i < outSamples; i++) {
+      const clamped = Math.max(-1, Math.min(1, resampled[i] || 0));
+      view.setInt16(44 + i * 2, Math.round(clamped * 32767), true);
+    }
+
+    const uint8 = new Uint8Array(buffer);
+    let binary = "";
+    const chunkStep = 0x8000;
+    for (let i = 0; i < uint8.length; i += chunkStep) {
+      binary += String.fromCharCode.apply(null, uint8.subarray(i, i + chunkStep));
+    }
+    const base64 = btoa(binary);
+    const blob = new Blob([buffer], { type: "audio/wav" });
+    return {
+      blob,
+      base64,
+      durationSec: Math.round((outSamples / targetRate) * 100) / 100,
+      resampled,
+    };
+  }
+
+  async function toggleVoiceRecording() {
+    if (isRecordingVoice) {
+      stopVoiceRecording();
+      return;
+    }
+    stopReading();
+    samplePreviewAudioEl.pause();
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      toast("Microphone recording is not available in this window. Use '📂 Import Voice File' instead.", { kind: "error" });
+      return;
+    }
+
+    try {
+      const constraints = {
+        audio: selectedMicDeviceId
+          ? { deviceId: { exact: selectedMicDeviceId }, echoCancellation: false, noiseSuppression: true, autoGainControl: true }
+          : { echoCancellation: false, noiseSuppression: true, autoGainControl: true },
+      };
+      recStream = await navigator.mediaDevices.getUserMedia(constraints);
+      void refreshMicrophoneDevices();
+
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      recAudioCtx = new Ctx();
+      recSampleRate = recAudioCtx.sampleRate || 48000;
+      recSourceNode = recAudioCtx.createMediaStreamSource(recStream);
+      recAnalyserNode = recAudioCtx.createAnalyser();
+      recAnalyserNode.fftSize = 1024;
+      recProcessorNode = recAudioCtx.createScriptProcessor(4096, 1, 1);
+      recFloatChunks = [];
+
+      recProcessorNode.onaudioprocess = (ev) => {
+        if (!isRecordingVoice) return;
+        const ch0 = ev.inputBuffer.getChannelData(0);
+        recFloatChunks.push(new Float32Array(ch0));
+      };
+
+      recSourceNode.connect(recAnalyserNode);
+      recAnalyserNode.connect(recProcessorNode);
+      recProcessorNode.connect(recAudioCtx.destination);
+
+      isRecordingVoice = true;
+      recStartTimeMs = performance.now();
+      recordVoiceBtn.textContent = "⏹ Stop Recording";
+      recordVoiceBtn.classList.add("is-recording");
+      recStateBadge.textContent = "🔴 Recording Live Microphone…";
+      playRecordedSampleBtn.disabled = true;
+      cloneVoiceBtn.disabled = true;
+
+      const timeDomainBuf = new Float32Array(recAnalyserNode.fftSize);
+      const drawLiveOscilloscope = () => {
+        if (!isRecordingVoice || !recAnalyserNode) return;
+        recAnalyserNode.getFloatTimeDomainData(timeDomainBuf);
+        let sumSq = 0;
+        for (let i = 0; i < timeDomainBuf.length; i++) {
+          const s = timeDomainBuf[i];
+          sumSq += s * s;
+        }
+        const rms = Math.sqrt(sumSq / timeDomainBuf.length);
+        const db = rms > 0.0001 ? Math.max(-60, Math.min(0, Math.round(20 * Math.log10(rms)))) : -60;
+        const pct = Math.max(2, Math.min(100, Math.round(((db + 60) / 60) * 100)));
+        recDbMeterFill.style.width = `${pct}%`;
+        recDbLabel.textContent = `${db} dB`;
+
+        const ctx2d = waveformCanvas.getContext("2d");
+        if (ctx2d) {
+          const W = waveformCanvas.width;
+          const H = waveformCanvas.height;
+          ctx2d.fillStyle = "rgba(9, 14, 28, 0.92)";
+          ctx2d.fillRect(0, 0, W, H);
+          ctx2d.strokeStyle = "#fb7185";
+          ctx2d.lineWidth = 2;
+          ctx2d.beginPath();
+          const sliceW = W / timeDomainBuf.length;
+          for (let i = 0; i < timeDomainBuf.length; i++) {
+            const x = i * sliceW;
+            const y = (0.5 - timeDomainBuf[i] * 0.45) * H;
+            if (i === 0) ctx2d.moveTo(x, y);
+            else ctx2d.lineTo(x, y);
+          }
+          ctx2d.stroke();
+        }
+        recRafId = requestAnimationFrame(drawLiveOscilloscope);
+      };
+      recRafId = requestAnimationFrame(drawLiveOscilloscope);
+
+      clearInterval(recTimerId);
+      recTimerId = setInterval(() => {
+        if (!isRecordingVoice) return;
+        const elapsedSec = (performance.now() - recStartTimeMs) / 1000;
+        recTimerLabel.textContent = `00:${elapsedSec < 10 ? "0" : ""}${elapsedSec.toFixed(1)} / 00:15.0`;
+        if (elapsedSec >= 15.0) {
+          stopVoiceRecording();
+        }
+      }, 100);
+    } catch (err) {
+      toast(`Could not access microphone: ${err?.message || "Permission denied"}. You can also click '📂 Import Voice File'.`, { kind: "error" });
+    }
+  }
+
+  function cleanupRecordingAudioGraph() {
+    cancelAnimationFrame(recRafId);
+    recRafId = 0;
+    clearInterval(recTimerId);
+    recTimerId = 0;
+    try { recProcessorNode?.disconnect(); } catch {}
+    try { recAnalyserNode?.disconnect(); } catch {}
+    try { recSourceNode?.disconnect(); } catch {}
+    recProcessorNode = null;
+    recAnalyserNode = null;
+    recSourceNode = null;
+    if (recStream) {
+      for (const track of recStream.getTracks()) {
+        try { track.stop(); } catch {}
+      }
+      recStream = null;
+    }
+    if (recAudioCtx) {
+      void recAudioCtx.close().catch(() => {});
+      recAudioCtx = null;
+    }
+  }
+
+  function stopVoiceRecording() {
+    if (!isRecordingVoice) return;
+    isRecordingVoice = false;
+    recordVoiceBtn.textContent = "🔴 Re-Record My Voice";
+    recordVoiceBtn.classList.remove("is-recording");
+    recDbMeterFill.style.width = "0%";
+
+    const totalLen = recFloatChunks.reduce((acc, c) => acc + c.length, 0);
+    const merged = new Float32Array(totalLen);
+    let offset = 0;
+    for (const c of recFloatChunks) {
+      merged.set(c, offset);
+      offset += c.length;
+    }
+    const capturedRate = recSampleRate;
+    recFloatChunks = [];
+    cleanupRecordingAudioGraph();
+
+    if (merged.length < capturedRate * 1.2) {
+      recStateBadge.textContent = "⚠ Recording too short (< 1.5s)";
+      toast("Please record at least 2–10 seconds of speech so Phonon can capture your voice profile.", { kind: "info" });
+      drawIdleOrStaticWaveform(null);
+      return;
+    }
+
+    const encoded = encodeFloat32ToWav24k(merged, capturedRate);
+    recordedWavBlob = encoded.blob;
+    recordedWavBase64 = encoded.base64;
+    recordedDurationSec = encoded.durationSec;
+    recordedSamplesPreview = encoded.resampled;
+
+    recStateBadge.textContent = `✔ Voice Sample Ready (${recordedDurationSec.toFixed(1)}s · 24 kHz WAV)`;
+    recTimerLabel.textContent = `00:${recordedDurationSec < 10 ? "0" : ""}${recordedDurationSec.toFixed(1)} captured`;
+    playRecordedSampleBtn.disabled = false;
+    cloneVoiceBtn.disabled = false;
+    drawIdleOrStaticWaveform(recordedSamplesPreview, false);
+    toast(`Captured ${recordedDurationSec.toFixed(1)}s voice sample! Click '✨ Create My AI Voice' to clone and use your voice.`, { kind: "success" });
+  }
+
+  async function importVoiceAudioFileFromPicker(file) {
+    stopVoiceRecording();
+    samplePreviewAudioEl.pause();
+    recStateBadge.textContent = `Decoding "${file.name}"…`;
+    try {
+      const arrayBuf = await file.arrayBuffer();
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      const decodeCtx = new Ctx();
+      try {
+        const audioBuffer = await decodeCtx.decodeAudioData(arrayBuf.slice(0));
+        const numCh = audioBuffer.numberOfChannels || 1;
+        const len = audioBuffer.length;
+        const mono = new Float32Array(len);
+        for (let ch = 0; ch < numCh; ch++) {
+          const chData = audioBuffer.getChannelData(ch);
+          for (let i = 0; i < len; i++) {
+            mono[i] += chData[i] / numCh;
+          }
+        }
+        const encoded = encodeFloat32ToWav24k(mono, audioBuffer.sampleRate || 24000);
+        recordedWavBlob = encoded.blob;
+        recordedWavBase64 = encoded.base64;
+        recordedDurationSec = encoded.durationSec;
+        recordedSamplesPreview = encoded.resampled;
+        const stem = stemOf(file.name);
+        if (stem && (!customVoiceNameInput.value.trim() || customVoiceNameInput.value === "My Studio Voice")) {
+          customVoiceNameInput.value = stem.slice(0, 32);
+        }
+        recStateBadge.textContent = `✔ Imported "${file.name}" (${recordedDurationSec.toFixed(1)}s · 24 kHz WAV)`;
+        recTimerLabel.textContent = `00:${recordedDurationSec < 10 ? "0" : ""}${recordedDurationSec.toFixed(1)} imported`;
+        playRecordedSampleBtn.disabled = false;
+        cloneVoiceBtn.disabled = false;
+        drawIdleOrStaticWaveform(recordedSamplesPreview, false);
+        toast(`Loaded voice sample "${file.name}" (${recordedDurationSec.toFixed(1)}s). Click '✨ Create My AI Voice' to use it!`, { kind: "info" });
+      } finally {
+        void decodeCtx.close().catch(() => {});
+      }
+    } catch {
+      toast("Could not decode that audio file in the browser. Please choose a .WAV, .MP3, .M4A, or .OGG file.", { kind: "error" });
+      recStateBadge.textContent = "⚠ Could not decode audio file";
+    }
+  }
+
+  function playCurrentRecordedSample() {
+    stopReading();
+    if (recordedWavBlob) {
+      const url = URL.createObjectURL(recordedWavBlob);
+      samplePreviewAudioEl.src = url;
+      samplePreviewAudioEl.onended = () => URL.revokeObjectURL(url);
+      void samplePreviewAudioEl.play().catch(() => {});
+      return;
+    }
+    const activeCustom = customVoices.find((cv) => cv.id === selectedVoice) || customVoices[0];
+    if (activeCustom?.sampleUrl) {
+      samplePreviewAudioEl.src = audioUrlWithToken(activeCustom.sampleUrl);
+      void samplePreviewAudioEl.play().catch(() => {});
+    }
+  }
+
+  async function createMyAiVoiceNow() {
+    if (isCloningVoice) return;
+    if (!recordedWavBase64) {
+      toast("Record your voice or import a voice audio file first.", { kind: "info" });
+      return;
+    }
+    const voiceName = customVoiceNameInput.value.trim() || "My Studio Voice";
+    isCloningVoice = true;
+    cloneVoiceBtn.disabled = true;
+    cloneVoiceBtn.textContent = "⏳ Cloning Your Real Voice with F5-TTS MLX…";
+    recStateBadge.textContent = "🧬 Aligning Voice Sample (Whisper ASR) & Building Zero-Shot Neural Clone…";
+
+    try {
+      const res = await call("phonon/clone-voice", {
+        name: voiceName,
+        audioBase64: recordedWavBase64,
+      });
+      const created = res.voice;
+      customVoices = res.voices || [];
+      selectedVoice = created.id;
+      chunkAudioCache.clear();
+      await refreshStatus();
+      selectedVoice = created.id;
+      voiceSelect.value = created.id;
+      updateVoiceDropdown();
+      renderCustomVoicesList();
+      renderActiveVoiceFingerprint();
+      recStateBadge.textContent = `✨ AI Voice "${created.label}" Ready (${created.profile.medianF0Hz} Hz · ${created.profile.voiceRegister})`;
+      toast(`Created your AI voice "${created.label}" (${created.profile.medianF0Hz} Hz ${created.profile.voiceRegister})! Click Read Out Loud to hear your voice.`, { kind: "success" });
+      announce(`Created custom AI voice ${created.label}`);
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "Could not create custom AI voice.";
+      recStateBadge.textContent = `⚠ ${msg}`;
+      toast(msg, { kind: "error" });
+    } finally {
+      isCloningVoice = false;
+      cloneVoiceBtn.disabled = !recordedWavBase64;
+      cloneVoiceBtn.textContent = "✨ Create My AI Voice & Use for Reading";
+    }
+  }
+
+  async function removeCustomVoiceById(voiceId, label) {
+    try {
+      stopReading();
+      const res = await call("phonon/delete-voice", { id: voiceId });
+      customVoices = res.voices || [];
+      chunkAudioCache.clear();
+      await refreshStatus();
+      toast(`Removed custom voice "${label || voiceId}".`, { kind: "info" });
+    } catch (err) {
+      toast(err instanceof ApiError ? err.message : "Could not delete custom voice.", { kind: "error" });
+    }
+  }
+
+  function renderActiveVoiceFingerprint() {
+    clear(voiceFingerprintBox);
+    const activeCustom = customVoices.find((cv) => cv.id === selectedVoice) || customVoices[0];
+    if (!activeCustom || !activeCustom.profile) {
+      voiceFingerprintBox.hidden = true;
+      return;
+    }
+    voiceFingerprintBox.hidden = false;
+    const p = activeCustom.profile;
+    const blendBadges = (p.blendComponents || []).map((c) =>
+      h("span", { class: "phonon-pill ok" }, `${c.voiceId}: ${Math.round(c.weight * 100)}% (${c.f0Hz} Hz)`),
+    );
+
+    voiceFingerprintBox.append(
+      h("div", { class: "phonon-fingerprint-head" },
+        h("strong", {}, `🧬 Acoustic Voice Biometric Profile — "${activeCustom.label}" (${activeCustom.id})`),
+        h("span", { class: "phonon-pill ok" },
+          activeCustom.cloningEngine === "f5-tts-mlx"
+            ? "✔ Zero-Shot Neural Voice Clone (F5-TTS MLX · 24 kHz)"
+            : activeCustom.ollamaRegistered
+              ? "✔ Registered in Ollama Phonon ([1, 512, 125] F32 Safetensors)"
+              : `✔ Calibrated Neural Profile (${activeCustom.baseVoiceId})`,
+        ),
+      ),
+      h("div", { class: "phonon-fingerprint-grid" },
+        h("div", { class: "phonon-fingerprint-stat" },
+          h("span", { class: "phonon-fingerprint-label" }, "Fundamental Pitch (F0)"),
+          h("strong", { class: "phonon-fingerprint-val" }, `${p.medianF0Hz} Hz (${p.f0MinHz}–${p.f0MaxHz} Hz)`),
+          h("span", { class: "hint" }, `${p.voiceRegister} · ±${p.f0StdSemitones} st inflection`),
+        ),
+        h("div", { class: "phonon-fingerprint-stat" },
+          h("span", { class: "phonon-fingerprint-label" }, "Spectral Timbre & Formants"),
+          h("strong", { class: "phonon-fingerprint-val" }, `${p.spectralCentroidHz} Hz (${p.timbreLabel})`),
+          h("span", { class: "hint" }, `Low ${Math.round((p.formantBands?.low || 0) * 100)}% · Mid ${Math.round(((p.formantBands?.midLow || 0) + (p.formantBands?.midHigh || 0)) * 100)}% · Air ${Math.round((p.formantBands?.air || 0) * 100)}%`),
+        ),
+        h("div", { class: "phonon-fingerprint-stat" },
+          h("span", { class: "phonon-fingerprint-label" }, "Zero-Shot Voice Cloning Engine"),
+          h("strong", { class: "phonon-fingerprint-val" }, activeCustom.cloningEngine === "f5-tts-mlx" ? "F5-TTS MLX (Direct Reference Audio)" : `${p.speakingRateSylPerSec} syl/sec · ${p.snrDb} dB SNR`),
+          h("span", { class: "hint" }, activeCustom.refTranscript ? `Ref: "${activeCustom.refTranscript}"` : `Closed-Loop F0 Lock (${p.medianF0Hz} Hz) + 4-Band Formant Transfer`),
+        ),
+      ),
+      h("div", { class: "phonon-fingerprint-blend-row" },
+        h("span", { class: "hint" }, activeCustom.cloningEngine === "f5-tts-mlx" ? "Conditioned directly on your recorded 24 kHz voice waveform · Fallback Tensor:" : "AdaIN [1, 512, 125] Neural Latent Blend:"),
+        ...blendBadges,
+      ),
+    );
+  }
+
+  function renderCustomVoicesList() {
+    clear(customVoicesListBox);
+    if (!customVoices.length) {
+      customVoicesListBox.hidden = true;
+      return;
+    }
+    customVoicesListBox.hidden = false;
+    customVoicesListBox.append(
+      h("div", { class: "phonon-custom-voices-head" },
+        h("strong", {}, `🎙️ My Recorded AI Voices (${customVoices.length})`),
+        h("span", { class: "hint" }, "Select any of your recorded voices below to read documents aloud or export audio & video in your own voice."),
+      ),
+    );
+
+    const rowsWrap = h("div", { class: "phonon-custom-voices-rows" });
+    for (const cv of customVoices) {
+      const isSelected = cv.id === selectedVoice;
+      rowsWrap.append(
+        h("div", { class: `phonon-custom-voice-row${isSelected ? " is-active" : ""}` },
+          h("div", { class: "phonon-custom-voice-info" },
+            h("div", { class: "phonon-inline-row" },
+              h("strong", {}, `🎙️ ${cv.label}`),
+              h("code", { class: "phonon-cli-badge" }, `--voice ${cv.id}`),
+              isSelected ? h("span", { class: "phonon-pill ok" }, "★ Active Voice") : null,
+            ),
+            h("span", { class: "hint" }, `${cv.profile?.medianF0Hz || 160} Hz ${cv.profile?.voiceRegister || ""} · ${cv.profile?.timbreLabel || ""} · ${cv.durationSec}s sample`),
+          ),
+          h("div", { class: "phonon-inline-row" },
+            h("button", {
+              type: "button",
+              class: `btn phonon-sm-btn${isSelected ? " primary" : ""}`,
+              onclick: () => {
+                selectedVoice = cv.id;
+                voiceSelect.value = cv.id;
+                updateVoiceDropdown();
+                renderStatusBanner();
+                renderCustomVoicesList();
+                renderActiveVoiceFingerprint();
+                void saveAsDefaultVoice();
+              },
+            }, isSelected ? "✓ Using Voice" : "Use My Voice"),
+            h("button", {
+              type: "button",
+              class: "btn phonon-sm-btn",
+              title: "Listen to your original recorded microphone sample",
+              onclick: () => {
+                stopReading();
+                samplePreviewAudioEl.src = audioUrlWithToken(cv.sampleUrl);
+                void samplePreviewAudioEl.play().catch(() => {});
+              },
+            }, "🎧 My Recording"),
+            h("button", {
+              type: "button",
+              class: "btn phonon-sm-btn",
+              title: "Synthesize speech using your cloned AI voice",
+              onclick: () => {
+                selectedVoice = cv.id;
+                voiceSelect.value = cv.id;
+                updateVoiceDropdown();
+                renderCustomVoicesList();
+                renderActiveVoiceFingerprint();
+                void previewSelectedVoice();
+              },
+            }, "🔊 Preview AI Voice"),
+            h("button", {
+              type: "button",
+              class: "btn phonon-sm-btn",
+              title: "Delete this custom voice",
+              onclick: () => removeCustomVoiceById(cv.id, cv.label),
+            }, "🗑"),
+          ),
+        ),
+      );
+    }
+    customVoicesListBox.append(rowsWrap);
+  }
+
+  updateCalibrationScriptUI();
+  drawIdleOrStaticWaveform(null);
+  void refreshMicrophoneDevices();
+
   // Event listeners for controls
   voiceSelect.addEventListener("change", () => {
     selectedVoice = voiceSelect.value;
@@ -1472,6 +2224,8 @@ function mountPhononStudio(root, payload) {
     voiceDescEl.textContent = currentInfo ? `${currentInfo.category}: ${currentInfo.desc}` : "";
     renderStatusBanner();
     renderChunkList();
+    renderCustomVoicesList();
+    renderActiveVoiceFingerprint();
   });
 
   formatSelect.addEventListener("change", () => {
@@ -1595,6 +2349,56 @@ function mountPhononStudio(root, payload) {
         ),
         pauseSlider,
       ),
+    ),
+    // AI Voice Recorder & Voice Cloning Studio Box
+    h("div", { class: "phonon-voice-recorder-box" },
+      h("div", { class: "phonon-recorder-head" },
+        h("div", { class: "phonon-inline-row" },
+          h("strong", { class: "phonon-recorder-title" }, "🎙️ AI Voice Recorder — Record & Clone Your Own Voice for Reading"),
+          h("span", { class: "hint" }, "Record 5–15 seconds of your voice (or import a WAV/MP3/M4A sample) to synthesize a custom [1, 512, 125] Phonon voice embedding."),
+        ),
+        recStateBadge,
+      ),
+      h("div", { class: "phonon-grid-3" },
+        h("div", { class: "phonon-field" },
+          h("label", { class: "phonon-label", for: "phonon-custom-voice-name" }, "Your Custom AI Voice Name"),
+          customVoiceNameInput,
+        ),
+        h("div", { class: "phonon-field" },
+          h("label", { class: "phonon-label", for: "phonon-mic-select" }, "Microphone Input"),
+          h("div", { class: "phonon-inline-row" },
+            micDeviceSelect,
+            h("button", {
+              type: "button",
+              class: "btn phonon-sm-btn",
+              title: "Refresh available microphones",
+              onclick: () => refreshMicrophoneDevices(),
+            }, "↻"),
+          ),
+        ),
+        h("div", { class: "phonon-field" },
+          h("label", { class: "phonon-label", for: "phonon-calibration-script" }, "Calibration Reading Script"),
+          calibrationScriptSelect,
+        ),
+      ),
+      calibrationPromptBox,
+      h("div", { class: "phonon-waveform-row" },
+        waveformCanvas,
+        h("div", { class: "phonon-meter-col" },
+          recTimerLabel,
+          h("div", { class: "phonon-db-meter-track" }, recDbMeterFill),
+          recDbLabel,
+        ),
+      ),
+      h("div", { class: "phonon-recorder-actions" },
+        recordVoiceBtn,
+        playRecordedSampleBtn,
+        importVoiceFileBtn,
+        hiddenVoiceFileInput,
+        cloneVoiceBtn,
+      ),
+      voiceFingerprintBox,
+      customVoicesListBox,
     ),
   );
 
@@ -1850,12 +2654,16 @@ function mountPhononStudio(root, payload) {
     },
     hide() {
       if (isPlaying && !isPaused) togglePauseReading();
+      if (isRecordingVoice) stopVoiceRecording();
+      samplePreviewAudioEl.pause();
     },
     onPayload(nextPayload) {
       applyPayload(nextPayload);
     },
     dispose() {
       stopReading();
+      cleanupRecordingAudioGraph();
+      samplePreviewAudioEl.pause();
       offFolder?.();
     },
   };

@@ -82,6 +82,14 @@ export function renderSidebar() {
       }));
     }
   }
+  places.push(sideItem({
+    icon: "🤖",
+    label: "Ollama AI",
+    placeId: "ollama",
+    title: "Built-In Ollama AI Assistant & Full Capability Router — Chat, Deep Thinking, Vision, SystemOne Decision, Text-to-Audio LLMs, Meaning Search, Web Search & 1-Click Auto-Install",
+    active: state.powerOpen && state.powerTab === "ollama",
+    onClick: () => openPower("ollama"),
+  }));
   const activeDrive = here ? driveFor(here, state.drives, state.sep) : null;
   const placeMatch = here !== null && [...state.places, ...(state.cliUtilsDir ? [{ path: state.cliUtilsDir }] : []), ...state.settings.favorites.map((path) => ({ path }))].some((p) => same(p.path));
   const drives = state.drives.map((d) => sideItem({

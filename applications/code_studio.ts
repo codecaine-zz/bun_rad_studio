@@ -557,6 +557,9 @@ export function startCodeStudioServer(options: CodeServerOptions = {}) {
           }
 
           const execCwd = body.cwd ? resolve(workspaceRoot, body.cwd) : workspaceRoot;
+          if (!isInsideWorkspace(workspaceRoot, execCwd)) {
+            return Response.json({ success: false, error: "Access denied: cwd outside workspace" }, { status: 403, headers: corsHeaders });
+          }
           const startTime = performance.now();
 
           const command = process.platform === "win32"

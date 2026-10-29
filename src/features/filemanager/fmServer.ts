@@ -50,6 +50,7 @@ import { cliUtilsDir, cliUtilsOperations, ensureCliUtilsFolder, findCliSourceRoo
 import { taskManagerOperations } from "./fmTaskManagerOps";
 import { sysinfoOperations } from "./fmSysinfoOps";
 import { PHONON_OPS, getCachedAudioFile, isPhononSupportedPlatform } from "./fmPhonon";
+import { OLLAMA_OPS, getCachedOllamaAudioFile, handleOllamaStreamRequest } from "./fmOllama";
 import type { HostedPeer, HostedSession } from "../../simplegui_host";
 import { dbState } from "./fmDbState";
 import { watchOperations } from "./fmWatchOps";
@@ -560,7 +561,7 @@ Object.assign(operations, hostedStudioOperations);
 // Fast, resumable downloads split over several connections.
 Object.assign(operations, downloadOperations);
 // Built-in RAD Studio command-line utilities folder and catalog.
-Object.assign(operations, cliUtilsOperations, taskManagerOperations, sysinfoOperations, PHONON_OPS);
+Object.assign(operations, cliUtilsOperations, taskManagerOperations, sysinfoOperations, PHONON_OPS, OLLAMA_OPS);
 
 export const API_OPERATIONS = Object.keys(operations);
 
@@ -643,7 +644,8 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
   const server = Bun.serve<TerminalSocketData | HostedSocketData>({
     port: options.port ?? 0,
     hostname: options.host ?? "127.0.0.1",
-    maxRequestBodySize: MAX_BODY_BYTES + 1024,
+    maxRequestBodySize: 32 * 1024 * 1024,
+    idleTimeout: 255,
     websocket: {
       open(ws) {
         if ("kind" in ws.data) {
@@ -733,6 +735,9 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
       },
     },
     async fetch(req, srv) {
+      try {
+        srv.timeout(req, 0);
+      } catch {}
       const blocked = guardLocalRequest(req);
       if (blocked) return blocked;
       const url = new URL(req.url);
@@ -763,10 +768,13 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
         }
         // Anything else is only for this window's own address, so a page on the calculator's origin can't reach the token.
         if (url.hostname.toLowerCase() !== primaryHostname) return new Response("Not Found", { status: 404, headers: secureHeaders() });
-        if (req.method === "GET" && (path === "/" || path === "/index.html")) {
+        if ((req.method === "GET" || req.method === "HEAD") && (path === "/" || path === "/index.html")) {
           const file = nodePath.join(assets, "index.html");
           const st = await fsp.stat(file).catch(() => null);
           if (!st?.isFile()) return new Response("The File Manager page is missing.", { status: 500 });
+          if (req.method === "HEAD") {
+            return new Response(null, { status: 200, headers: secureHeaders({ "Content-Type": MIME.html! }) });
+          }
           if (st.mtimeMs !== cachedIndexMtime || !cachedIndexTemplate) {
             const rawHtml = await fsp.readFile(file, "utf8");
             cachedIndexTemplate = rawHtml
@@ -823,6 +831,21 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
           const st = await fsp.stat(wavFile).catch(() => null);
           if (!st?.isFile()) return json(404, { ok: false, error: { code: "NOT_FOUND", message: "Audio chunk not found." } });
           return fileResponse(req, wavFile, st.size, secureHeaders({ "Content-Type": "audio/wav", "Cache-Control": "private, max-age=600" }));
+        }
+
+        if (req.method === "GET" && path === "/api/ollama/audio") {
+          if (!tokenMatches(url.searchParams.get("token"), token)) return json(401, { ok: false, error: { code: "NO_TOKEN", message: "Not allowed." } });
+          const audioId = url.searchParams.get("id") ?? "";
+          const cached = getCachedOllamaAudioFile(audioId);
+          if (!cached) return json(404, { ok: false, error: { code: "NOT_FOUND", message: "Speech audio expired or not found." } });
+          const st = await fsp.stat(cached.absPath).catch(() => null);
+          if (!st?.isFile()) return json(404, { ok: false, error: { code: "NOT_FOUND", message: "Speech audio file not found." } });
+          return fileResponse(req, cached.absPath, st.size, secureHeaders({ "Content-Type": cached.mime, "Cache-Control": "private, max-age=600" }));
+        }
+
+        if (req.method === "POST" && path === "/api/ollama/stream") {
+          if (!tokenMatches(req.headers.get("x-fm-token"), token)) return json(401, { ok: false, error: { code: "NO_TOKEN", message: "Not allowed. Reload the File Manager window." } });
+          return await handleOllamaStreamRequest(ctx, req);
         }
 
         if (req.method === "GET" && path === "/api/raw") {
@@ -892,10 +915,11 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
           const handler = Object.prototype.hasOwnProperty.call(operations, op) ? operations[op] : undefined;
           if (!handler) return json(404, { ok: false, error: { code: "UNKNOWN_OPERATION", message: "Unknown operation." } });
           if (!(req.headers.get("content-type") ?? "").toLowerCase().startsWith("application/json")) return json(415, { ok: false, error: { code: "NOT_JSON", message: "Requests must be JSON." } });
+          const maxBodyBytes = op === "phonon/clone-voice" || op.startsWith("ollama/") ? 8 * 1024 * 1024 : MAX_BODY_BYTES;
           const declared = Number(req.headers.get("content-length") ?? 0);
-          if (declared > MAX_BODY_BYTES) return json(413, { ok: false, error: { code: "TOO_LARGE", message: "That request is too large." } });
+          if (declared > maxBodyBytes) return json(413, { ok: false, error: { code: "TOO_LARGE", message: "That request is too large." } });
           const text = await req.text();
-          if (text.length > MAX_BODY_BYTES) return json(413, { ok: false, error: { code: "TOO_LARGE", message: "That request is too large." } });
+          if (text.length > maxBodyBytes) return json(413, { ok: false, error: { code: "TOO_LARGE", message: "That request is too large." } });
           let body: Record<string, any>;
           try {
             body = text ? JSON.parse(text) : {};

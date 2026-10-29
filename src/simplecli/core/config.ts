@@ -60,17 +60,22 @@ export class ConfigStore {
       const parts = key.split('.');
       let curr: any = this.data;
       for (const p of parts) {
+        if (p === '__proto__' || p === 'constructor' || p === 'prototype') return defaultVal as T;
         if (curr === undefined || curr === null) return defaultVal as T;
         curr = curr[p];
       }
       return curr !== undefined ? curr : (defaultVal as T);
     }
+    if (key === '__proto__' || key === 'constructor' || key === 'prototype') return defaultVal as T;
     return this.data[key] !== undefined ? this.data[key] : (defaultVal as T);
   }
 
   public set(key: string, value: any): this {
     if (key.includes('.')) {
       const parts = key.split('.');
+      if (parts.some((p) => p === '__proto__' || p === 'constructor' || p === 'prototype')) {
+        return this;
+      }
       let curr: any = this.data;
       for (let i = 0; i < parts.length - 1; i++) {
         const p = parts[i] || '';
@@ -82,6 +87,7 @@ export class ConfigStore {
       const lastKey = parts[parts.length - 1] || '';
       curr[lastKey] = value;
     } else {
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') return this;
       this.data[key] = value;
     }
     this.save();

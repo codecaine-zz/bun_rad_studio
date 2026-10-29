@@ -79,7 +79,9 @@ export class Stdlib {
       const salt = parts[2] || '';
       const expected = parts[3] || '';
       const actual = crypto.pbkdf2Sync(password, salt, 1000, 32, 'sha256').toString('hex');
-      return actual === expected;
+      const aBuf = Buffer.from(actual, 'utf8');
+      const bBuf = Buffer.from(expected, 'utf8');
+      return aBuf.length === bBuf.length && crypto.timingSafeEqual(aBuf, bBuf);
     }
     return false;
   }
@@ -553,11 +555,13 @@ export class Stdlib {
 
       if (line.startsWith('[') && line.endsWith(']')) {
         const sectionName = line.slice(1, -1).trim();
+        if (sectionName === '__proto__' || sectionName === 'constructor' || sectionName === 'prototype') continue;
         result[sectionName] = {};
         currentSection = result[sectionName];
       } else if (line.includes('=')) {
         const [k = '', ...rest] = line.split('=');
         const key = k.trim();
+        if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
         let val: any = rest.join('=').trim();
         if (val.startsWith('"') && val.endsWith('"')) {
           val = val.slice(1, -1);
@@ -647,13 +651,24 @@ export class Stack<T> {
 
 export class Queue<T> {
   private items: T[] = [];
+  private head = 0;
   public enqueue(item: T): void { this.items.push(item); }
-  public dequeue(): T | undefined { return this.items.shift(); }
-  public peek(): T | undefined { return this.items[0]; }
-  public isEmpty(): boolean { return this.items.length === 0; }
-  public size(): number { return this.items.length; }
-  public toArray(): T[] { return [...this.items]; }
-  public clear(): void { this.items = []; }
+  public dequeue(): T | undefined {
+    if (this.head >= this.items.length) return undefined;
+    const item = this.items[this.head];
+    this.items[this.head] = undefined as any;
+    this.head++;
+    if (this.head > 64 && this.head * 2 >= this.items.length) {
+      this.items = this.items.slice(this.head);
+      this.head = 0;
+    }
+    return item;
+  }
+  public peek(): T | undefined { return this.items[this.head]; }
+  public isEmpty(): boolean { return this.head >= this.items.length; }
+  public size(): number { return this.items.length - this.head; }
+  public toArray(): T[] { return this.items.slice(this.head); }
+  public clear(): void { this.items = []; this.head = 0; }
 }
 
 export class SetCollection<T> {

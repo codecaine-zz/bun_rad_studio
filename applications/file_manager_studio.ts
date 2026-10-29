@@ -25,7 +25,7 @@ import type { Webview } from "webview-bun";
 import { delimiter, resolve } from "path";
 import { APP_NAME, startFileManagerServer, type FileManagerServerOptions } from "../src/features/filemanager/fmServer";
 import { openManagedWindow } from "../src/features/filemanager/fmWindowControl";
-import { resetWindowPrefs, windowDataDir } from "../src/features/filemanager/fmWindow";
+import { readWindowPrefs, reduceReport, resetWindowPrefs, sanitizeWindowState, windowDataDir, writeWindowPrefs } from "../src/features/filemanager/fmWindow";
 import { createWindowNative } from "../src/windowNative";
 import { openCommand } from "../src/features/filemanager/fmOpen";
 import { DESKTOP_SHORTCUTS_SCRIPT } from "../src/shared/desktopShortcuts";
@@ -222,13 +222,41 @@ export function createFileManagerStudio(options: FileManagerStudioOptions = {}):
         app.webview = webview;
         webview.init(DESKTOP_SHORTCUTS_SCRIPT);
         const native = createWindowNative(webview, () => title);
+        const persistCurrentFrame = (overrideFullscreen?: boolean) => {
+          if (fixedSize) return;
+          try {
+            const frame = native.getFrame();
+            if (!frame) return;
+            const full = overrideFullscreen !== undefined ? overrideFullscreen : frame.fullscreen;
+            const dataDir = windowDataDir(options.context);
+            const current = readWindowPrefs(dataDir);
+            if (current.mode === "fullscreen" && full) return;
+            const primary = native.getScreens()[0];
+            const nextState = sanitizeWindowState({
+              ...frame,
+              fullscreen: full,
+              maximized: full ? false : frame.maximized,
+              screenWidth: current.state?.screenWidth ?? primary?.width ?? frame.width,
+              screenHeight: current.state?.screenHeight ?? primary?.height ?? frame.height,
+              dpr: current.state?.dpr ?? 2,
+            });
+            if (!nextState) return;
+            const r = reduceReport(current, nextState);
+            if (r.save) writeWindowPrefs(dataDir, r.prefs);
+          } catch {}
+        };
         webview.bind("toggleNativeFullscreen", () => {
           const frame = native.getFrame();
           if (!frame) throw new Error("The window's fullscreen state could not be read.");
-          if (!native.setFullscreen(!frame.fullscreen)) throw new Error("Fullscreen could not be changed.");
+          const target = !frame.fullscreen;
+          if (!native.setFullscreen(target)) throw new Error("Fullscreen could not be changed.");
+          persistCurrentFrame(target);
         });
         // The window has no menu bar, so the page asks for these (Ctrl/Cmd+W and Ctrl/Cmd+Q).
-        webview.bind("closeApp", stop);
+        webview.bind("closeApp", () => {
+          persistCurrentFrame();
+          stop();
+        });
         webview.navigate(app.url);
         console.log("📁 Window open. Press Ctrl+W (Cmd+W on a Mac) or close the window to quit.");
         webview.run();

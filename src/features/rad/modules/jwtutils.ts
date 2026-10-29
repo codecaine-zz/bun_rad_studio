@@ -1,4 +1,4 @@
-import { createHmac } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 
 function base64UrlEncodeJson(obj: unknown): string {
   return Buffer.from(JSON.stringify(obj)).toString("base64url");
@@ -35,10 +35,16 @@ export function verifyJwt<T = Record<string, any>>(token: string, secret: string
   }
 
   const [headerB64, payloadB64, signature] = parts;
+  const header = base64UrlDecodeJson<any>(headerB64!);
+  if (!header || header.alg !== "HS256") {
+    throw new Error("[jwtutils] Unsupported or missing JWT algorithm");
+  }
   const signingInput = `${headerB64}.${payloadB64}`;
   const expectedSig = createHmac("sha256", secret).update(signingInput).digest("base64url");
 
-  if (signature !== expectedSig) {
+  const sigBuf = Buffer.from(signature ?? "", "utf8");
+  const expBuf = Buffer.from(expectedSig, "utf8");
+  if (sigBuf.length !== expBuf.length || !timingSafeEqual(sigBuf, expBuf)) {
     throw new Error("[jwtutils] Invalid JWT token signature");
   }
 

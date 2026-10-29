@@ -1840,32 +1840,41 @@ export class SqliteManager {
       let conditionMet = true;
       let conditionError: string | null = null;
       const forbiddenMacroRe =
-        /\b(?:process\s*\.|Bun\s*\.\s*(?:spawn|spawnSync|serve|file|write|env|dlopen|mmap)|globalThis\b|require\s*\(|import\s*\(|child_process\b|Function\s*\(|eval\s*\()/;
+        /(?:\b(?:process\b|Bun\b|globalThis\b|Reflect\b|Proxy\b|constructor\b|__proto__\b|prototype\b|require\s*\(|import\s*\(|child_process\b|Function\b|eval\b|WebSocket\b|XMLHttpRequest\b|fetch\b|Worker\b|Deno\b)|\[\s*(?:['"`]|[^\]]*\+))/;
       if (act.condition && act.condition.trim()) {
         try {
           let expr = act.condition.trim();
-          if (forbiddenMacroRe.test(expr)) {
-            throw new Error("Macro condition references restricted host or process APIs");
-          }
           expr = expr.replace(/\[([a-zA-Z0-9_]+)\]/g, (_, vName) => {
-            if (vName in variables) {
+            if (Object.prototype.hasOwnProperty.call(variables, vName)) {
               const val = variables[vName];
               return typeof val === "number" || typeof val === "boolean" ? String(val) : JSON.stringify(val);
             }
             return "0";
           });
+          if (forbiddenMacroRe.test(expr) || /[;\[\]]/.test(expr)) {
+            throw new Error("Macro condition references restricted host or process APIs");
+          }
+          const safeKeys = Object.keys(variables).filter(
+            (k) =>
+              /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(k) &&
+              k !== "constructor" &&
+              k !== "__proto__" &&
+              k !== "prototype" &&
+              k !== "eval" &&
+              k !== "arguments",
+          );
+          const safeVals = safeKeys.map((k) => variables[k]);
           const fn = new Function(
-            "vars",
             "process",
             "globalThis",
             "global",
             "Bun",
             "Function",
-            "eval",
             "require",
-            `with(vars) { return Boolean(${expr}); }`,
+            ...safeKeys,
+            `"use strict"; return Boolean(${expr});`,
           );
-          conditionMet = Boolean(fn(variables, undefined, undefined, undefined, undefined, undefined, undefined, undefined));
+          conditionMet = Boolean(fn.call(null, undefined, undefined, undefined, undefined, undefined, undefined, ...safeVals));
         } catch (err: any) {
           conditionError = `Invalid condition [${act.condition}]: ${err?.message || err}`;
         }

@@ -427,6 +427,42 @@ describe("opening the window", () => {
     expect(only(f.log, ["maximize"]).length).toBe(2); // the page's next poll tries again
   });
 
+  test("if pre-runloop full screen is dropped by macOS before the window loop starts, poll() re-enters full screen and entering full screen persists immediately", () => {
+    const dir = folder();
+    writeWindowPrefs(dir, { mode: "remember", state: state({ fullscreen: true }) });
+    let isFull = false;
+    let callCount = 0;
+    const f = fakeNative({
+      frame: () => ({ x: 100, y: 80, width: 1000, height: 700, maximized: false, fullscreen: isFull }),
+    });
+    f.native.setFullscreen = (on) => {
+      f.log.push(`fullscreen:${on}`);
+      callCount++;
+      // Simulate macOS ignoring the pre-runloop call (#1) and accepting the in-runloop poll() call (#2)
+      if (callCount >= 2) isFull = on;
+      return true;
+    };
+    const c = createWindowController({ native: f.native, dataDir: dir });
+    c.open(c.plan());
+    expect(only(f.log, ["fullscreen:true"]).length).toBe(1);
+    expect(isFull).toBe(false);
+    const polled = c.poll();
+    expect(only(f.log, ["fullscreen:true"]).length).toBe(2);
+    expect(polled?.fullscreen).toBe(true);
+
+    // Entering full screen from normal/fill mode persists fullscreen:true on the next poll even during the grace period
+    const dir2 = folder();
+    let full2 = false;
+    const f2 = fakeNative({
+      frame: () => ({ x: 224, y: 77, width: 1280, height: 820, maximized: false, fullscreen: full2 }),
+    });
+    const c2 = createWindowController({ native: f2.native, dataDir: dir2 });
+    c2.open(c2.plan());
+    full2 = true;
+    c2.poll();
+    expect(readWindowPrefs(dir2)).toMatchObject({ mode: "remember", state: { fullscreen: true } });
+  });
+
   test("a native call that throws never stops the window from opening: the others still happen and it is shown", () => {
     for (const call of ["screens", "hide", "setBounds", "maximize", "show", "getFrame"]) {
       const f = fakeNative({ throwOn: [call] });

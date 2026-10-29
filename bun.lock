@@ -110,7 +110,7 @@
 
     "symbol-tree": ["symbol-tree@3.2.4", "", {}, "sha512-9QNk5KwDF+Bvz+PyObkmSYjI5ksVUYtjW7AU22r2NKcfLJcXp96hkDWU3+XndOsUb+AQ9QhfzfCT2O+CNWT5Tw=="],
 
-    "systeminformation": ["systeminformation@5.33.12", "", { "os": "!aix", "bin": { "systeminformation": "lib/cli.js" } }, "sha512-7x1LtTPaopmrXUJmnxW6I98YIDihwiZEETD+hzI9X/GGIghcz8r38vlZ+TAqwQTOhPuZPB1xn/AJ2GPzvn9JfQ=="],
+    "systeminformation": ["systeminformation@5.33.14", "", { "os": "!aix", "bin": { "systeminformation": "lib/cli.js" } }, "sha512-9liS0hutibZOitbibm90AK3WZe/1rGhNGZSw+/4TbY5moax6KkWwv1TKJmk9uSOD4bvPPg57VAuuNN+4edIpBg=="],
 
     "tldts": ["tldts@7.4.18", "", { "dependencies": { "tldts-core": "^7.4.18" }, "bin": { "tldts": "bin/cli.js" } }, "sha512-somxA8xKAUzlAxl0TX/jMSYIbRNFIVGnI96pVGJPeMc5BsHmfVXn6mOJT6U++ELnl04eGfzpfcEuZe8WiASkXg=="],
 
@@ -122,7 +122,7 @@
 
     "typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
-    "undici": ["undici@7.30.0", "", {}, "sha512-dkrQXeHSaoamnItlYbmzG0wFYrM0ZwDxCIg0A7aKjTyyhh9svRzCNFEzV+Vm05/yehjCzjDZ31KXfGEjYSztDQ=="],
+    "undici": ["undici@7.30.1", "", {}, "sha512-03KrMbjIFDWQR5RNPrSw3bd1r12JpyFQl9/yxjUbJtqkjmllqC5lFjZh6ujeuJCKr8EOQvRW872Oy/az+nLYxg=="],
 
     "undici-types": ["undici-types@8.3.0", "", {}, "sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ=="],
 

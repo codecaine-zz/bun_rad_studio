@@ -105,20 +105,26 @@ export async function scanItem(
   if (maxDepth === undefined || depth < maxDepth) {
     try {
       const entries = await readdir(itemPath, { withFileTypes: true });
-      for (const entry of entries) {
+      const activeEntries = entries.filter((entry) => {
         const childPath = join(itemPath, entry.name);
-        if (shouldIgnoreItem(entry.name, childPath, ignoreDirs, noHidden)) {
-          continue;
-        }
-        try {
-          const child = await scanItem(childPath, entry.name, ignoreDirs, noHidden, depth + 1, maxDepth);
-          totalSize += child.size;
-          totalCount += child.itemCount;
-          if (child.mtime > latestMtime) latestMtime = child.mtime;
-          children.push(child);
-        } catch {
-          // Permission or broken link
-        }
+        return !shouldIgnoreItem(entry.name, childPath, ignoreDirs, noHidden);
+      });
+      const scannedChildren = await Promise.all(
+        activeEntries.map(async (entry) => {
+          const childPath = join(itemPath, entry.name);
+          try {
+            return await scanItem(childPath, entry.name, ignoreDirs, noHidden, depth + 1, maxDepth);
+          } catch {
+            return null;
+          }
+        }),
+      );
+      for (const child of scannedChildren) {
+        if (!child) continue;
+        totalSize += child.size;
+        totalCount += child.itemCount;
+        if (child.mtime > latestMtime) latestMtime = child.mtime;
+        children.push(child);
       }
     } catch {
       // Unreadable dir

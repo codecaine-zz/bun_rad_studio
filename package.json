@@ -272,7 +272,7 @@
   "dependencies": {
     "prettier": "^3.9.10",
     "sql-formatter": "^15.9.0",
-    "systeminformation": "^5.33.12",
+    "systeminformation": "^5.33.14",
     "webview-bun": "^2.4.0"
   },
   "patchedDependencies": {

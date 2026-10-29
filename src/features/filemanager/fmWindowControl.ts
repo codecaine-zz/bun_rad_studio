@@ -95,6 +95,8 @@ export function createWindowController(options: WindowControllerOptions): Window
   let screens: FmScreen[] | null = null;
   let fillRetries = 0;
   let fillPending = false;
+  let fullscreenPending = false;
+  let leavingFullscreen = false;
 
   const getScreens = () => (screens ??= guard(() => native.getScreens(), []));
   const startGrace = () => {
@@ -106,9 +108,11 @@ export function createWindowController(options: WindowControllerOptions): Window
   function fill(): boolean {
     const frame = guard(() => native.getFrame(), null);
     if (frame?.fullscreen) {
+      leavingFullscreen = true;
       guard(() => native.setFullscreen(false), false);
       return false;
     }
+    leavingFullscreen = false;
     if (guard(() => native.maximize(), false)) return true;
     // Maximising isn't possible (yet): at least make the window as big as the usable screen.
     const work = workArea();
@@ -134,6 +138,8 @@ export function createWindowController(options: WindowControllerOptions): Window
         if (!guard(() => native.setFullscreen(true), false)) {
           if (plan.work) guard(() => native.setBounds({ x: plan.work!.x, y: plan.work!.y, width: plan.work!.width, height: plan.work!.height }), undefined);
           fillPending = true;
+        } else {
+          fullscreenPending = true;
         }
       }
       if (loaded.alwaysOnTop && !guard(() => native.setAlwaysOnTop?.(true), false)) {
@@ -146,7 +152,40 @@ export function createWindowController(options: WindowControllerOptions): Window
       if (fillPending && fillRetries++ < MAX_FILL_RETRIES) {
         if (guard(() => native.maximize(), false)) fillPending = false;
       }
-      return guard(() => native.getFrame(), null);
+      const frame = guard(() => native.getFrame(), null);
+      if (frame && !frame.fullscreen) leavingFullscreen = false;
+      if (fullscreenPending && frame) {
+        if (frame.fullscreen) {
+          fullscreenPending = false;
+        } else if (fillRetries++ < MAX_FILL_RETRIES) {
+          if (guard(() => native.setFullscreen(true), false)) {
+            startGrace();
+            const after = guard(() => native.getFrame(), frame);
+            if (after?.fullscreen) fullscreenPending = false;
+            return after;
+          }
+        } else {
+          fullscreenPending = false;
+        }
+      }
+      if (!fullscreenPending && !leavingFullscreen && persist && frame?.fullscreen) {
+        try {
+          loaded = readWindowPrefs(dataDir);
+          if (loaded.mode !== "fullscreen" && !loaded.state?.fullscreen) {
+            const primary = getScreens()[0];
+            const state = sanitizeWindowState({
+              ...frame,
+              screenWidth: loaded.state?.screenWidth ?? primary?.width ?? frame.width,
+              screenHeight: loaded.state?.screenHeight ?? primary?.height ?? frame.height,
+              dpr: loaded.state?.dpr ?? 2,
+            });
+            if (state) {
+              loaded = writeWindowPrefs(dataDir, { ...loaded, mode: "remember", state: mergeNormalBounds(loaded.state, state) });
+            }
+          }
+        } catch {}
+      }
+      return frame;
     },
     changed(report) {
       const result = (extra: Partial<ChangeResult>): ChangeResult => ({ ok: true, saved: false, ignored: false, mode: loaded.mode, modeSwitched: false, ...extra });
@@ -189,16 +228,22 @@ export function createWindowController(options: WindowControllerOptions): Window
         if (loaded.alwaysOnTop) guard(() => native.setAlwaysOnTop?.(true), false);
         return { ok: false, settled: false, mode: loaded.mode };
       }
+      fillPending = false;
+      fullscreenPending = false;
       startGrace();
       return { ok: true, settled: fill(), mode: "fill" };
     },
     apply(mode) {
       if (!isWindowMode(mode)) return { ok: false, settled: false, mode: loaded.mode };
+      fillPending = false;
+      fullscreenPending = false;
       startGrace();
       if (mode === "fill") return { ok: true, settled: fill(), mode };
       if (mode === "remember") return { ok: true, settled: true, mode };
       if (guard(() => native.setFullscreen(true), false)) {
+        leavingFullscreen = false;
         const frame = guard(() => native.getFrame(), null);
+        if (frame && !frame.fullscreen) fullscreenPending = true;
         return { ok: true, settled: frame ? frame.fullscreen : true, mode };
       }
       return { ok: true, settled: fill(), mode, fellBack: true };

@@ -4,13 +4,19 @@ import { tmpdir } from "os";
 import { join } from "path";
 import { createContext } from "../src/features/filemanager/fmCore";
 import {
+  analyzeVoiceSamplePcm,
+  applyCustomVoiceTransferToWav,
+  applyFormantEnvelopeTransferPcm,
   AUDIO_FORMAT_INFO,
   buildAtempoFilter,
+  buildCustomVoiceSafetensor,
+  cleanRecordedVoicePcm,
   cleanTextForSpeech,
   computeReadAlongTimeline,
   computeWordTimingsForText,
   convertWavFileToAiffNative,
   createWavHeader,
+  decodeAndResampleWavTo24kMono,
   DEFAULT_PHONON_VOICES,
   estimateSpokenWordWeight,
   extractPlainTextFromFile,
@@ -23,9 +29,12 @@ import {
   parseVoicesFromModelfile,
   parseWavPcm,
   PHONON_HARD_MAX_CHUNK_CHARS,
+  sanitizeCustomVoiceId,
   splitTextForPhonon,
   startPhononInstall,
   VIDEO_FORMAT_INFO,
+  VOICE_CALIBRATION_SCRIPTS,
+  wsolaPitchShiftPcm,
 } from "../src/features/filemanager/fmPhonon";
 import { startFileManagerServer } from "../src/features/filemanager/fmServer";
 import { resolveTool } from "../src/features/filemanager/fmToolDetect";
@@ -622,6 +631,110 @@ process.exit(0);
     expect(readFileSync(res.json.path, "utf8")).toBe("Clean plain text ready for reading.\n");
   });
 
+  test("AI Voice Recorder: analyzes baritone vs soprano F0 pitch, builds [1, 512, 125] F32 safetensor, clones custom voice, speaks with it, and deletes it", async () => {
+    // Helper to synthesize a harmonic human-like voice WAV sample at a target fundamental frequency (F0 Hz)
+    const makeSyntheticVoiceWav = (f0Hz: number, sampleRate = 24000, durationSec = 2.5): Buffer => {
+      const numSamples = Math.round(sampleRate * durationSec);
+      const pcm = Buffer.alloc(numSamples * 2);
+      for (let i = 0; i < numSamples; i++) {
+        const t = i / sampleRate;
+        // Syllabic envelope (4 syllables/sec)
+        const sylEnv = 0.35 + 0.65 * Math.pow(Math.max(0, Math.sin(2 * Math.PI * 4.0 * t)), 0.6);
+        // Fundamental + 3 harmonics
+        const wave =
+          0.55 * Math.sin(2 * Math.PI * f0Hz * t) +
+          0.25 * Math.sin(2 * Math.PI * f0Hz * 2 * t) +
+          0.12 * Math.sin(2 * Math.PI * f0Hz * 3 * t) +
+          0.08 * Math.sin(2 * Math.PI * f0Hz * 4 * t);
+        const val = Math.max(-1, Math.min(1, wave * sylEnv * 0.75));
+        pcm.writeInt16LE(Math.round(val * 32767), i * 2);
+      }
+      return Buffer.concat([createWavHeader(pcm.length, sampleRate, 1, 16), pcm]);
+    };
+
+    expect(VOICE_CALIBRATION_SCRIPTS.length).toBeGreaterThanOrEqual(3);
+    expect(sanitizeCustomVoiceId("Zoey")).toBe("Zoey-Custom");
+    expect(sanitizeCustomVoiceId("My Studio Voice!")).toBe("My-Studio-Voice");
+
+    const baritoneWav = makeSyntheticVoiceWav(115, 44100, 2.5);
+    const decodedBaritone = decodeAndResampleWavTo24kMono(baritoneWav);
+    expect(decodedBaritone.originalSampleRate).toBe(44100);
+    expect(decodedBaritone.durationSec).toBeCloseTo(2.5, 1);
+
+    const cleanedBaritone = cleanRecordedVoicePcm(decodedBaritone.pcm24k, 24000);
+    const baritoneProfile = analyzeVoiceSamplePcm(cleanedBaritone, 24000);
+    expect(baritoneProfile.medianF0Hz).toBeGreaterThan(105);
+    expect(baritoneProfile.medianF0Hz).toBeLessThan(125);
+    expect(baritoneProfile.voiceRegister).toContain("Baritone");
+    expect(baritoneProfile.blendComponents.length).toBe(4);
+    expect(baritoneProfile.prosodyContour125.length).toBe(125);
+
+    const sopranoWav = makeSyntheticVoiceWav(235, 24000, 2.5);
+    const sopranoProfile = analyzeVoiceSamplePcm(parseWavPcm(sopranoWav).pcmData, 24000);
+    expect(sopranoProfile.medianF0Hz).toBeGreaterThan(220);
+    expect(sopranoProfile.medianF0Hz).toBeLessThan(250);
+    expect(sopranoProfile.medianF0Hz).toBeGreaterThan(baritoneProfile.medianF0Hz + 90);
+
+    // Closed-loop acoustic voice transfer: convert a 170 Hz mid-high voice WAV to match the 115 Hz baritone profile
+    const midVoiceWav = makeSyntheticVoiceWav(170, 24000, 2.5);
+    const transferredWav = applyCustomVoiceTransferToWav(midVoiceWav, baritoneProfile);
+    const transferredParsed = parseWavPcm(transferredWav);
+    expect(transferredParsed.pcmData.length).toBe(parseWavPcm(midVoiceWav).pcmData.length);
+    const transferredProfile = analyzeVoiceSamplePcm(transferredParsed.pcmData, 24000);
+    expect(Math.abs(transferredProfile.medianF0Hz - baritoneProfile.medianF0Hz)).toBeLessThan(8);
+    expect(wsolaPitchShiftPcm(transferredParsed.pcmData, 1.0, 24000).length).toBe(transferredParsed.pcmData.length);
+    expect(applyFormantEnvelopeTransferPcm(transferredParsed.pcmData, baritoneProfile.formantBands, 24000).length).toBe(
+      transferredParsed.pcmData.length,
+    );
+
+    // Clone custom voice via API
+    const cloneRes = await post("phonon/clone-voice", {
+      name: "Alex Studio Voice",
+      audioBase64: baritoneWav.toString("base64"),
+    });
+    expect(cloneRes.status).toBe(200);
+    expect(cloneRes.json.voice.id).toBe("Alex-Studio-Voice");
+    expect(cloneRes.json.voice.label).toBe("Alex Studio Voice");
+    expect(cloneRes.json.voice.profile.medianF0Hz).toBeGreaterThan(105);
+    expect(cloneRes.json.voice.safetensorSha256).toMatch(/^[a-f0-9]{64}$/);
+
+    // Verify the [1, 512, 125] F32 .safetensors file on disk
+    const stFile = join(dataDir, "phonon-custom-voices", "Alex-Studio-Voice.safetensors");
+    expect(existsSync(stFile)).toBe(true);
+    const stBuf = readFileSync(stFile);
+    const headerLen = Number(stBuf.readBigUInt64LE(0));
+    const headerJson = JSON.parse(stBuf.subarray(8, 8 + headerLen).toString("utf8").trim());
+    expect(headerJson["voices.Alex-Studio-Voice"]).toEqual({
+      dtype: "F32",
+      shape: [1, 512, 125],
+      data_offsets: [0, 256000],
+    });
+    expect(stBuf.length - 8 - headerLen).toBe(256000);
+
+    // Fetch recorded voice sample via /api/phonon/audio?id=voice-sample:Alex-Studio-Voice
+    const sampleRes = await fetch(
+      `http://127.0.0.1:${server.port}${cloneRes.json.voice.sampleUrl}&token=${TOKEN}`,
+    );
+    expect(sampleRes.status).toBe(200);
+    expect(sampleRes.headers.get("content-type")).toBe("audio/wav");
+
+    // Speak with the cloned custom voice
+    const speakCustom = await post("phonon/speak", {
+      text: "Reading aloud with my own recorded AI voice.",
+      voice: "Alex-Studio-Voice",
+    });
+    expect(speakCustom.status).toBe(200);
+    expect(speakCustom.json.voice).toBe("Alex-Studio-Voice");
+    expect(speakCustom.json.words.length).toBe(8);
+
+    // Delete the custom voice
+    const delRes = await post("phonon/delete-voice", { id: "Alex-Studio-Voice" });
+    expect(delRes.status).toBe(200);
+    expect(delRes.json.deletedId).toBe("Alex-Studio-Voice");
+    expect(delRes.json.voices.length).toBe(0);
+    expect(existsSync(stFile)).toBe(false);
+  });
+
   test("phonon/install runs one-click auto-install of Ollama and pulls the Phonon model", async () => {
     const instDir = join(root, "auto-install");
     const instBin = join(instDir, "bin");
@@ -762,6 +875,7 @@ describe("with real Ollama & Phonon model", () => {
     if (ffmpegExe) {
       const outMp4 = join(root, "real-read-along.mp4");
       const chunks = splitTextForPhonon("Welcome to Codecaine Phonon Read-Along Video! Follow along word by word.", { maxChars: 200 });
+      const stageLines: string[] = [];
       const videoOut = await synthesizeAndExportAudioFile(ctx, {
         ollamaExe: status.ollamaPath!,
         ffmpegExe,
@@ -775,11 +889,14 @@ describe("with real Ollama & Phonon model", () => {
         videoTheme: "midnight",
         saveSubtitles: true,
         title: "Real Read-Along Demo",
+        onStageLog: (line) => stageLines.push(line),
       });
       expect(existsSync(videoOut.outputPath)).toBe(true);
       expect(videoOut.sizeBytes).toBeGreaterThan(1000);
       expect(videoOut.srtPath && existsSync(videoOut.srtPath)).toBe(true);
       expect(videoOut.vttPath && existsSync(videoOut.vttPath)).toBe(true);
+      expect(stageLines.some((l) => /All \d+ chunks? synthesized/i.test(l))).toBe(true);
+      expect(stageLines.some((l) => /Finalizing real-read-along\.mp4/i.test(l))).toBe(true);
     }
   });
 });

@@ -4927,10 +4927,11 @@ export class SimpleWindow {
             }
         }
         if (this.isWindowRunning) {
-            const escaped = typeof val === "string" ? JSON.stringify(val) : val;
+            const escaped = JSON.stringify(val ?? "");
+            const safeId = JSON.stringify(id);
             this.evalJS(`
                 (function() {
-                    const rawEl = document.getElementById("${id}");
+                    const rawEl = document.getElementById(${safeId});
                     if (!rawEl) return;
                     if (rawEl.classList.contains("simplegui-html-view") || rawEl.dataset.type === "html_view" || rawEl.getAttribute("data-control-type") === "html_view") {
                         rawEl.innerHTML = String(${escaped});
@@ -8174,14 +8175,22 @@ export class SimpleWindow {
 
         if (this.isWindowRunning) {
             const selectedSet = new Set(Array.isArray(nextVal) ? nextVal : [nextVal]);
+            const escHtml = (s: string) =>
+                String(s ?? "")
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#39;");
             const optsHtml = items.map(it => {
                 const sel = selectedSet.has(it) ? ' selected="selected"' : '';
-                return `<option value="${it.replace(/"/g, '&quot;')}"${sel}>${it}</option>`;
+                const safe = escHtml(it);
+                return `<option value="${safe}"${sel}>${safe}</option>`;
             }).join("");
 
             this.evalJS(`
                 (function() {
-                    let el = document.getElementById("${id}");
+                    let el = document.getElementById(${JSON.stringify(id)});
                     if (el && el.tagName !== "SELECT") el = el.querySelector("select") || el;
                     if (el && el.tagName === "SELECT") {
                         el.innerHTML = ${JSON.stringify(optsHtml)};

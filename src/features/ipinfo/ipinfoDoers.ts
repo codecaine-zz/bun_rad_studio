@@ -32,11 +32,11 @@ export function cleanTarget(input: string): string {
 
 export function syncFetchJson(url: string, headers: Record<string, string> = {}, timeoutSec = 2): any {
   try {
-    const cmd = ["curl", "-s", "--max-time", String(timeoutSec)];
+    const cmd = ["curl", "-s", "--proto", "=https,http", "--max-time", String(timeoutSec)];
     for (const [k, v] of Object.entries(headers)) {
       cmd.push("-H", `${k}: ${v}`);
     }
-    cmd.push(url);
+    cmd.push("--", url);
     const proc = Bun.spawnSync(cmd);
     if (proc.exitCode === 0) {
       const text = proc.stdout.toString();
@@ -185,16 +185,18 @@ export function resolveTargetToIp(
   }
 
   // 2. Synchronous system resolver fallback (host / dscacheutil)
-  try {
-    const hostProc = Bun.spawnSync(["host", "-W", "2", cleaned]);
-    if (hostProc.exitCode === 0) {
-      const out = hostProc.stdout.toString();
-      const match = out.match(/has address\s+([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)/);
-      if (match && match[1] && isIpAddress(match[1])) {
-        return { ip: match[1], domain: cleaned };
+  if (!cleaned.startsWith("-")) {
+    try {
+      const hostProc = Bun.spawnSync(["host", "-W", "2", "--", cleaned]);
+      if (hostProc.exitCode === 0) {
+        const out = hostProc.stdout.toString();
+        const match = out.match(/has address\s+([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)/);
+        if (match && match[1] && isIpAddress(match[1])) {
+          return { ip: match[1], domain: cleaned };
+        }
       }
-    }
-  } catch {}
+    } catch {}
+  }
 
   try {
     const dsProc = Bun.spawnSync(["dscacheutil", "-q", "host", "-a", "name", cleaned]);

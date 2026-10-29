@@ -39,6 +39,7 @@ const TOOL_TEXT = {
   tasks: "Cross-platform Process and Task Manager: inspect CPU, memory, process trees, and listening TCP ports, and end or signal tasks on Windows, macOS and Linux.",
   sysinfo: "System Information and hardware telemetry: live CPU, RAM, storage, GPU, network, USB, battery and OS details with deep system probes and report export.",
   phonon: "Read text and documents out loud with Ollama Phonon neural voices, convert formats to plain text, set your default voice, and save as any audio file format.",
+  ollama: "Built-In Ollama AI Assistant & Full Capability Router: chat, deep thinking, vision, SystemOne decision, cross-platform text-to-audio speech LLMs, meaning search, web search, and 1-click auto-install.",
   games: "Play all 24 Codecaine arcade, puzzle, card, casino and word games right inside the File Manager, in a separate desktop window, or in your browser.",
 };
 

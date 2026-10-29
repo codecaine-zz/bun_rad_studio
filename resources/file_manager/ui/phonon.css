@@ -609,3 +609,218 @@
   padding: 0.26rem 0.58rem;
   font-size: 0.79rem;
 }
+
+/* AI Voice Recorder & Custom Voice Cloning Studio */
+.phonon-voice-recorder-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-top: 0.35rem;
+  padding: 0.8rem 0.9rem;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--accent, #38bdf8) 42%, var(--border, rgba(128, 128, 128, 0.25)));
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.62) 0%, rgba(11, 16, 32, 0.78) 100%);
+}
+
+.phonon-recorder-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.phonon-recorder-title {
+  font-size: 0.88rem;
+  color: var(--fg, #f8fafc);
+}
+
+.phonon-calibration-prompt {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 8px;
+  border-left: 3px solid var(--accent, #38bdf8);
+  background: rgba(9, 14, 28, 0.72);
+}
+
+.phonon-calibration-prompt-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+}
+
+.phonon-calibration-prompt-text {
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: #e2e8f0;
+  font-style: italic;
+}
+
+.phonon-waveform-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.phonon-waveform-canvas {
+  flex: 1 1 380px;
+  height: 74px;
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(9, 14, 28, 0.92);
+}
+
+.phonon-meter-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.32rem;
+  min-width: 155px;
+}
+
+.phonon-rec-timer {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.phonon-db-meter-track {
+  width: 100%;
+  height: 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.phonon-db-meter-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #10b981 0%, #38bdf8 65%, #fb7185 100%);
+  transition: width 0.06s linear;
+}
+
+.phonon-rec-db-label {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.74rem;
+  color: var(--muted, #94a3b8);
+}
+
+.phonon-recorder-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.phonon-record-btn.is-recording {
+  background: #e11d48 !important;
+  border-color: #fb7185 !important;
+  color: #ffffff !important;
+}
+
+.phonon-clone-btn {
+  background: linear-gradient(135deg, #0ea5e9, #6366f1) !important;
+  border-color: rgba(99, 102, 241, 0.55) !important;
+  color: #ffffff !important;
+}
+
+.phonon-voice-fingerprint-box,
+.phonon-custom-voices-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  background: rgba(9, 14, 28, 0.65);
+}
+
+.phonon-voice-fingerprint-box[hidden],
+.phonon-custom-voices-list[hidden] {
+  display: none !important;
+}
+
+.phonon-fingerprint-head,
+.phonon-custom-voices-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+}
+
+.phonon-fingerprint-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(195px, 1fr));
+  gap: 0.55rem;
+}
+
+.phonon-fingerprint-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.14rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.phonon-fingerprint-label {
+  font-size: 0.73rem;
+  font-weight: 600;
+  color: var(--muted, #94a3b8);
+}
+
+.phonon-fingerprint-val {
+  font-size: 0.88rem;
+  color: var(--accent, #38bdf8);
+}
+
+.phonon-fingerprint-blend-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.phonon-custom-voices-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.phonon-custom-voice-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 7px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.phonon-custom-voice-row.is-active {
+  border-color: var(--accent, #38bdf8);
+  background: rgba(56, 189, 248, 0.1);
+}
+
+.phonon-custom-voice-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+}
+
+.phonon-hidden-file-input {
+  display: none !important;
+}

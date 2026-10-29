@@ -229,12 +229,22 @@ export function createWorkbenchHandler(service: WorkbenchService, options: Workb
       case "/api/v2/describe-all": {
         const connId = reqStr(b, "connectionId", 64);
         const objs = await service.objects(connId);
+        const tableObjs = objs.filter((o) => o.type === "table");
         const tables: TableInfo[] = [];
-        for (const obj of objs) {
-          if (obj.type === "table") {
-            try {
-              tables.push(await service.describe(connId, obj));
-            } catch {}
+        const batchSize = 8;
+        for (let i = 0; i < tableObjs.length; i += batchSize) {
+          const chunk = tableObjs.slice(i, i + batchSize);
+          const described = await Promise.all(
+            chunk.map(async (obj) => {
+              try {
+                return await service.describe(connId, obj);
+              } catch {
+                return null;
+              }
+            }),
+          );
+          for (const t of described) {
+            if (t) tables.push(t);
           }
         }
         return json({ ok: true, tables });

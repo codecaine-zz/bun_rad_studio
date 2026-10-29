@@ -914,7 +914,7 @@ function parseExts(filter?: string | string[]): string[] {
     return raw.map(s => String(s).trim().replace(/^\*?\./, "").toLowerCase()).filter(s => s && s !== "*" && s !== "*.*");
 }
 const psq = (s: string) => String(s).replace(/'/g, "''");
-const asq = (s: string) => String(s).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+const asq = (s: string) => String(s).replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/[\r\n]+/g, " ");
 const cleanPath = (p: string) => (p.length > 1 && /[\\/]$/.test(p) && !/^[A-Za-z]:[\\/]$/.test(p) ? p.replace(/[\\/]+$/, "") : p);
 
 function runNative(mode: FileDialogMode, o: FileDialogOptions): NativeResult {

@@ -7,17 +7,35 @@
  */
 
 export function flattenData(value: any, prefix: string = "", out: Record<string, any> = {}, limit: number = 5000): Record<string, any> {
-  if (Object.keys(out).length >= limit) return out;
-  if (Array.isArray(value)) {
-    if (value.length === 0 && prefix) out[prefix] = "[]";
-    value.forEach((v: any, i: number) => flattenData(v, prefix + "[" + i + "]", out, limit));
-  } else if (value && typeof value === "object") {
-    const keys = Object.keys(value);
-    if (keys.length === 0 && prefix) out[prefix] = "{}";
-    for (const k of keys) flattenData(value[k], prefix ? prefix + "." + k : k, out, limit);
-  } else {
-    out[prefix || "value"] = value;
+  let count = Object.keys(out).length;
+  function walk(v: any, p: string): void {
+    if (count >= limit) return;
+    if (Array.isArray(v)) {
+      if (v.length === 0 && p) {
+        if (!(p in out)) count++;
+        out[p] = "[]";
+      }
+      for (let i = 0; i < v.length; i++) {
+        if (count >= limit) break;
+        walk(v[i], p + "[" + i + "]");
+      }
+    } else if (v && typeof v === "object") {
+      const keys = Object.keys(v);
+      if (keys.length === 0 && p) {
+        if (!(p in out)) count++;
+        out[p] = "{}";
+      }
+      for (const k of keys) {
+        if (count >= limit) break;
+        walk(v[k], p ? p + "." + k : k);
+      }
+    } else {
+      const targetKey = p || "value";
+      if (!(targetKey in out)) count++;
+      out[targetKey] = v;
+    }
   }
+  walk(value, prefix);
   return out;
 }
 

@@ -1164,12 +1164,21 @@ export async function defaultExecCommand(cmd: string[], _platform: Platform): Pr
       stdin: "ignore",
       windowsHide: true,
     });
-    const [stdout, stderr, exitCode] = await Promise.all([
-      new Response(proc.stdout).text(),
-      new Response(proc.stderr).text(),
-      proc.exited,
-    ]);
-    return { exitCode, stdout, stderr };
+    const timer = setTimeout(() => {
+      try {
+        proc.kill("SIGKILL");
+      } catch {}
+    }, 5_000);
+    try {
+      const [stdout, stderr, exitCode] = await Promise.all([
+        new Response(proc.stdout).text(),
+        new Response(proc.stderr).text(),
+        proc.exited,
+      ]);
+      return { exitCode, stdout, stderr };
+    } finally {
+      clearTimeout(timer);
+    }
   } catch (err: any) {
     return { exitCode: 1, stdout: "", stderr: String(err?.message ?? err) };
   }

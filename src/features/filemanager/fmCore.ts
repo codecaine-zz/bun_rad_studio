@@ -34,6 +34,8 @@ export interface FmContext {
   home: string;
   /** Where the app keeps its own files: settings and the Recycle Bin. */
   dataDir: string;
+  /** Optional sandbox root directory for confining relative or sandboxed file operations. */
+  sandboxRoot?: string;
   /** The Recycle Bin folder. Nothing in it may be changed except through the Recycle Bin functions. */
   trashRoot: string;
   /** Starts a program for "Open". Replaceable so tests never launch real applications. */
@@ -56,6 +58,24 @@ export interface FmContext {
   tasks?: Partial<TaskManagerHooks>;
   /** Test replacements for the cross-platform System Information tool. */
   sysinfo?: Partial<SysinfoHooks>;
+  /** Optional test overrides for the Built-In Ollama AI Assistant & Full Capability Router. */
+  ollama?: {
+    baseUrl?: string;
+    cloudBaseUrl?: string;
+    apiKey?: string;
+    totalRamBytes?: number;
+    platform?: string;
+    arch?: string;
+    cpuModel?: string;
+    cpuCores?: number;
+    ollamaBinPath?: string | null;
+    installBinaryHook?: (
+      platform: string,
+      arch: string,
+      onProgress: (step: string, pct: number) => void,
+    ) => Promise<{ installedPath: string }>;
+    playAudioCommand?: string[] | ((wavPath: string, platform: string) => Promise<void>);
+  };
   /** Putting text and pictures on the system clipboard. Replaceable so tests never touch the real one. */
   clipboard: ClipboardHooks;
   /** Background work: conversions and installs. */
@@ -70,6 +90,7 @@ export type FmHandler = (ctx: FmContext, body: Record<string, any>) => Promise<u
 export interface FmContextOptions {
   platform?: Platform;
   home?: string;
+  sandboxRoot?: string;
   dataDir?: string;
   launch?: FmContext["launch"];
   toolDirs?: string[];
@@ -81,6 +102,7 @@ export interface FmContextOptions {
   subdomains?: Partial<SubdomainsHooks>;
   tasks?: Partial<TaskManagerHooks>;
   sysinfo?: Partial<SysinfoHooks>;
+  ollama?: FmContext["ollama"];
   clipboard?: Partial<ClipboardHooks>;
 }
 
@@ -93,10 +115,12 @@ export function createContext(options: FmContextOptions = {}): FmContext {
       ? nodePath.win32
       : nodePath.posix;
   const home = p.resolve(rawHome);
+  const sandboxRoot = options.sandboxRoot ? p.resolve(options.sandboxRoot) : undefined;
   const dataDir = p.resolve(options.dataDir ?? p.join(home, ".bun_rad_studio"));
   return {
     platform,
     home,
+    sandboxRoot,
     dataDir,
     trashRoot: p.join(dataDir, "file_manager_trash"),
     launch: options.launch ?? defaultLaunch,
@@ -111,6 +135,7 @@ export function createContext(options: FmContextOptions = {}): FmContext {
     subdomains: options.subdomains,
     tasks: options.tasks,
     sysinfo: options.sysinfo,
+    ollama: options.ollama,
     disposers: [],
   };
 }

@@ -24,7 +24,9 @@ export function parseQuery(queryString: string): Record<string, string> {
     if (!pair) continue;
     const [k, v] = pair.split("=");
     if (k) {
-      result[decodeURIComponent(k)] = v ? decodeURIComponent(v) : "";
+      const key = decodeURIComponent(k);
+      if (key === "__proto__" || key === "constructor" || key === "prototype") continue;
+      result[key] = v ? decodeURIComponent(v) : "";
     }
   }
   return result;

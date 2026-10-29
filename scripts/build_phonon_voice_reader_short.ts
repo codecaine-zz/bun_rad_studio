@@ -159,16 +159,16 @@ const sceneSpecs: SceneSpec[] = [
     id: "01_intro_and_autoinstall",
     voice: "Zoey",
     voiceDesc: "Zoey (Narrating This Video Live from Mac)",
-    badge: "01 / 06 · NARRATED BY ZOEY FROM THIS MAC (LOW RESOURCES)",
-    title: "NARRATED BY ZOEY ON MAC.\nAI VOICE FOR ALL FILES.",
+    badge: "01 / 08 · NARRATED BY ZOEY FROM THIS MAC (LOW RESOURCES)",
+    title: "NARRATED BY ZOEY ON MAC.\nPHONON TTS + OLLAMA.",
     label: "🎙️ THIS VIDEO IS NARRATED ON MAC BY: OLLAMA RUN PHONON --VOICE ZOEY",
     extra: "🎙️ You are hearing Zoey right now — generated live on this Mac (112 MB MLX Model)",
     bullets: [
-      "🎙️ This Video Is Narrated on Mac by `phonon --voice Zoey`",
-      "🪶 Ultra-Low Resources: Compact 112 MB Local MLX Model",
-      "⚡ 1-Click Auto-Install Ollama + Phonon · Zero Cloud Fees",
+      "🎙️ Narrated 100% Live on Mac by `ollama run phonon --voice Zoey`",
+      "🪶 Ultra-Low Resources: Compact 112 MB Local Apple MLX Model",
+      "⚡ 1-Click Auto-Install Ollama + Phonon + FFmpeg · 100% Offline",
     ],
-    say: "Hi! Please note that I am Zoey—and my voice is being used right now to narrate and create this entire video directly from this Apple Silicon Mac using ollama run phonon dash dash voice Zoey! Inside the Codecaine File Manager, you can turn any file or document into natural twenty-four kilohertz AI speech with ultra-low resource usage, powered by a compact one-hundred-twelve megabyte local M L X model that runs one hundred percent offline.",
+    say: "Hi! I am Zoey—and my voice is narrating this entire complete tutorial live from this Apple Silicon Mac using ollama run phonon dash dash voice Zoey! Inside the Codecaine File Manager, Phonon Neural Text-to-Speech and the built-in Ollama AI Assistant work together one hundred percent offline with a compact one-hundred-twelve megabyte M L X model and one-click auto-install.",
     record: async (c) => {
       await c.eval(`(async () => {
         const { closePower } = await import('/ui/power.js');
@@ -176,7 +176,7 @@ const sceneSpecs: SceneSpec[] = [
       })()`);
       await showKeynoteHud(
         c,
-        "🎙️ This Video Is Narrated Live on This Mac by `ollama run phonon --voice Zoey`",
+        "🎙️ Complete Tutorial Narrated Live on Mac by `ollama run phonon --voice Zoey`",
         "Compact 112 MB Apple MLX model · Low RAM & CPU · 1-Click Auto-Install · 100% Offline",
         "🎙️ ZOEY ON THIS MAC",
       );
@@ -214,17 +214,17 @@ const sceneSpecs: SceneSpec[] = [
   {
     id: "02_38_voices_and_default",
     voice: "Zoey",
-    voiceDesc: "Zoey (--voice Zoey · Default Natural Voice)",
-    badge: "02 / 06 · NATURAL AI VOICES & DEFAULT VOICE",
-    title: "38 NATURAL AI VOICES.\nSET ZOEY AS DEFAULT.",
-    label: "🗣️ --VOICE ZOEY DEFAULT · 38 NEURAL VOICES · SPEED & PAUSE CONTROLS",
-    extra: "Narrated Live by ollama run phonon --voice Zoey · Persistent Voice & Pacing Settings",
+    voiceDesc: "Zoey (--voice Zoey · 38 Voices, Pitch & Sync)",
+    badge: "02 / 08 · 38 NEURAL VOICES, PITCH SHIFT & SYNC OFFSET",
+    title: "38 NATURAL AI VOICES.\nPITCH, SPEED & SYNC.",
+    label: "🗣️ --VOICE ZOEY DEFAULT · 38 VOICES · TIME-LOCKED PITCH (±6 ST) · SYNC (±300 MS)",
+    extra: "Narrated Live by ollama run phonon --voice Zoey · Persistent Voice, Pitch & Pacing",
     bullets: [
       "🗣️ 38 Built-In Conversational, Narrator & Character Voices",
-      "⭐ Save `Zoey` or Any Voice as Your Persistent Default",
-      "🎚️ Fine-Tune Speaking Speed (0.5×–2.0×) & Paragraph Pauses",
+      "⭐ Save `Zoey` as Persistent Default + Live Voice Preview",
+      "🎚️ Speed (0.5×–2.0×), Time-Locked Pitch (±6 st) & Sync (±300 ms)",
     ],
-    say: "Choose from thirty-eight built-in neural voices discovered directly from the Phonon model, including my default conversational voice Zoey, plus narrators and character voices. Click Set Default Voice to lock in your favorite voice across the entire File Manager, and dial in your exact speaking speed and paragraph pause timing.",
+    say: "Choose from thirty-eight expressive neural voices discovered directly from Phonon, including my conversational voice Zoey, plus audiobook narrators and characters. Click Set Default Voice to lock in Zoey across the entire app, adjust speaking speed from half-speed to two-times, shift voice pitch up or down six semitones without altering duration, and fine-tune word sync down to the millisecond.",
     record: async (c) => {
       await c.eval(`(async () => {
         const { openPower, setPowerExpanded } = await import('/ui/power.js');
@@ -233,8 +233,8 @@ const sceneSpecs: SceneSpec[] = [
       })()`);
       await showKeynoteHud(
         c,
-        "🗣️ 38 Built-In Neural Voices + 1-Click Default (`ollama run phonon --voice Zoey`)",
-        "Switch between Conversational, Narrator & Character voices and tune speed/pauses",
+        "🗣️ 38 Neural Voices + Default `Zoey` + Time-Locked Pitch (±6 st) & Sync (±300 ms)",
+        "Switch between Conversational, Narrator & Character voices and tune speed, pitch & sync",
         "🎙️ --VOICE ZOEY",
       );
       await sleep(500);
@@ -246,41 +246,89 @@ const sceneSpecs: SceneSpec[] = [
             sel.dispatchEvent(new Event('change', { bubbles: true }));
           }
         })()`);
-        await sleep(380);
+        await sleep(340);
       }
-      await c.click('button >> ⭐ Set Default Voice', { pause: 650 }).catch(() => {});
+      await c.click('button >> ⭐ Set Default Voice', { pause: 550 }).catch(() => {});
       await c.eval(`(() => {
         const spd = document.getElementById('phonon-speed-range');
         if (spd) {
           spd.value = '1.15';
           spd.dispatchEvent(new Event('input', { bubbles: true }));
         }
+        const pitch = document.getElementById('phonon-pitch-range');
+        if (pitch) {
+          pitch.value = '2';
+          pitch.dispatchEvent(new Event('input', { bubbles: true }));
+        }
       })()`);
-      await sleep(800);
+      await sleep(750);
       await c.eval(`(() => {
         const spd = document.getElementById('phonon-speed-range');
         if (spd) {
           spd.value = '1';
           spd.dispatchEvent(new Event('input', { bubbles: true }));
         }
+        const pitch = document.getElementById('phonon-pitch-range');
+        if (pitch) {
+          pitch.value = '0';
+          pitch.dispatchEvent(new Event('input', { bubbles: true }));
+        }
       })()`);
-      await sleep(600);
+      await sleep(550);
     },
   },
   {
-    id: "03_convert_formats_to_plaintext",
+    id: "03_ai_voice_recorder_cloning",
     voice: "Zoey",
-    voiceDesc: "Zoey (--voice Zoey · File-to-Speech)",
-    badge: "03 / 06 · CONVERT 25+ FILE FORMATS TO SPEECH & .TXT",
+    voiceDesc: "Zoey (--voice Zoey · AI Voice Recorder & F5-TTS-MLX Cloning)",
+    badge: "03 / 08 · AI VOICE RECORDER & ZERO-SHOT VOICE CLONING",
+    title: "RECORD YOUR OWN VOICE.\nZERO-SHOT MLX CLONING.",
+    label: "🎙️ LIVE MIC OSCILLOSCOPE · F5-TTS-MLX ZERO-SHOT CLONING · GITIGNORE PRIVACY",
+    extra: "Narrated Live by ollama run phonon --voice Zoey · 100% Local Biometric Privacy",
+    bullets: [
+      "🎙️ Live Microphone Recorder with Waveform Oscilloscope & dB Meter",
+      "🧬 Zero-Shot Neural Voice Cloning Powered by Local `F5-TTS-MLX`",
+      "🔒 Strictly Excluded from Git so Personal Voices Stay 100% Private",
+    ],
+    say: "Want documents read in your own real voice? Open the AI Voice Recorder studio to record a ten-second reference sample with a live waveform oscilloscope, peak decibel meter, and guided calibration scripts—or upload any W A V clip. Local F-five T T S M L X clones your exact vocal timbre at twenty-four kilohertz, and all personal voice recordings are git-ignored so they never leave your Mac.",
+    record: async (c) => {
+      await showKeynoteHud(
+        c,
+        "🎙️ AI Voice Recorder & Zero-Shot Neural Voice Cloning (`F5-TTS-MLX`)",
+        "Live WebAudio oscilloscope + dB meter · Guided scripts · WAV import · Private & git-ignored",
+        "🧬 VOICE CLONING",
+      );
+      await c.eval(`(() => {
+        const btn = Array.from(document.querySelectorAll('button')).find(b => b.textContent && b.textContent.includes('Record My Voice'));
+        if (btn) btn.click();
+      })()`);
+      await sleep(700);
+      await c.eval(`(() => {
+        const recBox = document.querySelector('.phonon-recorder-box');
+        if (recBox) recBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      })()`);
+      await sleep(1400);
+      await c.eval(`(() => {
+        const btn = Array.from(document.querySelectorAll('button')).find(b => b.textContent && b.textContent.includes('Hide Voice Recorder'));
+        if (btn) btn.click();
+      })()`);
+      await sleep(400);
+    },
+  },
+  {
+    id: "04_convert_formats_to_plaintext",
+    voice: "Zoey",
+    voiceDesc: "Zoey (--voice Zoey · 25+ Format Extractor)",
+    badge: "04 / 08 · CONVERT 25+ FILE FORMATS TO SPEECH & .TXT",
     title: "READ ANY FILE FORMAT\nOR SAVE AS PLAIN TEXT.",
     label: "📄 PDF · DOCX · EPUB · HTML · MD · SRT · CSV · JSON · CODE → SPEECH",
-    extra: "Narrated Live by ollama run phonon --voice Zoey · Smart Speech Cleanup Filters",
+    extra: "Narrated Live by ollama run phonon --voice Zoey · 6 Smart Speech Cleanup Filters",
     bullets: [
       "📄 Extract Speech-Ready Text from 25+ Document Formats",
-      "🧹 Auto-Strip Markdown, HTML Tags, Code, URLs & Timestamps",
+      "🧹 6 Filters Auto-Strip Markdown, HTML, Code, URLs & Timestamps",
       "💾 Read Out Loud Instantly or 1-Click Save Clean .TXT",
     ],
-    say: "Select any file in your workspace—P D Fs, Word documents, e-books, Markdown notes, H T M L pages, S R T subtitles, C S V spreadsheets, J S O N, or source code—and convert it into clean, speech-ready plain text. Six smart cleanup filters strip away markup, timestamps, and U R Ls so every sentence sounds completely natural, and you can save the cleaned text as a dot T X T file in one click.",
+    say: "Select any file in your workspace—P D Fs, Word documents, E P U B e-books, Markdown notes, H T M L pages, S R T subtitles, C S V spreadsheets, J S O N, or source code—and click Use Selected File. Six smart cleanup filters strip away markup, timestamps, and U R Ls so every sentence sounds completely natural, and you can save the cleaned text as a dot T X T file in one click.",
     record: async (c) => {
       await showKeynoteHud(
         c,
@@ -300,31 +348,31 @@ const sceneSpecs: SceneSpec[] = [
         renderList(left);
       })()`);
       await sleep(500);
-      await c.click('button >> 📥 Use Selected File', { pause: 1100 }).catch(() => {});
-      await c.click('button >> ✨ Clean to Plain Text', { pause: 700 }).catch(() => {});
-      await c.click('button >> 💾 Save as .TXT', { pause: 900 }).catch(() => {});
-      await sleep(700);
+      await c.click('button >> 📥 Use Selected File', { pause: 1000 }).catch(() => {});
+      await c.click('button >> ✨ Clean to Plain Text', { pause: 650 }).catch(() => {});
+      await c.click('button >> 💾 Save as .TXT', { pause: 850 }).catch(() => {});
+      await sleep(600);
     },
   },
   {
-    id: "04_extreme_large_text_chunking",
+    id: "05_extreme_large_text_chunking",
     voice: "Zoey",
-    voiceDesc: "Zoey (--voice Zoey · Large-Text Engine)",
-    badge: "04 / 06 · HANDLE MASSIVE TEXTS WITH O(1) MEMORY",
-    title: "HANDLE MASSIVE BOOKS.\nLOW MEMORY & ZERO CUTOFF.",
-    label: "📚 8,192-TOKEN SAFE SPLITTER · O(N) CHUNKER · O(1) DISK STREAMING",
-    extra: "Narrated Live by ollama run phonon --voice Zoey · Unlimited Document & Book Length",
+    voiceDesc: "Zoey (--voice Zoey · 242-Chunk Large Book Engine)",
+    badge: "05 / 08 · HANDLE 242-CHUNK EPUB BOOKS IN O(1) MEMORY",
+    title: "HANDLE MASSIVE BOOKS.\n242+ CHUNKS ZERO FREEZE.",
+    label: "📚 8,192-TOKEN SAFE SPLITTER · PAGINATED QUEUE · O(1) DISK STREAMING",
+    extra: "Narrated Live by ollama run phonon --voice Zoey · Tested on Full 242-Chunk EPUB Novels",
     bullets: [
-      "📚 Handles Multi-Chapter Books Beyond 8,192 Tokens",
+      "📚 Tested on Full 242-Chunk EPUB Books (49+ Mins Audio)",
       "✂️ O(N) Paragraph, Sentence & Clause Boundary Chunker",
-      "🪶 O(1) Constant-Memory Disk PCM Audio Stitching",
+      "🪶 Paginated Segment Browser + O(1) Disk PCM Stitching",
     ],
-    say: "Need to synthesize a massive technical manual or an entire twenty-four chapter book? Phonon has an eight-thousand-one-hundred-ninety-two token context window, so our hierarchical O of N splitter automatically divides huge texts along natural paragraph, sentence, and clause boundaries while stitching twenty-four kilohertz P C M audio directly on disk in constant O of one memory.",
+    say: "Need to convert a massive technical manual or a two-hundred-forty-two chunk E P U B novel? Our hierarchical O of N splitter divides huge books along natural paragraph, sentence, and clause boundaries within Phonon's eight-thousand-one-hundred-ninety-two token window, displays a fast paginated segment queue, and stitches twenty-four kilohertz P C M audio directly on disk in constant O of one memory.",
     record: async (c) => {
       await showKeynoteHud(
         c,
-        "📚 Massive-Text Engine: 24-Chapter Book Split Into Context-Safe Segments",
-        "O(N) sentence chunker + O(1) disk PCM stitcher keeps RAM usage tiny on huge books",
+        "📚 Massive-Text Engine: Full Multi-Chapter Books Split Into Context-Safe Segments",
+        "O(N) sentence chunker + paginated segment browser + O(1) disk PCM stitcher",
         "🎙️ --VOICE ZOEY",
       );
       await c.eval(`(async () => {
@@ -353,24 +401,24 @@ const sceneSpecs: SceneSpec[] = [
     },
   },
   {
-    id: "05_live_read_out_loud",
+    id: "06_live_read_out_loud",
     voice: "Zoey",
-    voiceDesc: "Zoey (--voice Zoey · Follow-Along Teleprompter)",
-    badge: "05 / 06 · FOLLOW-ALONG TELEPROMPTER & PREFETCHING",
-    title: "FOLLOW ALONG LIVE.\nWORD-BY-WORD SYNC.",
-    label: "📖 LIVE FOLLOW-ALONG TELEPROMPTER · CLICK ANY WORD TO JUMP · 2-CHUNK PREFETCH",
-    extra: "Narrated Live by ollama run phonon --voice Zoey · Word-by-Word Highlighting",
+    voiceDesc: "Zoey (--voice Zoey · Waveform-Synced Teleprompter)",
+    badge: "06 / 08 · WAVEFORM-SYNCED KARAOKE TELEPROMPTER",
+    title: "FOLLOW ALONG LIVE.\nWAVEFORM WORD SYNC.",
+    label: "📖 10 MS PCM ENVELOPE ALIGNMENT · 4 CINEMA THEMES · 2-CHUNK PREFETCH",
+    extra: "Narrated Live by ollama run phonon --voice Zoey · Click Any Word to Jump Playback",
     bullets: [
-      "📖 Live Follow-Along Teleprompter Highlights Every Word Spoken",
-      "🖱️ Click Any Word or Segment to Jump Playback Immediately",
-      "⚡ 2-Chunk Background Lookahead Prefetch for Zero-Gap Streaming",
+      "📖 10 ms WAV Speech-Envelope Word Alignment (Zero Drift)",
+      "🎨 4 Reading Themes (Midnight, Sepia, Matrix, High-Contrast)",
+      "⚡ Click Any Word to Jump + 2-Chunk Lookahead Prefetch",
     ],
-    say: "Click Read Out Loud and follow along in the live teleprompter as every word lights up in sync with my voice! While I speak the active sentence, the File Manager prefetches the next two chunks in the background for zero-gap transitions, and you can click any word or segment to jump right there.",
+    say: "Click Read Out Loud and follow along in the live karaoke teleprompter! Each word is aligned to the actual ten-millisecond P C M acoustic energy envelope of my voice so highlights never drift across pauses. Switch between four cinema reading themes and four font sizes, click any word to jump playback immediately, and enjoy zero-gap streaming with two-chunk lookahead prefetching.",
     record: async (c) => {
       await showKeynoteHud(
         c,
-        "📖 Live Follow-Along Teleprompter (`--voice Zoey`) — Word-by-Word Sync + 2-Chunk Prefetch",
-        "Every spoken word lights up in real time · Click any word in the teleprompter to jump",
+        "📖 Waveform-Synced Follow-Along Teleprompter (`--voice Zoey`) + 4 Cinema Themes",
+        "10 ms WAV energy-envelope word alignment · Click any word to jump · 2-chunk prefetch",
         "🎙️ FOLLOW ALONG",
       );
       await c.eval(`(() => {
@@ -378,8 +426,12 @@ const sceneSpecs: SceneSpec[] = [
         if (tp) tp.scrollIntoView({ behavior: 'smooth', block: 'center' });
       })()`);
       await sleep(400);
-      for (const targetWordIdx of [2, 5, 9, 14, 19]) {
+      for (const [idx, targetWordIdx] of [2, 5, 9, 14, 19].entries()) {
+        const themes = ["midnight", "sepia", "matrix", "contrast", "midnight"];
+        const th = themes[idx] || "midnight";
         await c.eval(`(() => {
+          const stage = document.querySelector('.phonon-teleprompter-stage');
+          if (stage) stage.setAttribute('data-tp-theme', ${JSON.stringify(th)});
           const words = Array.from(document.querySelectorAll('.phonon-teleprompter-stage .phonon-word'));
           const wIdx = Math.min(${targetWordIdx}, Math.max(0, words.length - 1));
           words.forEach((node, idx) => {
@@ -398,24 +450,24 @@ const sceneSpecs: SceneSpec[] = [
     },
   },
   {
-    id: "06_export_any_audio_format",
+    id: "07_export_any_audio_format",
     voice: "Zoey",
-    voiceDesc: "Zoey (--voice Zoey · Audio + Read-Along Video Export)",
-    badge: "06 / 06 · EXPORT TO 9 AUDIO FORMATS OR READ-ALONG VIDEO",
-    title: "EXPORT TO AUDIO OR\nREAD-ALONG MP4 VIDEO.",
-    label: "🎬 MP4 / WEBM / MOV / MKV READ-ALONG VIDEO + WAV / MP3 / FLAC / M4A / OPUS",
-    extra: "Narrated Live by ollama run phonon --voice Zoey · Free & Open Source on GitHub",
+    voiceDesc: "Zoey (--voice Zoey · 9 Audio + 4 Read-Along Video Formats)",
+    badge: "07 / 08 · EXPORT 9 AUDIO & 4 READ-ALONG VIDEO FORMATS",
+    title: "EXPORT TO 9 AUDIO OR\n4 READ-ALONG VIDEOS.",
+    label: "🎬 MP4 / WEBM / MOV / MKV IN 2 SECONDS + WAV / MP3 / FLAC / M4A / OPUS",
+    extra: "Narrated Live by ollama run phonon --voice Zoey · Sparse-Keyframe Instant Video Encoder",
     bullets: [
-      "🎬 Save Read-Along Videos (MP4, WebM, MOV, MKV) with Highlighted Text",
-      "🎵 Save Audio in WAV, MP3, M4A, AAC, FLAC, OGG, OPUS, AIFF & WMA",
-      "🍎 Free & Open Source for Apple Silicon Macs (M1–M4 · MLX)",
+      "🎬 4 Read-Along Video Formats (MP4, WebM, MOV, MKV in 16:9, 9:16, 1:1)",
+      "⚡ Sparse-Keyframe Encoder Renders 49-Min Books to MP4 in ~2 Seconds",
+      "🎵 9 Audio Formats (WAV, MP3, M4A, AAC, FLAC, OGG, OPUS, AIFF, WMA)",
     ],
-    say: "When you're ready to export, convert your text into a synchronized Read-Along M P 4, Web M, M O V, or M K V video where every word lights up on screen as you listen, complete with S R T and V T T subtitles—or save as W A V, M P 3, M 4 A, F L A C, O G G, Opus, or A I F F audio in one click!",
+    say: "Export your speech to nine audio formats—W A V, M P 3, M 4 A, A A C, F L A C, O G G, Opus, A I F F, or W M A—or render a synchronized Read-Along Video in M P 4, Web M, M O V, or M K V across widescreen, vertical Short, or square aspect ratios! Our sparse-keyframe encoder renders an entire forty-nine-minute e-book into a ten-eighty-p M P 4 with embedded subtitles in just two seconds!",
     record: async (c) => {
       await showKeynoteHud(
         c,
         "🎬 Save as Read-Along Video (MP4/WebM/MOV/MKV) + 9 Audio Formats (WAV/MP3/FLAC/M4A)",
-        "Synchronized word-by-word karaoke text highlighting + companion .SRT & .VTT subtitles",
+        "Sparse-keyframe encoder renders 242-chunk books to 1080p MP4 in ~2s + .SRT & .VTT subtitles",
         "🎬 AUDIO & VIDEO",
       );
       await c.eval(`(() => {
@@ -441,12 +493,62 @@ const sceneSpecs: SceneSpec[] = [
         }
         const nameInput = document.getElementById('phonon-out-name');
         if (nameInput) {
-          nameInput.value = "06_Phonon_Read_Along_Video";
+          nameInput.value = "07_Phonon_Read_Along_Video";
           nameInput.dispatchEvent(new Event('input', { bubbles: true }));
         }
       })()`);
       await sleep(400);
       await c.click('.phonon-save-video-btn', { pause: 1800 }).catch(() => {});
+      await sleep(900);
+    },
+  },
+  {
+    id: "08_ollama_ai_assistant_and_router",
+    voice: "Zoey",
+    voiceDesc: "Zoey (--voice Zoey · Ollama AI Assistant & Full Capability Router)",
+    badge: "08 / 08 · OLLAMA AI ASSISTANT, ROUTER & SPEAK REPLY",
+    title: "OLLAMA AI ASSISTANT +\nSPEAK REPLY WITH ZOEY.",
+    label: "🦙 AUTO-ROUTER · DEEP THINKING · VISION · SYSTEMONE · EMBED · SPEAK REPLY",
+    extra: "Narrated Live by ollama run phonon --voice Zoey · 70% RAM Guard & keep_alive: 0",
+    bullets: [
+      "🦙 Ask Anything Auto-Router: Chat, Deep Thinking, Vision & Web Search",
+      "⚡ SystemOne Instant Decisions (`/v1/systemone`) & Semantic Search (`/api/embed`)",
+      "🔊 `Speak Reply` Reads Every AI Answer Out Loud with Phonon `--voice Zoey`",
+    ],
+    say: "Finally, open the built-in Ollama AI Assistant to pair local language models with my Phonon Zoey voice! Use the Ask Anything Auto-Router for live streaming chat, step-by-step Deep Thinking, multimodal Vision inspection, System-One sub-second classification, and semantic Meaning Search—protected by a seventy-percent RAM hardware guard and one-click keep-alive zero memory release—while Speak Reply reads every AI answer out loud in my Zoey voice!",
+    record: async (c) => {
+      await c.eval(`(async () => {
+        const { openPower, setPowerExpanded } = await import('/ui/power.js');
+        openPower('ollama');
+        setPowerExpanded(true);
+      })()`);
+      await showKeynoteHud(
+        c,
+        "🦙 Built-In Ollama AI Assistant + Full Capability Router + `Speak Reply` (`--voice Zoey`)",
+        "Auto-Router · Deep Thinking · Vision · SystemOne (/v1/systemone) · Meaning Search · 70% RAM Guard",
+        "🦙 OLLAMA + ZOEY",
+      );
+      await sleep(900);
+      for (const tabLabel of [
+        "2. Decision / SystemOne (/v1/systemone)",
+        "3. Phonon Speech (/v1/audio/speech)",
+        "4. Meaning Search & Web (/api/embed)",
+        "5. Models, Hardware Guard & Cloud",
+        "1. Ask Anything (Auto-Router & Chat)",
+      ]) {
+        await c.eval(`(() => {
+          const btn = Array.from(document.querySelectorAll('.ollama-mode-btn')).find(b => b.textContent && b.textContent.includes(${JSON.stringify(tabLabel)}));
+          if (btn) btn.click();
+        })()`);
+        await sleep(520);
+      }
+      await c.eval(`(() => {
+        const ta = document.querySelector('.ollama-textarea');
+        if (ta) {
+          ta.value = "Summarize 01_Architecture_Guide.md in 3 bullet points and read the summary aloud with Phonon voice Zoey.";
+          ta.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      })()`);
       await sleep(900);
     },
   },
@@ -781,9 +883,13 @@ async function main() {
       console.log(`🎥 Recording live scene ${scene.id} (${(item.seconds / tempo).toFixed(1)}s)...`);
       await recBrowser.startRecording();
       await scene.record(recBrowser);
-      if (scene.id === "04_extreme_large_text_chunking") {
+      if (scene.id === "05_extreme_large_text_chunking") {
         const uiShot = await recBrowser.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false });
         writeFileSync(join(PROD, "phonon_voice_reader_zoey_studio.png"), Buffer.from(uiShot.data, "base64"));
+      }
+      if (scene.id === "08_ollama_ai_assistant_and_router") {
+        const uiShot = await recBrowser.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false });
+        writeFileSync(join(PROD, "phonon_ollama_ai_assistant_zoey.png"), Buffer.from(uiShot.data, "base64"));
       }
       await sleep(350);
       await recBrowser.stopRecording(clipPath, join(WORK, `frames_${scene.id}`), item.seconds / tempo);
@@ -1007,11 +1113,15 @@ async function main() {
   const finalSeconds = duration(OUTPUT_SHORT);
   const notes = notesMarkdown(finalSeconds, tempo, sceneMarks);
   writeFileSync(NOTES, notes);
+  writeFileSync(join(PROD, "PHONON_OLLAMA_COMPLETE_TUTORIAL.md"), notes);
   writeFileSync(join(WORK, "upload-guide.txt"), notes);
+  run(["cp", "-f", OUTPUT_WIDE, join(PROD, "phonon_ollama_complete_tutorial_1080p.mp4")]);
+  run(["cp", "-f", OUTPUT_SHORT, join(PROD, "phonon_ollama_complete_tutorial_short.mp4")]);
 
   console.log(`\n✅ Built Vertical 9:16 YouTube Short: ${OUTPUT_SHORT} (${finalSeconds.toFixed(2)}s, ${(Bun.file(OUTPUT_SHORT).size / 1048576).toFixed(1)} MB)`);
   console.log(`✅ Built Widescreen 16:9 Demo Video:  ${OUTPUT_WIDE} (${duration(OUTPUT_WIDE).toFixed(2)}s, ${(Bun.file(OUTPUT_WIDE).size / 1048576).toFixed(1)} MB)`);
-  console.log(`📝 Wrote YouTube Notes:               ${NOTES}`);
+  console.log(`✅ Built Complete Tutorial 1080p MP4: ${join(PROD, "phonon_ollama_complete_tutorial_1080p.mp4")}`);
+  console.log(`📝 Wrote YouTube & Tutorial Notes:    ${NOTES}`);
 }
 
 await main();

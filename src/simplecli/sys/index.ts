@@ -275,7 +275,9 @@ export class Sys {
 
   public static diskStats(targetPath: string = '/'): DiskStats {
     try {
-      const [out, code] = Sys.exec(`df -k "${targetPath}"`);
+      const res = spawnSync('df', ['-k', '--', targetPath], { encoding: 'utf8' });
+      const out = res.stdout || '';
+      const code = res.status ?? 1;
       if (code === 0) {
         const lines = out.trim().split('\n');
         const lastLine = lines[lines.length - 1];
@@ -455,11 +457,15 @@ export class Sys {
   }
 
   public static async pingCheck(host: string = '8.8.8.8', timeoutMs: number = 2000): Promise<boolean> {
+    const cleanHost = String(host || '').trim();
+    if (!cleanHost || cleanHost.startsWith('-') || !/^[a-zA-Z0-9.:_-]+$/.test(cleanHost)) {
+      return false;
+    }
     const p = os.platform();
-    const flag = p === 'win32' ? '-n 1 -w' : '-c 1 -W';
-    const timeoutSec = Math.max(1, Math.round(timeoutMs / 1000));
-    const [_, code] = Sys.exec(`ping ${flag} ${timeoutSec} ${host}`);
-    return code === 0;
+    const timeoutSec = String(Math.max(1, Math.round(timeoutMs / 1000)));
+    const args = p === 'win32' ? ['-n', '1', '-w', timeoutSec, cleanHost] : ['-c', '1', '-W', timeoutSec, cleanHost];
+    const res = spawnSync('ping', args, { stdio: 'ignore' });
+    return res.status === 0;
   }
 
   public static async checkPort(host: string, port: number, timeoutMs: number = 1000): Promise<boolean> {
@@ -516,23 +522,39 @@ export class Sys {
 
   public static notify(title: string, message: string, sound: boolean = true): void {
     const p = os.platform();
+    const escAs = (s: string) => String(s ?? '').replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/[\r\n]+/g, ' ');
     if (p === 'darwin') {
       const soundArg = sound ? ' sound name "default"' : '';
-      const script = `display notification "${message.replace(/"/g, '\\"')}" with title "${title.replace(/"/g, '\\"')}"${soundArg}`;
-      Sys.exec(`osascript -e '${script}'`);
+      const script = `display notification "${escAs(message)}" with title "${escAs(title)}"${soundArg}`;
+      try {
+        spawnSync('osascript', ['-e', script], { stdio: 'ignore' });
+      } catch {}
     } else if (p === 'linux') {
-      Sys.exec(`notify-send "${title.replace(/"/g, '\\"')}" "${message.replace(/"/g, '\\"')}"`);
+      try {
+        spawnSync('notify-send', ['--', String(title ?? ''), String(message ?? '')], { stdio: 'ignore' });
+      } catch {}
     }
   }
 
   public static say(text: string, voice?: string, rate?: number): void {
     const p = os.platform();
+    const cleanText = String(text ?? '');
+    if (!cleanText) return;
     if (p === 'darwin') {
-      const voiceArg = voice ? ` -v "${voice}"` : '';
-      const rateArg = rate ? ` -r ${rate}` : '';
-      Sys.execBg(`say${voiceArg}${rateArg} "${text.replace(/"/g, '\\"')}"`);
+      const args: string[] = [];
+      if (voice && /^[a-zA-Z0-9 _-]+$/.test(voice)) args.push('-v', voice);
+      if (rate && Number.isFinite(rate) && rate > 0) args.push('-r', String(Math.round(rate)));
+      args.push('--', cleanText);
+      try {
+        const proc = spawn('say', args, { detached: true, stdio: 'ignore' });
+        proc.unref();
+      } catch {}
     } else if (p === 'linux') {
-      Sys.execBg(`spd-say "${text.replace(/"/g, '\\"')}" || espeak "${text.replace(/"/g, '\\"')}"`);
+      try {
+        const bin = Sys.which('spd-say') ? 'spd-say' : 'espeak';
+        const proc = spawn(bin, ['--', cleanText], { detached: true, stdio: 'ignore' });
+        proc.unref();
+      } catch {}
     }
   }
 
@@ -568,6 +590,8 @@ export class Sys {
   }
 
   public static openUrl(urlOrPath: string): boolean {
+    const target = String(urlOrPath ?? '').trim();
+    if (!target || target.startsWith('-') || target.includes('\0')) return false;
     try {
       const p = os.platform();
       let cmd: string;
@@ -575,13 +599,13 @@ export class Sys {
 
       if (p === 'darwin') {
         cmd = 'open';
-        args = [urlOrPath];
+        args = [target];
       } else if (p === 'win32') {
         cmd = 'cmd';
-        args = ['/c', 'start', '""', urlOrPath];
+        args = ['/c', 'start', '""', target];
       } else {
         cmd = 'xdg-open';
-        args = [urlOrPath];
+        args = [target];
       }
 
       const proc = spawn(cmd, args, {
@@ -591,10 +615,7 @@ export class Sys {
       proc.unref();
       return true;
     } catch {
-      const p = os.platform();
-      const cmd = p === 'darwin' ? 'open' : (p === 'win32' ? 'start' : 'xdg-open');
-      const [_, code] = Sys.exec(`${cmd} "${urlOrPath}"`);
-      return code === 0;
+      return false;
     }
   }
 
@@ -748,11 +769,13 @@ export class Sys {
   // ===========================================================================
 
   public static which(binName: string): string | null {
+    const clean = String(binName ?? '').trim();
+    if (!clean || clean.startsWith('-') || clean.includes('\0')) return null;
     if (typeof (Bun as any)?.which === 'function') {
-      return (Bun as any).which(binName);
+      return (Bun as any).which(clean);
     }
-    const [out, code] = Sys.exec(`which "${binName}"`);
-    return code === 0 && out ? out.trim() : null;
+    const res = spawnSync('which', ['--', clean], { encoding: 'utf8' });
+    return res.status === 0 && res.stdout ? res.stdout.trim() : null;
   }
 
   public static hasBinary(binName: string): boolean {
@@ -926,7 +949,7 @@ export class Sys {
 
   // Listens on 127.0.0.1 unless `hostname` is given (for example "0.0.0.0" to publish the directory on the network).
   public static serveStatic(directory: string, port: number = 3000, hostname: string = '127.0.0.1'): any {
-    const fullDir = Sys.expandTilde(directory);
+    const fullDir = path.resolve(Sys.expandTilde(directory));
     if (!fs.existsSync(fullDir)) {
       throw new Error(`Directory "${fullDir}" does not exist.`);
     }
@@ -937,9 +960,13 @@ export class Sys {
         hostname,
         fetch(req: Request) {
           const url = new URL(req.url);
-          let reqPath = url.pathname;
+          let reqPath = decodeURIComponent(url.pathname);
+          if (reqPath.includes('\0')) return new Response('Bad Request', { status: 400 });
           if (reqPath.endsWith('/')) reqPath += 'index.html';
-          const target = path.join(fullDir, reqPath);
+          const target = path.resolve(fullDir, '.' + (reqPath.startsWith('/') ? reqPath : '/' + reqPath));
+          if (target !== fullDir && !target.startsWith(fullDir + path.sep)) {
+            return new Response('Forbidden', { status: 403 });
+          }
           const file = (Bun as any).file(target);
           return new Response(file);
         },

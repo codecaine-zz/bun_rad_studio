@@ -1,8 +1,8 @@
 {
   "suite": "Codecaine Utility Suite",
   "version": "1.0.0",
-  "generatedAt": "2026-10-22T18:59:26.055Z",
-  "totalWrappers": 262,
+  "generatedAt": "2026-10-29T00:38:09.060Z",
+  "totalWrappers": 334,
   "commands": [
     {
       "name": "codecaine",
@@ -1293,6 +1293,38 @@
       "targetScript": "applications/app_bundler_studio.ts"
     },
     {
+      "name": "codecaine-artillery-studio",
+      "type": "gui",
+      "displayName": "Codecaine CyberArtillery: Scorched Skyline",
+      "category": "Games & Entertainment",
+      "description": "Turn-based wind & gravity trajectory artillery across destructible city skylines with MIRVs, Funky Bombs & AI/2P modes",
+      "targetScript": "applications/artillery_studio.ts"
+    },
+    {
+      "name": "codecaine-artillery",
+      "type": "gui",
+      "displayName": "Codecaine CyberArtillery: Scorched Skyline",
+      "category": "Games & Entertainment",
+      "description": "Turn-based wind & gravity trajectory artillery across destructible city skylines with MIRVs, Funky Bombs & AI/2P modes",
+      "targetScript": "applications/artillery_studio.ts"
+    },
+    {
+      "name": "codecaine-asteroids-studio",
+      "type": "gui",
+      "displayName": "Codecaine VoidVector Asteroids Deluxe",
+      "category": "Games & Entertainment",
+      "description": "360° Newtonian vector shooter with splitting asteroids, hunter-seeker UFOs, shields, hyperspace warp & weapon power-ups",
+      "targetScript": "applications/asteroids_studio.ts"
+    },
+    {
+      "name": "codecaine-asteroids",
+      "type": "gui",
+      "displayName": "Codecaine VoidVector Asteroids Deluxe",
+      "category": "Games & Entertainment",
+      "description": "360° Newtonian vector shooter with splitting asteroids, hunter-seeker UFOs, shields, hyperspace warp & weapon power-ups",
+      "targetScript": "applications/asteroids_studio.ts"
+    },
+    {
       "name": "codecaine-balatro-studio",
       "type": "gui",
       "displayName": "Codecaine Joker Royale Deluxe",
@@ -1309,6 +1341,38 @@
       "targetScript": "applications/balatro_studio.ts"
     },
     {
+      "name": "codecaine-balloon-fight-studio",
+      "type": "gui",
+      "displayName": "Codecaine CyberBalloon Fight: Sky Joust & Storm Trip",
+      "category": "Games & Entertainment",
+      "description": "6-mode NES Balloon Fight & Balloon Trip remaster: Sky Arena, Endless Lightning Trip, Roguelike Perks, Boss Storm, 2P Co-Op & 2P Dogfight",
+      "targetScript": "applications/balloon_fight_studio.ts"
+    },
+    {
+      "name": "codecaine-balloon-fight",
+      "type": "gui",
+      "displayName": "Codecaine CyberBalloon Fight: Sky Joust & Storm Trip",
+      "category": "Games & Entertainment",
+      "description": "6-mode NES Balloon Fight & Balloon Trip remaster: Sky Arena, Endless Lightning Trip, Roguelike Perks, Boss Storm, 2P Co-Op & 2P Dogfight",
+      "targetScript": "applications/balloon_fight_studio.ts"
+    },
+    {
+      "name": "codecaine-bejeweled-studio",
+      "type": "gui",
+      "displayName": "Codecaine CyberJewel 12-Mode Blitz: Diamond Mine & Prism Royale",
+      "category": "Games & Entertainment",
+      "description": "12-mode Match-3 gem symphony with 3D ray-traced jewelry shaders, interactive Mini-Game Stage Canvas & active [SPACE] gadgets",
+      "targetScript": "applications/bejeweled_studio.ts"
+    },
+    {
+      "name": "codecaine-bejeweled",
+      "type": "gui",
+      "displayName": "Codecaine CyberJewel 12-Mode Blitz: Diamond Mine & Prism Royale",
+      "category": "Games & Entertainment",
+      "description": "12-mode Match-3 gem symphony with 3D ray-traced jewelry shaders, interactive Mini-Game Stage Canvas & active [SPACE] gadgets",
+      "targetScript": "applications/bejeweled_studio.ts"
+    },
+    {
       "name": "codecaine-blackjack-studio",
       "type": "gui",
       "displayName": "Codecaine Blackjack Royale VIP",
@@ -1323,6 +1387,38 @@
       "category": "Games & Entertainment",
       "description": "High-roller multi-hand VIP casino Blackjack with 3-spot betting, Codecaine Royale vector cards, 6-deck shoe Hi-Lo telemetry, split/double, & side bets",
       "targetScript": "applications/blackjack_studio.ts"
+    },
+    {
+      "name": "codecaine-bomberman-studio",
+      "type": "gui",
+      "displayName": "Codecaine CyberBomber Grid Arena",
+      "category": "Games & Entertainment",
+      "description": "Destructible grid arena with chain-reaction plasma bombs, kick boots, Campaign, AI Battle Royale & 2-Player Versus",
+      "targetScript": "applications/bomberman_studio.ts"
+    },
+    {
+      "name": "codecaine-bomberman",
+      "type": "gui",
+      "displayName": "Codecaine CyberBomber Grid Arena",
+      "category": "Games & Entertainment",
+      "description": "Destructible grid arena with chain-reaction plasma bombs, kick boots, Campaign, AI Battle Royale & 2-Player Versus",
+      "targetScript": "applications/bomberman_studio.ts"
+    },
+    {
+      "name": "codecaine-bowling-studio",
+      "type": "gui",
+      "displayName": "Codecaine CyberStrike Bowling: 300 Perfect Club",
+      "category": "Games & Entertainment",
+      "description": "AAA 3D-perspective 10-frame PBA bowling with lane oil hook physics, 10-pin domino scatter, split clinic & 300 Perfect Club",
+      "targetScript": "applications/bowling_studio.ts"
+    },
+    {
+      "name": "codecaine-bowling",
+      "type": "gui",
+      "displayName": "Codecaine CyberStrike Bowling: 300 Perfect Club",
+      "category": "Games & Entertainment",
+      "description": "AAA 3D-perspective 10-frame PBA bowling with lane oil hook physics, 10-pin domino scatter, split clinic & 300 Perfect Club",
+      "targetScript": "applications/bowling_studio.ts"
     },
     {
       "name": "codecaine-breakout-studio",
@@ -1355,6 +1451,54 @@
       "category": "Productivity & Text",
       "description": "Apple-grade scientific calculator, unit converter, time-series charts, 64-bit programmer lab, calculus studio & IntuitionLab visual STEM simulations",
       "targetScript": "applications/calculator_studio.ts"
+    },
+    {
+      "name": "codecaine-centipede-studio",
+      "type": "gui",
+      "displayName": "Codecaine CyberCentipede Blaster",
+      "category": "Games & Entertainment",
+      "description": "High-speed spore-field shooter with splitting centipede chains, bouncing spiders, fleas & poison scorpions",
+      "targetScript": "applications/centipede_studio.ts"
+    },
+    {
+      "name": "codecaine-centipede",
+      "type": "gui",
+      "displayName": "Codecaine CyberCentipede Blaster",
+      "category": "Games & Entertainment",
+      "description": "High-speed spore-field shooter with splitting centipede chains, bouncing spiders, fleas & poison scorpions",
+      "targetScript": "applications/centipede_studio.ts"
+    },
+    {
+      "name": "codecaine-chips-challenge-studio",
+      "type": "gui",
+      "displayName": "Codecaine CyberChip's Labyrinth",
+      "category": "Games & Entertainment",
+      "description": "Tile-based puzzle gauntlet with microchips, elemental boots (fire, flippers, cleats, suction), keys, blocks & undo",
+      "targetScript": "applications/chips_challenge_studio.ts"
+    },
+    {
+      "name": "codecaine-chips-challenge",
+      "type": "gui",
+      "displayName": "Codecaine CyberChip's Labyrinth",
+      "category": "Games & Entertainment",
+      "description": "Tile-based puzzle gauntlet with microchips, elemental boots (fire, flippers, cleats, suction), keys, blocks & undo",
+      "targetScript": "applications/chips_challenge_studio.ts"
+    },
+    {
+      "name": "codecaine-chuchu-rocket-studio",
+      "type": "gui",
+      "displayName": "Codecaine CyberRocket: Arrow Tile Panic",
+      "category": "Games & Entertainment",
+      "description": "8-mode Dreamcast ChuChu Rocket! action puzzle: place directional arrows to herd mice into your rocket while routing cats into AI rivals",
+      "targetScript": "applications/chuchu_rocket_studio.ts"
+    },
+    {
+      "name": "codecaine-chuchu-rocket",
+      "type": "gui",
+      "displayName": "Codecaine CyberRocket: Arrow Tile Panic",
+      "category": "Games & Entertainment",
+      "description": "8-mode Dreamcast ChuChu Rocket! action puzzle: place directional arrows to herd mice into your rocket while routing cats into AI rivals",
+      "targetScript": "applications/chuchu_rocket_studio.ts"
     },
     {
       "name": "codecaine-code-studio",
@@ -1427,6 +1571,54 @@
       "category": "Security & Crypto",
       "description": "SHA-256, HMAC, AES-GCM cipher workbench with password entropy testing",
       "targetScript": "applications/crypto_studio.ts"
+    },
+    {
+      "name": "codecaine-cyber-maker-studio",
+      "type": "gui",
+      "displayName": "Codecaine CyberMaker Studio: OS Kernel World Architect",
+      "category": "Games & Entertainment",
+      "description": "Super Mario Maker-style level architect & platformer with Linux Tux, macOS Dock/Beachball, FreeBSD Beastie & Windows BSOD/Clippy objects",
+      "targetScript": "applications/cyber_maker_studio.ts"
+    },
+    {
+      "name": "codecaine-cyber-maker",
+      "type": "gui",
+      "displayName": "Codecaine CyberMaker Studio: OS Kernel World Architect",
+      "category": "Games & Entertainment",
+      "description": "Super Mario Maker-style level architect & platformer with Linux Tux, macOS Dock/Beachball, FreeBSD Beastie & Windows BSOD/Clippy objects",
+      "targetScript": "applications/cyber_maker_studio.ts"
+    },
+    {
+      "name": "codecaine-cyber2048-studio",
+      "type": "gui",
+      "displayName": "Codecaine Cyber2048 Quantum Merge",
+      "category": "Games & Entertainment",
+      "description": "Power-of-2 sliding neon tile synthesizer with 3x3/4x4/5x5 grids, temporal undo, tile zap & AI expectimax hints",
+      "targetScript": "applications/cyber2048_studio.ts"
+    },
+    {
+      "name": "codecaine-cyber2048",
+      "type": "gui",
+      "displayName": "Codecaine Cyber2048 Quantum Merge",
+      "category": "Games & Entertainment",
+      "description": "Power-of-2 sliding neon tile synthesizer with 3x3/4x4/5x5 grids, temporal undo, tile zap & AI expectimax hints",
+      "targetScript": "applications/cyber2048_studio.ts"
+    },
+    {
+      "name": "codecaine-darts-studio",
+      "type": "gui",
+      "displayName": "Codecaine Pro Darts Royale: 501 & Cricket Arena",
+      "category": "Games & Entertainment",
+      "description": "14-game Pro Darts Arena (501, 301, 701, Cricket, Cut-Throat, Tactics, Shanghai, Killer, Bob's 27, Halve-It, Baseball & Golf) with 4-tier Ballistics",
+      "targetScript": "applications/darts_studio.ts"
+    },
+    {
+      "name": "codecaine-darts",
+      "type": "gui",
+      "displayName": "Codecaine Pro Darts Royale: 501 & Cricket Arena",
+      "category": "Games & Entertainment",
+      "description": "14-game Pro Darts Arena (501, 301, 701, Cricket, Cut-Throat, Tactics, Shanghai, Killer, Bob's 27, Halve-It, Baseball & Golf) with 4-tier Ballistics",
+      "targetScript": "applications/darts_studio.ts"
     },
     {
       "name": "codecaine-database-studio",
@@ -1557,6 +1749,22 @@
       "targetScript": "applications/frogger_studio.ts"
     },
     {
+      "name": "codecaine-game-show-studio",
+      "type": "gui",
+      "displayName": "Codecaine Mr. Game Show Royale: TV Studio Mega-Pack",
+      "category": "Games & Entertainment",
+      "description": "8-in-1 TV Game Show Mega-Studio: Wheel of Fortune, Press Your Luck No Whammies, Survey Feud, Cyber-Jeopardy, Plinko, Deal Cases & Millionaire",
+      "targetScript": "applications/game_show_studio.ts"
+    },
+    {
+      "name": "codecaine-game-show",
+      "type": "gui",
+      "displayName": "Codecaine Mr. Game Show Royale: TV Studio Mega-Pack",
+      "category": "Games & Entertainment",
+      "description": "8-in-1 TV Game Show Mega-Studio: Wheel of Fortune, Press Your Luck No Whammies, Survey Feud, Cyber-Jeopardy, Plinko, Deal Cases & Millionaire",
+      "targetScript": "applications/game_show_studio.ts"
+    },
+    {
       "name": "codecaine-gdu-studio",
       "type": "gui",
       "displayName": "Disk Usage Studio (GDU)",
@@ -1597,6 +1805,22 @@
       "targetScript": "applications/ipinfo_studio.ts"
     },
     {
+      "name": "codecaine-jezzball-studio",
+      "type": "gui",
+      "displayName": "Codecaine CyberJezz Containment Deluxe",
+      "category": "Games & Entertainment",
+      "description": "1992 JezzBall remaster: capture 75%+ of the cyber-grid with laser containment walls, cryo slow-mo & shielded beams",
+      "targetScript": "applications/jezzball_studio.ts"
+    },
+    {
+      "name": "codecaine-jezzball",
+      "type": "gui",
+      "displayName": "Codecaine CyberJezz Containment Deluxe",
+      "category": "Games & Entertainment",
+      "description": "1992 JezzBall remaster: capture 75%+ of the cyber-grid with laser containment walls, cryo slow-mo & shielded beams",
+      "targetScript": "applications/jezzball_studio.ts"
+    },
+    {
       "name": "codecaine-jq-studio",
       "type": "gui",
       "displayName": "JQ JSON Query Studio",
@@ -1613,6 +1837,38 @@
       "targetScript": "applications/json_studio.ts"
     },
     {
+      "name": "codecaine-lemmings-studio",
+      "type": "gui",
+      "displayName": "Codecaine CyberLemmings: Kernel Thread Rescue",
+      "category": "Games & Entertainment",
+      "description": "8-mode destructible terrain puzzle with 8 assignable daemon thread roles (Climber, Floater, Bomber, Blocker, Builder, Basher, Miner, Digger)",
+      "targetScript": "applications/lemmings_studio.ts"
+    },
+    {
+      "name": "codecaine-lemmings",
+      "type": "gui",
+      "displayName": "Codecaine CyberLemmings: Kernel Thread Rescue",
+      "category": "Games & Entertainment",
+      "description": "8-mode destructible terrain puzzle with 8 assignable daemon thread roles (Climber, Floater, Bomber, Blocker, Builder, Basher, Miner, Digger)",
+      "targetScript": "applications/lemmings_studio.ts"
+    },
+    {
+      "name": "codecaine-lode-runner-studio",
+      "type": "gui",
+      "displayName": "Codecaine CyberLode: Gold Cache Heist",
+      "category": "Games & Entertainment",
+      "description": "8-mode Lode Runner remaster with brick floor drilling, AI guard trapping, monkey-bar zip-lines, escape ladders & built-in level editor",
+      "targetScript": "applications/lode_runner_studio.ts"
+    },
+    {
+      "name": "codecaine-lode-runner",
+      "type": "gui",
+      "displayName": "Codecaine CyberLode: Gold Cache Heist",
+      "category": "Games & Entertainment",
+      "description": "8-mode Lode Runner remaster with brick floor drilling, AI guard trapping, monkey-bar zip-lines, escape ladders & built-in level editor",
+      "targetScript": "applications/lode_runner_studio.ts"
+    },
+    {
       "name": "codecaine-lolo-studio",
       "type": "gui",
       "displayName": "Codecaine Adventures of Caine Remaster",
@@ -1627,6 +1883,70 @@
       "category": "Games & Entertainment",
       "description": "Cyberpunk remastered Adventures of Caine with procedural puzzles, sound engine & visual manual",
       "targetScript": "applications/lolo_studio.ts"
+    },
+    {
+      "name": "codecaine-lunar-lander-studio",
+      "type": "gui",
+      "displayName": "Codecaine CyberLander: Vector Descent",
+      "category": "Games & Entertainment",
+      "description": "Precision vector thruster & fuel simulator across Moon, Mars & Titan craters with multiplier landing pads",
+      "targetScript": "applications/lunar_lander_studio.ts"
+    },
+    {
+      "name": "codecaine-lunar-lander",
+      "type": "gui",
+      "displayName": "Codecaine CyberLander: Vector Descent",
+      "category": "Games & Entertainment",
+      "description": "Precision vector thruster & fuel simulator across Moon, Mars & Titan craters with multiplier landing pads",
+      "targetScript": "applications/lunar_lander_studio.ts"
+    },
+    {
+      "name": "codecaine-magical-drop-studio",
+      "type": "gui",
+      "displayName": "Codecaine CyberDrop: Grab & Throw Chain Blitz",
+      "category": "Games & Entertainment",
+      "description": "8-mode Neo-Geo Magical Drop III & Money Idol Exchanger action puzzle with 6 Tarot Arcana fighters, Ice/Rainbow orbs & cascade chains",
+      "targetScript": "applications/magical_drop_studio.ts"
+    },
+    {
+      "name": "codecaine-magical-drop",
+      "type": "gui",
+      "displayName": "Codecaine CyberDrop: Grab & Throw Chain Blitz",
+      "category": "Games & Entertainment",
+      "description": "8-mode Neo-Geo Magical Drop III & Money Idol Exchanger action puzzle with 6 Tarot Arcana fighters, Ice/Rainbow orbs & cascade chains",
+      "targetScript": "applications/magical_drop_studio.ts"
+    },
+    {
+      "name": "codecaine-mappy-studio",
+      "type": "gui",
+      "displayName": "Codecaine CyberMappy: Mansion Heist & Trampoline Police",
+      "category": "Games & Entertainment",
+      "description": "8-mode Namco Mappy mansion remaster with color-changing trampolines, Microwave Shockwave Doors, Goro loot multipliers & Roof Balloon Bonus",
+      "targetScript": "applications/mappy_studio.ts"
+    },
+    {
+      "name": "codecaine-mappy",
+      "type": "gui",
+      "displayName": "Codecaine CyberMappy: Mansion Heist & Trampoline Police",
+      "category": "Games & Entertainment",
+      "description": "8-mode Namco Mappy mansion remaster with color-changing trampolines, Microwave Shockwave Doors, Goro loot multipliers & Roof Balloon Bonus",
+      "targetScript": "applications/mappy_studio.ts"
+    },
+    {
+      "name": "codecaine-marble-madness-studio",
+      "type": "gui",
+      "displayName": "Codecaine CyberMarble Madness: Isometric Gravity Odyssey",
+      "category": "Games & Entertainment",
+      "description": "8-mode 3D isometric Marble Madness & Marble Blast suite with slope gravity, Black Steel Knockers, Gem Hunt, Tilt Labyrinth & 2P Race",
+      "targetScript": "applications/marble_madness_studio.ts"
+    },
+    {
+      "name": "codecaine-marble-madness",
+      "type": "gui",
+      "displayName": "Codecaine CyberMarble Madness: Isometric Gravity Odyssey",
+      "category": "Games & Entertainment",
+      "description": "8-mode 3D isometric Marble Madness & Marble Blast suite with slope gravity, Black Steel Knockers, Gem Hunt, Tilt Labyrinth & 2P Race",
+      "targetScript": "applications/marble_madness_studio.ts"
     },
     {
       "name": "codecaine-markdown-studio",
@@ -1685,6 +2005,22 @@
       "targetScript": "applications/media_player_studio.ts"
     },
     {
+      "name": "codecaine-memory-match-studio",
+      "type": "gui",
+      "displayName": "Codecaine CyberRecall Royale: Holo-Vault Memory Match",
+      "category": "Games & Entertainment",
+      "description": "8-mode 3D Hologram Card-Flip & Memory Match Casino Royale with 5 Deck Themes, Triad Match-3, 60s Blitz, Minefield & VS Neural AI Duel",
+      "targetScript": "applications/memory_match_studio.ts"
+    },
+    {
+      "name": "codecaine-memory-match",
+      "type": "gui",
+      "displayName": "Codecaine CyberRecall Royale: Holo-Vault Memory Match",
+      "category": "Games & Entertainment",
+      "description": "8-mode 3D Hologram Card-Flip & Memory Match Casino Royale with 5 Deck Themes, Triad Match-3, 60s Blitz, Minefield & VS Neural AI Duel",
+      "targetScript": "applications/memory_match_studio.ts"
+    },
+    {
       "name": "codecaine-minesweeper-studio",
       "type": "gui",
       "displayName": "Codecaine Minesweeper Pro Championship",
@@ -1699,6 +2035,22 @@
       "category": "Games & Entertainment",
       "description": "Championship Minesweeper with safe first-click, chord clearing, 3BV benchmark & multi-theme engine",
       "targetScript": "applications/minesweeper_studio.ts"
+    },
+    {
+      "name": "codecaine-missile-command-studio",
+      "type": "gui",
+      "displayName": "Codecaine CyberDefense: ICBM Interceptor",
+      "category": "Games & Entertainment",
+      "description": "Defend 6 neon megacities with 3 counter-missile batteries and chain-reaction shockwaves against MIRV warheads",
+      "targetScript": "applications/missile_command_studio.ts"
+    },
+    {
+      "name": "codecaine-missile-command",
+      "type": "gui",
+      "displayName": "Codecaine CyberDefense: ICBM Interceptor",
+      "category": "Games & Entertainment",
+      "description": "Defend 6 neon megacities with 3 counter-missile batteries and chain-reaction shockwaves against MIRV warheads",
+      "targetScript": "applications/missile_command_studio.ts"
     },
     {
       "name": "codecaine-mysql-studio",
@@ -1773,6 +2125,54 @@
       "targetScript": "applications/paint_studio.ts"
     },
     {
+      "name": "codecaine-peggle-studio",
+      "type": "gui",
+      "displayName": "Codecaine CyberPeggle: Extreme Pachinko Odyssey",
+      "category": "Games & Entertainment",
+      "description": "8-mode Peggle pachinko spectacle with 25 Orange Pegs, 8 Zen Master power-ups, slow-motion zoom & Ode to Joy Extreme Fever fanfare",
+      "targetScript": "applications/peggle_studio.ts"
+    },
+    {
+      "name": "codecaine-peggle",
+      "type": "gui",
+      "displayName": "Codecaine CyberPeggle: Extreme Pachinko Odyssey",
+      "category": "Games & Entertainment",
+      "description": "8-mode Peggle pachinko spectacle with 25 Orange Pegs, 8 Zen Master power-ups, slow-motion zoom & Ode to Joy Extreme Fever fanfare",
+      "targetScript": "applications/peggle_studio.ts"
+    },
+    {
+      "name": "codecaine-pinball-studio",
+      "type": "gui",
+      "displayName": "Codecaine CyberCadet Pinball 2099",
+      "category": "Games & Entertainment",
+      "description": "Space Cadet pinball table with 60fps flipper physics, pop bumpers, hyperspace ramp, wormhole multiball & fleet ranks",
+      "targetScript": "applications/pinball_studio.ts"
+    },
+    {
+      "name": "codecaine-pinball",
+      "type": "gui",
+      "displayName": "Codecaine CyberCadet Pinball 2099",
+      "category": "Games & Entertainment",
+      "description": "Space Cadet pinball table with 60fps flipper physics, pop bumpers, hyperspace ramp, wormhole multiball & fleet ranks",
+      "targetScript": "applications/pinball_studio.ts"
+    },
+    {
+      "name": "codecaine-pipe-dream-studio",
+      "type": "gui",
+      "displayName": "Codecaine CyberPipe Flow Deluxe",
+      "category": "Games & Entertainment",
+      "description": "High-pressure pipe-routing puzzle with cross-junction loop bonuses, reservoir tanks, 5-piece queue & neon coolant flow",
+      "targetScript": "applications/pipe_dream_studio.ts"
+    },
+    {
+      "name": "codecaine-pipe-dream",
+      "type": "gui",
+      "displayName": "Codecaine CyberPipe Flow Deluxe",
+      "category": "Games & Entertainment",
+      "description": "High-pressure pipe-routing puzzle with cross-junction loop bonuses, reservoir tanks, 5-piece queue & neon coolant flow",
+      "targetScript": "applications/pipe_dream_studio.ts"
+    },
+    {
       "name": "codecaine-poker-studio",
       "type": "gui",
       "displayName": "Codecaine Texas Hold'em & 5-Card Draw Poker Royale",
@@ -1803,6 +2203,22 @@
       "category": "Games & Entertainment",
       "description": "High-speed kinetic Cyber Paddle with fluid spin physics, multi-tier AI opponents & local 2-player battle",
       "targetScript": "applications/pong_studio.ts"
+    },
+    {
+      "name": "codecaine-pool-studio",
+      "type": "gui",
+      "displayName": "Codecaine 8-Ball Pool Royale: Cyber Billiards Suite",
+      "category": "Games & Entertainment",
+      "description": "10-mode Billiards & Snooker suite (8-Ball, 9-Ball, 10-Ball, 14.1, One-Pocket, Snooker, Bank Pool & 12 Trick Shots) with Masse & Jump physics",
+      "targetScript": "applications/pool_studio.ts"
+    },
+    {
+      "name": "codecaine-pool",
+      "type": "gui",
+      "displayName": "Codecaine 8-Ball Pool Royale: Cyber Billiards Suite",
+      "category": "Games & Entertainment",
+      "description": "10-mode Billiards & Snooker suite (8-Ball, 9-Ball, 10-Ball, 14.1, One-Pocket, Snooker, Bank Pool & 12 Trick Shots) with Masse & Jump physics",
+      "targetScript": "applications/pool_studio.ts"
     },
     {
       "name": "codecaine-postgres-studio",
@@ -1837,12 +2253,60 @@
       "targetScript": "applications/procs_studio.ts"
     },
     {
+      "name": "codecaine-qbert-studio",
+      "type": "gui",
+      "displayName": "Codecaine CyberCube Hopper",
+      "category": "Games & Entertainment",
+      "description": "Isometric 28-cube 3D pyramid color-flipper with Coily the cyber-snake, spinning escape discs & chrono-freeze orbs",
+      "targetScript": "applications/qbert_studio.ts"
+    },
+    {
+      "name": "codecaine-qbert",
+      "type": "gui",
+      "displayName": "Codecaine CyberCube Hopper",
+      "category": "Games & Entertainment",
+      "description": "Isometric 28-cube 3D pyramid color-flipper with Coily the cyber-snake, spinning escape discs & chrono-freeze orbs",
+      "targetScript": "applications/qbert_studio.ts"
+    },
+    {
+      "name": "codecaine-qix-studio",
+      "type": "gui",
+      "displayName": "Codecaine CyberQix: Laser Territory Claim",
+      "category": "Games & Entertainment",
+      "description": "8-mode Qix & Volfied laser territory slicer with harmonic plasma Qix, Split-Qix multipliers, Sparx patrols & Volfied power cubes",
+      "targetScript": "applications/qix_studio.ts"
+    },
+    {
+      "name": "codecaine-qix",
+      "type": "gui",
+      "displayName": "Codecaine CyberQix: Laser Territory Claim",
+      "category": "Games & Entertainment",
+      "description": "8-mode Qix & Volfied laser territory slicer with harmonic plasma Qix, Split-Qix multipliers, Sparx patrols & Volfied power cubes",
+      "targetScript": "applications/qix_studio.ts"
+    },
+    {
       "name": "codecaine-rad-studio",
       "type": "gui",
       "displayName": "RAD Utilities Studio Pro",
       "category": "Developer Tools",
       "description": "44 high-velocity development modules for Rapid Application Development with live recipes & testing",
       "targetScript": "applications/rad_studio.ts"
+    },
+    {
+      "name": "codecaine-rampart-studio",
+      "type": "gui",
+      "displayName": "Codecaine CyberRampart: Fortress Build & Cannon Siege",
+      "category": "Games & Entertainment",
+      "description": "8-mode 3-phase Rampart strategy arcade: deploy cannons, bombard invading warships, and patch castle walls with Tetris polyominoes",
+      "targetScript": "applications/rampart_studio.ts"
+    },
+    {
+      "name": "codecaine-rampart",
+      "type": "gui",
+      "displayName": "Codecaine CyberRampart: Fortress Build & Cannon Siege",
+      "category": "Games & Entertainment",
+      "description": "8-mode 3-phase Rampart strategy arcade: deploy cannons, bombard invading warships, and patch castle walls with Tetris polyominoes",
+      "targetScript": "applications/rampart_studio.ts"
     },
     {
       "name": "codecaine-rat-screw-studio",
@@ -1875,6 +2339,22 @@
       "category": "Developer Tools",
       "description": "Interactive regex validator with match highlight, group capture & cheat-sheet",
       "targetScript": "applications/regex_studio.ts"
+    },
+    {
+      "name": "codecaine-reversi-checkers-studio",
+      "type": "gui",
+      "displayName": "Codecaine CyberReversi & Checkers AI",
+      "category": "Games & Entertainment",
+      "description": "Dual 8x8 strategy suite: Reversi (Othello) & Championship Checkers with 3-tier Minimax AI, flip previews & 2P local",
+      "targetScript": "applications/reversi_checkers_studio.ts"
+    },
+    {
+      "name": "codecaine-reversi-checkers",
+      "type": "gui",
+      "displayName": "Codecaine CyberReversi & Checkers AI",
+      "category": "Games & Entertainment",
+      "description": "Dual 8x8 strategy suite: Reversi (Othello) & Championship Checkers with 3-tier Minimax AI, flip previews & 2P local",
+      "targetScript": "applications/reversi_checkers_studio.ts"
     },
     {
       "name": "codecaine-rip-studio",
@@ -1925,6 +2405,22 @@
       "targetScript": "applications/skifree_studio.ts"
     },
     {
+      "name": "codecaine-slots-studio",
+      "type": "gui",
+      "displayName": "Codecaine Vegas Jackpot Slots Royale: Hold & Spin",
+      "category": "Games & Entertainment",
+      "description": "8-machine Vegas High-Limit Casino Slots suite with Lightning Link Hold & Spin, 4 Progressive Jackpots, Buffalo Stampede, Cascading Gems & Free Spins",
+      "targetScript": "applications/slots_studio.ts"
+    },
+    {
+      "name": "codecaine-slots",
+      "type": "gui",
+      "displayName": "Codecaine Vegas Jackpot Slots Royale: Hold & Spin",
+      "category": "Games & Entertainment",
+      "description": "8-machine Vegas High-Limit Casino Slots suite with Lightning Link Hold & Spin, 4 Progressive Jackpots, Buffalo Stampede, Cascading Gems & Free Spins",
+      "targetScript": "applications/slots_studio.ts"
+    },
+    {
       "name": "codecaine-snake-studio",
       "type": "gui",
       "displayName": "Codecaine Neon Snake Deluxe",
@@ -1939,6 +2435,54 @@
       "category": "Games & Entertainment",
       "description": "High-speed glowing cyber snake with looping walls and combo multipliers",
       "targetScript": "applications/snake_studio.ts"
+    },
+    {
+      "name": "codecaine-sokoban-studio",
+      "type": "gui",
+      "displayName": "Codecaine CyberCrate Sokoban",
+      "category": "Games & Entertainment",
+      "description": "100 verified warehouse puzzle chambers + multi-difficulty winnable random generator, AI BFS solver & deadlock warnings",
+      "targetScript": "applications/sokoban_studio.ts"
+    },
+    {
+      "name": "codecaine-sokoban",
+      "type": "gui",
+      "displayName": "Codecaine CyberCrate Sokoban",
+      "category": "Games & Entertainment",
+      "description": "100 verified warehouse puzzle chambers + multi-difficulty winnable random generator, AI BFS solver & deadlock warnings",
+      "targetScript": "applications/sokoban_studio.ts"
+    },
+    {
+      "name": "codecaine-solitaire-studio",
+      "type": "gui",
+      "displayName": "Codecaine Solitaire Royale: Klondike, Spider & FreeCell",
+      "category": "Games & Entertainment",
+      "description": "3-in-1 Championship Solitaire (Klondike, Spider, FreeCell) with auto-foundation, hints, undo & bouncing cards waterfall",
+      "targetScript": "applications/solitaire_studio.ts"
+    },
+    {
+      "name": "codecaine-solitaire",
+      "type": "gui",
+      "displayName": "Codecaine Solitaire Royale: Klondike, Spider & FreeCell",
+      "category": "Games & Entertainment",
+      "description": "3-in-1 Championship Solitaire (Klondike, Spider, FreeCell) with auto-foundation, hints, undo & bouncing cards waterfall",
+      "targetScript": "applications/solitaire_studio.ts"
+    },
+    {
+      "name": "codecaine-space-invaders-studio",
+      "type": "gui",
+      "displayName": "Codecaine CyberInvaders: StarSwarm",
+      "category": "Games & Entertainment",
+      "description": "Galactic alien formation & dive-bomber shooter with destructible plasma bunkers, mystery UFOs & overcharge wave beam",
+      "targetScript": "applications/space_invaders_studio.ts"
+    },
+    {
+      "name": "codecaine-space-invaders",
+      "type": "gui",
+      "displayName": "Codecaine CyberInvaders: StarSwarm",
+      "category": "Games & Entertainment",
+      "description": "Galactic alien formation & dive-bomber shooter with destructible plasma bunkers, mystery UFOs & overcharge wave beam",
+      "targetScript": "applications/space_invaders_studio.ts"
     },
     {
       "name": "codecaine-sqlite-studio",
@@ -2035,6 +2579,38 @@
       "category": "Games & Entertainment",
       "description": "Modern touch-typing academy with 10-step guided tutorial, 18-lesson curriculum, Codecaine Adaptive AI, multi-layout keyboard, and WebAudio switches.",
       "targetScript": "applications/typing_studio.ts"
+    },
+    {
+      "name": "codecaine-uno-studio",
+      "type": "gui",
+      "displayName": "Codecaine UNO Royale: Wild Cascade Edition",
+      "category": "Games & Entertainment",
+      "description": "Realistic 4-player tabletop UNO with authentic vector cards, +2/+4 Stacking, 7-0 Hand Swap, UNO Catch & 500-Pt Cup",
+      "targetScript": "applications/uno_studio.ts"
+    },
+    {
+      "name": "codecaine-uno",
+      "type": "gui",
+      "displayName": "Codecaine UNO Royale: Wild Cascade Edition",
+      "category": "Games & Entertainment",
+      "description": "Realistic 4-player tabletop UNO with authentic vector cards, +2/+4 Stacking, 7-0 Hand Swap, UNO Catch & 500-Pt Cup",
+      "targetScript": "applications/uno_studio.ts"
+    },
+    {
+      "name": "codecaine-vampire-survivors-studio",
+      "type": "gui",
+      "displayName": "Codecaine NightSavior: Vampire Survivors & Dark Force",
+      "category": "Games & Entertainment",
+      "description": "8-mode Gothic Bullet-Heaven & Vampire Savior Dark Force Odyssey with 6 Night-Lords, 10 Weapon Evolutions, Chest Jackpots & 1v1 Darkstalker Duel",
+      "targetScript": "applications/vampire_survivors_studio.ts"
+    },
+    {
+      "name": "codecaine-vampire-survivors",
+      "type": "gui",
+      "displayName": "Codecaine NightSavior: Vampire Survivors & Dark Force",
+      "category": "Games & Entertainment",
+      "description": "8-mode Gothic Bullet-Heaven & Vampire Savior Dark Force Odyssey with 6 Night-Lords, 10 Weapon Evolutions, Chest Jackpots & 1v1 Darkstalker Duel",
+      "targetScript": "applications/vampire_survivors_studio.ts"
     },
     {
       "name": "codecaine-watcher-studio",

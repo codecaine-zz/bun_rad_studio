@@ -194,7 +194,8 @@ export function performDnsLookupSync(
 ): DoggoResponse {
   const start = performance.now();
   let cleanDomain = domain.trim().replace(/^https?:\/\//i, "").split(/[\/\s]/)[0] ?? domain;
-  if (!cleanDomain) cleanDomain = domain;
+  cleanDomain = cleanDomain.replace(/^-+/, "");
+  if (!cleanDomain) cleanDomain = "localhost";
 
   let answers: DnsAnswer[] = [];
   let serverUsed = nameserver ? nameserver.replace(/^@/, "") : "System Default";
@@ -202,7 +203,7 @@ export function performDnsLookupSync(
   if (isDoh || !nameserver) {
     const url = `${dohUrl}?name=${encodeURIComponent(cleanDomain)}&type=${encodeURIComponent(type)}`;
     try {
-      const res = Bun.spawnSync(["curl", "-s", "--max-time", "3", "-H", "Accept: application/dns-json", url]);
+      const res = Bun.spawnSync(["curl", "-s", "--proto", "=https,http", "--max-time", "3", "-H", "Accept: application/dns-json", "--", url]);
       if (res.exitCode === 0) {
         const json = JSON.parse(res.stdout.toString());
         serverUsed = dohUrl;

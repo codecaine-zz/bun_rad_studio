@@ -269,10 +269,65 @@ function fileOpStatus(job) {
   return `Done: ${summary}.`;
 }
 
+function convertSubProgress(job) {
+  if (job.kind !== "convert" || job.state !== "running" || !job.log) return null;
+  const lines = job.log.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  if (!lines.length) return null;
+  const last = lines[lines.length - 1];
+  const totalSteps = Math.max(1, job.total || 1);
+  const doneSteps = job.done || 0;
+
+  const chunkMatch = /Synthesized chunk (\d+) of (\d+)/i.exec(last);
+  if (chunkMatch) {
+    const doneChunks = Number(chunkMatch[1]) || 0;
+    const totalChunks = Math.max(1, Number(chunkMatch[2]) || 1);
+    const stepFrac = Math.min(0.92, (doneChunks / totalChunks) * 0.92);
+    const pct = Math.min(99, Math.max(1, Math.round(((doneSteps + stepFrac) / totalSteps) * 100)));
+    return {
+      pct,
+      label: `Chunk ${doneChunks} of ${totalChunks} (${pct}%)${totalSteps > 1 ? ` · file ${doneSteps + 1} of ${totalSteps}` : ""}`,
+    };
+  }
+
+  const encMatch = /Encoding [A-Z0-9]+:\s*(\d+)%/i.exec(last);
+  if (encMatch) {
+    const encPct = Math.min(100, Math.max(0, Number(encMatch[1]) || 0));
+    const stepFrac = 0.92 + (encPct / 100) * 0.07;
+    const pct = Math.min(99, Math.max(1, Math.round(((doneSteps + stepFrac) / totalSteps) * 100)));
+    return {
+      pct,
+      label: `${last}${totalSteps > 1 ? ` · file ${doneSteps + 1} of ${totalSteps}` : ""}`,
+    };
+  }
+
+  if (/^All \d+ chunks? synthesized|^Finalizing /i.test(last)) {
+    const stepFrac = /^Finalizing /i.test(last) ? 0.98 : 0.92;
+    const pct = Math.min(99, Math.max(1, Math.round(((doneSteps + stepFrac) / totalSteps) * 100)));
+    return {
+      pct,
+      label: `${last}${totalSteps > 1 ? ` · file ${doneSteps + 1} of ${totalSteps}` : ""}`,
+    };
+  }
+
+  if (/^Starting voice synthesis|^Extracting text|^Prepared \d+ chunks/i.test(last)) {
+    const pct = Math.max(1, Math.round(((doneSteps + 0.01) / totalSteps) * 100));
+    return {
+      pct,
+      label: last,
+    };
+  }
+
+  return null;
+}
+
 function statusText(job) {
   if (job.state === "waiting") return "Waiting for its turn…";
   if (isFileOp(job)) return job.state === "running" ? `${job.current ? `${job.current}  ·  ` : ""}${fileOpProgress(job)}` : fileOpStatus(job);
-  if (job.state === "running") return `${job.current ? `${job.current}  ·  ` : ""}${job.done + job.failed} of ${job.total} done`;
+  if (job.state === "running") {
+    const sub = convertSubProgress(job);
+    if (sub) return `${job.current ? `${job.current}  ·  ` : ""}${sub.label}`;
+    return `${job.current ? `${job.current}  ·  ` : ""}${job.done + job.failed} of ${job.total} done`;
+  }
   if (job.state === "cancelled") return `Cancelled. ${job.done} of ${job.total} were finished.`;
   if (job.state === "failed") return `${job.failed} of ${job.total} didn't work${job.done ? `; ${job.done} did` : ""}.`;
   if (job.kind === "graveyard") return "Done.";
@@ -312,12 +367,16 @@ function updateCard(card, job) {
   const progress = card.querySelector(".task-progress");
   progress.hidden = !active;
   progress.setAttribute("aria-label", `Progress: ${job.title}`);
+  const subProg = convertSubProgress(job);
   if (isFileOp(job) && job.state === "running" && (job.progress.measuring || (job.progress.bytesTotal === null && job.kind !== "rename"))) {
     // The total can't be measured: an empty bar means "working", not "0%".
     progress.removeAttribute("value");
   } else if (isFileOp(job) && job.progress.bytesTotal) {
     progress.max = job.progress.bytesTotal;
     progress.value = job.progress.bytesDone;
+  } else if (subProg) {
+    progress.max = 100;
+    progress.value = subProg.pct;
   } else {
     progress.max = Math.max(1, job.total);
     progress.value = job.done + job.failed + (job.skipped || 0);
@@ -330,9 +389,12 @@ function updateCard(card, job) {
   const notes = [...new Set(job.steps.filter((s) => s.state === "done" && s.message).map((s) => s.message))];
   card.querySelector(".task-notes").replaceChildren(...notes.slice(0, 3).map((n) => h("li", {}, n)));
   const log = card.querySelector(".task-log");
-  const showLog = (job.kind === "install" || job.kind === "graveyard") && !!job.log;
+  const showLog = (job.kind === "install" || job.kind === "graveyard" || job.kind === "convert") && !!job.log;
   log.hidden = !showLog;
-  if (showLog) log.textContent = job.log;
+  if (showLog) {
+    log.textContent = job.log;
+    log.scrollTop = log.scrollHeight;
+  }
   card.querySelector(".task-cancel").hidden = !active;
   const canRetry = !active && job.retryable && !job.retriedBy && job.steps.some((s) => s.state === "failed" || (s.state === "skipped" && s.skipReason === "cancelled"));
   card.querySelector(".task-retry").hidden = !canRetry;
@@ -371,7 +433,10 @@ function finished(job) {
   const mine = here ? job.outputs.filter((o) => parentOfPath(o) === here) : [];
   if (mine.length) refresh().then(() => selectKeys(mine));
   if (job.state === "done") toast(`Done: ${plural(job.outputs.length, "new file")}.`, { kind: "info" });
-  else if (job.state === "failed") toast(`${job.failed} of ${job.total} didn't work. See the task list for why.`, { kind: "error" });
+  else if (job.state === "failed") {
+    const why = job.steps.find((s) => s.state === "failed")?.message;
+    toast(why ? `${job.failed} of ${job.total} didn't work: ${why}` : `${job.failed} of ${job.total} didn't work. See the task list for why.`, { kind: "error" });
+  }
 }
 
 function render(jobs) {

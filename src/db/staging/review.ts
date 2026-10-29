@@ -241,24 +241,29 @@ export async function stagingArea(db: StageDb): Promise<{ entries: StagingEntry[
   const tables = await db.tables();
   const have = new Set(tables);
   const entries: StagingEntry[] = [];
-  for (const b of batches) {
-    let rows: number | null = null;
-    let bytes: number | null = null;
-    if (b.stagingTable && have.has(b.stagingTable)) {
-      try {
-        const c = await db.open();
+  let sharedConn: Awaited<ReturnType<StageDb["open"]>> | null = null;
+  try {
+    for (const b of batches) {
+      let rows: number | null = null;
+      let bytes: number | null = null;
+      if (b.stagingTable && have.has(b.stagingTable)) {
         try {
-          rows = Number((await c.query(`SELECT COUNT(*) AS c FROM ${refOf(db, b.stagingTable)}`)).rows[0]?.c ?? 0);
-        } finally {
-          await c.release();
+          if (!sharedConn) sharedConn = await db.open();
+          rows = Number((await sharedConn.query(`SELECT COUNT(*) AS c FROM ${refOf(db, b.stagingTable)}`)).rows[0]?.c ?? 0);
+          bytes = await db.sizeOf(b.stagingTable);
+        } catch {
+          rows = null;
         }
-        bytes = await db.sizeOf(b.stagingTable);
-      } catch {
-        rows = null;
       }
+      const ageDays = Math.max(0, Math.floor((Date.now() - Date.parse(b.createdAt)) / 86_400_000));
+      entries.push({ batch: b, rows, bytes, ageDays, stale: !!b.stagingTable && have.has(b.stagingTable) && ageDays >= limits.retainDays });
     }
-    const ageDays = Math.max(0, Math.floor((Date.now() - Date.parse(b.createdAt)) / 86_400_000));
-    entries.push({ batch: b, rows, bytes, ageDays, stale: !!b.stagingTable && have.has(b.stagingTable) && ageDays >= limits.retainDays });
+  } finally {
+    if (sharedConn) {
+      try {
+        await sharedConn.release();
+      } catch {}
+    }
   }
   const known = new Set(batches.map((b) => b.stagingTable).filter(Boolean));
   return { entries, orphans: tables.filter((t) => STAGING_NAME.test(t) && !known.has(t)), retainDays: limits.retainDays };

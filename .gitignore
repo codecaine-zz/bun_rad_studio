@@ -96,3 +96,12 @@ youtube_production/god_mode_tutorial/
 youtube_production/codecaine_arcade_v151_short/
 youtube_production/file_manager_v151_changes_demo_tutorial/
 youtube_production/phonon_voice_reader_short/
+
+# Local User Recorded AI Voices & Private Voice Cloning Data (never upload to GitHub)
+.bun_rad_studio/
+phonon-custom-voices/
+**/phonon-custom-voices/
+f5-mlx-env/
+*.safetensors
+*.ref.wav
+

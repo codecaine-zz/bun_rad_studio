@@ -25,15 +25,39 @@ function locateJsonError(text: string, message: string): { line: number; col: nu
     }
   }
   if (pos < 0 && text.length <= 300_000) {
-    for (let n = 1; n <= text.length; n++) {
-      try {
-        JSON.parse(text.slice(0, n));
-      } catch (e: any) {
-        if (/unexpected (token|identifier|character)|unrecognized/i.test(String(e?.message)) && !/eof|end of/i.test(String(e?.message))) {
-          pos = n - 1;
-          break;
+    if (text.length <= 512) {
+      for (let n = 1; n <= text.length; n++) {
+        try {
+          JSON.parse(text.slice(0, n));
+        } catch (e: any) {
+          if (/unexpected (token|identifier|character)|unrecognized/i.test(String(e?.message)) && !/eof|end of/i.test(String(e?.message))) {
+            pos = n - 1;
+            break;
+          }
         }
       }
+    } else {
+      // Binary search over prefix length in O(log N) instead of O(N^2)
+      let lo = 1;
+      let hi = text.length;
+      while (lo < hi) {
+        const mid = (lo + hi) >>> 1;
+        let hardError = false;
+        try {
+          JSON.parse(text.slice(0, mid));
+        } catch (e: any) {
+          const msg = String(e?.message);
+          if (/unexpected (token|identifier|character)|unrecognized/i.test(msg) && !/eof|end of/i.test(msg)) {
+            hardError = true;
+          }
+        }
+        if (hardError) {
+          hi = mid;
+        } else {
+          lo = mid + 1;
+        }
+      }
+      pos = Math.max(0, lo - 1);
     }
   }
   if (pos < 0) pos = Math.max(0, text.length - 1);

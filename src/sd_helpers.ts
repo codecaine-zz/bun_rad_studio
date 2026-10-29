@@ -40,8 +40,12 @@ export function parseExtList(raw: string): string[] {
     .filter(Boolean);
 }
 
+const globRegexCache = new Map<string, RegExp>();
+
 /** Converts a simple glob (*, **, ?) to a RegExp that matches against a "/"-normalized path. */
 export function globToRegExp(glob: string): RegExp {
+  const cached = globRegexCache.get(glob);
+  if (cached) return cached;
   const g = glob.trim().replace(/\\/g, "/");
   let out = "";
   for (let i = 0; i < g.length; i++) {
@@ -54,7 +58,9 @@ export function globToRegExp(glob: string): RegExp {
   }
   // Bare names (no slash) match any path segment / basename.
   const anchored = g.includes("/") ? `(^|/)${out}($|/)` : `(^|/)${out}($|/)`;
-  return new RegExp(anchored);
+  const compiled = new RegExp(anchored);
+  if (globRegexCache.size < 512) globRegexCache.set(glob, compiled);
+  return compiled;
 }
 
 export interface FileFilter {
