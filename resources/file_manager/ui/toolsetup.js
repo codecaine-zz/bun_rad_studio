@@ -20,16 +20,24 @@ const describeChoice = (c) => `${MANAGER_WORDS[c.id] ?? c.name}${c.installsItsel
 
 /** Sends the script to the Terminal (with a password prompt there), or starts background tasks when no password is needed. */
 async function run({ ids, choice, options, startJob, closeOuter }) {
+  const hasOllama = ids.includes("ollama");
+  const otherIds = ids.filter((id) => id !== "ollama");
+  if (hasOllama && otherIds.length === 0) {
+    return startJob(["ollama"]);
+  }
   const direct = options.platform === "win32" || (choice && choice.id === "brew" && !choice.installsItself);
   if (direct) {
     return startJob(ids);
+  }
+  if (hasOllama) {
+    startJob(["ollama"]);
   }
   if (!terminalAvailable()) {
     toast("The built-in Terminal isn't available here, so use the commands shown next to each program.", { kind: "error" });
     return null;
   }
   try {
-    const plan = await call("tools/setup", { tools: ids, manager: choice.id, confirm: true });
+    const plan = await call("tools/setup", { tools: otherIds, manager: choice.id, confirm: true });
     closeOuter?.();
     typeInTerminal(`${plan.command}\r`);
     const skipped = plan.skipped.length ? ` (${plural(plan.skipped.length, "program")} can't be installed this way: ${plan.skipped.map((s) => s.name).join(", ")})` : "";
@@ -50,7 +58,7 @@ function pickPrograms(options, missing, preselectMain) {
   const list = h("div", { class: "setup-list" });
   const buttonsEl = {};
 
-  const available = (t) => options.platform === "win32" ? t.autoInstall : !choice || t.packages[choice.id] !== false;
+  const available = (t) => t.id === "ollama" ? true : (options.platform === "win32" ? t.autoInstall : !choice || t.packages[choice.id] !== false);
   const chosenIds = () => [...boxes].filter(([id, box]) => box.checked && !box.disabled).map(([id]) => id);
 
   function refresh() {
@@ -119,7 +127,7 @@ export async function startSetup({ mode, startJob, closeOuter }) {
     return picked && picked.ids.length ? run({ ids: picked.ids, choice: picked.choice, options, startJob, closeOuter }) : null;
   }
   const choice = options.choices[0] ?? null;
-  const usable = missing.filter((t) => options.platform === "win32" ? t.autoInstall : !choice || t.packages[choice.id] !== false);
+  const usable = missing.filter((t) => t.id === "ollama" ? true : (options.platform === "win32" ? t.autoInstall : !choice || t.packages[choice.id] !== false));
   if (!usable.length) {
     toast("None of the missing programs can be installed with the package manager found here. Use the download links next to each one.", { kind: "error" });
     return null;

@@ -68,20 +68,27 @@ function toolBlock(tool, close, startInstall) {
   const body = [h("p", { class: "hint" }, tool.what)];
   if (tool.installed) {
     body.push(h("p", { class: "hint tool-path" }, tool.path));
+    if (tool.id === "ollama") {
+      body.push(
+        h("div", { class: "tool-row-buttons" },
+          h("button", { type: "button", class: "btn primary", title: "Start Ollama and pull Qwen 3.5 + LFM3-Omni starter AI models automatically", onclick: () => startInstall(["ollama"]) }, "⚡ Pull Starter AI Models (Qwen 3.5 + LFM3-Omni)"),
+        ),
+      );
+    }
+  } else if (tool.id === "ollama") {
+    body.push(
+      h("p", { class: "hint" }, `Downloads and installs Ollama + Qwen 3.5 (qwen3.5:4b) & LFM3-Omni (lfm3-omni:latest)${isPhononSupported() ? " + Gradium Phonon TTS" : ""} automatically into your user folder (no administrator password required), or use the terminal command below:`),
+      commandBlock(plan.display),
+      h("div", { class: "tool-row-buttons" },
+        h("button", { type: "button", class: "btn primary", title: "Download and install Ollama + Qwen 3.5 & LFM3-Omni starter AI models automatically", onclick: () => startInstall(["ollama"]) }, "⚡ Install Ollama & Starter AI Models (1-Click)"),
+      ),
+      commandButtons(plan.display, close),
+    );
   } else if (plan.auto) {
     body.push(
       h("p", { class: "hint" }, plan.note),
       commandBlock(plan.display),
       h("div", { class: "tool-row-buttons" }, h("button", { type: "button", class: "btn primary", onclick: () => startInstall([tool.id]) }, `Install ${tool.name} with ${MANAGER_NAMES[plan.method] ?? plan.method}`)),
-    );
-  } else if (tool.id === "ollama") {
-    body.push(
-      h("p", { class: "hint" }, "Downloads and installs Ollama + Gradium Phonon automatically into your user folder (no administrator password required), or use the terminal command below:"),
-      commandBlock(plan.display),
-      h("div", { class: "tool-row-buttons" },
-        h("button", { type: "button", class: "btn primary", title: "Download and install Ollama + Phonon automatically", onclick: () => startInstall(["ollama"]) }, "⚡ Install Ollama & Phonon (1-Click)"),
-      ),
-      commandButtons(plan.display, close),
     );
   } else if (plan.missingManager) {
     const m = plan.missingManager;
@@ -102,20 +109,28 @@ function toolBlock(tool, close, startInstall) {
 
 /** The list of helper programs: the three main ones first, the rest (needed only for some conversions) after. */
 function helperPrograms(data, close, install, recheck) {
-  const visibleTools = data.tools.filter((t) => t.id !== "ollama" || isPhononSupported());
+  const visibleTools = data.tools;
   const main = visibleTools.filter((t) => !t.optional);
   const more = visibleTools.filter((t) => t.optional);
   const missingAll = visibleTools.filter((t) => !t.installed);
+  const ollamaTool = visibleTools.find((t) => t.id === "ollama");
   const parts = [
     h("p", { class: "hint" }, "These free programs do the work. They are installed once and then used by the File Manager. Nothing is installed unless you press its button."),
   ];
-  if (missingAll.length) {
+  if (missingAll.length || ollamaTool) {
     parts.push(h("section", { class: "tool-setup", "data-copy": "off" },
       h("h3", { class: "tool-setup-title" }, "One-click setup"),
-      h("p", { class: "hint" }, `${plural(missingAll.length, "helper program")} ${missingAll.length === 1 ? "is" : "are"} missing. Install them all in one go, or pick the ones you want. ${data.platform === "win32" ? "Windows uses winget when available; download buttons are also provided." : "If your computer has no installer yet, Homebrew is installed and set up for you first."}`),
+      h("p", { class: "hint" }, missingAll.length
+        ? `${plural(missingAll.length, "helper program")} ${missingAll.length === 1 ? "is" : "are"} missing. Install them all in one go, or install Ollama & starter AI models (Qwen 3.5 + LFM3-Omni) in user space with no password required. ${data.platform === "win32" ? "Windows uses winget when available; download buttons are also provided." : "If your computer has no installer yet, Homebrew is installed and set up for you first."}`
+        : "All helper programs are installed. You can also update or pull the starter AI models (Qwen 3.5 + LFM3-Omni) with one click below."),
       h("div", { class: "tool-row-buttons" },
-        h("button", { type: "button", class: "btn primary", title: "Install every missing helper program with one click (you are asked to confirm first)", onclick: () => startSetup({ mode: "everything", startJob: install, closeOuter: close }) }, `Install everything missing (${missingAll.length})`),
-        h("button", { type: "button", class: "btn", title: "See the list and untick anything you don't want", onclick: () => startSetup({ mode: "choose", startJob: install, closeOuter: close }) }, "Choose what to install…"))));
+        missingAll.length
+          ? h("button", { type: "button", class: "btn primary", title: "Install every missing helper program with one click (you are asked to confirm first)", onclick: () => startSetup({ mode: "everything", startJob: install, closeOuter: close }) }, `Install everything missing (${missingAll.length})`)
+          : null,
+        h("button", { type: "button", class: "btn primary", title: "Install Ollama in user space (zero sudo) and pull Qwen 3.5 + LFM3-Omni starter AI models automatically", onclick: () => install(["ollama"]) }, ollamaTool?.installed ? "⚡ Pull Starter AI Models (Qwen 3.5 + LFM3-Omni)" : "⚡ Install Ollama & Starter AI Models (1-Click)"),
+        missingAll.length
+          ? h("button", { type: "button", class: "btn", title: "See the list and untick anything you don't want", onclick: () => startSetup({ mode: "choose", startJob: install, closeOuter: close }) }, "Choose what to install…")
+          : null)));
   }
   parts.push(h("h3", { class: "tools-heading" }, "The main helpers (pictures, video, sound and documents)"));
   parts.push(...main.map((t) => toolBlock(t, close, install)));

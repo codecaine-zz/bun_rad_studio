@@ -4810,6 +4810,29 @@ export function createOllamaInstallStep(ctx: FmContext) {
   };
 }
 
+export function createStarterModelsPullStep(ctx: FmContext) {
+  const env = buildExecEnv(ctx);
+  return {
+    label: "Download Starter AI Models (ollama pull qwen3.5:4b & lfm3-omni:latest)",
+    timeoutMs: 35 * 60 * 1000,
+    prepare: async () => ({
+      work: async (signal: AbortSignal, log: (text: string) => void) => {
+        const ollamaExe = resolveTool(ctx, "ollama");
+        if (!ollamaExe) {
+          throw new Error("Ollama could not be found after installation. Check that Ollama is installed and try again.");
+        }
+        log("Starting Ollama service & pulling Qwen 3.5 + LFM3-Omni starter AI models…\n");
+        await ensureOllamaDaemon(ctx, ollamaExe);
+        for (const modelName of ["qwen3.5:4b", "lfm3-omni:latest"]) {
+          log(`Pulling ${modelName}…\n`);
+          await runSpawnLogged([ollamaExe, "pull", modelName], env, signal, log);
+          if (signal.aborted) throw new Error("Cancelled");
+        }
+      },
+    }),
+  };
+}
+
 export function createPhononPullStep(ctx: FmContext) {
   const env = buildExecEnv(ctx);
   return {

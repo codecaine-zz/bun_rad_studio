@@ -879,7 +879,7 @@ function renderHeroBanner() {
         },
         uiState.installing
           ? [h("span", { class: "ollama-spinner" }), " Auto-Installing..."]
-          : "⚡ 1-Click Auto-Install & Setup",
+          : "⚡ 1-Click Install Ollama & Starter Models",
       ),
       h(
         "button",
@@ -960,10 +960,15 @@ function renderCrossPlatformSetupBanner() {
   const inst = uiState.statusData?.installStatus;
   const ver = uiState.statusData?.version;
   const models = uiState.statusData?.models || [];
-  const needsSetup = inst && (!inst.binaryInstalled || !ver?.reachable || models.length === 0);
-  if (!needsSetup && !uiState.lastInstallSummary) return null;
+  const installedNames = new Set(models.map((m) => String(m.name || "").toLowerCase()));
+  const hasQwen = installedNames.has("qwen3.5:latest") || installedNames.has("qwen3.5:4b") || [...installedNames].some((n) => n.startsWith("qwen3.5"));
+  const hasOmni = installedNames.has("lfm3-omni:latest") || [...installedNames].some((n) => n.startsWith("lfm3-omni"));
+  const needsSetup = !inst || !inst.binaryInstalled || !ver?.reachable || models.length === 0 || !hasQwen || !hasOmni;
 
   const osName = inst?.platform === "win32" ? "Windows" : inst?.platform === "linux" ? "Linux" : "macOS";
+  const starterList = inst?.recommendedStarterModels?.length
+    ? inst.recommendedStarterModels
+    : ["qwen3.5:latest", "qwen3.5:4b", "lfm3-omni:latest"];
   return h("div", { class: "ollama-autoinstall-card" }, [
     h("div", { class: "ollama-row" }, [
       h("span", { class: "ollama-status-pulse" }),
@@ -972,15 +977,15 @@ function renderCrossPlatformSetupBanner() {
         {},
         needsSetup
           ? `1-Click ${osName} Auto-Install & Starter Model Setup`
-          : `Ollama AI Auto-Setup Completed on ${osName}`,
+          : `1-Click ${osName} Ollama & Starter Models Ready (${starterList.slice(0, 3).join(", ")})`,
       ),
-      h("span", { class: "ollama-pill is-mlx" }, inst?.installMethodLabel || `${osName} User-Space Auto-Installer`),
+      h("span", { class: "ollama-pill is-mlx" }, inst?.installMethodLabel || `${osName} User-Space Auto-Installer (Zero Sudo)`),
     ]),
     h(
       "div",
       {},
       inst?.platformSpeechNote ||
-        `Automatically installs Ollama in user space, starts ollama serve, and pulls hardware-matched starter models (${(inst?.recommendedStarterModels || []).join(", ")}).`,
+        `Automatically installs Ollama in user space, starts ollama serve, and pulls hardware-matched starter models (${starterList.join(", ")}).`,
     ),
     h("div", { class: "ollama-row" }, [
       h(
@@ -995,13 +1000,11 @@ function renderCrossPlatformSetupBanner() {
           ? [h("span", { class: "ollama-spinner" }), ` Installing on ${osName}...`]
           : `⚡ 1-Click Auto-Install Ollama & Starter Models on ${osName}`,
       ),
-      inst?.recommendedStarterModels?.length
-        ? h(
-            "span",
-            { class: "ollama-pill" },
-            `Starter Models: ${inst.recommendedStarterModels.join(", ")}`,
-          )
-        : null,
+      h(
+        "span",
+        { class: "ollama-pill" },
+        `Starter Models: ${starterList.join(", ")}`,
+      ),
     ]),
   ]);
 }

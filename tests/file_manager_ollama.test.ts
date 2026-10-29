@@ -929,6 +929,7 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
     const toolbarSrc = await Bun.file("resources/file_manager/ui/toolbar.js").text();
     const sidebarSrc = await Bun.file("resources/file_manager/ui/sidebar.js").text();
     const ollamaJsSrc = await Bun.file("resources/file_manager/ui/ollama.js").text();
+    const toolsJsSrc = await Bun.file("resources/file_manager/ui/tools.js").text();
     const cssSrc = await Bun.file("resources/file_manager/ui/ollama.css").text();
     expect(toolbarSrc).toContain('id: "ollama"');
     expect(sidebarSrc).toContain('placeId: "ollama"');
@@ -939,6 +940,8 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
     expect(ollamaJsSrc).toContain("lfm3-omni:latest");
     expect(ollamaJsSrc).toContain("qwen3.5:4b");
     expect(ollamaJsSrc).toContain("qwen3.5:latest");
+    expect(toolsJsSrc).toContain("⚡ Install Ollama & Starter AI Models (1-Click)");
+    expect(toolsJsSrc).not.toContain('t.id !== "ollama" || isPhononSupported()');
     expect(cssSrc).toContain(".ollama-spinner");
     expect(cssSrc).toContain(".ollama-live-progress-banner");
     expect(cssSrc).toContain(".ollama-output-console");

@@ -26,7 +26,7 @@ import { WINDOWS_SETUP, desktopInfo, embedWindowsIcon, windowsInstallCommand } f
 import { BUNDLE_DIR, CACHE_DIR, RELEASE_DIR, bundleApps, buildRuntime, copyAppBundle, logBundleFailures } from "./suite";
 import type { MacApp } from "./build_mac_apps";
 import { ROOT, SIDECAR_FILES, TARGETS, VERSION, defaultJobs, listSourceApps, log, mapPool, parseJobs, run, sha256File, webviewLibSource, writeFileAtomic, zipEntries, type SourceApp, type Target } from "./common";
-import { LINUX_SANDBOX_WARNING, linuxSandboxSetup } from "./linuxSandbox";
+import { LINUX_SANDBOX_WARNING, linuxOllamaInstallScript, linuxSandboxSetup } from "./linuxSandbox";
 
 export const APP_TITLE = "Codecaine File Manager";
 export const WINDOWS_TROUBLESHOOT = `@echo off\r\nsetlocal\r\npushd "%~dp0" || exit /b 1\r\nset "BUN_BE_BUN=1"\r\nset "WEBVIEW_PATH=%~dp0lib\\libwebview.dll"\r\n"%~dp0${APP_TITLE}.exe" "%~dp0app\\file-manager-studio.js" %*\r\nset "EXIT_CODE=%errorlevel%"\r\npopd\r\npause\r\nexit /b %EXIT_CODE%\r\n`;
@@ -176,7 +176,7 @@ export function readmeFor(d: Download): string {
     L.push("", "The native window library also needs the Microsoft Visual C++ 2015-2022 x64 Redistributable (even on ARM):", "  https://aka.ms/vs/17/release/vc_redist.x64.exe", "", "If no window opens, double-click troubleshoot.cmd to see the error in a console.");
     if (d.arch === "arm64") L.push("", "Requires Windows 11 on ARM with x64 emulation. Uses the baseline x64 build, so AVX2 emulation is not required.");
   } else if (d.os === "linux") {
-    L.push("Start it:", "  ./codecaine-file-manager", "", "Add it to your applications menu and your PATH:", "  sh install.sh        (undo with: sh install.sh --uninstall)", "", "It needs GTK 4 and WebKitGTK 6.0:", "  Debian/Ubuntu 24.04+:  sudo apt install libgtk-4-1 libwebkitgtk-6.0-4", "  Fedora:                sudo dnf install gtk4 webkitgtk6.0", "");
+    L.push("Start it:", "  ./codecaine-file-manager", "", "Add it to your applications menu and your PATH:", "  sh install.sh        (undo with: sh install.sh --uninstall)", "", "Single-step install for Ollama & local AI models (Qwen 3.5 + LFM3-Omni, no sudo required):", "  sh install-ollama.sh (or: sh install.sh --ollama)", "  Inside the app, you can also click \"🤖 Ollama AI\" -> \"⚡ 1-Click Install Ollama & Starter Models\"", "  or open \"Convert & process\" -> \"Helper programs\" -> \"⚡ Install Ollama & Starter AI Models (1-Click)\".", "", "It needs GTK 4 and WebKitGTK 6.0:", "  Debian/Ubuntu 24.04+:  sudo apt install libgtk-4-1 libwebkitgtk-6.0-4", "  Fedora:                sudo dnf install gtk4 webkitgtk6.0", "");
     L.push("If the file manager will not execute the binary, use a terminal in this folder:", "  chmod +x codecaine-file-manager", "  sh troubleshoot.sh", "", "Headless (no window, open the address it prints in a browser):", "  ./codecaine-file-manager --server");
     L.push("", "Ubuntu 24.04+ sandbox fix:", "  If startup logs say 'bwrap: setting up uid map: Permission denied' or", "  'Failed to fully launch dbus-proxy', run:", "    sh install.sh --apparmor", "  Enter your sudo password in the terminal. This installs an AppArmor profile", "  for this executable only; AppArmor and WebKit's sandbox stay enabled.", "  Keep the folder in its final location; rerun that command after moving it.", "  Remove the menu entry, link and profile with: sh install.sh --uninstall --apparmor");
   }
@@ -305,6 +305,8 @@ async function buildFolder(d: Download, assets: Assets): Promise<string> {
     writeFileSync(join(dir, "troubleshoot.sh"), `#!/bin/sh\nset -eu\ncd "$(dirname "$0")"\nchmod +x codecaine-file-manager\nexec ./codecaine-file-manager "$@"\n`);
     writeFileSync(join(dir, "install.sh"), linuxInstallScript());
     chmodSync(join(dir, "install.sh"), 0o755);
+    writeFileSync(join(dir, "install-ollama.sh"), linuxOllamaInstallScript("codecaine-file-manager"));
+    chmodSync(join(dir, "install-ollama.sh"), 0o755);
     if (assets.png512) cpSync(assets.png512, join(dir, "codecaine-file-manager.png"));
   }
   const out = join(OUT_DIR, zipName(d));

@@ -19,6 +19,7 @@ import {
   readmeFor,
 } from "../scripts/release/build_file_manager";
 import { TARGETS, listSourceApps } from "../scripts/release/common";
+import { linuxOllamaInstallScript } from "../scripts/release/linuxSandbox";
 import { installScript, readme, unixLauncher } from "../scripts/release/suite";
 
 const dirs: string[] = [];
@@ -305,16 +306,31 @@ profile codecaine-file-manager "${realpathSync(f.root)}/codecaine-file-manager" 
     expect(result.stderr.toString()).toContain("Usage:");
   });
 
-  test("all Linux downloads document the opt-in, relocation and uninstall", () => {
+  test("all Linux downloads document the opt-in, relocation, uninstall, and 1-step Ollama + AI models installer", () => {
     for (const d of DOWNLOADS.filter((d) => d.os === "linux")) {
       const readme = readmeFor(d);
       expect(readme).toContain("sh install.sh --apparmor");
       expect(readme).toContain("after moving");
       expect(readme).toContain("--uninstall --apparmor");
+      expect(readme).toContain("sh install-ollama.sh");
+      expect(readme).toContain("sh install.sh --ollama");
     }
     expect(downloadPage([])).toContain("sh install.sh --apparmor");
     expect(readmeFor(DOWNLOADS.find((d) => d.os === "windows")!)).not.toContain(
       "--apparmor",
     );
+
+    const ollamaScript = linuxOllamaInstallScript("codecaine-file-manager");
+    expect(Bun.spawnSync(["sh", "-n"], { stdin: Buffer.from(ollamaScript) }).exitCode).toBe(0);
+    expect(ollamaScript).toContain("BUN_BE_BUN=1");
+    expect(ollamaScript).toContain("qwen3.5:4b");
+    expect(ollamaScript).toContain("lfm3-omni:latest");
+    expect(ollamaScript).not.toMatch(/^\s*sudo\b/m);
+
+    const f = fixture();
+    const ollamaMarker = join(f.dir, "ollama-ran");
+    writeFileSync(join(f.root, "install-ollama.sh"), `#!/bin/sh\necho "ran" > "${ollamaMarker}"\n`, { mode: 0o755 });
+    expect(f.run(["--ollama"]).exitCode).toBe(0);
+    expect(existsSync(ollamaMarker)).toBe(true);
   });
 });

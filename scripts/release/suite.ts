@@ -11,7 +11,7 @@
 import { chmodSync, cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "fs";
 import { basename, join, resolve } from "path";
 import { ROOT, SIDECAR_FILES, TARGETS, VERSION, defaultJobs, log, mapPool, run, shQuote, webviewLibSource, writeFileAtomic, zipEntries, type SourceApp, type Target } from "./common";
-import { LINUX_SANDBOX_WARNING, linuxSandboxSetup } from "./linuxSandbox";
+import { LINUX_SANDBOX_WARNING, linuxOllamaInstallScript, linuxSandboxSetup } from "./linuxSandbox";
 import { WINDOWS_SETUP, desktopInfo, embedWindowsIcon, stageDesktopIcons, windowsDesktopLauncher, windowsInstallCommand, windowsInstallScript } from "./desktop";
 
 export const RELEASE_DIR = join(ROOT, "release");
@@ -239,6 +239,7 @@ export function readme(target: Target, guiNames: string[], cliNames: string[]): 
   if (sh) lines.push("Put them on your PATH (and add the desktop apps to your menu on Linux):", "  sh install.sh", "");
   if (target.os === "macos") lines.push("macOS may ask you to allow the downloaded files the first time:", "  xattr -dr com.apple.quarantine .", "  (or open System Settings > Privacy & Security and choose Open Anyway)", "");
   if (target.os === "linux" && target.variant === "musl") lines.push("Alpine needs the C++ runtime for Bun:", "  apk add libstdc++ libgcc", "");
+  if (target.os === "linux") lines.push("Single-step install for Ollama & local AI models (Qwen 3.5 + LFM3-Omni, no sudo required):", "  sh install-ollama.sh (or: sh install.sh --ollama)", "");
   if (target.os === "linux" && target.gui) lines.push("The desktop apps need GTK 4 and WebKitGTK 6.0:", "  Debian/Ubuntu 24.04+:  sudo apt install libgtk-4-1 libwebkitgtk-6.0-4", "  Fedora:                sudo dnf install gtk4 webkitgtk6.0", "");
   if (target.os === "linux" && target.gui) lines.push("Ubuntu 24.04+ may block WebKit's sandbox with a bwrap / dbus-proxy permission error.", "Fix all desktop apps in this download with:", "  sh install.sh --apparmor", "This uses sudo to install /etc/apparmor.d/bun-rad-studio, allowing sandbox user", "namespaces for this download's runtime/bun only. AppArmor and WebKit's sandbox stay enabled.", "All apps and their child studios use that shared runtime; no per-app setup is needed.", "Keep the folder in its final location, and rerun after moving it. One suite installation", "is covered at a time. Command-line tools do not need this permission.", "Remove links, menu entries and the profile with: sh install.sh --uninstall --apparmor", "");
   if (target.os === "windows" && target.gui) lines.push("First, double-click install.cmd. It checks Microsoft WebView2 and the Visual C++ 2015-2022 x64 Redistributable (including on ARM), offers to install missing prerequisites from Microsoft, then adds Start menu shortcuts.", "No Bun, compiler, administrator shell or source checkout is needed. Microsoft installers may request elevation.", "Manual downloads:", "  https://developer.microsoft.com/microsoft-edge/webview2/", "  https://aka.ms/vs/17/release/vc_redist.x64.exe", "", "Optional desktop shortcuts: powershell -NoProfile -ExecutionPolicy Bypass -File .\\install.ps1 -Desktop", "Undo: powershell -NoProfile -ExecutionPolicy Bypass -File .\\install.ps1 -Uninstall -Desktop", "Keep the folder in place. Menu shortcuts start without a console; errors are in %USERPROFILE%\\.bun_rad_studio\\logs.", "For a console with the original output, run the matching bin\\<app>.cmd.", "");
@@ -304,6 +305,10 @@ export async function stageSuite(target: Target, options: StageOptions, stageRoo
   if (target.os !== "windows") {
     writeFileSync(join(dir, "install.sh"), installScript(guiNames, target));
     chmodSync(join(dir, "install.sh"), 0o755);
+    if (target.os === "linux") {
+      writeFileSync(join(dir, "install-ollama.sh"), linuxOllamaInstallScript("runtime/bun"));
+      chmodSync(join(dir, "install-ollama.sh"), 0o755);
+    }
   }
   return dir;
 }

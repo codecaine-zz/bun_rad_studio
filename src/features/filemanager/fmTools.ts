@@ -148,7 +148,7 @@ export const TOOLS: Record<ToolId, ToolDef> = {
     dirs: { win32: ["{LOCAL}\\Programs\\ExifTool", "{PF}\\ExifTool", "{PF86}\\ExifTool"] },
   },
   ollama: {
-    id: "ollama", name: "Ollama", what: "Runs local speech and AI models on your computer (including Phonon text-to-speech).",
+    id: "ollama", name: "Ollama & Starter AI Models", what: "Runs local AI chat, vision, code, and speech models on your computer (Qwen 3.5, LFM3-Omni, and Phonon TTS).",
     executables: ["ollama"], versionArgs: ["--version"], website: "https://ollama.com/download",
     brew: "ollama", winget: "Ollama.Ollama", scoop: "ollama", choco: "ollama", apt: "ollama", dnf: "ollama", pacman: "ollama",
     optional: true, versionMatch: /ollama/i,
