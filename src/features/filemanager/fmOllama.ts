@@ -218,7 +218,7 @@ export function detectNativeHostArch(platform: string, overrideArch?: string): s
       return "arm64";
     }
   }
-  return process.arch === "aarch64" ? "arm64" : process.arch;
+  return (process.arch as string) === "aarch64" ? "arm64" : process.arch;
 }
 
 /**
@@ -1253,6 +1253,7 @@ export function compareSemver(versionA: string, versionB: string): number {
 
 export interface OllamaVersionReport {
   online: boolean;
+  reachable: boolean;
   version: string;
   supportsDecision: boolean;
   supportsSpeech: boolean;
@@ -1264,6 +1265,7 @@ export async function getOllamaVersionStatus(ctx: FmContext): Promise<OllamaVers
   if (!res.ok || !res.data?.version) {
     return {
       online: false,
+      reachable: false,
       version: "offline",
       supportsDecision: false,
       supportsSpeech: false,
@@ -1282,6 +1284,7 @@ export async function getOllamaVersionStatus(ctx: FmContext): Promise<OllamaVers
   }
   return {
     online: true,
+    reachable: true,
     version,
     supportsDecision,
     supportsSpeech,
