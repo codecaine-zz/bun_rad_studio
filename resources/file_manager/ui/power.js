@@ -83,6 +83,9 @@ export function setPowerExpanded(expanded) {
   const app = typeof document === "undefined" ? null : document.getElementById("app");
   if (!app) return;
   const on = Boolean(expanded) && powerIsOpen();
+  if (on && app.classList.contains("term-max")) {
+    document.getElementById?.("terminal-expand")?.click?.();
+  }
   app.classList.toggle("power-max", on);
   syncExpandButtons(on);
   emit("power-max", on);
@@ -101,6 +104,15 @@ export function togglePowerExpanded() {
   const app = typeof document === "undefined" ? null : document.getElementById("app");
   if (app?.classList.contains("db-studio-max")) {
     app.querySelector(".db-studio:not([hidden]) .db-expand")?.click();
+    return;
+  }
+  if (app?.classList.contains("term-max")) {
+    document.getElementById?.("terminal-expand")?.click?.();
+    return;
+  }
+  const activeEl = typeof document === "undefined" ? null : document.activeElement;
+  if (state.terminalOpen && (activeEl?.closest?.("#terminal-panel") || !powerIsOpen())) {
+    document.getElementById?.("terminal-expand")?.click?.();
     return;
   }
   if (isPowerExpanded()) {

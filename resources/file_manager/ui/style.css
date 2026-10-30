@@ -325,7 +325,10 @@ button:disabled { cursor: default; }
 .term-actions { display: flex; flex-wrap: wrap; gap: 0.35rem; flex: 0 1 auto; }
 .term-btn { font: inherit; padding: 0.15rem 0.6rem; border: 1px solid var(--border); border-radius: 0.35rem; background: var(--bg); color: var(--text); cursor: pointer; }
 .term-btn:hover { background: var(--hover); }
+.term-btn[aria-pressed="true"] { background: var(--selected); color: var(--selected-text); border-color: var(--accent); font-weight: 600; }
 .term-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+#app.term-max #terminal-panel { flex: 1 1 0; height: 100%; border-top: 0; }
+#app.term-max #terminal-resizer { display: none; }
 .term-host { flex: 1; min-height: 0; background: #1e1e1e; padding: 0.3rem 0 0 0.5rem; overflow: hidden; }
 .term-host .xterm { height: 100%; }
 

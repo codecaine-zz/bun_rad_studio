@@ -257,6 +257,53 @@ export function isTerminalOpen() {
   return state.terminalOpen;
 }
 
+export function isTerminalExpanded() {
+  return typeof document !== "undefined" && !!document.getElementById?.("app")?.classList?.contains?.("term-max");
+}
+
+function syncTerminalExpandButton(on = isTerminalExpanded()) {
+  const btn = typeof document === "undefined" ? null : document.getElementById?.("terminal-expand");
+  if (!btn) return;
+  const hint = typeof hintOf === "function" ? hintOf("app.expandTool") : "";
+  btn.setAttribute("aria-pressed", String(on));
+  btn.textContent = on ? "⛶ Restore" : "⛶ Expand";
+  btn.title = on
+    ? `Restore the File Manager bars and tabs${hint}`
+    : `Fill the whole window with the terminal${hint}`;
+}
+
+export function setTerminalExpanded(expanded) {
+  const app = typeof document === "undefined" ? null : document.getElementById?.("app");
+  if (!app) return;
+  const on = Boolean(expanded) && state.terminalOpen;
+  if (on && app.classList.contains("power-max")) {
+    app.classList.remove("power-max");
+    emit("power-max", false);
+  }
+  app.classList.toggle("term-max", on);
+  syncTerminalExpandButton(on);
+  emit("term-max", on);
+  if (state.terminalOpen) {
+    applyHeight();
+    try {
+      fit?.fit?.();
+    } catch {
+      // the panel has no size yet
+    }
+    queueFit();
+    term?.focus?.();
+  }
+}
+
+export function toggleTerminalExpanded() {
+  if (isTerminalExpanded()) {
+    setTerminalExpanded(false);
+    return;
+  }
+  if (!state.terminalOpen) showTerminal();
+  if (state.terminalOpen) setTerminalExpanded(true);
+}
+
 export function showTerminal(folder, { focus = true, save = true } = {}) {
   if (!terminalAvailable()) return toast("The terminal isn't supported on this system.", { kind: "error" });
   if (typeof state.settings?.terminalHeight === "number" && Number.isFinite(state.settings.terminalHeight)) {
@@ -285,6 +332,7 @@ export function showTerminal(folder, { focus = true, save = true } = {}) {
 
 export function hideTerminal({ save = true } = {}) {
   if (!state.terminalOpen) return;
+  if (isTerminalExpanded()) setTerminalExpanded(false);
   const hadFocus = $("#terminal-panel").contains(document.activeElement);
   state.terminalOpen = false;
   $("#terminal-panel").hidden = true;
@@ -468,11 +516,28 @@ export function wireTerminal() {
   });
   $("#terminal-cd").addEventListener("click", () => goToFolder());
   $("#terminal-restart").addEventListener("click", () => restart());
+  $("#terminal-expand")?.addEventListener("click", () => toggleTerminalExpanded());
+  $("#terminal-panel")?.querySelector?.(".term-bar")?.addEventListener("dblclick", (e) => {
+    if (e.target?.closest?.("button, input, label, a")) return;
+    toggleTerminalExpanded();
+  });
   $("#terminal-close").addEventListener("click", () => hideTerminal());
+  on("power-max", (on) => {
+    if (on && isTerminalExpanded()) setTerminalExpanded(false);
+  });
+  on("terminal", () => syncTerminalExpandButton());
+  on("settings", () => syncTerminalExpandButton());
+  syncTerminalExpandButton();
   wireResizer();
   window.addEventListener("resize", () => state.terminalOpen && applyHeight());
   // The terminal keys (Ctrl+`, Cmd/Ctrl+Alt+T, and Cmd/Ctrl+Alt+V unless changed in Settings) work everywhere, also while typing in the terminal.
   document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !e.defaultPrevented && isTerminalExpanded() && !e.target?.closest?.(".term-host") && !document.querySelector(".modal-backdrop")) {
+      e.preventDefault();
+      e.stopPropagation();
+      setTerminalExpanded(false);
+      return;
+    }
     const toggle = matchesAction(e, "terminal.toggle");
     const here = !toggle && matchesAction(e, "terminal.here");
     const paste = !toggle && !here && matchesAction(e, "terminal.paste");

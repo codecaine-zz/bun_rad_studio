@@ -113,7 +113,13 @@ body:not(.ready) #stage { visibility: hidden; }
 #app.db-studio-max #power-panel > .power-filter,
 #app.db-studio-max #power-panel > .power-head,
 #app[data-workspace="split"].db-studio-max #body,
-#app[data-workspace="split"].db-studio-max #splitter { display: none; }
+#app[data-workspace="split"].db-studio-max #splitter,
+#app.term-max #viewbar,
+#app.term-max #toolbar-row,
+#app.term-max #tabbar,
+#app.term-max #addressbar,
+#app.term-max #stage,
+#app.term-max #status { display: none; }
 
 /* ------------------------------------------------------------------- status bar */
 #status-right { display: flex; align-items: center; gap: 1rem; }

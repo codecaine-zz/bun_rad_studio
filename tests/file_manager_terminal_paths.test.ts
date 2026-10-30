@@ -256,6 +256,36 @@ describe("selected paths for a terminal", () => {
     expect(reopened.settings.terminalOpen).toBe(false);
     expect(reopened.savedPatches.at(-1)).toEqual({ terminalOpen: false });
   });
+
+  test("terminal can expand to fill the full window space and restores when toggled or hidden", () => {
+    const t = loadTerminal("linux");
+    expect(t.isTerminalExpanded()).toBe(false);
+    expect(t.appClasses.has("term-max")).toBe(false);
+
+    // Toggling expand when the terminal is closed opens it and expands to full window.
+    t.toggleTerminalExpanded();
+    expect(t.element.hidden).toBe(false);
+    expect(t.isTerminalExpanded()).toBe(true);
+    expect(t.appClasses.has("term-max")).toBe(true);
+    expect(t.expandBtn.textContent).toBe("⛶ Restore");
+    expect(t.expandBtn.attrs.get("aria-pressed")).toBe("true");
+
+    // Toggling again restores normal height while keeping the terminal open.
+    t.toggleTerminalExpanded();
+    expect(t.isTerminalExpanded()).toBe(false);
+    expect(t.appClasses.has("term-max")).toBe(false);
+    expect(t.expandBtn.textContent).toBe("⛶ Expand");
+    expect(t.expandBtn.attrs.get("aria-pressed")).toBe("false");
+    expect(t.element.hidden).toBe(false);
+
+    // Expanding again and then hiding the terminal automatically exits full-window mode.
+    t.setTerminalExpanded(true);
+    expect(t.isTerminalExpanded()).toBe(true);
+    t.hideTerminal();
+    expect(t.isTerminalExpanded()).toBe(false);
+    expect(t.appClasses.has("term-max")).toBe(false);
+    expect(t.element.hidden).toBe(true);
+  });
 });
 
 type FakeSocketT = EventTarget & { readyState: number; sent: string[]; onmessage?: (e: { data: string }) => void; onclose?: () => void };
@@ -294,17 +324,43 @@ function loadTerminal(platform: string) {
   const props = new Map<string, string>();
   const settings: Record<string, any> = { textSize: 100, terminalFollow: true, terminalOpen: false, terminalHeight: 300, terminalPath: "" };
   const element = { hidden: true, title: "", textContent: "", style: { setProperty(k: string, v: string) { props.set(k, v); } }, setAttribute() {}, contains: () => false };
+  const appClasses = new Set<string>();
+  const appEl = {
+    classList: {
+      contains: (c: string) => appClasses.has(c),
+      add: (c: string) => { appClasses.add(c); },
+      remove: (c: string) => { appClasses.delete(c); },
+      toggle: (c: string, force?: boolean) => {
+        const on = force === undefined ? !appClasses.has(c) : Boolean(force);
+        if (on) appClasses.add(c);
+        else appClasses.delete(c);
+        return on;
+      },
+    },
+  };
+  const expandBtn = {
+    textContent: "⛶ Expand",
+    title: "",
+    attrs: new Map<string, string>(),
+    setAttribute(k: string, v: string) { this.attrs.set(k, v); },
+  };
   const source = readFileSync(new URL("../resources/file_manager/ui/terminal.js", import.meta.url), "utf8")
     .replace(/^import .*;\r?$/gm, "").replace(/^export /gm, "");
   const api = new Function("deps", `
     const { $, Terminal, FitAddon, ResizeObserver, WebSocket, window, document, requestAnimationFrame,
       quoteArg, quotePathsForTerminal, shellFor, windowsToGitBash, windowsToWsl, state, terminalUrl, emit, toast, goTo, saveSettings, wireTerminalClipboard, terminalTheme = () => ({}) } = deps;
     ${source}
-    return { insertPaths, folderCommand, typeInTerminal, showTerminal, hideTerminal, restoreTerminal };
+    return { insertPaths, folderCommand, typeInTerminal, showTerminal, hideTerminal, restoreTerminal, isTerminalExpanded, setTerminalExpanded, toggleTerminalExpanded };
   `)({
     $: () => element, Terminal: FakeTerminal, FitAddon: FakeFit,
     ResizeObserver: class { observe() {} }, WebSocket: FakeSocket,
-    window: { innerHeight: 1000 }, document: { activeElement: null, querySelector: () => null }, requestAnimationFrame: () => 0,
+    window: { innerHeight: 1000 },
+    document: {
+      activeElement: null,
+      querySelector: () => null,
+      getElementById: (id: string) => (id === "app" ? appEl : id === "terminal-expand" ? expandBtn : null),
+    },
+    requestAnimationFrame: () => 0,
     quoteArg, quotePathsForTerminal, shellFor, windowsToGitBash, windowsToWsl,
     state: { platform, settings, location: { kind: "folder", path: platform === "win32" ? "C:\\" : "/tmp" }, terminalOpen: false },
     terminalUrl: (folder: string) => `ws://test?path=${folder}`, emit() {}, toast: (message: string) => notices.push(message),
@@ -318,6 +374,9 @@ function loadTerminal(platform: string) {
     showTerminal: (folder?: string) => void;
     hideTerminal: () => void;
     restoreTerminal: () => void;
+    isTerminalExpanded: () => boolean;
+    setTerminalExpanded: (expanded: boolean) => void;
+    toggleTerminalExpanded: () => void;
   };
-  return { ...api, sockets, urls, notices, element, props, navigated, settings, savedPatches };
+  return { ...api, sockets, urls, notices, element, props, navigated, settings, savedPatches, appClasses, expandBtn };
 }
