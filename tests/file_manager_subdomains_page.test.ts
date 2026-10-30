@@ -656,8 +656,7 @@ describe("saving and history", () => {
     type(field("Narrow these results"), "");
     type(field("File name (optional)"), "my report");
     btn("Save as a report").click();
-    await until(() => existsSync(join(work, "my report.md")), "the report", 4000);
-    const md = readFileSync(join(work, "my report.md"), "utf8");
+    const md = await until(() => existsSync(join(work, "my report.md")) && readFileSync(join(work, "my report.md"), "utf8"), "the report", 4000);
     expect(md).toContain("# Subdomain report: save.example.org");
     expect(md).toContain("## Notes in plain words");
     type(field("File name (optional)"), "");

@@ -29,15 +29,12 @@ async function run({ ids, choice, options, startJob, closeOuter }) {
   if (direct) {
     return startJob(ids);
   }
-  if (hasOllama) {
-    startJob(["ollama"]);
-  }
   if (!terminalAvailable()) {
     toast("The built-in Terminal isn't available here, so use the commands shown next to each program.", { kind: "error" });
     return null;
   }
   try {
-    const plan = await call("tools/setup", { tools: otherIds, manager: choice.id, confirm: true });
+    const plan = await call("tools/setup", { tools: ids, manager: choice.id, confirm: true });
     closeOuter?.();
     typeInTerminal(`${plan.command}\r`);
     const skipped = plan.skipped.length ? ` (${plural(plan.skipped.length, "program")} can't be installed this way: ${plan.skipped.map((s) => s.name).join(", ")})` : "";

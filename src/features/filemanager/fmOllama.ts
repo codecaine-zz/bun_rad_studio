@@ -96,6 +96,34 @@ export async function fileExistsPure(filePath: string): Promise<boolean> {
   }
 }
 
+export function readTextFileSyncPure(filePath: string): string {
+  if (!filePath || filePath.includes("\0")) return "";
+  try {
+    if (Bun.file(filePath).size <= 0) return "";
+    if (process.platform === "win32") {
+      const res = Bun.spawnSync(
+        [
+          "powershell",
+          "-NoProfile",
+          "-NonInteractive",
+          "-Command",
+          "if (Test-Path -LiteralPath $env:FM_TARGET_FILE) { Get-Content -LiteralPath $env:FM_TARGET_FILE -Raw -Encoding UTF8 }",
+        ],
+        {
+          stdout: "pipe",
+          stderr: "ignore",
+          env: { ...process.env, FM_TARGET_FILE: filePath },
+        },
+      );
+      return res.exitCode === 0 ? res.stdout.toString("utf8") : "";
+    }
+    const res = Bun.spawnSync(["cat", "--", filePath], { stdout: "pipe", stderr: "ignore" });
+    return res.exitCode === 0 ? res.stdout.toString("utf8") : "";
+  } catch {
+    return "";
+  }
+}
+
 export function ensureDirectoryPure(dirPath: string, platform = process.platform): void {
   if (!dirPath || dirPath.includes("\0")) return;
   if (platform === "win32") {
