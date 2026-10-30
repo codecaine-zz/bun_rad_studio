@@ -45,9 +45,35 @@ export function parseArgs(argv: string[]): Options & { list: boolean } {
 }
 
 export function releaseNotes(rows: Array<{ target: Target; file: string; bytes: number; guiCount: number; cliCount: number }>, macApps: string[]): string {
-  const L: string[] = [`# Bun RAD Studio v${VERSION}`, "", "Download the file that matches your computer. Each one holds every app for that platform: unpack it and start any app from its `bin/` folder (read `README.txt` inside).", ""];
+  const baseUrl = `https://github.com/codecaine-zz/bun_rad_studio/releases/download/v${VERSION}`;
+  const fmRows = [
+    ["macOS Apple Silicon (M1 / M2 / M3 / M4)", `Codecaine-File-Manager-v${VERSION}-macos-arm64.zip`, "macOS `.app` bundle + 4 DB Studios"],
+    ["macOS Intel (`x64`)", `Codecaine-File-Manager-v${VERSION}-macos-x64.zip`, "macOS `.app` bundle + 4 DB Studios"],
+    ["Linux x86-64 (Ubuntu, Debian, Fedora, Arch)", `Codecaine-File-Manager-v${VERSION}-linux-x64.zip`, "`codecaine-file-manager` binary + `install-ollama.sh` + 4 DB Studios"],
+    ["Linux x86-64 Baseline (older CPUs without AVX2)", `Codecaine-File-Manager-v${VERSION}-linux-x64-baseline.zip`, "`codecaine-file-manager` binary + `install-ollama.sh` + 4 DB Studios"],
+    ["Linux ARM64 (Raspberry Pi, Ampere, Graviton)", `Codecaine-File-Manager-v${VERSION}-linux-arm64.zip`, "`codecaine-file-manager` binary + `install-ollama.sh` + 4 DB Studios"],
+    ["Windows 10 / 11 64-bit (`x64`)", `Codecaine-File-Manager-v${VERSION}-windows-x64.zip`, "`Codecaine File Manager.exe` + 4 DB Studios"],
+    ["Windows 10 / 11 Baseline (older CPUs)", `Codecaine-File-Manager-v${VERSION}-windows-x64-baseline.zip`, "`Codecaine File Manager.exe` + 4 DB Studios"],
+    ["Windows 11 on ARM (`arm64`)", `Codecaine-File-Manager-v${VERSION}-windows-arm64.zip`, "`Codecaine File Manager.exe` + 4 DB Studios"],
+  ] as const;
+  const L: string[] = [
+    `# Bun RAD Studio v${VERSION}`,
+    "",
+    "### 📁 Codecaine File Manager — Standalone Binary Downloads",
+    "",
+    "Direct downloads for the standalone **Codecaine File Manager** binary release (includes the built-in Terminal with full-screen `⛶ Expand`, 1-Click Ollama AI & Phonon TTS, and all 4 Database Studios):",
+    "",
+    "| Platform | Standalone Binary Download | Contents |",
+    "|---|---|---|",
+    ...fmRows.map(([plat, f, desc]) => `| ${plat} | [\`${f}\`](${baseUrl}/${f}) | ${desc} |`),
+    "",
+    "### 📦 Full Bun RAD Studio Suite (All 110 Desktop Apps + 79 CLI Tools)",
+    "",
+    "Download the archive that matches your computer. Each one holds every app for that platform: unpack it and start any app from its `bin/` folder (read `README.txt` inside).",
+    "",
+  ];
   L.push("| Your computer | Download | Size | Desktop apps | Command-line tools |", "|---|---|---|---|---|");
-  for (const r of rows) L.push(`| ${r.target.note.split(".")[0]} | \`${r.file}\` | ${mb(r.bytes)} | ${r.guiCount || "-"} | ${r.cliCount} |`);
+  for (const r of rows) L.push(`| ${r.target.note.split(".")[0]} | [\`${r.file}\`](${baseUrl}/${r.file}) | ${mb(r.bytes)} | ${r.guiCount || "-"} | ${r.cliCount} |`);
   L.push("", "### Which one do I pick?", "", "- **Mac:** Apple silicon (M1 or newer) -> `macos-arm64`. Intel -> `macos-x64`." + (macApps.length ? " The `-apps` zip files hold ready-to-open `.app` bundles with their own icons." : ""));
   L.push("- **Windows:** `windows-x64`. `windows-arm64` has native command-line tools and uses baseline x64 emulation for desktop apps (Windows 11 required). `-baseline` is for processors from before 2013. Run `install.cmd` for Start menu shortcuts with the same artwork as the Mac apps.");
   L.push("- **Linux:** `linux-x64` (Intel/AMD) or `linux-arm64` (Raspberry Pi, Graviton ...). Alpine uses the `-musl` files (command-line tools only). `-baseline` is for processors from before 2013.", "");
