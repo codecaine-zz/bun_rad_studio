@@ -4,8 +4,6 @@ An easy, safe file manager for **macOS, Windows and Linux**, built for people wh
 
 Added on 14 October 2026; the record of what was checked is [D-045](../documentation-maintenance/discrepancies.md#d-045).
 
-**Watch:** [Codecaine File Manager walkthrough](https://www.youtube.com/watch?v=uPrlPMj_uK4).
-
 ## Contents
 
 - [Start it](#start-it)

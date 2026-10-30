@@ -5,16 +5,8 @@
 
 ---
 
-## 📺 Watch the Two Video Editions
-
-| Edition | Video File | Notes & Timestamps | Script | What It Covers |
-| :--- | :--- | :--- | :--- | :--- |
-| **⚡ Short Quickstart Edition** | `youtube_production/file_manager_themes_short_tutorial.mp4` | [`FILE_MANAGER_THEMES_SHORT_TUTORIAL_NOTES.md`](../../youtube_production/FILE_MANAGER_THEMES_SHORT_TUTORIAL_NOTES.md) | [`scripts/tutorial_file_manager_themes_short.ts`](../../scripts/tutorial_file_manager_themes_short.ts) | Fast-paced unobstructed Icons View tour of Halloween Ultra, Polar Night, all 18 US Holidays, 20 Custom Themes (Low–Ultra), Single/Bulk folder import, and Google Gemini AI. |
-| **🎓 Full Masterclass Edition (12 Chapters)** | `youtube_production/file_manager_themes_full_tutorial.mp4` | [`FILE_MANAGER_THEMES_FULL_TUTORIAL_NOTES.md`](../../youtube_production/FILE_MANAGER_THEMES_FULL_TUTORIAL_NOTES.md) | [`scripts/tutorial_file_manager_themes_full.ts`](../../scripts/tutorial_file_manager_themes_full.ts) | Complete step-by-step MacAcademy-style deep dive into every theme, 3D folder shader, 120Hz icon animation, all 18 US Holidays, all 20 Custom Themes, Single & Bulk Folder Import, Google Gemini AI Customizer, OKLab Blender, 194 Shaders, and Theme Hacker Lab. |
-
 ## Contents
 
-- [Watch the Two Video Editions](#-watch-the-two-video-editions)
 - [Part I: The Short Quickstart Guide (5-Minute Overview)](#-part-i-the-short-quickstart-guide-5-minute-overview)
 - [Part II: The Full 12-Chapter Themes Masterclass Reference](#-part-ii-the-full-12-chapter-themes-masterclass-reference)
 

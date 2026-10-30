@@ -4,8 +4,6 @@
 **Prerequisites:** [Requirements](requirements.md) – Bun and Git installed.
 **Difficulty:** beginner. Every command below was run from a fresh clone on macOS with Bun 1.4.2 (13 October 2026) unless it says otherwise.
 
-Prefer to watch first? Start with the [Bun RAD Studio overview](https://www.youtube.com/watch?v=jhTA6194Xn4) (5:55), then the [SimpleGUI full tutorial](https://www.youtube.com/watch?v=-6H_in0W73k) (15:07) or the [no-code visual designer walkthrough](https://www.youtube.com/watch?v=Rh38eyWk0Jo) (10:56).
-
 **Windows downloads:** no source checkout, Bun or compilation is needed. Extract the whole ZIP into a permanent folder, double-click `install.cmd` to check/install Microsoft's desktop prerequisites with your permission, then open the File Manager executable or the suite's Start menu shortcuts. Windows ARM needs Windows 11 x64 emulation; setup uses the x64 Visual C++ runtime even on ARM.
 
 **Compile from source on Windows:** install Bun, clone the project, then double-click [build.cmd](../../build.cmd). It restores dependencies and produces Windows suite and File Manager ZIPs for your PC. See [Building on Windows](../developer/releasing.md#building-on-windows) for target options.

@@ -2,8 +2,6 @@
 
 Welcome to **SimpleGUI**! SimpleGUI is a lightweight, fluent, and beginner-friendly toolkit for building modern desktop applications in TypeScript and Bun. Designed with zero-boilerplate ergonomics, SimpleGUI lets you build responsive, beautifully styled cross-platform desktop interfaces in minutes.
 
-**Watch the tutorials:** [Build Desktop Apps Fast: Bun RAD Studio & SimpleGUI](https://www.youtube.com/watch?v=-6H_in0W73k) (15:07), or [Build a Desktop App With No Code: the SimpleGUI Visual Designer](https://www.youtube.com/watch?v=Rh38eyWk0Jo) (10:56).
-
 ---
 
 <a id="table-of-contents"></a>

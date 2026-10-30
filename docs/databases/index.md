@@ -2,8 +2,6 @@
 
 Bun RAD Studio works with four database engines (**SQLite**, **MySQL / MariaDB**, **PostgreSQL**, and **Redis**). This page tells you which tool to use and links to the detailed guides, including the [Complete guide to databases in the File Manager](complete-databases-guide.md) and the [Database Workbench guide](workbench.md).
 
-**Video walkthrough:** [Codecaine File Manager](https://www.youtube.com/watch?v=uPrlPMj_uK4).
-
 ## Contents
 
 - [Which tool for which job](#which-tool-for-which-job)

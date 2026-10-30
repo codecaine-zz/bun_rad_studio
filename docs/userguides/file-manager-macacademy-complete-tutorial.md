@@ -11,10 +11,6 @@ Hello, and welcome to our complete, unhurried, step-by-step training course on *
 
 Inspired by Randy Smith's classic **1989 MacAcademy Video Training Series** (*Beginning Microsoft Word*), this tutorial takes nothing for granted. We do not skip steps, we do not rush past buttons, and we never assume you already know where a menu item lives. Instead, we walk through **every single region, toolbar button, menu item, keyboard shortcut, inspector tab, and built-in studio** of the Codecaine File Manager—one deliberate click at a time—marked and recorded on our flagship **Apple Mac Studio M4 Ultra** paired with the **Apple Pro Display XDR 6K at 120Hz ProMotion**.
 
-- **Full Masterclass Video (`1:50:36`, 67 Chapters, 1080p H.264 + 192 kbps AAC):** `youtube_production/file_manager_tutorial.mp4` (generated locally via [`scripts/tutorial_file_manager.ts`](../../scripts/tutorial_file_manager.ts))
-- **YouTube Release Notes & Full Timestamp Index:** [`youtube_production/FILE_MANAGER_TUTORIAL_NOTES.md`](../../youtube_production/FILE_MANAGER_TUTORIAL_NOTES.md)
-- **Reproducible Video Generator Script:** [`scripts/tutorial_file_manager.ts`](../../scripts/tutorial_file_manager.ts)
-
 ---
 
 ## Table of Contents

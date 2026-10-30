@@ -13,20 +13,6 @@ A high-performance Rapid Application Development (RAD) Visual IDE for **Bun** an
 
 ---
 
-## Watch the demos and tutorials
-
-Recent walkthroughs from [codecaine on YouTube](https://www.youtube.com/@codecaine/videos):
-
-| Video | Length | What it covers |
-|---|---|---|
-| [Bun RAD Studio: quick look](https://www.youtube.com/shorts/vIxSt2525Jk) | Short | A quick introduction to Bun RAD Studio |
-| [Bun RAD Studio: Full Tutorial](https://www.youtube.com/watch?v=jhTA6194Xn4) | 5:55 | The desktop apps, CLI tools and visual designer |
-| [Build Desktop Apps Fast: Bun RAD Studio & SimpleGUI Full Tutorial](https://www.youtube.com/watch?v=-6H_in0W73k) | 15:07 | Building desktop applications with Bun, TypeScript and SimpleGUI |
-| [Build a Desktop App With No Code: The SimpleGUI Visual Designer](https://www.youtube.com/watch?v=Rh38eyWk0Jo) | 10:56 | The visual designer workflow |
-| [Codecaine File Manager: walkthrough](https://www.youtube.com/watch?v=uPrlPMj_uK4) | Video | The latest File Manager walkthrough |
-
----
-
 <a id="download"></a>
 
 ## ⬇️ Download (no coding, no compiling)
