@@ -1818,11 +1818,11 @@ describe("changing keyboard shortcuts", () => {
 
     row("view.details").querySelector(".shortcut-chip").click();
     press("l", { ...MOD, shiftKey: true, code: "KeyL" });
-    await sleep(80);
+    for (let i = 0; i < 40 && !status().includes("is now"); i++) await sleep(20);
     expect(status()).toContain("is now");
     expect(row("view.details").querySelector(".shortcut-chip").textContent).toMatch(/L/);
     expect(((await stateOf()).settings as any).shortcuts["view.details"]).toEqual(["Mod+Shift+L"]);
-    await sleep(250);
+    for (let i = 0; i < 40 && JSON.stringify((await savedSettings()).shortcuts) !== JSON.stringify({ "view.details": ["Mod+Shift+L"] }); i++) await sleep(25);
     expect((await savedSettings()).shortcuts).toEqual({ "view.details": ["Mod+Shift+L"] });
 
     // a plain letter is for typing; Esc cancels without closing the dialog

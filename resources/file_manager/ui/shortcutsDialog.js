@@ -60,9 +60,10 @@ export function showShortcutsDialog() {
     const problem = checkAssign(action, spec, others, platform);
     if (problem) return say(`${problem.reason} Nothing was changed.`, true);
     const specs = index >= mine.length ? [...mine, spec] : mine.map((k, i) => (i === index ? spec : k));
-    await saveFor(action.id, specs);
+    const pending = saveFor(action.id, specs);
     say(`“${action.label}” is now ${formatShortcut(spec, platform)}.`);
     draw();
+    await pending;
   }
 
   function record(action, index, button) {
@@ -103,9 +104,10 @@ export function showShortcutsDialog() {
     const chips = specs.map((spec, i) => {
       const chip = h("button", { type: "button", class: "shortcut-chip", title: "Click, then press the new keys", "aria-label": `Change ${formatShortcut(spec, platform)} for ${action.label}`, onclick: (e) => record(action, i, e.currentTarget) }, formatShortcut(spec, platform));
       const remove = h("button", { type: "button", class: "shortcut-x", title: "Remove this shortcut", "aria-label": `Remove ${formatShortcut(spec, platform)} from ${action.label}`, onclick: async () => {
-        await saveFor(action.id, specs.filter((_, j) => j !== i));
+        const pending = saveFor(action.id, specs.filter((_, j) => j !== i));
         say(`Removed ${formatShortcut(spec, platform)} from “${action.label}”.`);
         draw();
+        await pending;
       } }, "×");
       return h("span", { class: "shortcut-slot" }, chip, remove);
     });
@@ -117,9 +119,10 @@ export function showShortcutsDialog() {
     const reset = changed ? h("button", { type: "button", class: "shortcut-reset", title: "Put back the original shortcuts", "aria-label": `Reset ${action.label}`, onclick: async () => {
       const next = { ...(state.settings.shortcuts ?? {}) };
       delete next[action.id];
-      await saveSettings({ shortcuts: sanitizeOverrides(next, platform) });
+      const pending = saveSettings({ shortcuts: sanitizeOverrides(next, platform) });
       say(`“${action.label}” is back to ${defaults.length ? defaults.map((d) => formatShortcut(d, platform)).join(" or ") : "no shortcut"}.`);
       draw();
+      await pending;
     } }, "Reset") : null;
     return h("div", { class: "shortcut-row", dataset: { action: action.id } }, h("span", { class: "shortcut-label" }, action.label), h("span", { class: "shortcut-keys" }, chips, add), reset);
   }
