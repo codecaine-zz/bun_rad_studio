@@ -262,14 +262,22 @@ export function isTerminalExpanded() {
 }
 
 function syncTerminalExpandButton(on = isTerminalExpanded()) {
-  const btn = typeof document === "undefined" ? null : document.getElementById?.("terminal-expand");
-  if (!btn) return;
   const hint = typeof hintOf === "function" ? hintOf("app.expandTool") : "";
-  btn.setAttribute("aria-pressed", String(on));
-  btn.textContent = on ? "⛶ Restore" : "⛶ Expand";
-  btn.title = on
+  const title = on
     ? `Restore the File Manager bars and tabs${hint}`
     : `Fill the whole window with the terminal${hint}`;
+  const btn = typeof document === "undefined" ? null : document.getElementById?.("terminal-expand");
+  if (btn) {
+    btn.setAttribute("aria-pressed", String(on));
+    btn.textContent = on ? "⛶ Restore" : "⛶ Expand";
+    btn.title = title;
+  }
+  const statusExpand = typeof document === "undefined" ? null : document.getElementById?.("status-terminal-expand");
+  if (statusExpand) {
+    statusExpand.setAttribute("aria-pressed", String(on));
+    statusExpand.textContent = on ? "⛶ Restore" : "⛶ Expand";
+    statusExpand.title = title;
+  }
 }
 
 export function setTerminalExpanded(expanded) {
@@ -517,6 +525,7 @@ export function wireTerminal() {
   $("#terminal-cd").addEventListener("click", () => goToFolder());
   $("#terminal-restart").addEventListener("click", () => restart());
   $("#terminal-expand")?.addEventListener("click", () => toggleTerminalExpanded());
+  $("#status-terminal-expand")?.addEventListener("click", () => toggleTerminalExpanded());
   $("#terminal-panel")?.querySelector?.(".term-bar")?.addEventListener("dblclick", (e) => {
     if (e.target?.closest?.("button, input, label, a")) return;
     toggleTerminalExpanded();

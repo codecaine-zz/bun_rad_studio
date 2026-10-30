@@ -115,7 +115,7 @@ if (process.platform !== "win32") {
   try {
     const work = join(homedir(), ".bun_rad_studio", "run");
     mkdirSync(work, { recursive: true });
-    rmSync(join(work, "resources"), { force: true });
+    rmSync(join(work, "resources"), { recursive: true, force: true });
     symlinkSync(join(dir, "resources"), join(work, "resources"));
     cwd = work;
   } catch (error) {

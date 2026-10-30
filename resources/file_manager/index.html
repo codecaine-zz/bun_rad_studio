@@ -172,7 +172,7 @@
           <button id="terminal-cliutils" type="button" class="term-btn" title="Open the built-in RAD Studio CLI utilities folder in the terminal so you can run ./tool-name directly">CLI utilities</button>
           <button id="terminal-cd" type="button" class="term-btn" title="Move the terminal to the folder you selected, or to the folder you are looking at if none is selected">Go to this folder</button>
           <button id="terminal-restart" type="button" class="term-btn" title="End this shell and start a new one in the selected folder, or the folder you are looking at">Restart</button>
-          <button id="terminal-expand" type="button" class="term-btn" aria-pressed="false" title="Fill the whole window with the terminal">⛶ Expand</button>
+          <button id="terminal-expand" type="button" class="term-btn term-expand" aria-pressed="false" title="Fill the whole window with the terminal">⛶ Expand</button>
           <button id="terminal-close" type="button" class="term-btn term-close" title="Hide the terminal (Ctrl+`). It keeps running." aria-label="Hide the terminal">✕</button>
         </span>
       </div>
@@ -181,7 +181,7 @@
 
     <footer id="status">
       <span id="status-left" aria-live="off"></span>
-      <span id="status-right"><button id="status-terminal" type="button" class="status-terminal" aria-pressed="false" title="Show the terminal"><span aria-hidden="true">⌨️</span> Terminal <kbd class="status-terminal-key"></kbd></button><span id="status-views" role="group" aria-label="How files are shown"></span><time id="status-clock" class="status-clock" aria-label="Current date and time"></time><span class="busy-indicator">Working…</span></span>
+      <span id="status-right"><button id="status-terminal" type="button" class="status-terminal" aria-pressed="false" title="Show the terminal"><span aria-hidden="true">⌨️</span> Terminal <kbd class="status-terminal-key"></kbd></button><button id="status-terminal-expand" type="button" class="status-terminal" aria-pressed="false" title="Fill the whole window with the terminal">⛶ Expand</button><span id="status-views" role="group" aria-label="How files are shown"></span><time id="status-clock" class="status-clock" aria-label="Current date and time"></time><span class="busy-indicator">Working…</span></span>
     </footer>
   </div>
 

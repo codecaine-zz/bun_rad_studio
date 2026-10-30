@@ -97,6 +97,7 @@ export interface FileManagerServerOptions {
 
 export function getFileManagerAssetsDir(): string {
   const candidates = [
+    nodePath.join(import.meta.dir, "..", "resources", "file_manager"),
     nodePath.join(import.meta.dir, "..", "..", "..", "resources", "file_manager"),
     nodePath.join(process.cwd(), "resources", "file_manager"),
   ];
@@ -792,7 +793,7 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
           }
           const nonce = randomBytes(16).toString("base64");
           const html = cachedIndexTemplate.replaceAll("__FM_NONCE__", nonce);
-          return new Response(html, { headers: secureHeaders({ "Content-Type": MIME.html!, "Content-Security-Policy": pageCsp(url.host, nonce), "Cache-Control": "no-store" }) });
+          return new Response(html, { headers: secureHeaders({ "Content-Type": MIME.html!, "Content-Security-Policy": pageCsp(url.host, nonce), "Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache", "Expires": "0" }) });
         }
 
         // The terminal: a WebSocket that needs the session token and must come from this page's own address.
@@ -813,7 +814,7 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
           const bf = Bun.file(file);
           if (!(await bf.exists())) return new Response("Not Found", { status: 404 });
           const type = vendor[1]!.endsWith(".css") ? MIME.css! : vendor[1]!.endsWith(".txt") ? "text/plain; charset=utf-8" : MIME.js!;
-          return new Response(bf, { headers: secureHeaders({ "Content-Type": type, "Content-Security-Policy": CSP, "Cache-Control": "no-store" }) });
+          return new Response(bf, { headers: secureHeaders({ "Content-Type": type, "Content-Security-Policy": CSP, "Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache", "Expires": "0" }) });
         }
 
         const ui = /^\/ui\/([\w.-]+\.(js|css|svg|png))$/.exec(path);
@@ -821,7 +822,7 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
           const file = nodePath.join(assets, "ui", ui[1]!);
           const bf = Bun.file(file);
           if (!(await bf.exists())) return new Response("Not Found", { status: 404 });
-          return new Response(bf, { headers: secureHeaders({ "Content-Type": MIME[ui[2]!]!, "Content-Security-Policy": CSP, "Cache-Control": "no-store" }) });
+          return new Response(bf, { headers: secureHeaders({ "Content-Type": MIME[ui[2]!]!, "Content-Security-Policy": CSP, "Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache", "Expires": "0" }) });
         }
 
         if (req.method === "GET" && path === "/api/health") {
