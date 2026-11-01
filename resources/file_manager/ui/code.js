@@ -25,6 +25,7 @@ import { createZoomableImage, normalizeMarkdownSlug, renderCodeInspectorPreview,
 import { createRunUi } from "./codeRunUi.js";
 import { createStatus } from "./codeStatus.js";
 import { renderTabs, renderWelcome, wireTabKeys } from "./codeTabs.js";
+import { createCodeAiChat } from "./codeAiChat.js";
 
 const docs = createDocs();
 
@@ -49,7 +50,7 @@ const MENUS = {
   Selection: ["expandSelection", "goToBracket", "nextOccurrence", "prevOccurrence", "editAllOccurrences", "prefixSuffixLines", "numberLines", "-", "foldBlock", "unfoldBlock", "foldAll", "unfoldAll", "-", "toggleComment", "blockComment", "wrapTag", "-", "indent", "outdent", "-", "selectLine", "selectWord", "-", "deleteLine", "duplicate", "duplicateUp", "moveUp", "moveDown", "joinLines"],
   Tools: ["toggleValue", "toggleQuotes", "evalMath", "-", "sortJson", "csvToMd", "-", "sortAsc", "sortDesc", "sortNumeric", "reverseLines", "dedupe", "-", "trim", "finalNewline", "tabsToSpaces", "spacesToTabs", "-", "upper", "lower", "title", "camel", "snake", "kebab", "-", "convertText", "removeAccents", "composeAccents", "decomposeAccents", "-", "urlEncode", "urlDecode", "-", "format", "minify", "-", "regexSandbox"],
   Go: ["goToBracket", "nextOccurrence", "prevOccurrence", "-", "bookmarkToggle", "bookmarkNext", "bookmarkPrev", "bookmarkClear", "-", "goToLine", "goToSymbol", "quickOpen"],
-  View: ["wrap", "lineNumbers", "minimap", "stickyScroll", "whitespace", "indentGuides", "ruler", "wordHighlight", "-", "zoomIn", "zoomOut", "zoomReset", "-", "zen", "explorer", "preview", "splitEditor", "-", "panelFiles", "panelGit", "panelOutline", "panelTodos", "panelBookmarks", "panelHistory", "-", "completion", "autoOpen", "autosave", "autosaveOptions", "-", "shortcuts", "palette"],
+  View: ["wrap", "lineNumbers", "minimap", "stickyScroll", "whitespace", "indentGuides", "ruler", "wordHighlight", "-", "zoomIn", "zoomOut", "zoomReset", "-", "zen", "explorer", "preview", "splitEditor", "aiChat", "-", "panelFiles", "panelGit", "panelOutline", "panelTodos", "panelBookmarks", "panelHistory", "-", "completion", "autoOpen", "autosave", "autosaveOptions", "-", "shortcuts", "palette"],
 };
 
 function mount(root) {
@@ -63,9 +64,12 @@ function mount(root) {
   let previewWidth = 45;
   let splitEditorOn = false;
   let splitDocId = 0;
+  let aiChatOn = false;
+  let aiChatWidth = 40;
   let mdController = null;
   // Zen mode hides the toolbar and its Preview button, so the preview has a switch of its own that stays in sight.
   const zenPreview = h("button", { type: "button", class: "code-zen-preview", "aria-pressed": "false", title: "Show or hide the preview & live inspector next to the text", onclick: () => commands.run("preview") }, "👁 Preview");
+  const zenAiChat = h("button", { type: "button", class: "code-zen-preview", "aria-pressed": "false", title: "Show or hide the AI Code Chat (LM Studio & Ollama)", onclick: () => commands.run("aiChat") }, "🤖 AI Chat");
 
   const editors = h("div", { class: "code-editors" });
   const welcome = h("div", { class: "code-welcome" });
@@ -145,6 +149,20 @@ function mount(root) {
     splitBody,
   );
 
+  const aiChatResizer = h("div", {
+    class: "code-preview-resizer code-ai-resizer",
+    role: "separator",
+    "aria-orientation": "vertical",
+    "aria-label": "Resize code editor and AI Chat",
+    "aria-valuemin": "22",
+    "aria-valuemax": "75",
+    "aria-valuenow": "40",
+    tabindex: "0",
+    hidden: true,
+    title: "Drag to resize the AI Code Chat panel (double-click to reset to 40%)",
+    ondblclick: () => setAiChatWidth(aiChatWidth === 40 ? 50 : 40),
+  }, h("span", { class: "code-preview-resizer-grip", "aria-hidden": "true" }, "⋮"));
+
   const status = createStatus({ onLanguage: () => actions.pickLanguage(), onEol: () => actions.pickEol(), onIndent: () => actions.pickIndent(), onEncoding: () => actions.pickEncoding(), onPosition: () => actions.goToLine(), onAutosave: () => setSetting("autosave", !settings().autosave) });
 
   const findBar = createFindBar({ getEditor: ed, toast, onClose: () => ed()?.focus() });
@@ -155,6 +173,14 @@ function mount(root) {
     onRootChanged: (r) => docs.setRoot(r),
   });
   const runUi = createRunUi({ getWorkspace: () => explorer.root });
+  const aiChat = createCodeAiChat({
+    getDoc: doc,
+    getEditor: ed,
+    docs,
+    getWorkspace: () => explorer.root,
+    toast,
+    onClose: () => app.toggleAiChat(),
+  });
 
   async function open(path, line = 1, col = 1, length = 0) {
     try {
@@ -315,7 +341,7 @@ function mount(root) {
         if (settings().autosave) autosaveSoon();
         docs.persist();
       },
-      onSelect: (s) => { d.line = s.line; d.col = s.col; d.sel = s; updateStatus(); updateCrumbs(); assist.caretMoved(d); },
+      onSelect: (s) => { d.line = s.line; d.col = s.col; d.sel = s; updateStatus(); updateCrumbs(); assist.caretMoved(d); aiChat.updateContext(); },
       onClip: (text) => actions.rememberClip(text),
       onKey: (ev) => assist.keydown(d, ev),
       onBookmark: (line) => actions.bookmark("toggle", line),
@@ -438,9 +464,36 @@ function mount(root) {
         title: "Inspect value or pick a color at the cursor (Alt+I)",
         onclick: () => actions.inspectToken(),
       }, "🔍 Inspect"));
+      items.push(h("button", {
+        type: "button",
+        class: "code-crumb-pill code-crumb-ai",
+        title: "Open AI Code Chat (LM Studio Bionic & Ollama) for this file or selection (Mod+Shift+I)",
+        onclick: () => {
+          if (!aiChatOn) app.toggleAiChat();
+          else aiChat.focusInput();
+        },
+      }, "🤖 Ask AI"));
     }
 
     crumbs.replaceChildren(...items);
+  }
+
+  function setAiChatWidth(nextPct) {
+    aiChatWidth = Math.max(22, Math.min(75, Math.round(Number(nextPct) || 40)));
+    aiChat.el.style.flexBasis = `${aiChatWidth}%`;
+    aiChat.el.dataset.width = String(aiChatWidth);
+    aiChatResizer.setAttribute("aria-valuenow", String(aiChatWidth));
+    ed()?.layout();
+  }
+
+  function updateAiChat() {
+    aiChat.el.hidden = !aiChatOn;
+    aiChatResizer.hidden = !aiChatOn;
+    zenAiChat.setAttribute("aria-pressed", String(aiChatOn));
+    aiChatBtn?.setAttribute("aria-pressed", String(aiChatOn));
+    if (aiChatOn) {
+      aiChat.updateContext();
+    }
   }
 
   function updateSplitPane() {
@@ -497,6 +550,7 @@ function mount(root) {
     if (panel === "history") panels.history.update?.();
     updatePreview();
     updateSplitPane();
+    updateAiChat();
     findBar.refresh();
     runButtons.hidden = !d || d.kind === "diff";
   }
@@ -861,7 +915,14 @@ function mount(root) {
     },
     isZen: () => zen,
     toggleSide() { setSetting("explorer", !settings().explorer); },
-    togglePreview() { setSetting("preview", !previewOn); },
+    togglePreview() {
+      const next = !previewOn;
+      if (next && aiChatOn) {
+        aiChatOn = false;
+        updateAiChat();
+      }
+      setSetting("preview", next);
+    },
     isPreview: () => previewOn,
     toggleSplitEditor() {
       splitEditorOn = !splitEditorOn;
@@ -869,6 +930,17 @@ function mount(root) {
       ed()?.layout();
     },
     isSplitEditor: () => splitEditorOn,
+    toggleAiChat() {
+      aiChatOn = !aiChatOn;
+      if (aiChatOn && previewOn) {
+        setSetting("preview", false);
+      }
+      updateAiChat();
+      ed()?.layout();
+      if (aiChatOn) aiChat.focusInput();
+      else ed()?.focus();
+    },
+    isAiChat: () => aiChatOn,
     regexSandbox: () => openRegexSandbox(ed() ? ed().getText().slice(0, 5000) : ""),
     convertText: () => openPalette({ title: "Convert text", placeholder: "Type what you want, for example base64, snake, accents, links", empty: "No conversion matches.", items: TRANSFORMS.map((t) => ({ label: t.label, detail: `${t.group} · ${t.tip}`, value: t.id })), onPick: (id) => commands.run(`tx:${id}`) }),
     shortcuts: () => openShortcutsHelp(commands.list.filter((c) => !c.hidden).map((c) => ({ group: c.group, label: c.label, shortcut: c.shortcut }))),
@@ -889,6 +961,7 @@ function mount(root) {
   const buildBtn = quick("🔨 Build", "Build: sends this file's Build command to the Terminal and presses Enter (Ctrl/Cmd+B)", () => commands.run("build"));
   const runButtons = h("span", { class: "code-run-group", hidden: true }, runMain, runMore, buildBtn, quick("Presets…", "Add, edit and choose the commands saved for this file", () => commands.run("presets")));
   const themeMenu = h("button", { type: "button", class: "code-menu-btn", "aria-haspopup": "menu", title: "Choose the editor colors", onclick: (e) => showMenu(THEME_CHOICES.map(([id, label]) => ({ label, checked: settings().theme === id, action: () => setSetting("theme", id) })), { anchor: e.currentTarget, label: "Editor colors" }) }, "Colors");
+  const aiChatBtn = quick("🤖 AI Chat", "Show or hide the AI Code Chat assistant (LM Studio Bionic & Ollama) — Mod+Shift+I", () => commands.run("aiChat"), { class: "code-btn code-tog", "aria-pressed": "false" });
   const toolbar = h("div", { class: "code-toolbar", role: "toolbar", "aria-label": "Editor commands" },
     ...Object.entries(MENUS).map(([name, ids]) => menuButton(name, ids)), themeMenu,
     h("span", { class: "code-sep" }),
@@ -902,9 +975,47 @@ function mount(root) {
     quick("🗺 Minimap", "Show or hide the code minimap (Alt+M)", () => commands.run("minimap")),
     quick("◫ Split", "Show or hide the side-by-side split editor pane", () => commands.run("splitEditor")),
     quick("👁 Preview", "Show a preview or Live Code Inspector next to the text (Markdown, JSON, CSV, HTML & code)", () => commands.run("preview")),
+    aiChatBtn,
     quick("⛶ Zen", "Hide everything except the text (press again to come back)", () => commands.run("zen")));
 
-  const work = h("div", { class: "code-work" }, editors, welcome, splitPane, previewResizer, preview);
+  const work = h("div", { class: "code-work" }, editors, welcome, splitPane, previewResizer, preview, aiChatResizer, aiChat.el);
+  aiChatResizer.addEventListener("mousedown", (startEv) => {
+    if (startEv.button !== 0) return;
+    startEv.preventDefault();
+    aiChatResizer.classList.add("is-dragging");
+    const startX = startEv.clientX;
+    const startWidth = aiChatWidth;
+    const onMove = (moveEv) => {
+      const rect = work.getBoundingClientRect();
+      if (rect.width > 0) {
+        const pct = ((rect.right - moveEv.clientX) / rect.width) * 100;
+        setAiChatWidth(pct);
+      } else {
+        const deltaPct = ((startX - moveEv.clientX) / 800) * 100;
+        setAiChatWidth(startWidth + deltaPct);
+      }
+    };
+    const onUp = () => {
+      aiChatResizer.classList.remove("is-dragging");
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  });
+  aiChatResizer.addEventListener("keydown", (e) => {
+    const step = e.shiftKey ? 1 : 5;
+    if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      setAiChatWidth(aiChatWidth + step);
+    } else if (e.key === "ArrowRight") {
+      e.preventDefault();
+      setAiChatWidth(aiChatWidth - step);
+    } else if (e.key === "0" || e.key === "Enter") {
+      e.preventDefault();
+      setAiChatWidth(40);
+    }
+  });
   previewResizer.addEventListener("mousedown", (startEv) => {
     if (startEv.button !== 0) return;
     startEv.preventDefault();
@@ -951,7 +1062,7 @@ function mount(root) {
   const center = h("div", { class: "code-center" }, tabStrip, crumbs, banner, findBar.el, work, status.el);
   // Zen mode hides the toolbar (and its Zen button), so it needs a way out that stays in sight.
   const zenExit = h("button", { type: "button", class: "code-zen-exit", title: `Leave zen mode (Esc or ${shortcutText("zen", state.platform)})`, "aria-label": "Leave zen mode", onclick: () => commands.run("zen") }, "✕ Leave zen mode");
-  const zenBar = h("div", { class: "code-zen-bar" }, zenPreview, zenExit);
+  const zenBar = h("div", { class: "code-zen-bar" }, zenPreview, zenAiChat, zenExit);
   root.append(toolbar, h("div", { class: "code-main" }, side, center), zenBar);
   wireTabKeys(tabStrip, (id) => { saveScroll(); docs.activate(id); });
 

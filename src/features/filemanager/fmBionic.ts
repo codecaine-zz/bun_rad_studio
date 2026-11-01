@@ -384,7 +384,22 @@ export async function controlBionicServer(
       Bun.spawnSync(["open", "-a", targetApp], { stdout: "ignore", stderr: "ignore" });
       return { launched: true, app: targetApp };
     }
-    return { launched: false, message: "Desktop app launch is supported when Bionic.app or LM Studio.app is installed." };
+    const targetBin = apps.bionicAppInstalled
+      ? apps.bionicAppPath
+      : apps.lmStudioAppInstalled
+        ? apps.lmStudioAppPath
+        : Bun.which("lm-studio") || Bun.which("bionic") || "";
+    if (targetBin) {
+      try {
+        const proc = Bun.spawn([targetBin], { stdin: "ignore", stdout: "ignore", stderr: "ignore" });
+        proc.unref();
+        return { launched: true, app: targetBin };
+      } catch {}
+    }
+    return {
+      launched: false,
+      message: "Desktop app launch is supported when Bionic or LM Studio is installed.",
+    };
   }
 
   if (action === "start") {
@@ -1035,14 +1050,34 @@ export function getBionicTtsConfigAndVoices(ctx?: FmContext): {
 } {
   const lmHome = getLmStudioHomeDir(ctx);
   const platform = ctx?.platform || process.platform;
-  const enginePath = joinPath(
-    [lmHome, "extensions", "backends", "xn-ptts-mac-arm64-apple-metal-advsimd-0.1.5", "tts_engine.node"],
+  const backendsDir = joinPath([lmHome, "extensions", "backends"], platform);
+  const modelsDir = joinPath([lmHome, "extensions", "models"], platform);
+  let enginePath = joinPath(
+    [backendsDir, "xn-ptts-mac-arm64-apple-metal-advsimd-0.1.5", "tts_engine.node"],
     platform,
   );
-  const bundleDir = joinPath(
-    [lmHome, "extensions", "models", "phonon-40m-multilingual-mac-arm64-apple-metal-0.1.1"],
+  let bundleDir = joinPath(
+    [modelsDir, "phonon-40m-multilingual-mac-arm64-apple-metal-0.1.1"],
     platform,
   );
+  try {
+    if (!(Bun.file(enginePath).size > 0)) {
+      const foundBackend = listDirectoryEntriesPure(backendsDir, platform).find(
+        (e) => e.isDir && e.name.startsWith("xn-ptts-"),
+      );
+      if (foundBackend) {
+        enginePath = joinPath([foundBackend.path, "tts_engine.node"], platform);
+      }
+    }
+    if (!(Bun.file(joinPath([bundleDir, "tts-bundle.json"], platform)).size > 0)) {
+      const foundModel = listDirectoryEntriesPure(modelsDir, platform).find(
+        (e) => e.isDir && e.name.startsWith("phonon-40m-multilingual"),
+      );
+      if (foundModel) {
+        bundleDir = foundModel.path;
+      }
+    }
+  } catch {}
   const bundlePath = joinPath([bundleDir, "tts-bundle.json"], platform);
   const ttsSelectionPath = joinPath([lmHome, ".internal", "tts-model-selection.json"], platform);
 

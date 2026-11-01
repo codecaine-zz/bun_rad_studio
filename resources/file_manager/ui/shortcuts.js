@@ -101,7 +101,7 @@ export const ACTIONS = [
   c("deleteLine", "Delete line"), c("joinLines", "Join lines"), c("selectLine", "Select line"), c("wrap", "Wrap long lines"), c("zen", "Zen mode"),
   c("explorer", "Show or hide the file tree"), c("zoomIn", "Bigger text"), c("zoomOut", "Smaller text"), c("zoomReset", "Normal text size"),
   c("bookmarkToggle", "Add or remove a bookmark"), c("bookmarkNext", "Next bookmark"), c("bookmarkPrev", "Previous bookmark"),
-  c("run", "Run this file"), c("build", "Build this file"), c("preview", "Show the preview"), c("shortcuts", "Show the keyboard shortcuts"),
+  c("run", "Run this file"), c("build", "Build this file"), c("preview", "Show the preview"), c("aiChat", "Show or hide AI Code Chat"), c("shortcuts", "Show the keyboard shortcuts"),
 ];
 
 /** Keys that always do what they do and can't be given to something else (shown in the list, locked). */

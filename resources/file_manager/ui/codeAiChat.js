@@ -1,0 +1,1229 @@
+// Built-in AI Code Chat & Assistant for the Code Editor (supports both LM Studio Bionic & Ollama).
+// Provides multi-turn streaming chat, automatic active-file & selection context, quick code actions
+// (Explain, Refactor, Find Bugs, Write Tests, Add Docs), and 1-click Insert / Replace / Diff / Copy on code blocks.
+import { call, getToken } from "./api.js";
+import { computeLineDiff, parseMarkdown, tokenizeText } from "./codeLogic.js";
+import { clear, h } from "./dom.js";
+
+const QUICK_PROMPTS = [
+  {
+    id: "explain",
+    label: "✨ Explain",
+    tip: "Explain how the selected code (or active file) works step by step",
+    buildPrompt: (hasSel) =>
+      hasSel
+        ? "Explain the selected code clearly and concisely. Break down what it does, its inputs/outputs, and any important edge cases."
+        : "Explain how this file works, its main functions/classes, and its overall architecture.",
+  },
+  {
+    id: "refactor",
+    label: "🛠 Refactor",
+    tip: "Clean up, simplify, and modernize the selected code (or active file)",
+    buildPrompt: (hasSel) =>
+      hasSel
+        ? "Refactor the selected code to be cleaner, more readable, and maintainable while preserving exact behavior. Return the improved code inside a fenced code block."
+        : "Suggest and provide a clean refactoring for this file to improve readability, modularity, and maintainability. Return updated code in fenced code blocks.",
+  },
+  {
+    id: "bugs",
+    label: "🐛 Find Bugs",
+    tip: "Audit the selected code (or active file) for bugs, edge cases, and security issues",
+    buildPrompt: (hasSel) =>
+      hasSel
+        ? "Check the selected code for potential bugs, edge cases, race conditions, or security issues, and provide fixed code in a fenced code block."
+        : "Audit this file for potential bugs, logic errors, unhandled edge cases, or security issues, and show the fixes in fenced code blocks.",
+  },
+  {
+    id: "tests",
+    label: "🧪 Write Tests",
+    tip: "Generate unit tests for the selected function/code or active file",
+    buildPrompt: (hasSel) =>
+      hasSel
+        ? "Write comprehensive unit tests covering the selected code, including happy paths and edge cases."
+        : "Write comprehensive unit tests for the functions and classes in this file.",
+  },
+  {
+    id: "docs",
+    label: "📝 Add Docs / Types",
+    tip: "Add clear docstrings, comments, and type annotations",
+    buildPrompt: (hasSel) =>
+      hasSel
+        ? "Add clear docstrings/JSDoc comments and strong type annotations to the selected code. Return the updated code in a fenced code block."
+        : "Add clear docstrings/comments and type annotations to the main functions and types in this file.",
+  },
+  {
+    id: "optimize",
+    label: "⚡ Optimize",
+    tip: "Improve performance and reduce complexity",
+    buildPrompt: (hasSel) =>
+      hasSel
+        ? "Optimize the selected code for better performance and lower memory/CPU overhead. Explain the improvement and provide the code block."
+        : "Identify performance bottlenecks in this file and provide optimized code blocks.",
+  },
+];
+
+function splitThinkBlocks(rawText) {
+  let content = String(rawText ?? "");
+  const reasoningParts = [];
+  content = content.replace(/<think>([\s\S]*?)<\/think>/gi, (_m, inner) => {
+    if (inner && inner.trim()) reasoningParts.push(inner.trim());
+    return "";
+  });
+  // Handle unclosed <think> during live streaming
+  const openIdx = content.indexOf("<think>");
+  if (openIdx !== -1) {
+    const partialThink = content.slice(openIdx + 7).trim();
+    if (partialThink) reasoningParts.push(partialThink);
+    content = content.slice(0, openIdx);
+  }
+  return {
+    reasoning: reasoningParts.join("\n\n").trim(),
+    content: content.trim(),
+  };
+}
+
+export function createCodeAiChat(ctx) {
+  // ctx: { getDoc, getEditor, docs, getWorkspace, toast }
+  const state = {
+    engine: "bionic", // "bionic" | "ollama"
+    engineManuallyChosen: false,
+    bionicStatus: null,
+    ollamaStatus: null,
+    bionicModel: "",
+    ollamaModel: "",
+    selectedSkill: "",
+    includeFile: true,
+    includeSelection: true,
+    codeWrap: true,
+    loading: false,
+    statusLoading: false,
+    promptText: "",
+    messages: [],
+    abortController: null,
+  };
+
+  const root = h("aside", {
+    class: "code-ai-pane",
+    "aria-label": "AI Code Chat (LM Studio Bionic & Ollama)",
+    hidden: true,
+  });
+
+  let promptInputEl = null;
+  let threadContainerEl = null;
+
+  function activeSelectionInfo() {
+    const d = ctx.getDoc?.();
+    const e = ctx.getEditor?.();
+    if (!d || !e || d.kind === "diff") return { hasSelection: false, text: "", startLine: 1, endLine: 1, start: 0, end: 0 };
+    const sel = e.getSelection();
+    if (!sel || sel.end <= sel.start) return { hasSelection: false, text: "", startLine: d.line || 1, endLine: d.line || 1, start: sel?.start || 0, end: sel?.end || 0 };
+    const full = e.getText();
+    const slice = full.slice(sel.start, sel.end);
+    const startLine = full.slice(0, sel.start).split("\n").length;
+    const endLine = startLine + slice.split("\n").length - 1;
+    return {
+      hasSelection: true,
+      text: slice,
+      startLine,
+      endLine,
+      start: sel.start,
+      end: sel.end,
+    };
+  }
+
+  async function refreshEngines(silent = false) {
+    if (!silent) {
+      state.statusLoading = true;
+      render();
+    }
+    const dirPath = ctx.getWorkspace?.() || "/";
+    const [bRes, oRes] = await Promise.allSettled([
+      call("bionic/status", { dirPath }),
+      call("ollama/status", {}),
+    ]);
+
+    if (bRes.status === "fulfilled" && bRes.value) {
+      state.bionicStatus = bRes.value;
+      const models = Array.isArray(bRes.value.models) ? bRes.value.models : [];
+      if (!state.bionicModel && models.length > 0) {
+        const loadedChat = models.find((m) => m.loaded && (m.type === "llm" || m.type === "vlm"));
+        const anyChat = models.find((m) => m.type === "llm" || m.type === "vlm") || models[0];
+        if (loadedChat) state.bionicModel = loadedChat.id;
+        else if (anyChat) state.bionicModel = anyChat.id;
+      }
+    }
+
+    if (oRes.status === "fulfilled" && oRes.value) {
+      state.ollamaStatus = oRes.value;
+      const models = Array.isArray(oRes.value.models) ? oRes.value.models : [];
+      if (!state.ollamaModel && models.length > 0) {
+        const chatModel = models.find((m) => m.badges?.includes("Chat")) || models[0];
+        if (chatModel) state.ollamaModel = chatModel.name;
+      }
+    }
+
+    // Auto-select online engine if user hasn't explicitly picked one yet
+    if (!state.engineManuallyChosen) {
+      const bionicOnline = Boolean(state.bionicStatus?.server?.running || (state.bionicStatus?.models?.length > 0));
+      const ollamaOnline = Boolean(state.ollamaStatus?.daemon?.running && (state.ollamaStatus?.models?.length > 0));
+      if (state.bionicStatus?.server?.running) {
+        state.engine = "bionic";
+      } else if (ollamaOnline && !bionicOnline) {
+        state.engine = "ollama";
+      }
+    }
+
+    state.statusLoading = false;
+    render();
+  }
+
+  async function copyCodeText(text, label = "code", btnEl = null) {
+    const clean = String(text ?? "");
+    let ok = false;
+    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(clean);
+        ok = true;
+      } catch {}
+    }
+    if (!ok) {
+      try {
+        await call("copytext", { text: clean });
+        ok = true;
+      } catch {}
+    }
+    if (btnEl && btnEl instanceof HTMLElement) {
+      const orig = btnEl.dataset.origLabel || btnEl.textContent || "📋 Copy";
+      btnEl.dataset.origLabel = orig;
+      btnEl.textContent = "✓ Copied!";
+      btnEl.classList.add("is-copied");
+      setTimeout(() => {
+        btnEl.textContent = orig;
+        btnEl.classList.remove("is-copied");
+      }, 1500);
+    }
+    ctx.toast?.(`Copied ${label} (${clean.length.toLocaleString()} chars)`);
+  }
+
+  function insertCodeIntoEditor(codeText, mode = "cursor") {
+    const clean = String(codeText ?? "");
+    if (!clean) return;
+    let d = ctx.getDoc?.();
+    if (!d || d.kind === "diff") {
+      d = ctx.docs?.newUntitled?.();
+    }
+    const e = ctx.getEditor?.();
+    if (!d || !e) {
+      ctx.toast?.("Open an editable file tab first.", { kind: "error" });
+      return;
+    }
+    if (d.readOnly) {
+      ctx.toast?.("Current file is read-only.", { kind: "error" });
+      return;
+    }
+
+    if (mode === "file") {
+      ctx.docs?.snapshot?.(d, "Before AI Apply File");
+      const fullLen = e.getText().length;
+      e.apply({
+        from: 0,
+        to: fullLen,
+        insert: clean,
+        selStart: 0,
+        selEnd: clean.length,
+      });
+      e.focus();
+      ctx.toast?.(`Applied AI code to ${d.name} (snapshot saved in History).`, { kind: "success" });
+      return;
+    }
+
+    const sel = e.getSelection();
+    const hasSel = sel && sel.end > sel.start;
+    ctx.docs?.snapshot?.(d, hasSel ? "Before AI Replace Selection" : "Before AI Insert");
+    const from = hasSel ? sel.start : (sel?.start ?? e.getText().length);
+    const to = hasSel ? sel.end : from;
+    e.apply({
+      from,
+      to,
+      insert: clean,
+      selStart: from,
+      selEnd: from + clean.length,
+    });
+    e.focus();
+    ctx.toast?.(
+      hasSel
+        ? `Replaced selection in ${d.name} (Undo or History to restore).`
+        : `Inserted AI code at cursor in ${d.name}.`,
+      { kind: "success" },
+    );
+  }
+
+  function diffCodeWithEditor(codeText, langHint = "") {
+    const clean = String(codeText ?? "");
+    const d = ctx.getDoc?.();
+    if (!d) {
+      ctx.docs?.openView?.("AI Code Preview", clean, langHint || "javascript");
+      return;
+    }
+    const selInfo = activeSelectionInfo();
+    const baseText = selInfo.hasSelection ? selInfo.text : d.text;
+    const baseLabel = selInfo.hasSelection
+      ? `${d.name} (Lines ${selInfo.startLine}–${selInfo.endLine})`
+      : d.name;
+    const diffRes = computeLineDiff(baseText, clean, {
+      oldLabel: baseLabel,
+      newLabel: "AI Suggestion",
+    });
+    if (diffRes.identical) {
+      ctx.toast?.("AI code block is identical to your current code.");
+      return;
+    }
+    ctx.docs?.openView?.(`Diff: ${d.name} ↔ AI`, diffRes.diff, "diff");
+  }
+
+  function resolveCodeLang(rawLang, codeText) {
+    const d = ctx.getDoc?.();
+    const raw = String(rawLang || d?.lang || "").trim().toLowerCase();
+    const aliasMap = {
+      js: "javascript",
+      jsx: "javascript",
+      mjs: "javascript",
+      cjs: "javascript",
+      ts: "typescript",
+      tsx: "typescript",
+      py: "python",
+      sh: "shell",
+      bash: "shell",
+      zsh: "shell",
+      yml: "yaml",
+      md: "markdown",
+      rs: "rust",
+      cs: "csharp",
+      "c++": "cpp",
+      "c#": "csharp",
+    };
+    if (aliasMap[raw]) return aliasMap[raw];
+    if (
+      [
+        "javascript", "typescript", "json", "html", "css", "markdown", "python",
+        "go", "rust", "c", "cpp", "csharp", "java", "kotlin", "swift", "php",
+        "ruby", "lua", "shell", "yaml", "toml", "ini", "sql", "xml", "diff", "v",
+      ].includes(raw)
+    ) {
+      return raw;
+    }
+    if (/[="'{}[\]()]/.test(String(codeText || ""))) return "typescript";
+    return "plain";
+  }
+
+  function renderCodeBlockCard(codeText, rawLang) {
+    const cleanCode = String(codeText ?? "")
+      .replace(/\r\n/g, "\n")
+      .replace(/^\n+/, "")
+      .replace(/\n+$/, "");
+    const lang = resolveCodeLang(rawLang, cleanCode);
+    const displayLang = (rawLang || lang || "code").toUpperCase();
+    const lines = tokenizeText(lang, cleanCode.length > 200_000 ? cleanCode.slice(0, 200_000) : cleanCode);
+    const bodyEl = h("div", {
+      class: `bionic-md-code-body${state.codeWrap ? " is-wrapped" : ""}`,
+      tabindex: "0",
+      role: "region",
+      "aria-label": `${displayLang} code snippet`,
+    });
+
+    const maxLines = Math.min(lines.length, 2000);
+    for (let i = 0; i < maxLines; i++) {
+      const tokens = lines[i] || [];
+      const textCell = h("span", { class: "bionic-md-code-text" });
+      if (tokens.length === 0) {
+        textCell.append(document.createTextNode(" "));
+      } else {
+        for (const t of tokens) {
+          textCell.append(
+            t.type ? h("span", { class: `code-t-${t.type}` }, t.text) : document.createTextNode(t.text),
+          );
+        }
+      }
+      bodyEl.append(
+        h("div", { class: "bionic-md-code-row" }, [
+          h("span", { class: "bionic-md-code-ln", "aria-hidden": "true" }, String(i + 1)),
+          textCell,
+        ]),
+      );
+    }
+
+    const selInfo = activeSelectionInfo();
+    const insertLabel = selInfo.hasSelection ? "⤓ Replace Selection" : "⤓ Insert at Cursor";
+
+    return h("div", { class: "bionic-md-code-card code-ai-code-card" }, [
+      h("div", { class: "bionic-md-code-bar" }, [
+        h("div", { class: "bionic-md-code-meta" }, [
+          h("span", { class: "bionic-md-code-lang" }, displayLang),
+          h(
+            "span",
+            { class: "ollama-pill" },
+            `${lines.length} ${lines.length === 1 ? "line" : "lines"}`,
+          ),
+        ]),
+        h("div", { class: "bionic-md-code-actions" }, [
+          h(
+            "button",
+            {
+              type: "button",
+              class: "ollama-btn is-mini is-primary",
+              title: selInfo.hasSelection
+                ? "Replace the highlighted selection in the active editor with this code block (saves a History snapshot first)"
+                : "Insert this code block at the cursor in the active editor (saves a History snapshot first)",
+              onclick: () => insertCodeIntoEditor(cleanCode, "cursor"),
+            },
+            insertLabel,
+          ),
+          h(
+            "button",
+            {
+              type: "button",
+              class: "ollama-btn is-mini",
+              title: "Compare this code block against your active selection or file in a Diff tab",
+              onclick: () => diffCodeWithEditor(cleanCode, lang),
+            },
+            "⇄ Diff",
+          ),
+          h(
+            "button",
+            {
+              type: "button",
+              class: "ollama-btn is-mini",
+              title: "Replace the entire active file with this code block (saves a History snapshot first)",
+              onclick: () => insertCodeIntoEditor(cleanCode, "file"),
+            },
+            "📄 Apply File",
+          ),
+          h(
+            "button",
+            {
+              type: "button",
+              class: "ollama-btn is-mini",
+              title: "Copy code block to clipboard",
+              onclick: (e) => void copyCodeText(cleanCode, `${displayLang} code block`, e.currentTarget),
+            },
+            "📋 Copy",
+          ),
+        ]),
+      ]),
+      bodyEl,
+    ]);
+  }
+
+  function renderAstNode(node) {
+    if (!node) return document.createTextNode("");
+    switch (node.tag) {
+      case "#text":
+        return document.createTextNode(node.text || "");
+      case "#inline": {
+        const frag = document.createDocumentFragment();
+        for (const c of node.children || []) frag.append(renderAstNode(c));
+        return frag;
+      }
+      case "br":
+        return h("br");
+      case "hr":
+        return h("hr");
+      case "code":
+        return h("code", { class: "bionic-md-inline-code" }, node.text || "");
+      case "pre":
+        return renderCodeBlockCard(node.text || "", node.lang || "");
+      case "a": {
+        const href = String(node.href || "").trim();
+        return h(
+          "a",
+          {
+            href: href || "#",
+            class: "bionic-md-link",
+            target: "_blank",
+            rel: "noopener noreferrer",
+          },
+          (node.children || []).map((c) => renderAstNode(c)),
+        );
+      }
+      case "blockquote":
+        return h(
+          "blockquote",
+          { class: "bionic-md-blockquote" },
+          (node.children || []).map((c) => renderAstNode(c)),
+        );
+      case "ul":
+        return h("ul", {}, (node.children || []).map((c) => renderAstNode(c)));
+      case "ol":
+        return h(
+          "ol",
+          { start: node.start > 1 ? String(node.start) : null },
+          (node.children || []).map((c) => renderAstNode(c)),
+        );
+      case "li":
+        return h("li", {}, (node.children || []).map((c) => renderAstNode(c)));
+      case "table": {
+        const theadNode = (node.children || []).find((c) => c.tag === "thead");
+        const tbodyNode = (node.children || []).find((c) => c.tag === "tbody");
+        const thEls = (theadNode?.children?.[0]?.children || []).map((th) =>
+          h("th", {}, (th.children || []).map((c) => renderAstNode(c))),
+        );
+        const trEls = (tbodyNode?.children || []).map((tr) =>
+          h(
+            "tr",
+            {},
+            (tr.children || []).map((td) =>
+              h("td", {}, (td.children || []).map((c) => renderAstNode(c))),
+            ),
+          ),
+        );
+        return h("div", { class: "bionic-md-table-wrap" }, [
+          h("table", { class: "bionic-md-table" }, [
+            h("thead", {}, [h("tr", {}, thEls)]),
+            h("tbody", {}, trEls),
+          ]),
+        ]);
+      }
+      default: {
+        if (/^h[1-6]$/.test(node.tag)) {
+          return h(
+            node.tag,
+            { class: `bionic-md-heading bionic-md-${node.tag}` },
+            (node.children || []).map((c) => renderAstNode(c)),
+          );
+        }
+        const safeTag = ["p", "strong", "em", "del", "span", "div"].includes(node.tag) ? node.tag : "span";
+        return h(
+          safeTag,
+          {},
+          (node.children || []).map((c) => renderAstNode(c)),
+        );
+      }
+    }
+  }
+
+  function renderMarkdownBody(rawText) {
+    const clean = String(rawText ?? "").trim();
+    if (!clean) return h("div", { class: "code-ai-empty-msg" }, "…");
+    const { nodes } = parseMarkdown(clean);
+    const out = (nodes || []).map((n) => renderAstNode(n));
+    return h("div", { class: "bionic-md-viewer code-ai-md-body" }, out);
+  }
+
+  function buildPromptWithEditorContext(userPrompt) {
+    const d = ctx.getDoc?.();
+    const selInfo = activeSelectionInfo();
+    const parts = [];
+
+    if (state.engine === "bionic" && state.selectedSkill && !userPrompt.includes(`@${state.selectedSkill}`)) {
+      parts.push(`@${state.selectedSkill}`);
+    }
+
+    parts.push(
+      "You are an expert AI pair-programming assistant embedded inside the Codecaine Code Editor. Provide concise, accurate answers and place any code solutions inside fenced markdown code blocks with the language tag.",
+    );
+
+    if (d && d.kind !== "diff") {
+      const fileHeader = `Active Editor File: ${d.name}${d.path ? ` (${d.path})` : ""} [Language: ${d.lang || "text"}, Cursor Line: ${d.line || 1}]`;
+      if (selInfo.hasSelection && state.includeSelection) {
+        parts.push(
+          `${fileHeader}\nSelected Code (Lines ${selInfo.startLine}–${selInfo.endLine}):\n\`\`\`${d.lang || ""}\n${selInfo.text.slice(0, 24000)}\n\`\`\``,
+        );
+      }
+      if (state.includeFile && d.text) {
+        // Avoid duplicating if the selection is already the entire file
+        if (!selInfo.hasSelection || !state.includeSelection || selInfo.text.length < d.text.length) {
+          const maxFileChars = 28000;
+          const truncated = d.text.length > maxFileChars;
+          const fileSnippet = truncated ? `${d.text.slice(0, maxFileChars)}\n/* ... truncated (${d.text.length} total chars) ... */` : d.text;
+          parts.push(`${fileHeader}\nFull File Content:\n\`\`\`${d.lang || ""}\n${fileSnippet}\n\`\`\``);
+        }
+      }
+    }
+
+    // Include recent conversation turns (up to last 4 messages) for multi-turn continuity
+    const recentMsgs = state.messages.slice(-4);
+    if (recentMsgs.length > 0) {
+      const historyLines = recentMsgs
+        .filter((m) => m.content && !m.streaming)
+        .map((m) => `${m.role === "user" ? "User" : "Assistant"}: ${m.content.slice(0, 2500)}`);
+      if (historyLines.length > 0) {
+        parts.push(`Recent Conversation Context:\n${historyLines.join("\n\n")}`);
+      }
+    }
+
+    parts.push(`User Request:\n${userPrompt}`);
+    return parts.join("\n\n");
+  }
+
+  async function sendPrompt(customPromptText) {
+    if (state.loading) return;
+    const rawPrompt =
+      customPromptText !== undefined
+        ? String(customPromptText).trim()
+        : String(promptInputEl ? promptInputEl.value : state.promptText || "").trim();
+    if (!rawPrompt) {
+      ctx.toast?.("Type a question or click one of the Quick Code chips above.");
+      return;
+    }
+
+    if (customPromptText === undefined) {
+      state.promptText = "";
+      if (promptInputEl) promptInputEl.value = "";
+    }
+
+    const d = ctx.getDoc?.();
+    const selInfo = activeSelectionInfo();
+    const contextBadge = d
+      ? selInfo.hasSelection && state.includeSelection
+        ? `${d.name} (L${selInfo.startLine}–L${selInfo.endLine})`
+        : state.includeFile
+          ? d.name
+          : "No file context"
+      : "No open file";
+
+    const fullPrompt = buildPromptWithEditorContext(rawPrompt);
+    const activeEngine = state.engine;
+    const activeModel = activeEngine === "bionic" ? state.bionicModel : state.ollamaModel;
+
+    const userMsg = {
+      id: Date.now(),
+      role: "user",
+      content: rawPrompt,
+      contextBadge,
+      engine: activeEngine,
+      model: activeModel,
+    };
+    const assistantMsg = {
+      id: Date.now() + 1,
+      role: "assistant",
+      content: "",
+      reasoning: "",
+      engine: activeEngine,
+      model: activeModel || (activeEngine === "bionic" ? "LM Studio Bionic" : "Ollama"),
+      streaming: true,
+      error: "",
+      stats: null,
+    };
+
+    state.messages.push(userMsg, assistantMsg);
+    state.loading = true;
+    const abortCtrl = new AbortController();
+    state.abortController = abortCtrl;
+    render();
+    scrollToLatestReply();
+
+    try {
+      if (activeEngine === "bionic") {
+        await streamFromBionic(fullPrompt, assistantMsg, abortCtrl.signal);
+      } else {
+        await streamFromOllama(fullPrompt, assistantMsg, abortCtrl.signal);
+      }
+    } catch (err) {
+      if (err?.name === "AbortError") {
+        assistantMsg.content = assistantMsg.content
+          ? `${assistantMsg.content}\n\n*(Stopped by user)*`
+          : "*(Generation stopped)*";
+      } else {
+        assistantMsg.error = err?.message || "AI request failed.";
+      }
+    } finally {
+      assistantMsg.streaming = false;
+      state.loading = false;
+      state.abortController = null;
+      render();
+      scrollToLatestReply();
+    }
+  }
+
+  async function streamFromBionic(fullPrompt, assistantMsg, signal) {
+    const res = await fetch("/api/bionic/stream", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-fm-token": getToken(),
+      },
+      body: JSON.stringify({
+        model: state.bionicModel || undefined,
+        prompt: fullPrompt,
+        paths: [],
+      }),
+      signal,
+    });
+
+    if (!res.ok || !res.body) {
+      // Fallback to RPC bionic/chat
+      const rpcRes = await call("bionic/chat", {
+        model: state.bionicModel || undefined,
+        prompt: fullPrompt,
+        paths: [],
+        dirPath: ctx.getWorkspace?.() || "/",
+        skill: state.selectedSkill || undefined,
+      });
+      assistantMsg.model = rpcRes.model || assistantMsg.model;
+      assistantMsg.reasoning = rpcRes.reasoningText || "";
+      assistantMsg.content = rpcRes.content || "";
+      assistantMsg.stats = rpcRes.stats || null;
+      return;
+    }
+
+    const usedModel = res.headers.get("X-Bionic-Model");
+    if (usedModel) assistantMsg.model = usedModel;
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let rawAccum = "";
+    let explicitReasoning = "";
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith("data:")) continue;
+        const payloadStr = trimmed.slice(5).trim();
+        if (!payloadStr || payloadStr === "[DONE]") continue;
+        try {
+          const pkt = JSON.parse(payloadStr);
+          const delta = pkt?.choices?.[0]?.delta || {};
+          if (delta.reasoning || delta.reasoning_content) {
+            explicitReasoning += delta.reasoning || delta.reasoning_content;
+          }
+          if (delta.content) {
+            rawAccum += delta.content;
+          }
+        } catch {}
+      }
+      const split = splitThinkBlocks(rawAccum);
+      assistantMsg.reasoning = [explicitReasoning, split.reasoning].filter(Boolean).join("\n\n");
+      assistantMsg.content = split.content;
+      renderThreadOnly();
+    }
+  }
+
+  async function streamFromOllama(fullPrompt, assistantMsg, signal) {
+    const res = await fetch("/api/ollama/stream", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-fm-token": getToken(),
+      },
+      body: JSON.stringify({
+        model: state.ollamaModel || undefined,
+        prompt: fullPrompt,
+        paths: [],
+        think: true,
+      }),
+      signal,
+    });
+
+    if (!res.ok || !res.body) {
+      const rpcRes = await call("ollama/chat", {
+        model: state.ollamaModel || undefined,
+        prompt: fullPrompt,
+        paths: [],
+      });
+      assistantMsg.model = rpcRes.model || assistantMsg.model;
+      assistantMsg.reasoning = rpcRes.thinkingText || "";
+      assistantMsg.content = rpcRes.content || "";
+      return;
+    }
+
+    const usedModel = res.headers.get("X-Ollama-Model");
+    if (usedModel) assistantMsg.model = usedModel;
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let rawAccum = "";
+    let explicitThinking = "";
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        try {
+          const pkt = JSON.parse(trimmed);
+          if (pkt.message?.thinking) {
+            explicitThinking += pkt.message.thinking;
+          }
+          if (pkt.message?.content) {
+            rawAccum += pkt.message.content;
+          }
+        } catch {}
+      }
+      const split = splitThinkBlocks(rawAccum);
+      assistantMsg.reasoning = [explicitThinking, split.reasoning].filter(Boolean).join("\n\n");
+      assistantMsg.content = split.content;
+      renderThreadOnly();
+    }
+  }
+
+  function stopGeneration() {
+    if (state.abortController) {
+      try {
+        state.abortController.abort();
+      } catch {}
+    }
+  }
+
+  function scrollToLatestReply() {
+    if (!threadContainerEl) return;
+    requestAnimationFrame(() => {
+      if (!threadContainerEl) return;
+      const cards = threadContainerEl.querySelectorAll(".code-ai-msg.is-assistant");
+      const lastCard = cards[cards.length - 1];
+      if (lastCard instanceof HTMLElement) {
+        lastCard.scrollIntoView({ block: "start", behavior: "instant" });
+      } else {
+        threadContainerEl.scrollTop = threadContainerEl.scrollHeight;
+      }
+    });
+  }
+
+  function renderMessageCard(msg) {
+    if (msg.role === "user") {
+      return h("div", { class: "code-ai-msg is-user" }, [
+        h("div", { class: "code-ai-msg-head" }, [
+          h("strong", {}, "You"),
+          msg.contextBadge ? h("span", { class: "code-ai-ctx-pill" }, `📎 ${msg.contextBadge}`) : null,
+        ]),
+        h("div", { class: "code-ai-user-text" }, msg.content),
+      ]);
+    }
+
+    const engineBadge = msg.engine === "bionic" ? "🧬 LM Studio Bionic" : "🤖 Ollama";
+    return h("div", { class: "code-ai-msg is-assistant" }, [
+      h("div", { class: "code-ai-msg-head" }, [
+        h("span", { class: "code-ai-engine-tag" }, engineBadge),
+        msg.model ? h("span", { class: "code-ai-model-tag" }, msg.model) : null,
+        h("span", { class: "code-grow" }),
+        msg.content
+          ? h(
+              "button",
+              {
+                type: "button",
+                class: "ollama-btn is-mini",
+                title: "Copy entire AI response",
+                onclick: (e) => void copyCodeText(msg.content, "AI response", e.currentTarget),
+              },
+              "📋 Copy",
+            )
+          : null,
+      ]),
+      msg.reasoning
+        ? h("details", { class: "ollama-thinking-details code-ai-think", open: !msg.content ? "open" : null }, [
+            h("summary", { class: "ollama-thinking-summary" }, `🧠 Reasoning Trace (${msg.reasoning.length.toLocaleString()} chars)`),
+            h("div", { class: "ollama-thinking-box" }, msg.reasoning),
+          ])
+        : null,
+      msg.error
+        ? h("div", { class: "code-ai-err" }, `⚠ ${msg.error}`)
+        : msg.streaming && !msg.content && !msg.reasoning
+          ? h("div", { class: "code-ai-streaming" }, "⚡ Thinking & streaming tokens…")
+          : renderMarkdownBody(msg.content),
+    ]);
+  }
+
+  function buildThreadNodes() {
+    if (state.messages.length === 0) {
+      const d = ctx.getDoc?.();
+      return [
+        h("div", { class: "code-ai-welcome" }, [
+          h("div", { class: "code-ai-welcome-title" }, "🤖 Code Editor AI Assistant"),
+          h(
+            "p",
+            { class: "code-ai-welcome-sub" },
+            "Ask questions about your active file, highlight lines to refactor or debug, and insert or diff generated code blocks with 1 click.",
+          ),
+          d
+            ? h("div", { class: "code-ai-welcome-file" }, `📄 Active tab: ${d.name} (${d.lang || "text"})`)
+            : h("div", { class: "code-ai-welcome-file" }, "Open any file tab or start chatting below."),
+        ]),
+      ];
+    }
+    return state.messages.map((m) => renderMessageCard(m));
+  }
+
+  function renderThreadOnly() {
+    if (!threadContainerEl) {
+      render();
+      return;
+    }
+    clear(threadContainerEl);
+    threadContainerEl.append(...buildThreadNodes());
+    scrollToLatestReply();
+  }
+
+  function render() {
+    const savedDraft = promptInputEl ? promptInputEl.value : state.promptText;
+    const hadFocus = promptInputEl && document.activeElement === promptInputEl;
+    clear(root);
+
+    const isBionic = state.engine === "bionic";
+    const bionicOnline = Boolean(state.bionicStatus?.server?.running);
+    const ollamaOnline = Boolean(state.ollamaStatus?.daemon?.running);
+    const currentOnline = isBionic ? bionicOnline : ollamaOnline;
+
+    const bionicModels = Array.isArray(state.bionicStatus?.models)
+      ? state.bionicStatus.models.filter((m) => m.type === "llm" || m.type === "vlm")
+      : [];
+    const ollamaModels = Array.isArray(state.ollamaStatus?.models) ? state.ollamaStatus.models : [];
+    const skills = Array.isArray(state.bionicStatus?.skills) ? state.bionicStatus.skills : [];
+
+    const d = ctx.getDoc?.();
+    const selInfo = activeSelectionInfo();
+
+    // 1. Header bar: Engine Switcher (LM Studio Bionic vs Ollama) + status dot + Close
+    const head = h("div", { class: "code-preview-head code-ai-head" }, [
+      h("div", { class: "code-ai-engine-switch", role: "group", "aria-label": "Choose AI Engine" }, [
+        h(
+          "button",
+          {
+            type: "button",
+            class: `code-ai-eng-btn${isBionic ? " is-active" : ""}`,
+            "aria-pressed": String(isBionic),
+            title: "Use LM Studio / Bionic local server (:1234 / :1235)",
+            onclick: () => {
+              state.engine = "bionic";
+              state.engineManuallyChosen = true;
+              render();
+            },
+          },
+          [
+            h("span", { class: `code-ai-dot ${bionicOnline ? "is-online" : "is-offline"}` }),
+            "🧬 LM Studio",
+          ],
+        ),
+        h(
+          "button",
+          {
+            type: "button",
+            class: `code-ai-eng-btn${!isBionic ? " is-active" : ""}`,
+            "aria-pressed": String(!isBionic),
+            title: "Use Ollama local server (:11434)",
+            onclick: () => {
+              state.engine = "ollama";
+              state.engineManuallyChosen = true;
+              render();
+            },
+          },
+          [
+            h("span", { class: `code-ai-dot ${ollamaOnline ? "is-online" : "is-offline"}` }),
+            "🤖 Ollama",
+          ],
+        ),
+      ]),
+      h("span", { class: "code-grow" }),
+      h(
+        "button",
+        {
+          type: "button",
+          class: `btn code-small${state.codeWrap ? " primary" : ""}`,
+          title: "Toggle word-wrap inside chat code blocks",
+          onclick: () => {
+            state.codeWrap = !state.codeWrap;
+            render();
+          },
+        },
+        "↩ Wrap",
+      ),
+      h(
+        "button",
+        {
+          type: "button",
+          class: "btn code-small",
+          title: "Refresh LM Studio & Ollama models",
+          onclick: () => void refreshEngines(false),
+        },
+        state.statusLoading ? "…" : "↻",
+      ),
+      h(
+        "button",
+        {
+          type: "button",
+          class: "btn code-small",
+          title: "Clear chat history",
+          disabled: state.messages.length === 0 ? "disabled" : null,
+          onclick: () => {
+            state.messages = [];
+            render();
+          },
+        },
+        "🧹",
+      ),
+      h(
+        "button",
+        {
+          type: "button",
+          class: "btn code-small",
+          title: "Hide AI Code Chat (Mod+Shift+I)",
+          "aria-label": "Close AI Code Chat",
+          onclick: () => ctx.onClose?.(),
+        },
+        "✕",
+      ),
+    ]);
+
+    // 2. Model & @Skill selector row (+ Start Server helper if offline)
+    const modelBar = h("div", { class: "code-ai-model-bar" }, [
+      isBionic
+        ? h(
+            "select",
+            {
+              class: "code-in code-ai-select",
+              "aria-label": "Select LM Studio model",
+              title: "Choose LM Studio / Bionic model",
+              onchange: (e) => {
+                state.bionicModel = e.target.value;
+              },
+            },
+            bionicModels.length === 0
+              ? [h("option", { value: "" }, bionicOnline ? "Default loaded model" : "LM Studio offline — click Start")]
+              : bionicModels.map((m) =>
+                  h(
+                    "option",
+                    {
+                      value: m.id,
+                      selected: m.id === state.bionicModel ? "selected" : null,
+                    },
+                    `${m.loaded ? "🟢 " : ""}${m.displayName || m.id} (${m.format.toUpperCase()})`,
+                  ),
+                ),
+          )
+        : h(
+            "select",
+            {
+              class: "code-in code-ai-select",
+              "aria-label": "Select Ollama model",
+              title: "Choose Ollama model",
+              onchange: (e) => {
+                state.ollamaModel = e.target.value;
+              },
+            },
+            ollamaModels.length === 0
+              ? [h("option", { value: "" }, ollamaOnline ? "Default Ollama model" : "Ollama offline")]
+              : ollamaModels.map((m) =>
+                  h(
+                    "option",
+                    {
+                      value: m.name,
+                      selected: m.name === state.ollamaModel ? "selected" : null,
+                    },
+                    `${m.name} (${m.parameterSize || "LLM"})`,
+                  ),
+                ),
+          ),
+      isBionic && skills.length > 0
+        ? h(
+            "select",
+            {
+              class: "code-in code-ai-skill-select",
+              "aria-label": "Attach Bionic @Skill",
+              title: "Optional: inject a Bionic @skill into your editor prompt",
+              onchange: (e) => {
+                state.selectedSkill = e.target.value;
+              },
+            },
+            [
+              h("option", { value: "" }, "No @skill"),
+              ...skills.map((s) =>
+                h(
+                  "option",
+                  {
+                    value: s.name,
+                    selected: s.name === state.selectedSkill ? "selected" : null,
+                  },
+                  `@${s.name}`,
+                ),
+              ),
+            ],
+          )
+        : null,
+      !currentOnline && isBionic
+        ? h(
+            "button",
+            {
+              type: "button",
+              class: "btn code-small primary",
+              title: "Start LM Studio / Bionic local server via lms CLI",
+              onclick: async () => {
+                try {
+                  ctx.toast?.("Starting LM Studio local server…");
+                  await call("bionic/server/control", { action: "start" });
+                  await refreshEngines(false);
+                } catch (err) {
+                  ctx.toast?.(err?.message || "Could not start LM Studio server", { kind: "error" });
+                }
+              },
+            },
+            "▶ Start Server",
+          )
+        : null,
+    ]);
+
+    // 3. Quick Code Action Chips
+    const quickBar = h(
+      "div",
+      { class: "code-ai-quick-bar", role: "toolbar", "aria-label": "Quick AI code actions" },
+      QUICK_PROMPTS.map((q) =>
+        h(
+          "button",
+          {
+            type: "button",
+            class: "code-ai-chip",
+            title: q.tip,
+            disabled: state.loading ? "disabled" : null,
+            onclick: () => void sendPrompt(q.buildPrompt(selInfo.hasSelection)),
+          },
+          q.label,
+        ),
+      ),
+    );
+
+    // 4. Thread container
+    threadContainerEl = h(
+      "div",
+      {
+        class: "code-ai-thread",
+        role: "log",
+        "aria-live": "polite",
+        tabindex: "0",
+      },
+      buildThreadNodes(),
+    );
+
+    // 5. Context Bar + Prompt Composer
+    const contextBar = h("div", { class: "code-ai-context-bar" }, [
+      d && d.kind !== "diff"
+        ? h(
+            "label",
+            {
+              class: `code-ai-ctx-toggle${state.includeFile ? " is-on" : ""}`,
+              title: "Include active editor file content as context",
+            },
+            [
+              h("input", {
+                type: "checkbox",
+                checked: state.includeFile ? "checked" : null,
+                onchange: (e) => {
+                  state.includeFile = e.target.checked;
+                  render();
+                },
+              }),
+              `📄 ${d.name}`,
+            ],
+          )
+        : h("span", { class: "code-ai-ctx-muted" }, "No active file"),
+      selInfo.hasSelection
+        ? h(
+            "label",
+            {
+              class: `code-ai-ctx-toggle is-selection${state.includeSelection ? " is-on" : ""}`,
+              title: "Include highlighted selection lines in prompt",
+            },
+            [
+              h("input", {
+                type: "checkbox",
+                checked: state.includeSelection ? "checked" : null,
+                onchange: (e) => {
+                  state.includeSelection = e.target.checked;
+                  render();
+                },
+              }),
+              `✂️ Lines ${selInfo.startLine}–${selInfo.endLine} (${selInfo.text.length} chars)`,
+            ],
+          )
+        : null,
+    ]);
+
+    promptInputEl = h("textarea", {
+      class: "code-in code-ai-input",
+      rows: "3",
+      placeholder: selInfo.hasSelection
+        ? `Ask ${isBionic ? "LM Studio" : "Ollama"} about selected lines ${selInfo.startLine}–${selInfo.endLine}… (Enter to send, Shift+Enter for newline)`
+        : `Ask ${isBionic ? "LM Studio" : "Ollama"} about ${d ? d.name : "your code"}… (Enter to send, Shift+Enter for newline)`,
+      value: savedDraft,
+      oninput: (e) => {
+        state.promptText = e.target.value;
+      },
+      onkeydown: (e) => {
+        if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+          e.preventDefault();
+          void sendPrompt();
+        }
+      },
+    });
+    promptInputEl.value = savedDraft;
+
+    const composer = h("div", { class: "code-ai-composer" }, [
+      contextBar,
+      promptInputEl,
+      h("div", { class: "code-ai-composer-foot" }, [
+        h(
+          "span",
+          { class: "code-ai-foot-hint" },
+          isBionic
+            ? `LM Studio (${state.bionicStatus?.server?.port || 1234})`
+            : "Ollama (:11434)",
+        ),
+        h("span", { class: "code-grow" }),
+        state.loading
+          ? h(
+              "button",
+              {
+                type: "button",
+                class: "btn code-small danger",
+                onclick: stopGeneration,
+              },
+              "⏹ Stop",
+            )
+          : h(
+              "button",
+              {
+                type: "button",
+                class: "code-btn primary code-small",
+                onclick: () => void sendPrompt(),
+              },
+              "⚡ Send",
+            ),
+      ]),
+    ]);
+
+    root.append(head, modelBar, quickBar, threadContainerEl, composer);
+    if (hadFocus && promptInputEl) {
+      promptInputEl.focus();
+    }
+  }
+
+  return {
+    el: root,
+    refreshEngines,
+    updateContext() {
+      if (!root.hidden) render();
+    },
+    focusInput() {
+      if (!state.bionicStatus && !state.ollamaStatus) {
+        void refreshEngines(true);
+      }
+      render();
+      requestAnimationFrame(() => promptInputEl?.focus());
+    },
+    askAboutSelection(actionId = "explain") {
+      if (!state.bionicStatus && !state.ollamaStatus) {
+        void refreshEngines(true);
+      }
+      const q = QUICK_PROMPTS.find((x) => x.id === actionId) || QUICK_PROMPTS[0];
+      const selInfo = activeSelectionInfo();
+      void sendPrompt(q.buildPrompt(selInfo.hasSelection));
+    },
+  };
+}

@@ -168,6 +168,7 @@ export function createCommands(app) {
   add("View", "explorer", "Show the side panel", () => app.toggleSide(), { tip: "Show or hide the Explorer and other side panels.", checked: () => app.settings.explorer });
   add("View", "preview", "Preview & Live Inspector", () => app.togglePreview(), { tip: "Show a formatted preview (Markdown, JSON tree, CSV table, colored HTML) or Live Code Inspector (diff, outline & TODOs) next to the text.", checked: () => app.isPreview() });
   add("View", "splitEditor", "Side-by-side split editor", () => app.toggleSplitEditor(), { tip: "Open a second editor pane side by side to view or compare another open tab.", checked: () => app.isSplitEditor() });
+  add("View", "aiChat", "AI Code Chat (LM Studio & Ollama)", () => app.toggleAiChat(), { tip: "Open or hide the AI Code Chat assistant next to the editor (supports LM Studio Bionic & Ollama).", checked: () => app.isAiChat() });
   add("View", "panelFiles", "Explorer", () => app.showPanel("files"), { tip: "Show the folder tree." });
   add("View", "panelGit", "Git changes", () => app.showPanel("git"), { tip: "See which files changed since the last commit." });
   add("View", "panelOutline", "Outline", () => app.showPanel("outline"), { tip: "List the functions, classes and headings of this file." });

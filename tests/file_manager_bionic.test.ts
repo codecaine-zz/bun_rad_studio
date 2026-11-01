@@ -354,5 +354,11 @@ describe("Codecaine File Manager — Built-In LM Studio Bionic AI Studio & Agent
     const bionicJs = await (await fetch(`${fmUrl}/ui/bionic.js`)).text();
     expect(bionicJs).toContain('registerPowerTab');
     expect(bionicJs).toContain('LM Studio Bionic');
+
+    const codeAiChatJs = await (await fetch(`${fmUrl}/ui/codeAiChat.js`)).text();
+    expect(codeAiChatJs).toContain('/api/bionic/stream');
+    expect(codeAiChatJs).toContain('/api/ollama/stream');
+    expect(codeAiChatJs).toContain('Insert at Cursor');
+    expect(codeAiChatJs).toContain('Replace Selection');
   });
 });

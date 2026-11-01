@@ -59,6 +59,7 @@ export const KEYMAP = {
   insertGenerated: ["Alt+G"],
   minimap: ["Alt+M"],
   diffSaved: ["Mod+Alt+D"],
+  aiChat: ["Mod+Shift+I"],
 };
 
 /** Keys that are named by where they are, not by what they type (a shifted ` or = types something else, and layouts differ). */
