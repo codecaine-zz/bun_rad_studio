@@ -500,12 +500,53 @@ export class RedisManager {
           break;
         }
         case "hash": {
-          if (field) {
+          if (field && String(field).trim() !== "") {
             const strVal = typeof value === "object" ? JSON.stringify(value) : String(value ?? "");
-            await this.client.hset(key, field, strVal);
-          } else if (typeof value === "object") {
-            for (const [f, v] of Object.entries(value)) {
-              await this.client.hset(key, f, typeof v === "object" ? JSON.stringify(v) : String(v));
+            await this.client.hset(key, String(field).trim(), strVal);
+          } else if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+            const entries = Object.entries(value);
+            if (entries.length === 0) {
+              await this.client.hset(key, "field1", "");
+            } else {
+              for (const [f, v] of entries) {
+                await this.client.hset(key, f, typeof v === "object" ? JSON.stringify(v) : String(v ?? ""));
+              }
+            }
+          } else {
+            const rawStr = String(value ?? "").trim();
+            let parsedObj: Record<string, any> | null = null;
+            if (rawStr.startsWith("{") && rawStr.endsWith("}")) {
+              try {
+                const candidate = JSON.parse(rawStr);
+                if (candidate && typeof candidate === "object" && !Array.isArray(candidate)) {
+                  parsedObj = candidate;
+                }
+              } catch {}
+            }
+            if (parsedObj && Object.keys(parsedObj).length > 0) {
+              for (const [f, v] of Object.entries(parsedObj)) {
+                await this.client.hset(key, f, typeof v === "object" ? JSON.stringify(v) : String(v ?? ""));
+              }
+            } else {
+              const pairs: Array<[string, string]> = [];
+              const segments = rawStr.includes("\n")
+                ? rawStr.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
+                : rawStr.includes(",") && /[:=]/.test(rawStr)
+                ? rawStr.split(",").map((l) => l.trim()).filter(Boolean)
+                : rawStr ? [rawStr] : [];
+              for (const seg of segments) {
+                const m = /^([^:=]+?)\s*[:=]\s*(.*)$/.exec(seg);
+                if (m && m[1]!.trim()) {
+                  pairs.push([m[1]!.trim(), m[2]!.trim()]);
+                }
+              }
+              if (pairs.length > 0) {
+                for (const [f, v] of pairs) {
+                  await this.client.hset(key, f, v);
+                }
+              } else {
+                await this.client.hset(key, "field1", rawStr);
+              }
             }
           }
           break;
@@ -1409,7 +1450,9 @@ export function startRedisStudioServer(options: RedisServerOptions = {}) {
 
       // 16. Shutdown / Close workstation
       if ((pathname === "/api/shutdown" || pathname === "/api/close") && req.method === "POST") {
-        setTimeout(() => process.exit(0), 100);
+        if (!process.env.STUDIO_PARENT_PID) {
+          setTimeout(() => process.exit(0), 100);
+        }
         return Response.json({ success: true, message: "Workstation shutting down..." }, { headers: corsHeaders });
       }
 

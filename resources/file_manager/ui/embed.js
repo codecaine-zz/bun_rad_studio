@@ -17,15 +17,39 @@ export function embeddedUrl(id) {
 const frames = new Set();
 let listening = false;
 
-/** Broadcasts the active File Manager theme tokens to an embedded iframe. */
+function ensureMessageBridge() {
+  if (listening || typeof window === "undefined" || typeof window.addEventListener !== "function") return;
+  listening = true;
+  window.addEventListener("message", onFrameMessage);
+  on("theme-changed", (payload) => {
+    for (const f of frames) syncFrameTheme(f, payload);
+  });
+}
+
+ensureMessageBridge();
+
+/** Broadcasts the active File Manager theme tokens to an embedded iframe (and any nested studio frame). */
 export function syncFrameTheme(frame, payload = currentThemePayload()) {
   try {
-    frame?.contentWindow?.postMessage({ fmTheme: payload }, "*");
+    const win = frame?.contentWindow;
+    if (!win) return;
+    win.postMessage({ fmTheme: payload }, "*");
+    if (win.frames && win.frames.length) {
+      for (let i = 0; i < win.frames.length; i++) {
+        try { win.frames[i]?.postMessage?.({ fmTheme: payload }, "*"); } catch { /* cross-origin child not ready */ }
+      }
+    }
   } catch { /* frame not ready */ }
 }
 
 /** A link clicked inside an embedded app arrives here as a message from that app's frame; it opens in the system browser. */
 function onFrameMessage(e) {
+  if (e.data && typeof e.data === "object" && e.data.fmRequestTheme) {
+    try {
+      e.source?.postMessage?.({ fmTheme: currentThemePayload() }, "*");
+    } catch { /* ignore */ }
+    return;
+  }
   const url = e.data && typeof e.data === "object" ? e.data.fmOpenLink : null;
   if (typeof url !== "string" || !/^https?:\/\//i.test(url.trim())) return;
   for (const f of frames) {
@@ -51,13 +75,7 @@ export function mountEmbedded(root, { id, title, note }) {
   });
   frame.addEventListener("load", () => syncFrameTheme(frame));
   frames.add(frame);
-  if (!listening) {
-    listening = true;
-    window.addEventListener("message", onFrameMessage);
-    on("theme-changed", (payload) => {
-      for (const f of frames) syncFrameTheme(f, payload);
-    });
-  }
+  ensureMessageBridge();
   const expanded = isPowerExpanded();
   const expandBtn = h("button", {
     type: "button",

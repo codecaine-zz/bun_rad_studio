@@ -90,6 +90,14 @@ export function renderSidebar() {
     active: state.powerOpen && state.powerTab === "ollama",
     onClick: () => openPower("ollama"),
   }));
+  places.push(sideItem({
+    icon: "🧬",
+    label: "LM Studio Bionic",
+    placeId: "bionic",
+    title: "Built-In LM Studio Bionic AI Studio — Apple Silicon MLX/oMLX/Splash LLMs & VLMs, @Skill Agent Hub, Bionic Workspace Projects, Phonon 40M Multilingual 24kHz Metal TTS, ExecuTorch Whisper ASR & Nomic Embeddings",
+    active: state.powerOpen && state.powerTab === "bionic",
+    onClick: () => openPower("bionic"),
+  }));
   const activeDrive = here ? driveFor(here, state.drives, state.sep) : null;
   const placeMatch = here !== null && [...state.places, ...(state.cliUtilsDir ? [{ path: state.cliUtilsDir }] : []), ...state.settings.favorites.map((path) => ({ path }))].some((p) => same(p.path));
   const drives = state.drives.map((d) => sideItem({

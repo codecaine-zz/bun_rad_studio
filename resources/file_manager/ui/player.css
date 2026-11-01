@@ -246,17 +246,19 @@
   --wa-radius: 0.35rem;
 }
 
-.wa-shell[data-skin="theme"] {
+.wa-shell[data-skin="theme"],
+.wa-mini-bar[data-skin="theme"],
+.wa-floating-pip[data-skin="theme"] {
   --wa-bg: var(--bg, #111827);
   --wa-rack-bg: var(--panel, #1f2937);
   --wa-rack-border: var(--border, #374151);
   --wa-rack-bevel: none;
-  --wa-titlebar-bg: var(--hover, #374151);
+  --wa-titlebar-bg: var(--surface-elevated, var(--panel, #374151));
   --wa-titlebar-text: var(--text, #f9fafb);
-  --wa-lcd-bg: color-mix(in srgb, var(--bg, #000) 88%, #000);
+  --wa-lcd-bg: var(--surface-sunken, color-mix(in oklab, var(--bg, #000) 88%, #000));
   --wa-led: var(--accent, #22c55e);
-  --wa-led-dim: color-mix(in srgb, var(--accent, #22c55e) 25%, transparent);
-  --wa-led-amber: var(--accent, #22c55e);
+  --wa-led-dim: color-mix(in oklab, var(--accent, #22c55e) 22%, transparent);
+  --wa-led-amber: var(--warn-text, var(--accent, #22c55e));
   --wa-text: var(--text, #f9fafb);
   --wa-muted: var(--muted, #9ca3af);
   --wa-btn-bg: var(--bg, #111827);
@@ -264,6 +266,78 @@
   --wa-btn-hover: var(--hover, #374151);
   --wa-accent: var(--accent, #22c55e);
   --wa-radius: 0.5rem;
+}
+
+.wa-shell[data-skin="theme"] .wa-pill-btn {
+  background: var(--bg);
+  color: var(--text);
+  border-color: var(--border);
+}
+.wa-shell[data-skin="theme"] .wa-pill-btn:hover {
+  background: var(--hover);
+  border-color: var(--accent);
+}
+.wa-shell[data-skin="theme"] .wa-pill-btn[aria-pressed="true"] {
+  background: var(--selected);
+  color: var(--selected-text);
+  border-color: var(--accent);
+}
+.wa-shell[data-skin="theme"] .wa-marquee-wrap,
+.wa-shell[data-skin="theme"] .wa-mix-row,
+.wa-shell[data-skin="theme"] .wa-eq-bands,
+.wa-shell[data-skin="theme"] .wa-fx-toolbar,
+.wa-shell[data-skin="theme"] .wa-fx-card {
+  background: var(--surface-sunken, var(--bg));
+  border-color: var(--border);
+  color: var(--text);
+}
+.wa-shell[data-skin="theme"] .wa-fx-mixer-dock {
+  background: var(--panel);
+  border-color: var(--border);
+}
+.wa-shell[data-skin="theme"] .wa-fx-card-title,
+.wa-shell[data-skin="theme"] .wa-fx-mix-title,
+.wa-shell[data-skin="theme"] .wa-pl-item {
+  color: var(--text);
+}
+.wa-shell[data-skin="theme"] .wa-fx-card.is-selected {
+  border-color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 12%, var(--panel));
+}
+.wa-shell[data-skin="theme"] .wa-badge,
+.wa-shell[data-skin="theme"] .wa-fx-card-badge,
+.wa-shell[data-skin="theme"] .wa-fx-card-mix-btn,
+.wa-shell[data-skin="theme"] .wa-cue-btn {
+  background: var(--panel);
+  color: var(--text);
+  border-color: var(--border);
+}
+.wa-mini-bar[data-skin="theme"] {
+  background: var(--panel);
+  color: var(--text);
+  border-top-color: var(--accent);
+}
+.wa-mini-bar[data-skin="theme"] .wa-mini-title {
+  color: var(--text);
+}
+.wa-floating-pip[data-skin="theme"] {
+  background: var(--panel);
+  color: var(--text);
+  border-color: var(--accent);
+}
+.wa-floating-pip[data-skin="theme"] .wa-pip-header,
+.wa-floating-pip[data-skin="theme"] .wa-pip-footer {
+  background: var(--surface-elevated, var(--panel));
+  border-color: var(--border);
+  color: var(--text);
+}
+.wa-floating-pip[data-skin="theme"] .wa-pip-title {
+  color: var(--text);
+}
+.wa-floating-pip[data-skin="theme"] .wa-pip-btn {
+  background: var(--bg);
+  color: var(--text);
+  border-color: var(--border);
 }
 
 /* Titlebar */
@@ -502,9 +576,25 @@
 .wa-shell.is-video .wa-stage {
   height: 16rem;
 }
-.wa-stage:fullscreen {
+.wa-stage:fullscreen,
+.wa-stage.is-stage-fullscreen {
   width: 100vw;
   height: 100vh;
+}
+.wa-stage.is-stage-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  border-radius: 0;
+  border: 0;
+  background: #000;
+}
+:has(.wa-stage.is-stage-fullscreen) {
+  transform: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  filter: none !important;
+  contain: none !important;
 }
 .wa-viz {
   position: absolute;
@@ -1549,4 +1639,267 @@
   background: rgba(0, 255, 68, 0.16);
   border-color: rgba(0, 255, 68, 0.45);
   color: #00ff44;
+}
+
+/* --- Interactive EQ Curve, Seek Hover Tooltip, DJ Hot-Cue Pads & Snapshot Flash --- */
+.wa-eq-curve {
+  cursor: crosshair;
+  touch-action: none;
+}
+.wa-stage.is-flashing::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.82);
+  pointer-events: none;
+  z-index: 9;
+  animation: waSnapFlash 0.36s ease-out forwards;
+}
+@keyframes waSnapFlash {
+  0% { opacity: 0.92; }
+  100% { opacity: 0; }
+}
+.wa-seek-tooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: var(--seek-hover-x, 50%);
+  transform: translateX(-50%);
+  padding: 0.14rem 0.46rem;
+  border-radius: 999px;
+  background: rgba(4, 10, 20, 0.94);
+  border: 1px solid var(--wa-led, #00ff44);
+  color: var(--wa-led, #00ff44);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.68rem;
+  font-weight: 800;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 6;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.65);
+}
+.wa-seek-tooltip[hidden] {
+  display: none !important;
+}
+.wa-cue-markers {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.wa-cue-marker {
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  width: 2px;
+  background: #facc15;
+  box-shadow: 0 0 6px #facc15;
+  border-radius: 2px;
+  transform: translateX(-1px);
+}
+.wa-cue-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  padding: 0.1rem 0.15rem;
+}
+.wa-cue-pads {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+}
+.wa-cue-label {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--wa-muted, #94a3b8);
+  margin-right: 0.15rem;
+}
+.wa-cue-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  padding: 0.14rem 0.5rem;
+  border-radius: 0.28rem;
+  border: 1px dashed rgba(255, 255, 255, 0.22);
+  background: rgba(6, 12, 22, 0.65);
+  color: var(--wa-muted, #94a3b8);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.68rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: border-color 0.14s ease, background 0.14s ease, color 0.14s ease, transform 0.1s ease;
+}
+.wa-cue-btn:hover {
+  border-color: var(--wa-led, #00ff44);
+  color: #f8fafc;
+}
+.wa-cue-btn.is-set {
+  border-style: solid;
+  border-color: #facc15;
+  background: rgba(250, 204, 21, 0.14);
+  color: #fef08a;
+  box-shadow: inset 0 0 8px rgba(250, 204, 21, 0.18);
+}
+.wa-cue-dot {
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.45);
+}
+.wa-cue-btn.is-set .wa-cue-dot {
+  background: #facc15;
+  box-shadow: 0 0 6px #facc15;
+}
+
+/* --- Universal Floating Picture-in-Picture Mini-Monitor (.wa-floating-pip) --- */
+.wa-floating-pip {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 2.75rem;
+  width: 24.5rem;
+  background: linear-gradient(165deg, rgba(9, 14, 26, 0.96) 0%, rgba(4, 8, 16, 0.98) 100%);
+  border: 1px solid var(--wa-led, #00ff44);
+  border-radius: 0.65rem;
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.78), 0 0 0 1px rgba(0, 255, 68, 0.22);
+  color: #f8fafc;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  z-index: 99990;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  user-select: none;
+  backdrop-filter: blur(14px);
+}
+.wa-floating-pip[hidden] {
+  display: none !important;
+}
+.wa-floating-pip[data-size="sm"] {
+  width: 19.5rem;
+}
+.wa-floating-pip[data-size="md"] {
+  width: 24.5rem;
+}
+.wa-floating-pip[data-size="lg"] {
+  width: 32rem;
+}
+.wa-pip-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  padding: 0.35rem 0.55rem;
+  background: linear-gradient(90deg, rgba(0, 255, 68, 0.16) 0%, rgba(15, 23, 42, 0.92) 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  cursor: move;
+}
+.wa-pip-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.08rem 0.4rem;
+  border-radius: 999px;
+  background: rgba(0, 255, 68, 0.18);
+  border: 1px solid rgba(0, 255, 68, 0.55);
+  color: #00ff44;
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+.wa-pip-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wa-pip-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.22rem;
+}
+.wa-pip-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #02050a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.wa-pip-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  cursor: pointer;
+}
+.wa-pip-hud {
+  position: absolute;
+  left: 0.45rem;
+  right: 0.45rem;
+  bottom: 0.38rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  padding: 0.16rem 0.45rem;
+  border-radius: 0.3rem;
+  background: rgba(2, 6, 14, 0.76);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 0.66rem;
+  color: #cbd5e1;
+  pointer-events: none;
+}
+.wa-pip-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  padding: 0.4rem 0.55rem 0.48rem;
+  background: rgba(6, 10, 20, 0.95);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+.wa-pip-seek-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.66rem;
+  color: #94a3b8;
+}
+.wa-pip-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem;
+}
+.wa-pip-btn-group {
+  display: flex;
+  align-items: center;
+  gap: 0.22rem;
+}
+.wa-pip-btn {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 0.28rem;
+  padding: 0.14rem 0.42rem;
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
+}
+.wa-pip-btn:hover,
+.wa-pip-btn.is-on {
+  border-color: #00ff44;
+  color: #00ff44;
+  background: rgba(0, 255, 68, 0.14);
 }

@@ -94,4 +94,52 @@ describe("accessibility basics in the stylesheet", () => {
       if (selectors.some((x) => x === ".code-zen" || x === ".code-root" || x === ".power-pane.code-root")) expect(m[3], m[2]).not.toMatch(/\bposition:/);
     }
   });
+
+  test("all File Manager power tools, media players, embedded apps, hosted studios, and database studios follow File Manager themes", () => {
+    const rootDir = join(import.meta.dir, "..");
+    const ui = join(rootDir, "resources", "file_manager", "ui");
+
+    // 1. Code Studio & Sub-Studio Tokens
+    const codeCss = readFileSync(join(ui, "code.css"), "utf8");
+    expect(codeCss).toContain("var(--fm-code-bg, var(--bg))");
+    expect(codeCss).toContain("var(--fm-syntax-keyword,");
+    expect(codeCss).toContain("var(--fm-syntax-string,");
+
+    // 2. Databases & Downloads & Power CSS use semantic File Manager tokens
+    const dbCss = readFileSync(join(ui, "databases.css"), "utf8");
+    expect(dbCss).toContain("var(--fm-db-bg, var(--bg))");
+    expect(dbCss).not.toContain("var(--fg)");
+    expect(dbCss).not.toContain("var(--sel)");
+
+    const dlCss = readFileSync(join(ui, "downloads.css"), "utf8");
+    expect(dlCss).toContain("var(--good,");
+
+    const powerCss = readFileSync(join(ui, "power.css"), "utf8");
+    expect(powerCss).toContain("var(--surface-sunken, var(--bg))");
+
+    // 3. Media Deck & Quick Look Media Player default to Match App Theme ("theme")
+    const playerDeckJs = readFileSync(join(ui, "playerDeck.js"), "utf8");
+    const mediaPlayerJs = readFileSync(join(ui, "mediaplayer.js"), "utf8");
+    const playerCss = readFileSync(join(ui, "player.css"), "utf8");
+    expect(playerDeckJs).toContain('skin: "theme"');
+    expect(mediaPlayerJs).toContain('skin: "theme"');
+    expect(playerCss).toContain('.wa-shell[data-skin="theme"]');
+    expect(playerCss).toContain('.wa-mini-bar[data-skin="theme"]');
+    expect(playerCss).toContain('.wa-floating-pip[data-skin="theme"]');
+
+    // 4. Embedded Apps, Hosted Studios, and Database Studios receive and apply fmTheme
+    const fmServerTs = readFileSync(join(rootDir, "src", "features", "filemanager", "fmServer.ts"), "utf8");
+    expect(fmServerTs).toContain("_applyFmTheme(e.data.fmTheme)");
+    expect(fmServerTs).toContain("fm-embedded-theme");
+
+    const simpleguiHostTs = readFileSync(join(rootDir, "src", "simplegui_host.ts"), "utf8");
+    expect(simpleguiHostTs).toContain("applyFmTheme(e.data.fmTheme)");
+    expect(simpleguiHostTs).toContain("fm-hosted-studio-theme");
+
+    const dbStudioJs = readFileSync(join(ui, "dbStudio.js"), "utf8");
+    const studioPolishTs = readFileSync(join(rootDir, "src", "shared", "studioPolish.ts"), "utf8");
+    expect(dbStudioJs).toContain('on("theme-changed"');
+    expect(studioPolishTs).toContain("applyFmTheme(e.data.fmTheme)");
+    expect(studioPolishTs).toContain("fm-db-studio-theme");
+  });
 });

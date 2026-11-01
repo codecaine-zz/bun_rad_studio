@@ -30,7 +30,7 @@ function loadPrefs() {
   const d = {
     volume: 0.8, muted: false, rate: 1, repeat: "off", shuffle: false,
     eqOn: false, preamp: 0, balance: 0, eq: EQ_PRESETS.Flat.slice(), preset: "Flat",
-    vizMode: "spectrum", skin: "classic", remainingTime: false,
+    vizMode: "spectrum", skin: "theme", remainingTime: false,
   };
   try {
     const raw = JSON.parse(localStorage.getItem(PREFS_KEY) ?? "null");
@@ -301,7 +301,7 @@ export function createPlayer({ entries, start, onTrack, announce, subtitleEntrie
     vizBadge.hidden = isVideo();
     vizSelect.value = prefs.vizMode;
     vizBadge.textContent = VIZ_MODES.find((m) => m.id === prefs.vizMode)?.label ?? "";
-    pipBtn.hidden = !isVideo() || !canPip();
+    pipBtn.hidden = false;
     fsBtn.hidden = !isVideo();
   }
 
@@ -668,18 +668,26 @@ export function createPlayer({ entries, start, onTrack, announce, subtitleEntrie
     } catch { /* refused: fill the window instead */ }
     setFill(true);
   }
-  /** Picture in picture: the standard way, or WebKit's presentation mode (Safari and the desktop window). */
+  /** Picture in picture: native OS PiP where supported, or open Media Deck Floating PiP Mini-Monitor. */
   const webkitPip = () => typeof media.webkitSupportsPresentationMode === "function" && media.webkitSupportsPresentationMode("picture-in-picture");
-  const canPip = () => (!!document.pictureInPictureEnabled && typeof media.requestPictureInPicture === "function") || webkitPip();
   async function pip() {
     try {
-      if (document.pictureInPictureEnabled && typeof media.requestPictureInPicture === "function") {
-        if (document.pictureInPictureElement) await document.exitPictureInPicture(); else await media.requestPictureInPicture();
-        return;
+      if (isVideo() && media.readyState >= 1 && media.videoWidth > 0) {
+        if (document.pictureInPictureEnabled && typeof media.requestPictureInPicture === "function") {
+          if (document.pictureInPictureElement) await document.exitPictureInPicture();
+          else await media.requestPictureInPicture();
+          return;
+        }
+        if (webkitPip()) {
+          media.webkitSetPresentationMode(media.webkitPresentationMode === "picture-in-picture" ? "inline" : "picture-in-picture");
+          return;
+        }
       }
-      if (webkitPip()) return media.webkitSetPresentationMode(media.webkitPresentationMode === "picture-in-picture" ? "inline" : "picture-in-picture");
-    } catch { /* refused: say so below */ }
-    showMessage("Picture in picture isn't available for this video.");
+    } catch { /* fall through to Media Deck Floating PiP */ }
+    const payload = { entries: list, start: entry, currentTime: media.currentTime, paused: media.paused, openPip: true };
+    media.pause();
+    if (typeof onOpenDeck === "function") onOpenDeck(payload);
+    else emit("player-deck-open", payload);
   }
 
   // --- computer media keys and the lock screen ---------------------------------------------------------------

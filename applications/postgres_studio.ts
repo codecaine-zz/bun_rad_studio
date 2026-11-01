@@ -28,6 +28,7 @@ import {
   setWindowPositionNative,
   toggleFullscreenNative,
   attachWindowShortcuts,
+  getWindowShortcutsScript,
 } from "../index.ts";
 import {
   startPostgresStudioServer,
@@ -1583,14 +1584,16 @@ function buildPostgresHtml(): string {
     }
 
     .qbe-show-checkbox {
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      text-align: center;
+      vertical-align: middle;
     }
 
     .qbe-show-checkbox input[type="checkbox"] {
       width: 15px;
       height: 15px;
+      margin: 0;
+      padding: 0;
+      vertical-align: middle;
       accent-color: var(--cyan);
       cursor: pointer;
     }
@@ -3512,8 +3515,9 @@ function buildPostgresHtml(): string {
     }
 
     // Select Entity & Load in Data Grid
-    function selectEntity(name, type, options = {}) {
+    async function selectEntity(name, type, options = {}) {
       activeTable = name;
+      window.__activeMacroFilter = null;
       renderSidebarTree();
       const gridTarget = document.getElementById("gridTargetTitle");
       if (gridTarget) gridTarget.innerText = name + " (" + type + ")";
@@ -3529,13 +3533,13 @@ function buildPostgresHtml(): string {
       if (options.switchTab !== false && activeTab !== "designer" && activeTab !== "schema") {
         switchTab("grid");
       }
-      loadTableData(name);
+      await loadTableData(name);
       if (typeof renderSchemaDesigner === "function") renderSchemaDesigner(name);
       if (typeof renderQueryDesigner === "function" && activeTab === "designer") renderQueryDesigner();
     }
 
-    function selectTable(tableName) {
-      selectEntity(tableName, 'table');
+    async function selectTable(tableName) {
+      return await selectEntity(tableName, 'table');
     }
     window.selectTable = selectTable;
 
@@ -3560,6 +3564,8 @@ function buildPostgresHtml(): string {
 
       if (res.success) {
         currentGridData = res;
+        window.currentGridRows = res.rows || [];
+        window.currentGridColumns = res.columns || [];
         window.__gridIsQuery = false;
         currentGridData.rawRows = [...(res.rows || [])];
         renderGridTable(res.rows, res.columns, res.total, res.page, res.pageSize);
@@ -3591,9 +3597,12 @@ function buildPostgresHtml(): string {
       const filterRow = document.getElementById("gridFilterBarRow");
       if (filterRow) {
         filterRow.style.display = accessFilterBarVisible ? "table-row" : "none";
-        if (!window.__keepFilterRow) {
-          filterRow.innerHTML = "<th style='text-align: center; color: var(--accent);'>⚡</th>" + columns.map(c => {
+        if (!window.__keepFilterRow || !filterRow.querySelector("input.access-filter-input")) {
+          filterRow.innerHTML = "<th style='text-align: center; color: var(--accent);' title='Microsoft Access Quick Filter Row (=, <>, <, <=, >, >=, BETWEEN, LIKE, IN, IS NULL)'>⚡</th>" + columns.map(c => {
             const curVal = activeColumnFilters[c] || "";
+            if (typeof window.renderAccessFilterCellHtml === "function") {
+              return "<th style='padding: 2px 4px; vertical-align: middle;'>" + window.renderAccessFilterCellHtml(c, curVal) + "</th>";
+            }
             return "<th><input type='text' class='access-filter-input' placeholder='Filter " + escapeHtml(c) + "...' value='" + escapeHtml(curVal) + "' oninput='onColumnFilterInput(&quot;" + escapeHtml(c) + "&quot;, this.value)'></th>";
           }).join('');
         }
@@ -4728,6 +4737,9 @@ function buildPostgresHtml(): string {
       if (!accessFilterBarVisible) {
         activeColumnFilters = {};
         if (activeTable) loadTableData(activeTable, 1);
+      } else if (currentGridData && currentGridData.columns) {
+        window.__keepFilterRow = false;
+        renderGridTable(currentGridData.rows || [], currentGridData.columns, currentGridData.total || 0, currentGridData.page || 1, currentGridData.pageSize || gridPageSize);
       }
       showToast(accessFilterBarVisible ? "Quick Filter Bar opened" : "Quick Filter Bar cleared");
     }
@@ -4748,9 +4760,14 @@ function buildPostgresHtml(): string {
       const filterRow = document.getElementById("gridFilterBarRow");
       if (filterRow) filterRow.style.display = "table-row";
 
-      activeColumnFilters[colName] = String(colVal);
-      showToast("Filtered by " + colName + " = " + colVal);
-      filterLoadedRowsInMemory();
+      activeColumnFilters[colName] = colVal === null || colVal === undefined ? "IS NULL" : String(colVal);
+      window.__keepFilterRow = false;
+      showToast("Filtered by " + colName + ": " + activeColumnFilters[colName]);
+      if (typeof window.onColumnFilterInput === "function") {
+        window.onColumnFilterInput(colName, activeColumnFilters[colName]);
+      } else {
+        filterLoadedRowsInMemory();
+      }
     }
 
     function filterLoadedRowsInMemory() {
@@ -4758,9 +4775,14 @@ function buildPostgresHtml(): string {
       const filterKeys = Object.keys(activeColumnFilters);
       if (filterKeys.length === 0) {
         currentGridData.rows = [...currentGridData.rawRows];
+      } else if (typeof window.filterRowsWithAccessFilters === "function") {
+        currentGridData.rows = window.filterRowsWithAccessFilters(currentGridData.rawRows, activeColumnFilters, "", currentGridData.columns);
       } else {
         currentGridData.rows = currentGridData.rawRows.filter(row => {
           return filterKeys.every(k => {
+            if (typeof window.evaluateAccessFilter === "function") {
+              return window.evaluateAccessFilter(row[k], activeColumnFilters[k], k);
+            }
             const needle = activeColumnFilters[k].toLowerCase();
             const val = row[k];
             if (val === null || val === undefined) return needle === "null";
@@ -6343,6 +6365,9 @@ function buildPostgresHtml(): string {
   </script>
   <script>
     ${buildMacroScript("postgres")}
+  </script>
+  <script>
+    ${getWindowShortcutsScript()}
   </script>
 <a id="openWorkbench" href="/workbench" target="_blank" rel="noopener" title="Open the shared Database Workbench: saved connections, safe row editing, read-only and production safeguards" style="position:fixed;right:12px;bottom:12px;z-index:9999;padding:6px 12px;border-radius:999px;background:#0369a1;color:#fff;font:600 12px system-ui,sans-serif;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.4)">🧰 Workbench</a>
 </body>

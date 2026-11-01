@@ -1,9 +1,9 @@
 /* Effects shape the window's chrome: the living light behind it, glass panels, glowing edges and overlays. Text sits on
    panels whose opacity the server raised until it reads well; the terminal and code editor stay solid. */
-:root[data-fx] :is(.btn, .prop-input, .theme-card, .dialog) {
+:root[data-fx] :is(.btn, .prop-input, .theme-card, .dialog, .pw-card, .pw-btn, .pw-out, .db-card, .sx-card, .sx-section, .ollama-card, .ollama-hero-banner, .ollama-autoinstall-card, .ollama-live-progress-banner, .ollama-output-console, .ollama-model-card) {
   border-radius: var(--fx-radius-md);
 }
-:root[data-fx] :is(.theme-card, #toolbar, #viewbar) {
+:root[data-fx] :is(.theme-card, #toolbar, #viewbar, #power-head, #power-tabs, .pw-card, .db-card, .sx-card, .sx-section, .ollama-card, .ollama-hero-banner, .ollama-autoinstall-card, .ollama-live-progress-banner, .ollama-context-strip, .ollama-model-card, .ollama-output-console) {
   background-color: var(--fx-glass-bg, var(--fx-glass-solid));
   border-color: var(--fx-glass-border);
 }
@@ -11,7 +11,7 @@
   background-color: var(--fx-glass-bg-strong, var(--fx-glass-solid));
   border-color: var(--fx-glass-border);
 }
-:root[data-fx] .theme-card:hover, :root[data-fx] .btn:hover {
+:root[data-fx] .theme-card:hover, :root[data-fx] .btn:hover, :root[data-fx] .pw-btn:hover, :root[data-fx] :is(.ollama-btn, .ollama-mode-btn, .ollama-quick-chip, .ollama-model-card):hover {
   box-shadow: var(--fx-glow-med);
 }
 :root[data-fx] :is(button, input, select, textarea):focus-visible {
@@ -111,21 +111,21 @@
 }
 
 /* Backdrop surface materials (Liquid Glass, Windows 11 Mica, Windows 11 Acrylic, Frosted Crystal, OLED Carbon, Matte) */
-:root[data-fx][data-fx-backdrop="liquid"] :is(.dialog, .theme-card) {
+:root[data-fx][data-fx-backdrop="liquid"] :is(.dialog, .theme-card, .pw-card, .db-card, .sx-card, .sx-section, .ollama-card, .ollama-hero-banner, .ollama-output-console) {
   box-shadow: var(--fx-specular-rim, inset 0 1px 0 0 rgba(255, 255, 255, 0.32)), var(--fx-shadow-3, var(--shadow));
 }
-:root[data-fx][data-fx-backdrop="mica"] :is(#sidebar, #info, #toolbar-row, .dialog) {
+:root[data-fx][data-fx-backdrop="mica"] :is(#sidebar, #info, #toolbar-row, .dialog, .pw-card, .db-card, .sx-card, .sx-section, .ollama-suite, .ollama-card, .ollama-hero-banner) {
   background-image: radial-gradient(120% 90% at 15% 10%, var(--fx-ambient-1, transparent), transparent 72%);
 }
-:root[data-fx][data-fx-backdrop="acrylic"] :is(#sidebar, #info, .dialog) {
+:root[data-fx][data-fx-backdrop="acrylic"] :is(#sidebar, #info, .dialog, .pw-card, .db-card, .sx-card, .sx-section, .ollama-suite, .ollama-card, .ollama-hero-banner) {
   background-image: radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 0);
   background-size: 18px 18px;
 }
-:root[data-fx][data-fx-backdrop="oled"] :is(#sidebar, #info, #status, #list-head, #toolbar-row, #addressbar, .dialog, .theme-card) {
+:root[data-fx][data-fx-backdrop="oled"] :is(#sidebar, #info, #status, #list-head, #toolbar-row, #addressbar, .dialog, .theme-card, .pw-card, .db-card, .sx-card, .sx-section, .ollama-suite, .ollama-card, .ollama-hero-banner, .ollama-output-console, .ollama-model-card) {
   background-color: var(--fx-glass-solid, var(--panel));
   box-shadow: var(--fx-specular-rim, inset 0 1px 0 0 rgba(255, 255, 255, 0.24)), var(--fx-shadow-3, var(--shadow));
 }
-:root[data-fx][data-fx-backdrop="matte"] :is(#sidebar, #info, #status, #list-head, #toolbar-row, #addressbar, .dialog, .theme-card) {
+:root[data-fx][data-fx-backdrop="matte"] :is(#sidebar, #info, #status, #list-head, #toolbar-row, #addressbar, .dialog, .theme-card, .pw-card, .db-card, .sx-card, .sx-section, .ollama-suite, .ollama-card, .ollama-hero-banner, .ollama-output-console, .ollama-model-card) {
   background-color: var(--fx-glass-solid, var(--panel));
   box-shadow: none;
 }
@@ -1522,26 +1522,30 @@ html[data-corner-profile="sharp"] .crumb,
 html[data-corner-profile="sharp"] .side-item,
 html[data-corner-profile="sharp"] .row,
 html[data-corner-profile="sharp"] .dialog,
-html[data-corner-profile="sharp"] .btn {
+html[data-corner-profile="sharp"] .btn,
+html[data-corner-profile="sharp"] :is(.ollama-card, .ollama-hero-banner, .ollama-autoinstall-card, .ollama-live-progress-banner, .ollama-output-console, .ollama-model-card, .ollama-btn, .ollama-mode-btn, .ollama-quick-chip, .ollama-input, .ollama-select, .ollama-textarea) {
   border-radius: 0px !important;
 }
 html[data-corner-profile="chamfer"] .tool,
 html[data-corner-profile="chamfer"] .crumb,
 html[data-corner-profile="chamfer"] .side-item,
 html[data-corner-profile="chamfer"] .row,
-html[data-corner-profile="chamfer"] .btn {
+html[data-corner-profile="chamfer"] .btn,
+html[data-corner-profile="chamfer"] :is(.ollama-card, .ollama-hero-banner, .ollama-output-console, .ollama-model-card, .ollama-btn, .ollama-mode-btn) {
   border-radius: 3px !important;
   clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
 }
 html[data-corner-profile="pill"] .tool,
 html[data-corner-profile="pill"] .crumb,
 html[data-corner-profile="pill"] .side-item,
-html[data-corner-profile="pill"] .btn {
+html[data-corner-profile="pill"] .btn,
+html[data-corner-profile="pill"] :is(.ollama-btn, .ollama-mode-btn, .ollama-quick-chip) {
   border-radius: 999px !important;
 }
 html[data-corner-profile="organic"] .row,
 html[data-corner-profile="organic"] .side-item,
-html[data-corner-profile="organic"] .tool {
+html[data-corner-profile="organic"] .tool,
+html[data-corner-profile="organic"] :is(.ollama-card, .ollama-hero-banner, .ollama-model-card, .ollama-btn, .ollama-mode-btn) {
   border-radius: 14px 6px 14px 6px !important;
 }
 
@@ -5175,37 +5179,37 @@ html.rad-linux .fm-atmosphere-layer {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  :root:is([data-icon-anim="spring_pop_3d"], [data-fx-icon-anim="spring_pop_3d"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  :root:is([data-icon-anim="spring_pop_3d"], [data-fx-icon-anim="spring_pop_3d"]) :is(.row.is-folder .c-icon, .card.is-folder .c-icon, .t-icon, .info-big-icon) {
     animation: fmIconSpringPop3d 2.8s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
   }
-  :root:is([data-icon-anim="levitate_float"], [data-fx-icon-anim="levitate_float"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  :root:is([data-icon-anim="levitate_float"], [data-fx-icon-anim="levitate_float"]) :is(.row.is-folder .c-icon, .card.is-folder .c-icon, .t-icon, .info-big-icon) {
     animation: fmIconLevitateFloat 3.1s ease-in-out infinite;
   }
-  :root:is([data-icon-anim="holo_foil_shimmer"], [data-fx-icon-anim="holo_foil_shimmer"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  :root:is([data-icon-anim="holo_foil_shimmer"], [data-fx-icon-anim="holo_foil_shimmer"]) :is(.row.is-folder .c-icon, .card.is-folder .c-icon, .t-icon, .info-big-icon) {
     animation: fmIconHoloFoilShimmer 3.4s ease-in-out infinite;
   }
-  :root:is([data-icon-anim="orbital_halo_spin"], [data-fx-icon-anim="orbital_halo_spin"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  :root:is([data-icon-anim="orbital_halo_spin"], [data-fx-icon-anim="orbital_halo_spin"]) :is(.row.is-folder .c-icon, .card.is-folder .c-icon, .t-icon, .info-big-icon) {
     animation: fmIconOrbitalHaloSpin 3.6s ease-in-out infinite;
   }
-  :root:is([data-icon-anim="cyber_glitch_pulse"], [data-fx-icon-anim="cyber_glitch_pulse"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  :root:is([data-icon-anim="cyber_glitch_pulse"], [data-fx-icon-anim="cyber_glitch_pulse"]) :is(.row.is-folder .c-icon, .card.is-folder .c-icon, .t-icon, .info-big-icon) {
     animation: fmIconCyberGlitchPulse 2.4s steps(2, end) infinite;
   }
-  :root:is([data-icon-anim="heartbeat_biolum"], [data-fx-icon-anim="heartbeat_biolum"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  :root:is([data-icon-anim="heartbeat_biolum"], [data-fx-icon-anim="heartbeat_biolum"]) :is(.row.is-folder .c-icon, .card.is-folder .c-icon, .t-icon, .info-big-icon) {
     animation: fmIconHeartbeatBiolum 2.2s ease-in-out infinite;
   }
-  :root:is([data-icon-anim="clockwork_gear_tick"], [data-fx-icon-anim="clockwork_gear_tick"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  :root:is([data-icon-anim="clockwork_gear_tick"], [data-fx-icon-anim="clockwork_gear_tick"]) :is(.row.is-folder .c-icon, .card.is-folder .c-icon, .t-icon, .info-big-icon) {
     animation: fmIconClockworkTick 2s steps(4, end) infinite;
   }
-  :root:is([data-icon-anim="liquid_jelly_morph"], [data-fx-icon-anim="liquid_jelly_morph"], [data-icon-anim="jelly_squish_3d"], [data-fx-icon-anim="jelly_squish_3d"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  :root:is([data-icon-anim="liquid_jelly_morph"], [data-fx-icon-anim="liquid_jelly_morph"], [data-icon-anim="jelly_squish_3d"], [data-fx-icon-anim="jelly_squish_3d"]) :is(.row.is-folder .c-icon, .card.is-folder .c-icon, .t-icon, .info-big-icon) {
     animation: fmIconLiquidJellyMorph 2.6s ease-in-out infinite;
   }
-  :root:is([data-icon-anim="plasma_arc_surge"], [data-fx-icon-anim="plasma_arc_surge"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  :root:is([data-icon-anim="plasma_arc_surge"], [data-fx-icon-anim="plasma_arc_surge"]) :is(.row.is-folder .c-icon, .card.is-folder .c-icon, .t-icon, .info-big-icon) {
     animation: fmIconPlasmaArcSurge 2.3s ease-in-out infinite;
   }
-  :root:is([data-icon-anim="fire_ember_flicker"], [data-fx-icon-anim="fire_ember_flicker"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  :root:is([data-icon-anim="fire_ember_flicker"], [data-fx-icon-anim="fire_ember_flicker"]) :is(.row.is-folder .c-icon, .card.is-folder .c-icon, .t-icon, .info-big-icon) {
     animation: fmIconFireEmberFlicker 1.9s ease-in-out infinite;
   }
-  :root:is([data-icon-anim="godmode_pantheon_ascend"], [data-fx-icon-anim="godmode_pantheon_ascend"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  :root:is([data-icon-anim="godmode_pantheon_ascend"], [data-fx-icon-anim="godmode_pantheon_ascend"]) :is(.row.is-folder .c-icon, .card.is-folder .c-icon, .t-icon, .info-big-icon) {
     animation: fmIconGodmodePantheonAscend 3.2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
   }
 }
@@ -5517,61 +5521,61 @@ html.rad-linux .fm-atmosphere-layer {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  :root:is([data-icon-anim="folder_3d_spin_turntable"], [data-fx-icon-anim="folder_3d_spin_turntable"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  :root:is([data-icon-anim="folder_3d_spin_turntable"], [data-fx-icon-anim="folder_3d_spin_turntable"]) :is(.row.is-folder .c-icon, .card.is-folder .c-icon, .t-icon, .info-big-icon) {
     animation: fmIconFolder3dSpinTurntable 3.2s linear infinite;
     transform-style: preserve-3d;
   }
-  :root:is([data-icon-anim="flash_2advanced_vector_hud"], [data-fx-icon-anim="flash_2advanced_vector_hud"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  :root:is([data-icon-anim="flash_2advanced_vector_hud"], [data-fx-icon-anim="flash_2advanced_vector_hud"]) :is(.row.is-folder .c-icon, .card.is-folder .c-icon, .t-icon, .info-big-icon) {
     animation: fmIconFlash2AdvancedVectorHud 2.1s cubic-bezier(0.16, 1, 0.3, 1) infinite;
   }
-  :root:is([data-icon-anim="folder_3d_flip_origami"], [data-fx-icon-anim="folder_3d_flip_origami"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  :root:is([data-icon-anim="folder_3d_flip_origami"], [data-fx-icon-anim="folder_3d_flip_origami"]) :is(.row.is-folder .c-icon, .card.is-folder .c-icon, .t-icon, .info-big-icon) {
     animation: fmIconFolder3dFlipOrigami 3.4s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
     transform-style: preserve-3d;
   }
-  :root:is([data-icon-anim="gyro_3d_cube_matrix"], [data-fx-icon-anim="gyro_3d_cube_matrix"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  :root:is([data-icon-anim="gyro_3d_cube_matrix"], [data-fx-icon-anim="gyro_3d_cube_matrix"]) :is(.row.is-folder .c-icon, .card.is-folder .c-icon, .t-icon, .info-big-icon) {
     animation: fmIconGyro3dCubeMatrix 3.8s ease-in-out infinite;
     transform-style: preserve-3d;
   }
-  :root:is([data-icon-anim="flash_fwa_kinetic_eq"], [data-fx-icon-anim="flash_fwa_kinetic_eq"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  :root:is([data-icon-anim="flash_fwa_kinetic_eq"], [data-fx-icon-anim="flash_fwa_kinetic_eq"]) :is(.row.is-folder .c-icon, .card.is-folder .c-icon, .t-icon, .info-big-icon) {
     animation: fmIconFlashFwaKineticEq 1.65s cubic-bezier(0.22, 1, 0.36, 1) infinite;
   }
-  :root:is([data-icon-anim="hologram_3d_projector_beam"], [data-fx-icon-anim="hologram_3d_projector_beam"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  :root:is([data-icon-anim="hologram_3d_projector_beam"], [data-fx-icon-anim="hologram_3d_projector_beam"]) :is(.row.is-folder .c-icon, .card.is-folder .c-icon, .t-icon, .info-big-icon) {
     animation: fmIconHologram3dProjectorBeam 2.7s ease-in-out infinite;
   }
-  :root:is([data-icon-anim="quantum_3d_phase_split"], [data-fx-icon-anim="quantum_3d_phase_split"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  :root:is([data-icon-anim="quantum_3d_phase_split"], [data-fx-icon-anim="quantum_3d_phase_split"]) :is(.row.is-folder .c-icon, .card.is-folder .c-icon, .t-icon, .info-big-icon) {
     animation: fmIconQuantum3dPhaseSplit 2.4s ease-in-out infinite;
   }
-  :root:is([data-icon-anim="m4_liquid_metal_morph"], [data-fx-icon-anim="m4_liquid_metal_morph"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  :root:is([data-icon-anim="m4_liquid_metal_morph"], [data-fx-icon-anim="m4_liquid_metal_morph"]) :is(.row.is-folder .c-icon, .card.is-folder .c-icon, .t-icon, .info-big-icon) {
     animation: fmIconM4LiquidMetalMorph 2.9s ease-in-out infinite;
   }
-  :root:is([data-icon-anim="c4d_mograph_cloner_wave"], [data-fx-icon-anim="c4d_mograph_cloner_wave"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  :root:is([data-icon-anim="c4d_mograph_cloner_wave"], [data-fx-icon-anim="c4d_mograph_cloner_wave"]) :is(.row.is-folder .c-icon, .card.is-folder .c-icon, .t-icon, .info-big-icon) {
     animation: fmIconC4dMographClonerWave 2.5s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
     transform-style: preserve-3d;
   }
   /* Stagger Cinema 4D MoGraph Step-Effector wave across rows */
-  :root:is([data-icon-anim="c4d_mograph_cloner_wave"], [data-fx-icon-anim="c4d_mograph_cloner_wave"]) .row:nth-child(4n+2) .c-icon {
+  :root:is([data-icon-anim="c4d_mograph_cloner_wave"], [data-fx-icon-anim="c4d_mograph_cloner_wave"]) .row.is-folder:nth-child(4n+2) .c-icon {
     animation-delay: 140ms;
   }
-  :root:is([data-icon-anim="c4d_mograph_cloner_wave"], [data-fx-icon-anim="c4d_mograph_cloner_wave"]) .row:nth-child(4n+3) .c-icon {
+  :root:is([data-icon-anim="c4d_mograph_cloner_wave"], [data-fx-icon-anim="c4d_mograph_cloner_wave"]) .row.is-folder:nth-child(4n+3) .c-icon {
     animation-delay: 280ms;
   }
-  :root:is([data-icon-anim="c4d_mograph_cloner_wave"], [data-fx-icon-anim="c4d_mograph_cloner_wave"]) .row:nth-child(4n+4) .c-icon {
+  :root:is([data-icon-anim="c4d_mograph_cloner_wave"], [data-fx-icon-anim="c4d_mograph_cloner_wave"]) .row.is-folder:nth-child(4n+4) .c-icon {
     animation-delay: 420ms;
   }
-  :root:is([data-icon-anim="houdini_vex_particle_burst"], [data-fx-icon-anim="houdini_vex_particle_burst"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  :root:is([data-icon-anim="houdini_vex_particle_burst"], [data-fx-icon-anim="houdini_vex_particle_burst"]) :is(.row.is-folder .c-icon, .card.is-folder .c-icon, .t-icon, .info-big-icon) {
     animation: fmIconHoudiniVexParticleBurst 2.3s cubic-bezier(0.22, 1, 0.36, 1) infinite;
   }
-  :root:is([data-icon-anim="after_effects_graph_overshoot"], [data-fx-icon-anim="after_effects_graph_overshoot"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  :root:is([data-icon-anim="after_effects_graph_overshoot"], [data-fx-icon-anim="after_effects_graph_overshoot"]) :is(.row.is-folder .c-icon, .card.is-folder .c-icon, .t-icon, .info-big-icon) {
     animation: fmIconAfterEffectsGraphOvershoot 2.2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
   }
-  :root:is([data-icon-anim="unreal_nanite_mesh_lod"], [data-fx-icon-anim="unreal_nanite_mesh_lod"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  :root:is([data-icon-anim="unreal_nanite_mesh_lod"], [data-fx-icon-anim="unreal_nanite_mesh_lod"]) :is(.row.is-folder .c-icon, .card.is-folder .c-icon, .t-icon, .info-big-icon) {
     animation: fmIconUnrealNaniteMeshLod 2.8s ease-in-out infinite;
     transform-style: preserve-3d;
   }
-  :root:is([data-icon-anim="blender_geometry_nodes_bloom"], [data-fx-icon-anim="blender_geometry_nodes_bloom"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  :root:is([data-icon-anim="blender_geometry_nodes_bloom"], [data-fx-icon-anim="blender_geometry_nodes_bloom"]) :is(.row.is-folder .c-icon, .card.is-folder .c-icon, .t-icon, .info-big-icon) {
     animation: fmIconBlenderGeoNodesBloom 2.6s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
   }
-  :root:is([data-icon-anim="raytraced_caustic_refraction"], [data-fx-icon-anim="raytraced_caustic_refraction"]) :is(.c-icon, .t-icon, .info-big-icon, [data-btn-icon]) {
+  :root:is([data-icon-anim="raytraced_caustic_refraction"], [data-fx-icon-anim="raytraced_caustic_refraction"]) :is(.row.is-folder .c-icon, .card.is-folder .c-icon, .t-icon, .info-big-icon) {
     animation: fmIconRaytracedCausticRefraction 3s ease-in-out infinite;
   }
 }
@@ -6176,18 +6180,37 @@ html:is([data-holiday-theme="active"], [data-palette^="holiday_"]) .toolbar::aft
   font-size: 18px;
 }
 
-html:is([data-holiday-theme="active"], [data-palette^="holiday_"]) .row.is-folder[data-holiday-crest] .name-text::after {
+html:is([data-holiday-theme="active"], [data-palette^="holiday_"]):not([data-folder-fx-only="true"]) .row.is-folder[data-holiday-crest] .name-text::after {
   content: "  " attr(data-holiday-crest);
   font-size: 0.92em;
   opacity: 0.95;
   pointer-events: none;
 }
 
-html:is([data-holiday-theme="active"], [data-palette^="holiday_"]) .row[data-holiday-badge]:not(.is-folder) .name-text::after {
+html:is([data-holiday-theme="active"], [data-palette^="holiday_"]):not([data-folder-fx-only="true"]) .row[data-holiday-badge]:not(.is-folder) .name-text::after {
   content: "  " attr(data-holiday-badge);
   font-size: 0.86em;
   opacity: 0.88;
   pointer-events: none;
+}
+
+/* Folder-Icon-FX-Only Mode (`data-folder-fx-only="true"`):
+ * Keeps 3D folder rows/cards and 3D folder icon effects (pack, glow, 3D animation, holiday folder crest)
+ * while suppressing floating atmosphere particles, bursts, screen filters, grain, vignette, and toolbar garlands. */
+html[data-folder-fx-only="true"] #fm-atmosphere-layer,
+html[data-folder-fx-only="true"] #fm-atmosphere-canvas,
+html[data-folder-fx-only="true"] .fm-atmosphere-veil,
+html[data-folder-fx-only="true"] #fm-holiday-celebration-burst,
+html[data-folder-fx-only="true"] #fm-cursor-spotlight-layer,
+html[data-folder-fx-only="true"] body::before,
+html[data-folder-fx-only="true"] body::after,
+html[data-folder-fx-only="true"] .toolbar::after {
+  display: none !important;
+  content: none !important;
+}
+
+html[data-folder-fx-only="true"] body {
+  box-shadow: none !important;
 }
 
 .fm-holiday-celebration-burst {
@@ -6763,62 +6786,81 @@ html[data-theme-peek="plain"] body::after {
 /* ============================================================================
  * 🎨 UPGRADE 6: DEEP SUB-STUDIO THEME SYNC (CODE, MARKDOWN & DATABASE STUDIOS)
  * ============================================================================ */
-html[data-sub-studio-sync="active"] :is(.code-editor, .code-pane, .fm-code-surface) {
+html[data-sub-studio-sync="active"] :is(.code-editor, .code-pane, .fm-code-surface, .power-pane.code-root:not([class*="code-theme-"]) .code-ed) {
   background-color: var(--fm-code-bg, var(--bg));
   color: var(--text);
 }
 
-html[data-sub-studio-sync="active"] :is(.code-gutter, .line-numbers) {
+html[data-sub-studio-sync="active"] :is(.code-gutter, .line-numbers, .power-pane.code-root:not([class*="code-theme-"]) .code-gut) {
   background-color: var(--fm-code-gutter-bg, var(--panel));
   border-right-color: var(--border);
 }
 
-html[data-sub-studio-sync="active"] :is(.code-line.is-active, .cm-activeLine) {
+html[data-sub-studio-sync="active"] :is(.code-line.is-active, .cm-activeLine, .power-pane.code-root:not([class*="code-theme-"]) .code-cur) {
   background-color: var(--fm-code-line-active, rgba(56, 189, 248, 0.1));
 }
 
-html[data-sub-studio-sync="active"] :is(.tok-keyword, .hl-keyword) {
+html[data-sub-studio-sync="active"] :is(.tok-keyword, .hl-keyword, .power-pane.code-root:not([class*="code-theme-"]) .code-t-keyword) {
   color: var(--fm-syntax-keyword, var(--accent));
 }
 
-html[data-sub-studio-sync="active"] :is(.tok-string, .hl-string) {
+html[data-sub-studio-sync="active"] :is(.tok-string, .hl-string, .power-pane.code-root:not([class*="code-theme-"]) .code-t-string) {
   color: var(--fm-syntax-string, #34d399);
 }
 
-html[data-sub-studio-sync="active"] :is(.tok-function, .hl-function) {
+html[data-sub-studio-sync="active"] :is(.tok-function, .hl-function, .power-pane.code-root:not([class*="code-theme-"]) .code-t-function) {
   color: var(--fm-syntax-function, #38bdf8);
 }
 
-html[data-sub-studio-sync="active"] :is(.tok-number, .hl-number) {
+html[data-sub-studio-sync="active"] :is(.tok-number, .hl-number, .power-pane.code-root:not([class*="code-theme-"]) .code-t-number) {
   color: var(--fm-syntax-number, #fbbf24);
 }
 
-html[data-sub-studio-sync="active"] :is(.tok-comment, .hl-comment) {
+html[data-sub-studio-sync="active"] :is(.tok-comment, .hl-comment, .power-pane.code-root:not([class*="code-theme-"]) .code-t-comment) {
   color: var(--fm-syntax-comment, #64748b);
 }
 
-html[data-sub-studio-sync="active"] :is(.md-preview h1, .md-preview h2, .md-preview h3, .markdown-body h1, .markdown-body h2) {
+html[data-sub-studio-sync="active"] :is(.md-preview h1, .md-preview h2, .md-preview h3, .markdown-body h1, .markdown-body h2, .code-preview-body h1, .code-preview-body h2, .code-preview-body h3) {
   color: var(--fm-md-heading, var(--accent));
 }
 
-html[data-sub-studio-sync="active"] :is(.md-preview pre, .md-preview code, .markdown-body pre, .markdown-body code) {
+html[data-sub-studio-sync="active"] :is(.md-preview pre, .md-preview code, .markdown-body pre, .markdown-body code, .code-md-code, .code-md-pre) {
   background-color: var(--fm-md-code-bg, var(--panel));
 }
 
-html[data-sub-studio-sync="active"] :is(.md-preview blockquote, .markdown-body blockquote) {
+html[data-sub-studio-sync="active"] :is(.md-preview blockquote, .markdown-body blockquote, .code-preview-body blockquote) {
   border-left-color: var(--fm-md-quote-border, var(--accent));
 }
 
-html[data-sub-studio-sync="active"] :is(.db-table th, .sql-grid th) {
+html[data-sub-studio-sync="active"] :is(.db-table th, .sql-grid th, .pw-table th) {
   background-color: var(--fm-db-header-bg, var(--panel));
 }
 
-html[data-sub-studio-sync="active"] :is(.db-table tr:nth-child(even), .sql-grid tr:nth-child(even)) {
+html[data-sub-studio-sync="active"] :is(.db-table tr:nth-child(even), .sql-grid tr:nth-child(even), .pw-table tbody tr:nth-child(even)) {
   background-color: var(--fm-db-row-alt, transparent);
 }
 
 html[data-sub-studio-sync="active"] :is(.db-null, .sql-null) {
   color: var(--fm-db-null-fg, #64748b);
+}
+
+html[data-sub-studio-sync="active"] .ollama-suite {
+  --ollama-bg: var(--fm-ollama-bg, var(--bg));
+  --ollama-panel: var(--fm-ollama-panel, var(--panel));
+  --ollama-code-surface: var(--fm-ollama-console-bg, var(--fm-code-bg, var(--surface-sunken, var(--bg))));
+}
+
+html[data-sub-studio-sync="active"] :is(.ollama-output-box, .ollama-output-console) {
+  background-color: var(--fm-ollama-console-bg, var(--fm-code-bg, var(--surface-sunken, var(--bg))));
+  color: var(--text);
+}
+
+html[data-sub-studio-sync="active"] .ollama-output-console-head {
+  background-color: var(--fm-ollama-header-bg, var(--fm-code-gutter-bg, var(--panel)));
+}
+
+html[data-sub-studio-sync="active"] .ollama-thinking-box {
+  background-color: var(--fm-ollama-thinking-bg, var(--surface-sunken, var(--bg)));
 }
 
 /* ============================================================================
@@ -7161,8 +7203,8 @@ html[data-color-temp]:not([data-color-temp="neutral_6500k"]):not([data-color-tem
   background-color: color-mix(in oklab, var(--bg, #16191d), var(--fm-temp-tint, #ffffff) var(--fm-temp-mix, 14%));
 }
 
-html[data-color-temp]:not([data-color-temp="neutral_6500k"]):not([data-color-temp="oled_true_black"]) :is(#toolbar-row, .sidebar, .pane, .dialog, .menu) {
-  background-color: color-mix(in oklab, var(--bg-panel, #1e2329), var(--fm-temp-tint, #ffffff) var(--fm-temp-mix, 14%));
+html[data-color-temp]:not([data-color-temp="neutral_6500k"]):not([data-color-temp="oled_true_black"]) :is(#toolbar-row, .sidebar, .pane, .dialog, .menu, .pw-card, .db-card, .sx-card, .sx-section, .ollama-card, .ollama-hero-banner, .ollama-output-console, .ollama-model-card) {
+  background-color: color-mix(in oklab, var(--bg-panel, var(--panel, #1e2329)), var(--fm-temp-tint, #ffffff) var(--fm-temp-mix, 14%));
 }
 
 /* 🖤 True OLED Pitch-Black Mastering (#000000 zero subpixel emission) */
@@ -7173,8 +7215,12 @@ html[data-color-temp="oled_true_black"] {
 }
 html[data-color-temp="oled_true_black"] body,
 html[data-color-temp="oled_true_black"] #app,
-html[data-color-temp="oled_true_black"] .pane-list {
+html[data-color-temp="oled_true_black"] .pane-list,
+html[data-color-temp="oled_true_black"] :is(.power-pane, .pw-out, .ollama-suite, .ollama-output-box, .ollama-thinking-box) {
   background: #000000 !important;
+}
+html[data-color-temp="oled_true_black"] :is(.pw-card, .db-card, .sx-card, .sx-section, .ollama-card, .ollama-hero-banner, .ollama-output-console, .ollama-model-card) {
+  background: #050507 !important;
 }
 
 /* 2. Color-Vision Daltonism-Safe & WCAG AAA 7:1 Contrast Guard */
@@ -7203,18 +7249,18 @@ html[data-vision-mode] .row.selected .name-text::before {
 }
 
 /* ♿ WCAG AAA High-Contrast Guard (7:1+ text & 3:1+ UI boundaries) */
-html[data-vision-mode="high_contrast_aaa"] :is(.row, .card, .tool, .qbtn, .chip, .btn, .prop-input, .menu-item) {
+html[data-vision-mode="high_contrast_aaa"] :is(.row, .card, .tool, .qbtn, .chip, .btn, .prop-input, .menu-item, .pw-card, .pw-btn, .pw-out, .db-card, .sx-card, .sx-section, .ollama-card, .ollama-hero-banner, .ollama-output-console, .ollama-model-card, .ollama-btn, .ollama-mode-btn, .ollama-quick-chip, .ollama-input, .ollama-select, .ollama-textarea) {
   border-width: 1.5px !important;
-  border-color: color-mix(in oklab, var(--fg, #ffffff) 62%, var(--border, #6ea8ff)) !important;
+  border-color: color-mix(in oklab, var(--text, var(--fg, #ffffff)) 62%, var(--border, #6ea8ff)) !important;
 }
-html[data-vision-mode="high_contrast_aaa"] :is(.name-text, .tl, .crumb, .theme-field-label, .field-label) {
+html[data-vision-mode="high_contrast_aaa"] :is(.name-text, .tl, .crumb, .theme-field-label, .field-label, .pw-card h3, .ollama-hero-title, .ollama-card-title, .ollama-model-name) {
   font-weight: 600;
   text-shadow: none !important;
 }
 
 @media (prefers-contrast: more) {
-  :is(.row, .card, .tool, .qbtn, .chip, .btn, .prop-input) {
-    border-color: color-mix(in oklab, var(--fg, #ffffff) 55%, var(--border, #6ea8ff));
+  :is(.row, .card, .tool, .qbtn, .chip, .btn, .prop-input, .pw-card, .pw-btn, .pw-out, .db-card, .sx-card, .sx-section, .ollama-card, .ollama-hero-banner, .ollama-output-console, .ollama-model-card, .ollama-btn, .ollama-mode-btn, .ollama-quick-chip, .ollama-input, .ollama-select, .ollama-textarea) {
+    border-color: color-mix(in oklab, var(--text, var(--fg, #ffffff)) 55%, var(--border, #6ea8ff));
   }
 }
 
@@ -7227,12 +7273,12 @@ html[data-vision-mode="high_contrast_aaa"] :is(.name-text, .tl, .crumb, .theme-f
     --accent: Highlight;
     --border: ButtonBorder;
   }
-  :is(.row, .card, .tool, .qbtn, .chip, .btn, .dialog, .menu) {
+  :is(.row, .card, .tool, .qbtn, .chip, .btn, .dialog, .menu, .pw-card, .pw-btn, .pw-out, .db-card, .sx-card, .sx-section, .ollama-card, .ollama-hero-banner, .ollama-output-console, .ollama-model-card, .ollama-btn, .ollama-mode-btn, .ollama-quick-chip, .ollama-input, .ollama-select, .ollama-textarea) {
     forced-color-adjust: auto;
     border: 1px solid ButtonBorder !important;
     box-shadow: none !important;
   }
-  :is(.row.selected, .card.selected, .theme-filter-pill[aria-pressed="true"], .theme-filter-pill.is-active) {
+  :is(.row.selected, .card.selected, .theme-filter-pill[aria-pressed="true"], .theme-filter-pill.is-active, .power-tab.active, .ollama-mode-btn.active) {
     outline: 2px solid Highlight !important;
     background: Highlight !important;
     color: HighlightText !important;

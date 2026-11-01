@@ -2390,6 +2390,17 @@ function renderMacroDesigner() {
   const badge = document.getElementById("macroActionCountBadge");
   if (badge) badge.textContent = currentMacro.actions.length + " Actions";
 
+  const runBtn = document.getElementById("btnRunMacro");
+  if (runBtn) {
+    const isMac = window.StudioShortcuts
+      ? (typeof window.StudioShortcuts.isMac === "function" ? window.StudioShortcuts.isMac() : Boolean(window.StudioShortcuts.isMac))
+      : /Mac|iPhone|iPad|iPod/i.test((navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || navigator.userAgent || "");
+    const modLabel = isMac ? "⌘+Enter" : "Ctrl+Enter";
+    runBtn.title = "Execute entire macro sequentially (" + modLabel + " or F5)";
+    runBtn.innerHTML = '▶️ Run <span class="ss-kbd" aria-hidden="true">' + modLabel + '</span>';
+  }
+  window.runCurrentMacro = runCurrentMacro;
+
   populateMacroSelector();
   renderMacroMatrixTable();
   renderActionCatalog();
@@ -2423,7 +2434,7 @@ function renderMacroMatrixTable() {
     condInput.className = "macro-condition-input";
     condInput.placeholder = "e.g. [totalRows] > 0";
     condInput.value = act.condition || "";
-    condInput.onchange = () => { act.condition = condInput.value.trim(); };
+    condInput.oninput = condInput.onchange = () => { act.condition = condInput.value.trim(); };
     tdCond.appendChild(condInput);
     tr.appendChild(tdCond);
 
@@ -2601,7 +2612,7 @@ function renderActionArguments(container, actionObj) {
       inputSql.className = "macro-param-input";
       inputSql.style.width = "220px";
       inputSql.value = params.sql || (params.queryName ? "" : "SELECT * FROM customers LIMIT 100;");
-      inputSql.onchange = () => { params.sql = inputSql.value; };
+      inputSql.oninput = inputSql.onchange = () => { params.sql = inputSql.value; };
       fieldSql.appendChild(inputSql);
       box.appendChild(fieldSql);
 
@@ -2641,7 +2652,7 @@ function renderActionArguments(container, actionObj) {
       inputVal.style.width = "270px";
       inputVal.placeholder = "name: 'Apex', email: 'a@corp.io', balance: 1000";
       inputVal.value = typeof params.fields === "object" ? JSON.stringify(params.fields) : (params.fields || params.record || "");
-      inputVal.onchange = () => { params.fields = inputVal.value; };
+      inputVal.oninput = inputVal.onchange = () => { params.fields = inputVal.value; };
       fieldValues.appendChild(inputVal);
       box.appendChild(fieldValues);
       break;
@@ -2670,7 +2681,7 @@ function renderActionArguments(container, actionObj) {
       inputSet.style.width = "180px";
       inputSet.placeholder = "tier = 'VIP', balance = balance + 100";
       inputSet.value = params.setValues || "";
-      inputSet.onchange = () => { params.setValues = inputSet.value; };
+      inputSet.oninput = inputSet.onchange = () => { params.setValues = inputSet.value; };
       fieldSet.appendChild(inputSet);
       box.appendChild(fieldSet);
 
@@ -2681,7 +2692,7 @@ function renderActionArguments(container, actionObj) {
       inputWhere.style.width = "160px";
       inputWhere.placeholder = "balance > 1000";
       inputWhere.value = params.whereCondition || "";
-      inputWhere.onchange = () => { params.whereCondition = inputWhere.value; };
+      inputWhere.oninput = inputWhere.onchange = () => { params.whereCondition = inputWhere.value; };
       fieldWhere.appendChild(inputWhere);
       box.appendChild(fieldWhere);
       break;
@@ -2710,7 +2721,7 @@ function renderActionArguments(container, actionObj) {
       inputWhere.style.width = "220px";
       inputWhere.placeholder = "tier = 'Archived'";
       inputWhere.value = params.whereCondition || "";
-      inputWhere.onchange = () => { params.whereCondition = inputWhere.value; };
+      inputWhere.oninput = inputWhere.onchange = () => { params.whereCondition = inputWhere.value; };
       fieldWhere.appendChild(inputWhere);
       box.appendChild(fieldWhere);
       break;
@@ -2724,7 +2735,7 @@ function renderActionArguments(container, actionObj) {
       inputNew.style.width = "150px";
       inputNew.placeholder = "customers_archive";
       inputNew.value = params.newTable || "";
-      inputNew.onchange = () => { params.newTable = inputNew.value; };
+      inputNew.oninput = inputNew.onchange = () => { params.newTable = inputNew.value; };
       fieldNew.appendChild(inputNew);
       box.appendChild(fieldNew);
 
@@ -2756,7 +2767,7 @@ function renderActionArguments(container, actionObj) {
       inputSql.style.width = "180px";
       inputSql.placeholder = "SELECT * FROM customers WHERE balance > 1000;";
       inputSql.value = params.selectSql || "";
-      inputSql.onchange = () => { params.selectSql = inputSql.value; };
+      inputSql.oninput = inputSql.onchange = () => { params.selectSql = inputSql.value; };
       fieldSql.appendChild(inputSql);
       box.appendChild(fieldSql);
 
@@ -2821,7 +2832,7 @@ function renderActionArguments(container, actionObj) {
       inputOff.className = "macro-param-input";
       inputOff.style.width = "50px";
       inputOff.value = params.offset || 1;
-      inputOff.onchange = () => { params.offset = parseInt(inputOff.value) || 1; };
+      inputOff.oninput = inputOff.onchange = () => { params.offset = parseInt(inputOff.value) || 1; };
       fieldOff.appendChild(inputOff);
       box.appendChild(fieldOff);
 
@@ -2840,7 +2851,7 @@ function renderActionArguments(container, actionObj) {
       inputFind.style.width = "150px";
       inputFind.placeholder = "Search term...";
       inputFind.value = params.findWhat || "";
-      inputFind.onchange = () => { params.findWhat = inputFind.value; };
+      inputFind.oninput = inputFind.onchange = () => { params.findWhat = inputFind.value; };
       fieldFind.appendChild(inputFind);
       box.appendChild(fieldFind);
 
@@ -2851,7 +2862,7 @@ function renderActionArguments(container, actionObj) {
       inputCol.style.width = "90px";
       inputCol.placeholder = "* or column";
       inputCol.value = params.field || "*";
-      inputCol.onchange = () => { params.field = inputCol.value; };
+      inputCol.oninput = inputCol.onchange = () => { params.field = inputCol.value; };
       fieldCol.appendChild(inputCol);
       box.appendChild(fieldCol);
 
@@ -2882,7 +2893,7 @@ function renderActionArguments(container, actionObj) {
       inputItem.style.width = "110px";
       inputItem.placeholder = "tier or [var]";
       inputItem.value = params.item || "";
-      inputItem.onchange = () => { params.item = inputItem.value; };
+      inputItem.oninput = inputItem.onchange = () => { params.item = inputItem.value; };
       fieldItem.appendChild(inputItem);
       box.appendChild(fieldItem);
 
@@ -2893,7 +2904,7 @@ function renderActionArguments(container, actionObj) {
       inputExpr.style.width = "130px";
       inputExpr.placeholder = "'VIP' or 150";
       inputExpr.value = params.expression || "";
-      inputExpr.onchange = () => { params.expression = inputExpr.value; };
+      inputExpr.oninput = inputExpr.onchange = () => { params.expression = inputExpr.value; };
       fieldExpr.appendChild(inputExpr);
       box.appendChild(fieldExpr);
       break;
@@ -2933,7 +2944,7 @@ function renderActionArguments(container, actionObj) {
       inputSql.style.width = "280px";
       inputSql.placeholder = "UPDATE customers SET ...";
       inputSql.value = params.sql || "";
-      inputSql.onchange = () => { params.sql = inputSql.value; };
+      inputSql.oninput = inputSql.onchange = () => { params.sql = inputSql.value; };
       fieldSql.appendChild(inputSql);
       box.appendChild(fieldSql);
 
@@ -2955,7 +2966,7 @@ function renderActionArguments(container, actionObj) {
       inputCond.style.width = "200px";
       inputCond.placeholder = "balance > 1000";
       inputCond.value = params.condition || "";
-      inputCond.onchange = () => { params.condition = inputCond.value; };
+      inputCond.oninput = inputCond.onchange = () => { params.condition = inputCond.value; };
       fieldCond.appendChild(inputCond);
       box.appendChild(fieldCond);
       break;
@@ -2968,7 +2979,7 @@ function renderActionArguments(container, actionObj) {
       inputMsg.className = "macro-param-input";
       inputMsg.style.width = "200px";
       inputMsg.value = params.message || "";
-      inputMsg.onchange = () => { params.message = inputMsg.value; };
+      inputMsg.oninput = inputMsg.onchange = () => { params.message = inputMsg.value; };
       fieldMsg.appendChild(inputMsg);
       box.appendChild(fieldMsg);
 
@@ -3017,7 +3028,7 @@ function renderActionArguments(container, actionObj) {
       inputTitle.className = "macro-param-input";
       inputTitle.style.width = "140px";
       inputTitle.value = params.title || "Report";
-      inputTitle.onchange = () => { params.title = inputTitle.value; };
+      inputTitle.oninput = inputTitle.onchange = () => { params.title = inputTitle.value; };
       fieldTitle.appendChild(inputTitle);
       box.appendChild(fieldTitle);
       break;
@@ -3089,7 +3100,7 @@ function renderActionArguments(container, actionObj) {
       inputVar.className = "macro-param-input";
       inputVar.style.width = "100px";
       inputVar.value = params.name || "var1";
-      inputVar.onchange = () => { params.name = inputVar.value; };
+      inputVar.oninput = inputVar.onchange = () => { params.name = inputVar.value; };
       fieldVar.appendChild(inputVar);
       box.appendChild(fieldVar);
 
@@ -3099,7 +3110,7 @@ function renderActionArguments(container, actionObj) {
       inputVal.className = "macro-param-input";
       inputVal.style.width = "140px";
       inputVal.value = params.expression || "";
-      inputVal.onchange = () => { params.expression = inputVal.value; };
+      inputVal.oninput = inputVal.onchange = () => { params.expression = inputVal.value; };
       fieldVal.appendChild(inputVal);
       box.appendChild(fieldVal);
       break;
@@ -3133,7 +3144,7 @@ function renderActionArguments(container, actionObj) {
       inputCnt.className = "macro-param-input";
       inputCnt.style.width = "50px";
       inputCnt.value = params.count || 1;
-      inputCnt.onchange = () => { params.count = parseInt(inputCnt.value) || 1; };
+      inputCnt.oninput = inputCnt.onchange = () => { params.count = parseInt(inputCnt.value) || 1; };
       fieldCnt.appendChild(inputCnt);
       box.appendChild(fieldCnt);
       break;
@@ -3163,7 +3174,7 @@ function renderActionArguments(container, actionObj) {
       inputRem.className = "macro-param-input";
       inputRem.style.width = "320px";
       inputRem.value = params.comment || "";
-      inputRem.onchange = () => { params.comment = inputRem.value; };
+      inputRem.oninput = inputRem.onchange = () => { params.comment = inputRem.value; };
       fieldRem.appendChild(inputRem);
       box.appendChild(fieldRem);
       break;
@@ -3178,7 +3189,7 @@ function renderActionArguments(container, actionObj) {
       inputCode.style.fontFamily = "var(--font-mono)";
       inputCode.placeholder = "const c = await DCount('*', 'customers'); TempVars.total = c;";
       inputCode.value = params.code || params.functionName || "";
-      inputCode.onchange = () => { params.code = inputCode.value; };
+      inputCode.oninput = inputCode.onchange = () => { params.code = inputCode.value; };
       fieldCode.appendChild(inputCode);
       box.appendChild(fieldCode);
       break;
@@ -3613,9 +3624,12 @@ async function executeMacroAction(action) {
     case "OpenTable": {
       const targetTable = p.table || activeTable;
       if (!targetTable) throw new Error("No table specified for OpenTable");
+      window.__activeMacroFilter = null;
       switchTab("grid");
       await selectTable(targetTable);
-      return { message: "Opened table '" + targetTable + "' in " + (p.view || "datasheet") + " view" };
+      macroVariables.activeTable = targetTable;
+      macroVariables.totalRows = (currentGridRows && currentGridRows.length) ? currentGridRows.length : 0;
+      return { message: "Opened table '" + targetTable + "' in " + (p.view || "datasheet") + " view (" + macroVariables.totalRows + " rows)" };
     }
 
     case "OpenQuery": {
@@ -3797,11 +3811,20 @@ async function executeMacroAction(action) {
     }
 
     case "ShowAllRecords": {
+      window.__activeMacroFilter = null;
       const filterInput = document.getElementById("gridSearchInput");
       if (filterInput) filterInput.value = "";
+      if (typeof activeColumnFilters !== "undefined") {
+        activeColumnFilters = {};
+      }
+      const filterRow = document.getElementById("gridFilterBarRow");
+      if (filterRow) {
+        filterRow.querySelectorAll("input, select").forEach(el => { el.value = ""; });
+      }
       if (typeof fetchTableData === "function") {
         await fetchTableData(1);
       }
+      macroVariables.totalRows = (currentGridRows && currentGridRows.length) ? currentGridRows.length : 0;
       return { message: "ShowAllRecords: Cleared active filter and refreshed all records" };
     }
 
@@ -3845,15 +3868,33 @@ async function executeMacroAction(action) {
     }
 
     case "ApplyFilter": {
-      const cond = p.condition;
+      let cond = p.condition;
       if (!cond) return { message: "No filter condition provided" };
       if (!activeTable) throw new Error("No active table selected to filter");
-      const filteredSql = \`SELECT * FROM \${quoteSqlIdentifier(activeTable)} WHERE \${cond} LIMIT 100;\`;
+      cond = await resolveMacroSqlParams(String(cond));
+      const tblName = typeof activeTable === "string" ? activeTable : activeTable.name;
+      const filteredSql = \`SELECT * FROM \${quoteSqlIdentifier(tblName)} WHERE \${cond} LIMIT 100;\`;
       const res = await apiRequest('/api/query', { sql: filteredSql });
       if (res && res.success) {
+        window.__activeMacroFilter = { table: tblName, condition: cond, sql: filteredSql };
         currentGridRows = res.rows || [];
-        currentGridColumns = res.columns || [];
-        renderDataGrid(currentGridColumns, currentGridRows, true, res.rows.length);
+        if (res.columns && res.columns.length > 0) {
+          currentGridColumns = res.columns;
+        }
+        if (typeof currentGridRawRows !== "undefined") {
+          currentGridRawRows = [...currentGridRows];
+        }
+        window.currentGridRows = currentGridRows;
+        window.currentGridColumns = currentGridColumns;
+        renderDataGrid(currentGridColumns, currentGridRows, true, currentGridRows.length);
+        const editorEl = document.getElementById("sqlEditor");
+        if (editorEl) editorEl.value = filteredSql;
+        const titleEl = document.getElementById("gridTargetTitle");
+        if (titleEl) titleEl.textContent = "Table: " + tblName + " [Filtered: " + cond + "]";
+        const pageInfo = document.getElementById("gridPageInfo");
+        if (pageInfo) pageInfo.textContent = "Filtered (" + currentGridRows.length + " matching rows)";
+        const summary = document.getElementById("resultSummary");
+        if (summary) summary.textContent = currentGridRows.length + " row(s) • Filtered by: " + cond;
         macroVariables.totalRows = currentGridRows.length;
         return { message: "Applied filter '" + cond + "' (" + currentGridRows.length + " matching records)" };
       } else {
@@ -3864,7 +3905,26 @@ async function executeMacroAction(action) {
     case "Requery": {
       const target = p.target || "active";
       if (target === "active" || target === "all") {
-        await fetchTableData();
+        const tblName = typeof activeTable === "string" ? activeTable : (activeTable && activeTable.name);
+        if (window.__activeMacroFilter && window.__activeMacroFilter.table === tblName && window.__activeMacroFilter.sql) {
+          const res = await apiRequest('/api/query', { sql: window.__activeMacroFilter.sql });
+          if (res && res.success) {
+            currentGridRows = res.rows || [];
+            if (res.columns && res.columns.length > 0) {
+              currentGridColumns = res.columns;
+            }
+            if (typeof currentGridRawRows !== "undefined") {
+              currentGridRawRows = [...currentGridRows];
+            }
+            window.currentGridRows = currentGridRows;
+            window.currentGridColumns = currentGridColumns;
+            renderDataGrid(currentGridColumns, currentGridRows, true, currentGridRows.length);
+            macroVariables.totalRows = currentGridRows.length;
+          }
+        } else {
+          await fetchTableData();
+          macroVariables.totalRows = (currentGridRows && currentGridRows.length) ? currentGridRows.length : 0;
+        }
       }
       if (target === "kpis" || target === "all") {
         await refreshKpis();
@@ -4611,7 +4671,14 @@ if (typeof window.refreshKpis !== "function") window.refreshKpis = async () => {
 if (typeof window.refreshSchema !== "function") window.refreshSchema = async () => { if (typeof loadSchema === "function") await loadSchema(); };
 if (typeof window.fetchTableData !== "function") window.fetchTableData = async (page) => { if (typeof loadTableData === "function" && activeTable) await loadTableData(typeof activeTable === "string" ? activeTable : activeTable.name, page || 1); };
 if (typeof window.renderObjectTree !== "function") window.renderObjectTree = () => { if (typeof renderSidebarTree === "function") renderSidebarTree(); };
-if (typeof window.renderDataGrid !== "function") window.renderDataGrid = (cols, rows, _u, total) => { if (typeof renderGridTable === "function") renderGridTable(rows, cols, total == null ? rows.length : total, 1, rows.length); };
+if (typeof window.renderDataGrid !== "function") window.renderDataGrid = (cols, rows, _u, total) => {
+  const r = rows || [];
+  const c = cols || [];
+  if (typeof currentGridData !== "undefined") {
+    currentGridData = { columns: c, rows: r, total: total == null ? r.length : total };
+  }
+  if (typeof renderGridTable === "function") renderGridTable(r, c, total == null ? r.length : total, 1, Math.max(1, r.length));
+};
 `
     : "";
   return `

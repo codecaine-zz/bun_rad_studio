@@ -358,6 +358,9 @@ export function crudClientMain() {
       crud.sel.clear();
       currentGridRows = (res.rows || []).map((r) => { const c = Object.assign({}, r); delete c.__rowid__; return c; });
       currentGridColumns = res.columns || [];
+      if (!activeColumnFilters || Object.keys(activeColumnFilters).length === 0) {
+        currentGridRawRows = [...currentGridRows];
+      }
       renderDataGrid(currentGridColumns, currentGridRows);
       $("gridPageInfo").textContent = "Page " + res.page + " of " + res.totalPages + " (" + res.totalRows + " records)";
       $("kpiLatency").textContent = res.latencyMs + " ms";
@@ -496,6 +499,12 @@ export function crudClientMain() {
         if (r.success) { showToast("Cell set to NULL"); fetchTableData(); } else showToast("Error: " + r.error);
       } });
       items.push({ icon: "📋", label: "Copy cell value", onclick: () => copyText(String(currentGridRows[idx][col] === null ? "" : displayVal(currentGridRows[idx][col]))).then(() => showToast("Copied")) });
+      const cellVal = currentGridRows[idx][col];
+      const cellExprVal = cellVal === null || cellVal === undefined ? "NULL" : String(cellVal);
+      items.push({ icon: "🔍", label: "Filter = " + cellExprVal, onclick: () => filterByColumnValue(col, cellVal === null ? "IS NULL" : "= " + cellExprVal) });
+      items.push({ icon: "🚫", label: "Filter <> " + cellExprVal, onclick: () => filterByColumnValue(col, cellVal === null ? "IS NOT NULL" : "<> " + cellExprVal) });
+      items.push({ icon: "≤", label: "Filter <= " + cellExprVal, onclick: () => filterByColumnValue(col, "<= " + cellExprVal) });
+      items.push({ icon: "≥", label: "Filter >= " + cellExprVal, onclick: () => filterByColumnValue(col, ">= " + cellExprVal) });
       items.push("-");
     }
     items.push({ icon: "📝", label: "Edit row…", onclick: () => openRowDialog("edit", idx) });

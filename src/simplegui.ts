@@ -5429,16 +5429,37 @@ export class SimpleWindow {
                     if (typeof window.quitApp === "function") {
                         try { window.quitApp(); return; } catch(e) {}
                     }
+                    if (typeof window.closeApp === "function") {
+                        try { window.closeApp(); return; } catch(e) {}
+                    }
                     if (typeof window.closeWindow === "function") {
                         try { window.closeWindow(); return; } catch(e) {}
                     }
                     if (typeof window.handleWindowCloseIPC === "function") {
                         try { window.handleWindowCloseIPC(); return; } catch(e) {}
                     }
+                    if (window.parent && window.parent !== window) {
+                        try {
+                            if (window.top && window.top !== window) {
+                                const topQuit = window.top.quitApp || window.top.closeApp || window.top.closeWindow || window.top.doCloseOrQuit;
+                                if (typeof topQuit === "function") { topQuit.call(window.top); return; }
+                            }
+                        } catch(e) {}
+                        try {
+                            const parentQuit = window.parent.quitApp || window.parent.closeApp || window.parent.closeWindow || window.parent.doCloseOrQuit;
+                            if (typeof parentQuit === "function") { parentQuit.call(window.parent); return; }
+                        } catch(e) {}
+                        try { window.top.postMessage({ fmCloseApp: true }, "*"); } catch(e) {}
+                        if (window.parent !== window.top) {
+                            try { window.parent.postMessage({ fmCloseApp: true }, "*"); } catch(e) {}
+                        }
+                        return;
+                    }
                     try { window.close(); } catch(e) {}
                     try { fetch("/api/shutdown", { method: "POST" }); } catch(e) {}
                     try { fetch("/api/close", { method: "POST" }); } catch(e) {}
                 }
+                window.doCloseOrQuit = doCloseOrQuit;
 
                 let lastFullscreenTime = 0;
                 function doToggleFullscreen() {

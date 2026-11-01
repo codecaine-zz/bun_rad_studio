@@ -1694,7 +1694,8 @@ function toggleCriteriaHelp() {
 }
 
 function loadDesignerSqlToEditor() {
-  const value = buildDesignerSql();
+  const preview = document.getElementById("designerSqlPreview");
+  const value = (preview && preview.value.trim()) ? preview.value : buildDesignerSql();
   const editor = document.getElementById("sqlEditorTextarea") || document.getElementById("sqlEditor");
   if (editor) editor.value = value;
   if (typeof switchTab === "function") switchTab("sql");
@@ -1702,7 +1703,8 @@ function loadDesignerSqlToEditor() {
 }
 
 function copyDesignerSql() {
-  const value = buildDesignerSql();
+  const preview = document.getElementById("designerSqlPreview");
+  const value = (preview && preview.value.trim()) ? preview.value : buildDesignerSql();
   if (navigator.clipboard) {
     navigator.clipboard.writeText(value);
     showToast("SQL copied to clipboard");
@@ -1710,7 +1712,8 @@ function copyDesignerSql() {
 }
 
 function explainDesignerQuery() {
-  const sql = buildDesignerSql();
+  const preview = document.getElementById("designerSqlPreview");
+  const sql = (preview && preview.value.trim()) ? preview.value : buildDesignerSql();
   const editor = document.getElementById("sqlEditorTextarea") || document.getElementById("sqlEditor");
   if (editor) editor.value = sql;
   explainCurrentQuery();
@@ -2086,15 +2089,16 @@ function renderQueryDesigner() {
               <button class="btn btn-sm" onclick="toggleSqlEditorHeight()" title="Expand / shrink editor height" style="padding: 1px 6px; font-size: 10px;">↕ Resize Editor</button>
             </div>
           </div>
-          <div style="display:flex; gap:6px;">
+          <div style="display:flex; gap:6px; flex-wrap: wrap;">
             <button class="btn btn-sm btn-primary" onclick="runCustomDesignerSql()" title="Execute SQL directly in Datasheet">! Run Edited SQL</button>
+            <button class="btn btn-sm" id="btnDesignerFormatSql" onclick="if(window.formatStudioSql) window.formatStudioSql(document.getElementById('designerSqlPreview'))" title="Format SQL statement with sql-formatter (Shift+Alt+F)">✨ Format SQL</button>
             <button class="btn btn-sm" onclick="resetDesignerSqlToQbe()" title="Reset SQL back to QBE generated SQL">🔄 Reset from QBE</button>
-            <button class="btn btn-sm" onclick="loadDesignerSqlToEditor()">Load into Editor</button>
-            <button class="btn btn-sm" onclick="copyDesignerSql()">Copy SQL</button>
-            <button class="btn btn-sm" onclick="explainDesignerQuery()">Explain Plan</button>
+            <button class="btn btn-sm" onclick="loadDesignerSqlToEditor()" title="Copy this SQL query into the main SQL Editor">Load into Editor</button>
+            <button class="btn btn-sm" onclick="copyDesignerSql()" title="Copy SQL query to clipboard">Copy SQL</button>
+            <button class="btn btn-sm" onclick="explainDesignerQuery()" title="Analyze query execution plan">Explain Plan</button>
           </div>
         </div>
-        <textarea class="designer-sql-preview" id="designerSqlPreview" style="font-size: ${queryDesignerState.sqlFontSize || 13}px;" placeholder="Write or edit SQL statement..." onkeydown="if((event.metaKey||event.ctrlKey)&&event.key==='Enter') runCustomDesignerSql()">${escapeHtml(sqlPreview)}</textarea>
+        <textarea class="designer-sql-preview" id="designerSqlPreview" style="font-size: ${queryDesignerState.sqlFontSize || 13}px;" placeholder="Write or edit SQL statement..." onkeydown="if((event.metaKey||event.ctrlKey)&&event.key==='Enter'){event.preventDefault();runCustomDesignerSql();}else if(event.shiftKey&&event.altKey&&(event.key==='F'||event.key==='f')&&window.formatStudioSql){event.preventDefault();window.formatStudioSql(this);}">${escapeHtml(sqlPreview)}</textarea>
         <div style="margin-top: 8px;">
           <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 6px; font-weight: 600;">Saved Queries:</div>
           <div style="display: flex; flex-wrap: wrap; gap: 6px;">${savedList}</div>

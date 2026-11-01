@@ -22,6 +22,7 @@
 import * as os from "os";
 import * as nodePath from "path";
 import type { Platform } from "./fmPaths";
+import { Sys } from "../../simplecli/sys/index";
 
 export type TaskActionKind =
   | "terminate"
@@ -1302,7 +1303,7 @@ export async function collectTaskSnapshot(
   const selfPid = hooks.selfPid ?? String(process.pid);
   const parentPid = hooks.parentPid ?? String(process.env.STUDIO_PARENT_PID || process.ppid || "");
   const totalMemBytes = hooks.totalMemBytes ?? os.totalmem();
-  const freeMemBytes = hooks.freeMemBytes ?? os.freemem();
+  const freeMemBytes = hooks.freeMemBytes ?? (hooks.execCommand ? os.freemem() : Sys.ramFree());
 
   if (platform === "win32") {
     const [portMap, psRes] = await Promise.all([

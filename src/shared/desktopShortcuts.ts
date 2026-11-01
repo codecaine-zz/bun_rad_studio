@@ -130,6 +130,25 @@ function desktopShortcutsClient() {
             if (typeof quit === "function") {
                 consume(event);
                 if (!event.repeat) run(() => quit.call(host));
+            } else if ((host as any).parent && (host as any).parent !== host) {
+                consume(event);
+                if (!event.repeat) {
+                    let handled = false;
+                    try {
+                        const topWin = (host as any).top;
+                        const topQuit = topWin && topWin !== host && (topWin.quitApp || topWin.closeApp || topWin.closeWindow || topWin.doCloseOrQuit);
+                        if (typeof topQuit === "function") {
+                            handled = true;
+                            run(() => topQuit.call(topWin));
+                        }
+                    } catch {}
+                    if (!handled) {
+                        try { (host as any).top?.postMessage({ fmCloseApp: true }, "*"); } catch {}
+                        if ((host as any).parent !== (host as any).top) {
+                            try { (host as any).parent.postMessage({ fmCloseApp: true }, "*"); } catch {}
+                        }
+                    }
+                }
             }
             return;
         }

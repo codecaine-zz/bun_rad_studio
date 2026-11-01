@@ -66,7 +66,9 @@ export function startSystemStudioServer(options: ServerOptions = {}) {
 
       // Route: Graceful Telemetry Server & Window Close / Shutdown
       if ((url.pathname === "/api/shutdown" || url.pathname === "/api/close") && req.method === "POST") {
-        setTimeout(() => process.exit(0), 50);
+        if (!process.env.STUDIO_PARENT_PID) {
+          setTimeout(() => process.exit(0), 50);
+        }
         return Response.json({ success: true, message: "System Information Studio closing..." }, { headers: corsHeaders });
       }
 

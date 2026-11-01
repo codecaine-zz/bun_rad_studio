@@ -1,21 +1,23 @@
-// Shared pieces for building a narrated video from scenes: the voice (Gemini TTS when a key is set, Edge neural
-// otherwise, with a cache so rebuilds never pay twice), title cards, the on-screen title bar, and final assembly.
+// Shared pieces for building a narrated video from scenes: the voice (Phonon TTS when TTS_ENGINE=phonon, Gemini TTS when a key is set,
+// Edge neural otherwise, with a cache so rebuilds never pay twice), title cards, the on-screen title bar, and final assembly.
 import { createHash } from "crypto";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { join } from "path";
+import { createWavHeader, parseWavPcm, splitTextForPhonon } from "../../src/features/filemanager/fmPhonon";
 
 export const FFMPEG = "/opt/homebrew/opt/ffmpeg-full/bin/ffmpeg";
 export const FFPROBE = "/opt/homebrew/opt/ffmpeg-full/bin/ffprobe";
 export const CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const UVX = "/Users/codecaine/.local/bin/uvx";
 
-// TTS_ENGINE=edge (what the tutorial scripts set) ignores any Gemini key, so a video is never narrated by two voices.
-export const GEMINI_KEY = process.env.TTS_ENGINE === "edge" ? "" : (process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? "");
+// TTS_ENGINE=edge or TTS_ENGINE=phonon ignores any Gemini key, so a video is never narrated by two voices.
+export const GEMINI_KEY = (process.env.TTS_ENGINE === "edge" || process.env.TTS_ENGINE === "phonon") ? "" : (process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? "");
 export const GEMINI_MODEL = process.env.GEMINI_TTS_MODEL ?? "gemini-2.5-flash-preview-tts";
 /** Speed-up applied to a Gemini narration afterwards (1 = as spoken). Gemini voices read slowly, so the default is a little faster. */
 export const TTS_TEMPO = Number(process.env.TTS_TEMPO ?? "1.12");
 export const GEMINI_VOICE = process.env.GEMINI_TTS_VOICE ?? "Kore";
 export const EDGE_VOICE = process.env.EDGE_TTS_VOICE ?? "en-US-AvaMultilingualNeural";
+export const PHONON_VOICE = process.env.PHONON_VOICE ?? "Zoey";
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
@@ -122,6 +124,56 @@ function edge(text: string, out: string, dir: string, rate: string, gapSeconds: 
   sh([FFMPEG, "-y", "-f", "concat", "-safe", "0", "-i", join(dir, "list.txt"), "-c:a", "libmp3lame", "-q:a", "2", out]);
 }
 
+function phonon(text: string, out: string, voice: string, gapSeconds: number): boolean {
+  const chunks = splitTextForPhonon(text, { maxChars: 420 });
+  if (!chunks.length) return false;
+  const pcmParts: Buffer[] = [];
+  let sampleRate = 24000;
+  let numChannels = 1;
+  let bitsPerSample = 16;
+
+  for (let i = 0; i < chunks.length; i++) {
+    const c = chunks[i]!;
+    let ok = false;
+    for (let attempt = 0; attempt < 3 && !ok; attempt++) {
+      const res = Bun.spawnSync(["ollama", "run", "phonon", "--voice", voice], {
+        stdin: new TextEncoder().encode(c.text + "\n"),
+        stdout: "pipe",
+        stderr: "pipe",
+        timeout: 60_000,
+        env: {
+          ...process.env,
+          HOME: "/Users/codecaine",
+          OLLAMA_MODELS: process.env.OLLAMA_MODELS || "/Users/codecaine/.ollama/models",
+        },
+      });
+      if (res.exitCode === 0 && res.stdout.byteLength > 200) {
+        try {
+          const parsed = parseWavPcm(Buffer.from(res.stdout));
+          sampleRate = parsed.sampleRate;
+          numChannels = parsed.numChannels;
+          bitsPerSample = parsed.bitsPerSample;
+          pcmParts.push(parsed.pcmData);
+          ok = true;
+        } catch {}
+      }
+    }
+    if (!ok) return false;
+    if (i + 1 < chunks.length) {
+      const gapSamples = Math.round(sampleRate * Math.min(0.28, Math.max(0.10, gapSeconds * 0.45)));
+      pcmParts.push(Buffer.alloc(gapSamples * numChannels * (bitsPerSample >> 3)));
+    }
+  }
+
+  const totalPcm = Buffer.concat(pcmParts);
+  const header = createWavHeader(totalPcm.length, sampleRate, numChannels, bitsPerSample);
+  const tmpWav = `${out}.phonon.wav`;
+  writeFileSync(tmpWav, Buffer.concat([header, totalPcm]));
+  sh([FFMPEG, "-y", "-i", tmpWav, "-c:a", "libmp3lame", "-q:a", "2", out], { quiet: true });
+  rmSync(tmpWav, { force: true });
+  return existsSync(out) && Bun.file(out).size > 500;
+}
+
 /**
  * The narration for one scene, post-processed (EQ, level) with a little lead-in and tail. Cached by a hash of the
  * text and the voice: unchanged scenes are never synthesized (and never billed) again.
@@ -129,15 +181,29 @@ function edge(text: string, out: string, dir: string, rate: string, gapSeconds: 
 export async function narrate(id: string, narration: string, audioDir: string, opts: { rate?: string; gap?: number } = {}): Promise<string> {
   const rate = opts.rate ?? "-4%";
   const gap = opts.gap ?? 0.42;
+  const usePhonon = process.env.TTS_ENGINE === "phonon";
+  const phononTempo = Number(process.env.PHONON_TEMPO ?? "1");
   mkdirSync(audioDir, { recursive: true });
   const raw = join(audioDir, `raw_${id}.mp3`);
   const final = join(audioDir, `narration_${id}.mp3`);
   const keyFile = `${raw}.key`;
   const text = spokenText(narration);
-  const key = createHash("sha1").update(`${GEMINI_KEY ? `gemini:${GEMINI_MODEL}:${GEMINI_VOICE}:${TTS_TEMPO}:brisk` : `edge:${EDGE_VOICE}${rate === "-4%" && gap === 0.42 ? "" : `:${rate}:${gap}`}`}|${text}`).digest("hex");
+  const engineKey = usePhonon
+    ? `phonon:${PHONON_VOICE}:t=${phononTempo}:g=${gap}`
+    : GEMINI_KEY
+      ? `gemini:${GEMINI_MODEL}:${GEMINI_VOICE}:${TTS_TEMPO}:brisk`
+      : `edge:${EDGE_VOICE}${rate === "-4%" && gap === 0.42 ? "" : `:${rate}:${gap}`}`;
+  const key = createHash("sha1").update(`${engineKey}|${text}`).digest("hex");
   const cached = existsSync(raw) && existsSync(final) && existsSync(keyFile) && readFileSync(keyFile, "utf8") === key;
   if (!cached) {
-    if (!(await gemini(text, raw))) {
+    let synthesized = false;
+    if (usePhonon) {
+      synthesized = phonon(text, raw, PHONON_VOICE, gap);
+      if (!synthesized && process.env.TTS_STRICT === "1") {
+        throw new Error(`Phonon voice ${PHONON_VOICE} failed for ${id}; not falling back (TTS_STRICT=1).`);
+      }
+    }
+    if (!synthesized && !(await gemini(text, raw))) {
       // A narrator that changes voice half way through a video is worse than a stopped build, so a chosen voice can forbid the fallback.
       if (GEMINI_KEY && process.env.TTS_STRICT === "1") throw new Error(`Gemini voice ${GEMINI_VOICE} failed for ${id}; not falling back to Edge (TTS_STRICT=1). Re-run "audio" later: finished scenes are cached.`);
       const work = join(audioDir, `_edge_${id}`);
@@ -147,9 +213,10 @@ export async function narrate(id: string, narration: string, audioDir: string, o
     }
     // Speeding up in the same ffmpeg run as the encoder can make some clips fail, so it is a step of its own.
     let source = raw;
-    if (GEMINI_KEY && TTS_TEMPO !== 1) {
+    const activeTempo = usePhonon ? phononTempo : GEMINI_KEY ? TTS_TEMPO : 1;
+    if (activeTempo !== 1 && Number.isFinite(activeTempo) && activeTempo > 0.5 && activeTempo <= 2.0) {
       source = `${raw}.tempo.wav`;
-      sh([FFMPEG, "-y", "-i", raw, "-af", `atempo=${TTS_TEMPO}`, "-ar", "24000", source], { quiet: true });
+      sh([FFMPEG, "-y", "-i", raw, "-af", `atempo=${activeTempo}`, "-ar", "24000", source], { quiet: true });
     }
     // The filters write plain audio first: ffmpeg's mp3 encoder rejects some filtered clips when fed straight from the chain.
     const polished = `${raw}.polished.wav`;

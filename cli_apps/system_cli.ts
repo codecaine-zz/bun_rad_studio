@@ -4,7 +4,7 @@
  * Complete Cross-Platform Hardware Intelligence & Subsystem Telemetry
  * Powered by systeminformation (all 60 APIs) + Native Bun & Node Subsystems
  */
-import { SimpleCLI } from '../src/index.ts';
+import { SimpleCLI, sys } from '../src/index.ts';
 import * as os from 'node:os';
 import * as fs from 'node:fs';
 import { join } from 'node:path';
@@ -27,9 +27,10 @@ if (!app.parseCli()) process.exit(0);
 
 app.banner('System & Package Workstation CLI', 'v2.0.0 - Complete Cross-Platform Hardware Telemetry');
 
-const totalMem = os.totalmem();
-const freeMem = os.freemem();
-const usedMem = totalMem - freeMem;
+const memInfo = sys.memoryInfo();
+const totalMem = memInfo.total;
+const freeMem = memInfo.free;
+const usedMem = memInfo.used;
 const cpus = os.cpus();
 const uptimeHours = (os.uptime() / 3600).toFixed(1);
 

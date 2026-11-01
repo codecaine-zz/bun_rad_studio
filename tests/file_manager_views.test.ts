@@ -2817,6 +2817,31 @@ describe("tool screen room toggles and universal window/browser actions", () => 
     expect(app().classList.contains("power-max")).toBe(false);
     win.dispatchEvent(new win.MessageEvent("message", { data: { fmToggleExpand: true }, origin: win.location.origin }));
     expect(app().classList.contains("power-max")).toBe(true);
+    // Nested Database Studio iframe on a separate loopback port can also restore Ultra Focus via fmEscapeExpand
+    const mountedFrame = doc.querySelector("#power-panel iframe") as HTMLIFrameElement;
+    expect(mountedFrame).not.toBeNull();
+    win.dispatchEvent(new win.MessageEvent("message", {
+      data: { fmEscapeExpand: true },
+      origin: "http://127.0.0.1:54321",
+      source: mountedFrame.contentWindow,
+    }));
+    expect(app().classList.contains("power-max")).toBe(false);
+    // Cmd+Q inside a nested Database Studio iframe forwards fmCloseApp to close File Manager instead of killing the studio
+    let fmClosedFromNestedStudio = 0;
+    const prevQuitApp = win.quitApp;
+    win.quitApp = () => { fmClosedFromNestedStudio++; };
+    try {
+      win.dispatchEvent(new win.MessageEvent("message", {
+        data: { fmCloseApp: true },
+        origin: "http://127.0.0.1:54321",
+        source: mountedFrame.contentWindow,
+      }));
+      expect(fmClosedFromNestedStudio).toBe(1);
+    } finally {
+      win.quitApp = prevQuitApp;
+    }
+    win.dispatchEvent(new win.MessageEvent("message", { data: { fmToggleExpand: true }, origin: win.location.origin }));
+    expect(app().classList.contains("power-max")).toBe(true);
     win.dispatchEvent(new win.MessageEvent("message", { data: { fmFilterTools: true }, source: win }));
     expect(app().classList.contains("power-max")).toBe(false);
     expect(doc.activeElement.id).toBe("power-filter");

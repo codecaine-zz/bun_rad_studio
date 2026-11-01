@@ -1,5 +1,6 @@
 // Built-In Ollama AI Assistant & Full Capability Router UI for Codecaine File Manager.
 import { call, getToken } from "./api.js";
+import { buildBionicMarkdownDom } from "./bionic.js";
 import { clear, h } from "./dom.js";
 import { toast } from "./menus.js";
 import { goTo, refresh } from "./nav.js";
@@ -24,6 +25,7 @@ const uiState = {
   answerOutput: "",
   structuredOutput: null,
   outputExpanded: false,
+  markdownView: true,
   refusalBanner: null,
   lastAudioUrl: "",
   autoPlayedAudioUrl: "",
@@ -275,8 +277,21 @@ function computeTextTelemetry(text) {
   return { chars, words, lines };
 }
 
-function renderFormattedOutputBody(rawText, title = "Ollama AI Output") {
+function renderFormattedOutputBody(rawText, title = "Ollama AI Output", clearScope = "assistant") {
   const text = String(rawText ?? "");
+  if (uiState.markdownView) {
+    const mdBuilt = buildBionicMarkdownDom(text, clearScope);
+    return h(
+      "div",
+      {
+        class: "bionic-md-viewer",
+        tabindex: "0",
+        role: "region",
+        "aria-label": title,
+      },
+      [mdBuilt.fmEl, ...mdBuilt.renderedBlocks],
+    );
+  }
   if (!text.includes("```")) {
     return h(
       "div",
@@ -399,6 +414,20 @@ function renderStudioOutputConsole({
             : h("span", { class: "ollama-pill" }, "Ready"),
         ]),
         h("div", { class: "ollama-output-toolbar" }, [
+          h(
+            "button",
+            {
+              type: "button",
+              class: `ollama-btn is-mini${uiState.markdownView ? " is-primary" : ""}`,
+              "aria-pressed": uiState.markdownView ? "true" : "false",
+              title: "Toggle between formatted Markdown reader view and raw source text",
+              onclick: () => {
+                uiState.markdownView = !uiState.markdownView;
+                renderOllamaPanel();
+              },
+            },
+            uiState.markdownView ? "📖 Markdown View" : "{ } Raw Text",
+          ),
           hasContent || hasThinking
             ? h(
                 "button",
@@ -990,7 +1019,7 @@ function renderHeroBanner() {
             "Choose how Ollama and loaded models are handled when you close Codecaine File Manager",
         },
         [
-          h("span", { style: "font-size: 11px; font-weight: 600; color: #cbd5e1;" }, "On Close:"),
+          h("span", { class: "ollama-close-label" }, "On Close:"),
           h(
             "select",
             {
@@ -2571,24 +2600,36 @@ export function renderOllamaPanel() {
 
   clear(rootContainer);
 
-  const suite = h("div", { class: "ollama-suite" }, [
-    renderHeroBanner(),
-    renderLiveActivityBanner(),
-    renderCrossPlatformSetupBanner(),
-    renderModeTabs(),
-    renderSelectedFilesStrip(),
-    renderRefusalBanner(),
-    renderPendingConfirmations(),
-    uiState.subTab === "assistant"
-      ? renderAssistantTab()
-      : uiState.subTab === "decision"
-        ? renderDecisionTab()
-        : uiState.subTab === "speech"
-          ? renderSpeechTab()
-          : uiState.subTab === "meaning"
-            ? renderMeaningAndWebTab()
-            : renderModelsAndAccountTab(),
-  ]);
+  const rootDataset =
+    typeof document !== "undefined" && document.documentElement?.dataset
+      ? document.documentElement.dataset
+      : {};
+  const suite = h(
+    "div",
+    {
+      class: "ollama-suite",
+      "data-theme-scheme": rootDataset.theme || "auto",
+      "data-theme-palette": rootDataset.palette || "standard",
+    },
+    [
+      renderHeroBanner(),
+      renderLiveActivityBanner(),
+      renderCrossPlatformSetupBanner(),
+      renderModeTabs(),
+      renderSelectedFilesStrip(),
+      renderRefusalBanner(),
+      renderPendingConfirmations(),
+      uiState.subTab === "assistant"
+        ? renderAssistantTab()
+        : uiState.subTab === "decision"
+          ? renderDecisionTab()
+          : uiState.subTab === "speech"
+            ? renderSpeechTab()
+            : uiState.subTab === "meaning"
+              ? renderMeaningAndWebTab()
+              : renderModelsAndAccountTab(),
+    ],
+  );
 
   rootContainer.appendChild(suite);
 
@@ -2625,6 +2666,20 @@ export function mountOllamaTool(container) {
   const offSelection = on("selection", () => {
     if (rootContainer && !rootContainer.hidden) renderOllamaPanel();
   });
+  const offTheme = on("theme-changed", (payload) => {
+    if (!rootContainer) return;
+    const suiteEl = rootContainer.querySelector?.(".ollama-suite");
+    if (suiteEl) {
+      const ds =
+        typeof document !== "undefined" && document.documentElement?.dataset
+          ? document.documentElement.dataset
+          : {};
+      const nextScheme = payload?.scheme || ds.theme || "auto";
+      const nextPalette = payload?.palette || ds.palette || "standard";
+      suiteEl.setAttribute("data-theme-scheme", nextScheme);
+      suiteEl.setAttribute("data-theme-palette", nextPalette);
+    }
+  });
   return {
     show(opts) {
       if (opts?.subTab) uiState.subTab = opts.subTab;
@@ -2637,6 +2692,7 @@ export function mountOllamaTool(container) {
     },
     dispose() {
       offSelection?.();
+      offTheme?.();
     },
   };
 }

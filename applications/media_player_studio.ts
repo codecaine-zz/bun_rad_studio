@@ -307,7 +307,7 @@ function buildMediaPlayerHtml(options: { apiUrl?: string; token?: string } = {})
 
         <div id="stage-box" class="wa-stage">
           <canvas id="canvas-viz" class="wa-viz" width="540" height="170"></canvas>
-          <video id="media-el" class="wa-media" preload="metadata" playsinline></video>
+          <video id="media-el" class="wa-media" width="640" height="360" preload="metadata" playsinline></video>
           <div id="art-box" class="wa-art" aria-hidden="true">🎵</div>
           <div class="wa-stage-overlay">
             <div class="wa-viz-controls">
@@ -326,7 +326,8 @@ function buildMediaPlayerHtml(options: { apiUrl?: string; token?: string } = {})
               <button id="btn-viz-auto" type="button" class="wa-viz-mode-btn" aria-pressed="false" title="Automatically cycle through audio visualizers every 7 seconds.">🔄 Auto</button>
             </div>
             <div class="wa-video-tools">
-              <button id="btn-video-pip" type="button" class="wa-pill-btn" title="Pop the playing video out into a floating Picture-in-Picture window on your screen.">⧉ PiP</button>
+              <button id="btn-video-snap" type="button" class="wa-pill-btn" title="Capture a high-resolution PNG snapshot of the active video frame or 108-mode visualizer stage (I).">📸 Snap</button>
+              <button id="btn-video-pip" type="button" class="wa-pill-btn" title="Toggle Floating Picture-in-Picture Mini-Monitor & Native OS Pop-out (P).">⧉ PiP</button>
               <button id="btn-video-fs" type="button" class="wa-pill-btn" title="Toggle full-screen view for the visualizer stage or video display.">⛶ Full</button>
             </div>
           </div>
@@ -334,11 +335,24 @@ function buildMediaPlayerHtml(options: { apiUrl?: string; token?: string } = {})
 
         <div class="wa-seek-row">
           <span id="lbl-elapsed" class="wa-time">0:00</span>
-          <div class="wa-seek-wrap">
+          <div id="seek-wrap" class="wa-seek-wrap">
             <input id="slider-seek" type="range" class="wa-slider wa-seek" min="0" max="1000" value="0" aria-label="Seek timeline" title="Scrub through the current audio or video track timeline.">
             <div id="bar-ab" class="wa-ab-bar" hidden></div>
+            <div id="cue-markers" class="wa-cue-markers" aria-hidden="true"></div>
+            <div id="seek-tooltip" class="wa-seek-tooltip" hidden>0:00</div>
           </div>
           <span id="lbl-duration" class="wa-time">0:00</span>
+        </div>
+
+        <div class="wa-cue-row">
+          <span class="wa-cue-title">HOT CUES:</span>
+          <div class="wa-cue-pads">
+            <button id="btn-cue-0" type="button" class="wa-cue-btn" title="Hot-Cue Pad 1 (key 1): Click to stamp or jump to timestamp, Shift+Click to clear."><span class="wa-cue-dot"></span><span id="lbl-cue-0" class="wa-cue-label">CUE 1</span></button>
+            <button id="btn-cue-1" type="button" class="wa-cue-btn" title="Hot-Cue Pad 2 (key 2): Click to stamp or jump to timestamp, Shift+Click to clear."><span class="wa-cue-dot"></span><span id="lbl-cue-1" class="wa-cue-label">CUE 2</span></button>
+            <button id="btn-cue-2" type="button" class="wa-cue-btn" title="Hot-Cue Pad 3 (key 3): Click to stamp or jump to timestamp, Shift+Click to clear."><span class="wa-cue-dot"></span><span id="lbl-cue-2" class="wa-cue-label">CUE 3</span></button>
+            <button id="btn-cue-3" type="button" class="wa-cue-btn" title="Hot-Cue Pad 4 (key 4): Click to stamp or jump to timestamp, Shift+Click to clear."><span class="wa-cue-dot"></span><span id="lbl-cue-3" class="wa-cue-label">CUE 4</span></button>
+          </div>
+          <button id="btn-cue-clear" type="button" class="wa-pill-btn" title="Clear all 4 Hot-Cue memory pads.">🧹 Clear</button>
         </div>
 
         <div class="wa-mix-row">
@@ -439,6 +453,9 @@ function buildMediaPlayerHtml(options: { apiUrl?: string; token?: string } = {})
           <button id="btn-dsp-bass" type="button" class="wa-pill-btn" aria-pressed="false" title="Toggle the 80 Hz low-shelf Sub-Bass harmonic warmth boost (+5 dB).">🔊 Sub-Bass +5dB</button>
           <button id="btn-dsp-treble" type="button" class="wa-pill-btn" aria-pressed="false" title="Toggle the 10 kHz high-shelf Air Exciter treble sparkle boost (+4 dB).">✨ Air Exciter +4dB</button>
           <button id="btn-dsp-vocal" type="button" class="wa-pill-btn" aria-pressed="false" title="Toggle the 2.2 kHz peaking Vocal Presence boost (+3.5 dB).">🎙️ Vocal Presence</button>
+          <button id="btn-dsp-spatial" type="button" class="wa-pill-btn" aria-pressed="false" title="Toggle the 3D Spatial Wide Stage psychoacoustic stereo presence processor.">🎧 3D Spatial Wide</button>
+          <button id="btn-dsp-warmth" type="button" class="wa-pill-btn" aria-pressed="false" title="Toggle the Analog Tube & Tape Harmonic Saturation Warmth processor.">🔥 Tape Warmth</button>
+          <button id="btn-dsp-comp" type="button" class="wa-pill-btn" aria-pressed="false" title="Toggle the Studio Mastering Dynamics Compressor & Brickwall Limiter.">🛡️ Mastering Limiter</button>
         </div>
       </section>
 
@@ -480,6 +497,41 @@ function buildMediaPlayerHtml(options: { apiUrl?: string; token?: string } = {})
         </div>
       </section>
     </div>
+
+    <!-- DRAGGABLE FLOATING PICTURE-IN-PICTURE MINI-MONITOR -->
+    <aside id="floating-pip" class="wa-floating-pip" data-skin="classic" data-size="md" aria-label="Picture-in-Picture Floating Monitor" hidden>
+      <div id="pip-header" class="wa-pip-header">
+        <span class="wa-pip-badge">🔴 LIVE PiP</span>
+        <span id="lbl-pip-title" class="wa-pip-title">AmpDeck Studio Pro — Ready</span>
+        <button id="btn-pip-size" type="button" class="wa-pip-btn" title="Cycle Floating PiP monitor size (Small / Medium / Large).">MD</button>
+        <button id="btn-pip-os" type="button" class="wa-pip-btn" title="Pop out into Native OS Picture-in-Picture window.">⧉ OS</button>
+        <button id="btn-pip-close" type="button" class="wa-pip-btn" title="Close Picture-in-Picture monitor.">✕</button>
+      </div>
+      <div class="wa-pip-stage">
+        <canvas id="canvas-pip" class="wa-pip-canvas" width="420" height="236"></canvas>
+        <div class="wa-pip-hud">
+          <span id="lbl-pip-mode" class="wa-pip-chip">✨ 108 FX STAGE</span>
+          <span id="lbl-pip-clock" class="wa-pip-chip">0:00 / 0:00</span>
+        </div>
+      </div>
+      <div class="wa-pip-footer">
+        <div class="wa-pip-seek-row">
+          <input id="slider-pip-seek" type="range" class="wa-slider wa-seek" min="0" max="1000" value="0" aria-label="PiP seek timeline" title="Scrub playback position from the Picture-in-Picture monitor.">
+        </div>
+        <div class="wa-pip-controls">
+          <div class="wa-pip-transport">
+            <button id="btn-pip-prev" type="button" class="wa-pip-btn" title="Previous track in PiP monitor.">⏮</button>
+            <button id="btn-pip-play" type="button" class="wa-pip-btn is-primary" title="Play or pause in PiP monitor.">▶</button>
+            <button id="btn-pip-next" type="button" class="wa-pip-btn" title="Next track in PiP monitor.">⏭</button>
+            <button id="btn-pip-mute" type="button" class="wa-pip-btn" title="Mute or unmute audio in PiP monitor.">🔊</button>
+          </div>
+          <div class="wa-pip-transport">
+            <button id="btn-pip-viz" type="button" class="wa-pip-btn" title="Cycle visualizer preset in PiP monitor.">⏭ Viz</button>
+            <button id="btn-pip-snap" type="button" class="wa-pip-btn" title="Capture PNG snapshot from PiP monitor.">📸</button>
+          </div>
+        </div>
+      </div>
+    </aside>
   </div>
 
   <script type="module">
@@ -538,6 +590,17 @@ function buildMediaPlayerHtml(options: { apiUrl?: string; token?: string } = {})
     const fxActiveLayersBox = $("#box-fx-active-layers");
     const fxSectionsBox = $("#box-fx-sections");
     const fxSearchInput = $("#input-fx-search");
+    const floatingPip = $("#floating-pip");
+    const pipHeader = $("#pip-header");
+    const pipTitle = $("#lbl-pip-title");
+    const pipCanvas = $("#canvas-pip");
+    const pipModeChip = $("#lbl-pip-mode");
+    const pipClockChip = $("#lbl-pip-clock");
+    const pipSeekSlider = $("#slider-pip-seek");
+    const pipPlayBtn = $("#btn-pip-play");
+    const seekWrap = $("#seek-wrap");
+    const seekTooltip = $("#seek-tooltip");
+    const cueMarkers = $("#cue-markers");
 
     const state = {
       skin: "classic",
@@ -561,13 +624,20 @@ function buildMediaPlayerHtml(options: { apiUrl?: string; token?: string } = {})
       dspBass: false,
       dspTreble: false,
       dspVocal: false,
+      dspSpatial: false,
+      dspWarmth: false,
+      dspCompressor: false,
       loopA: null,
       loopB: null,
+      cues: [null, null, null, null],
+      pipOpen: false,
+      pipSize: "md",
       tracks: [],
       subtitles: [],
       currentIndex: -1,
       lrcCues: [],
     };
+    let pipProxyVideo = null;
 
     function updateStudioClock() {
       if (!studioClockBtn) return;
@@ -624,6 +694,17 @@ function buildMediaPlayerHtml(options: { apiUrl?: string; token?: string } = {})
       }
     }
 
+    function buildTapeWarmthCurve(drive = 2.2) {
+      const samples = 1024;
+      const curve = new Float32Array(samples);
+      const norm = Math.tanh(drive);
+      for (let i = 0; i < samples; i++) {
+        const x = (i * 2) / (samples - 1) - 1;
+        curve[i] = Math.tanh(x * drive) / norm;
+      }
+      return curve;
+    }
+
     function ensureAudioGraph() {
       if (graph) return graph;
       const Ctx = window.AudioContext || window.webkitAudioContext;
@@ -649,30 +730,42 @@ function buildMediaPlayerHtml(options: { apiUrl?: string; token?: string } = {})
         dspVocal.type = "peaking";
         dspVocal.frequency.value = 2200;
         dspVocal.Q.value = 1.2;
+        const dspSpatial = ctx.createBiquadFilter();
+        dspSpatial.type = "peaking";
+        dspSpatial.frequency.value = 3800;
+        dspSpatial.Q.value = 0.65;
+        const warmthShaper = typeof ctx.createWaveShaper === "function" ? ctx.createWaveShaper() : null;
+        if (warmthShaper) warmthShaper.oversample = "2x";
+        const compressor = typeof ctx.createDynamicsCompressor === "function" ? ctx.createDynamicsCompressor() : null;
+        if (compressor) {
+          compressor.threshold.value = -18;
+          compressor.knee.value = 12;
+          compressor.ratio.value = 4;
+          compressor.attack.value = 0.004;
+          compressor.release.value = 0.18;
+        }
         const panner = typeof ctx.createStereoPanner === "function" ? ctx.createStereoPanner() : null;
         const analyser = ctx.createAnalyser();
         analyser.fftSize = 256;
         analyser.smoothingTimeConstant = 0.78;
 
-        let node = source;
-        node.connect(preampNode);
-        node = preampNode;
-        for (const f of filters) {
-          node.connect(f);
-          node = f;
-        }
-        node.connect(dspBass);
-        dspBass.connect(dspTreble);
-        dspTreble.connect(dspVocal);
-        if (panner) {
-          dspVocal.connect(panner);
-          panner.connect(analyser);
-        } else {
-          dspVocal.connect(analyser);
-        }
-        analyser.connect(ctx.destination);
+        const chain = [
+          source,
+          preampNode,
+          ...filters,
+          dspBass,
+          dspTreble,
+          dspVocal,
+          dspSpatial,
+          ...(warmthShaper ? [warmthShaper] : []),
+          ...(compressor ? [compressor] : []),
+          ...(panner ? [panner] : []),
+          analyser,
+          ctx.destination,
+        ];
+        chain.reduce((a, b) => (a.connect(b), b));
         khzBadge.textContent = Math.round((ctx.sampleRate || 48000) / 1000) + " KHZ";
-        graph = { ctx, preampNode, filters, dspBass, dspTreble, dspVocal, panner, analyser };
+        graph = { ctx, preampNode, filters, dspBass, dspTreble, dspVocal, dspSpatial, warmthShaper, compressor, panner, analyser };
         applyEq();
       } catch {
         graph = null;
@@ -688,10 +781,18 @@ function buildMediaPlayerHtml(options: { apiUrl?: string; token?: string } = {})
           f.gain.value = state.eqOn ? state.eq[i] : 0;
         });
         graph.dspBass.gain.value = state.dspBass ? 5 : 0;
-        graph.dspTreble.gain.value = state.dspTreble ? 4 : 0;
+        graph.dspTreble.gain.value = state.dspTreble ? 4 : (state.dspSpatial ? 2.5 : 0);
         graph.dspVocal.gain.value = state.dspVocal ? 3.5 : 0;
+        if (graph.dspSpatial) graph.dspSpatial.gain.value = state.dspSpatial ? 4.2 : 0;
+        if (graph.warmthShaper) graph.warmthShaper.curve = state.dspWarmth ? buildTapeWarmthCurve(2.2) : null;
+        if (graph.compressor) {
+          graph.compressor.threshold.value = state.dspCompressor ? -16 : 0;
+          graph.compressor.ratio.value = state.dspCompressor ? 6 : 1;
+        }
         if (graph.panner) graph.panner.pan.value = Math.max(-1, Math.min(1, state.balance / 100));
       }
+      const stereoBadge = $("#badge-stereo");
+      if (stereoBadge) stereoBadge.textContent = state.dspSpatial ? "3D WIDE" : "STEREO";
       preampSlider.value = String(state.preamp);
       preampVal.textContent = (state.preamp > 0 ? "+" : "") + state.preamp + "dB";
       syncSlider(preampSlider);
@@ -853,12 +954,41 @@ function buildMediaPlayerHtml(options: { apiUrl?: string; token?: string } = {})
       }
     }
 
+    function drawPipFrame() {
+      if (!state.pipOpen || !pipCanvas) return;
+      const pCtx = pipCanvas.getContext("2d");
+      if (!pCtx) return;
+      const w = pipCanvas.width;
+      const h = pipCanvas.height;
+      pCtx.fillStyle = "#04070e";
+      pCtx.fillRect(0, 0, w, h);
+      const curTrack = state.tracks[state.currentIndex];
+      const isVid = curTrack && curTrack.kind === "video";
+      if (isVid && media.readyState >= 2 && media.videoWidth > 0 && media.videoHeight > 0) {
+        const scale = Math.min(w / media.videoWidth, h / media.videoHeight);
+        const dw = media.videoWidth * scale;
+        const dh = media.videoHeight * scale;
+        try {
+          pCtx.drawImage(media, (w - dw) / 2, (h - dh) / 2, dw, dh);
+        } catch {}
+        if (pipModeChip) pipModeChip.textContent = "🎞️ VIDEO " + media.videoWidth + "×" + media.videoHeight;
+      } else {
+        try {
+          pCtx.drawImage(vizCanvas, 0, 0, w, h);
+        } catch {}
+        if (pipModeChip) pipModeChip.textContent = "✨ " + formatVizLabel(state.vizMode);
+      }
+      if (pipClockChip) {
+        pipClockChip.textContent = formatClock(media.currentTime) + " / " + (Number.isFinite(media.duration) && media.duration > 0 ? formatClock(media.duration) : "0:00");
+      }
+    }
+
     function drawVisualizerFrame() {
       raf = 0;
       const curTrack = state.tracks[state.currentIndex];
-      if (curTrack && curTrack.kind === "video") return;
+      const isVid = !!(curTrack && curTrack.kind === "video");
       const playing = !media.paused && !!graph;
-      if (playing) raf = requestAnimationFrame(drawVisualizerFrame);
+      if (playing || state.pipOpen) raf = requestAnimationFrame(drawVisualizerFrame);
       vizPhase++;
       if (playing && state.vizAutoCycle && performance.now() - lastAutoCycleMs > 7000) {
         lastAutoCycleMs = performance.now();
@@ -867,22 +997,174 @@ function buildMediaPlayerHtml(options: { apiUrl?: string; token?: string } = {})
         const next = VIZ_MODES[(idx + 1) % VIZ_MODES.length];
         setVizMode(next.id);
       }
-      const binCount = graph ? graph.analyser.frequencyBinCount : 128;
-      const freq = new Uint8Array(binCount);
-      const time = new Uint8Array(binCount);
-      if (playing) {
-        graph.analyser.getByteFrequencyData(freq);
-        graph.analyser.getByteTimeDomainData(time);
-      } else {
-        for (let i = 0; i < binCount; i++) {
-          freq[i] = Math.max(12, Math.round(95 * Math.exp(-i / 42) + 45 * Math.sin(i * 0.28 + 0.8) * Math.sin(i * 0.11)));
-          time[i] = Math.round(128 + 38 * Math.sin(i * 0.22) * Math.cos(i * 0.07));
+      if (!isVid) {
+        const binCount = graph ? graph.analyser.frequencyBinCount : 128;
+        const freq = new Uint8Array(binCount);
+        const time = new Uint8Array(binCount);
+        if (playing) {
+          graph.analyser.getByteFrequencyData(freq);
+          graph.analyser.getByteTimeDomainData(time);
+        } else {
+          for (let i = 0; i < binCount; i++) {
+            freq[i] = Math.max(12, Math.round(95 * Math.exp(-i / 42) + 45 * Math.sin(i * 0.28 + 0.8 + vizPhase * 0.03) * Math.sin(i * 0.11)));
+            time[i] = Math.round(128 + 38 * Math.sin(i * 0.22 + vizPhase * 0.04) * Math.cos(i * 0.07));
+          }
+        }
+        const g2 = vizCanvas.getContext("2d");
+        if (g2) {
+          const accent = getComputedStyle(shell).getPropertyValue("--wa-led").trim() || "#00ff44";
+          renderAudioVisualizer(g2, vizCanvas.width, vizCanvas.height, state.vizMode, freq, time, peaks, accent, vizPhase);
         }
       }
-      const g2 = vizCanvas.getContext("2d");
-      if (!g2) return;
-      const accent = getComputedStyle(shell).getPropertyValue("--wa-led").trim() || "#00ff44";
-      renderAudioVisualizer(g2, vizCanvas.width, vizCanvas.height, state.vizMode, freq, time, peaks, accent, vizPhase);
+      if (state.pipOpen) drawPipFrame();
+    }
+
+    function renderCues() {
+      const d = media.duration;
+      if (cueMarkers) cueMarkers.replaceChildren();
+      state.cues.forEach((timeVal, i) => {
+        const hasCue = typeof timeVal === "number" && Number.isFinite(timeVal);
+        const btn = $("#btn-cue-" + i);
+        const lbl = $("#lbl-cue-" + i);
+        if (btn) btn.classList.toggle("is-set", hasCue);
+        if (lbl) lbl.textContent = hasCue ? (i + 1) + " · " + formatClock(timeVal) : "CUE " + (i + 1);
+        if (hasCue && cueMarkers && Number.isFinite(d) && d > 0) {
+          const pct = Math.max(0, Math.min(100, (timeVal / d) * 100));
+          const m = document.createElement("span");
+          m.className = "wa-cue-marker";
+          m.style.left = pct + "%";
+          cueMarkers.append(m);
+        }
+      });
+    }
+
+    function triggerOrSetCue(idx, clear = false) {
+      if (idx < 0 || idx >= state.cues.length) return;
+      if (clear) {
+        state.cues[idx] = null;
+        renderCues();
+        return;
+      }
+      if (state.cues[idx] === null) {
+        state.cues[idx] = Number.isFinite(media.currentTime) ? media.currentTime : 0;
+        renderCues();
+      } else {
+        media.currentTime = state.cues[idx];
+        if (media.paused && state.currentIndex >= 0) media.play()?.catch(() => {});
+      }
+    }
+
+    function openFloatingPip() {
+      state.pipOpen = true;
+      if (floatingPip) {
+        floatingPip.hidden = false;
+        floatingPip.dataset.skin = state.skin;
+        floatingPip.dataset.size = state.pipSize;
+      }
+      $("#btn-video-pip")?.classList.add("is-on");
+      drawVisualizerFrame();
+      drawPipFrame();
+    }
+
+    async function closeFloatingPip() {
+      state.pipOpen = false;
+      if (floatingPip) floatingPip.hidden = true;
+      $("#btn-video-pip")?.classList.remove("is-on");
+      try {
+        if (document.pictureInPictureElement) await document.exitPictureInPicture();
+        else if (typeof media.webkitSetPresentationMode === "function" && media.webkitPresentationMode === "picture-in-picture") {
+          media.webkitSetPresentationMode("inline");
+        }
+      } catch {}
+    }
+
+    async function popOutNativeOsPip() {
+      try {
+        if (document.pictureInPictureElement) {
+          await document.exitPictureInPicture();
+          return;
+        }
+        if (typeof media.webkitSetPresentationMode === "function" && media.webkitPresentationMode === "picture-in-picture") {
+          media.webkitSetPresentationMode("inline");
+          return;
+        }
+        const curTrack = state.tracks[state.currentIndex];
+        const isVid = !!(curTrack && curTrack.kind === "video");
+        if (isVid && media.readyState >= 1 && media.videoWidth > 0) {
+          if (typeof media.requestPictureInPicture === "function") {
+            await media.requestPictureInPicture();
+            return;
+          }
+          if (typeof media.webkitSupportsPresentationMode === "function" && media.webkitSupportsPresentationMode("picture-in-picture")) {
+            media.webkitSetPresentationMode("picture-in-picture");
+            return;
+          }
+        }
+        if (typeof vizCanvas.captureStream === "function") {
+          if (!raf) raf = requestAnimationFrame(drawVisualizerFrame);
+          if (!pipProxyVideo) {
+            pipProxyVideo = document.createElement("video");
+            pipProxyVideo.muted = true;
+            pipProxyVideo.playsInline = true;
+            pipProxyVideo.width = 540;
+            pipProxyVideo.height = 170;
+            pipProxyVideo.style.cssText = "position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;";
+            document.body.append(pipProxyVideo);
+          }
+          pipProxyVideo.srcObject = vizCanvas.captureStream(30);
+          await pipProxyVideo.play();
+          if (typeof pipProxyVideo.requestPictureInPicture === "function") {
+            await pipProxyVideo.requestPictureInPicture();
+            return;
+          }
+          if (typeof pipProxyVideo.webkitSupportsPresentationMode === "function" && pipProxyVideo.webkitSupportsPresentationMode("picture-in-picture")) {
+            pipProxyVideo.webkitSetPresentationMode("picture-in-picture");
+            return;
+          }
+        }
+      } catch {}
+      if (!state.pipOpen) openFloatingPip();
+    }
+
+    function captureStageSnapshot() {
+      try {
+        const stage = $("#stage-box");
+        if (stage) {
+          stage.classList.remove("is-flashing");
+          void stage.offsetWidth;
+          stage.classList.add("is-flashing");
+          setTimeout(() => stage.classList.remove("is-flashing"), 420);
+        }
+        const curTrack = state.tracks[state.currentIndex];
+        const useVideo = !!(curTrack && curTrack.kind === "video" && media.readyState >= 2 && media.videoWidth > 0 && media.videoHeight > 0);
+        const w = useVideo ? media.videoWidth : 1080;
+        const h = useVideo ? media.videoHeight : 420;
+        const snapCanvas = document.createElement("canvas");
+        snapCanvas.width = w;
+        snapCanvas.height = h;
+        const ctx = snapCanvas.getContext("2d");
+        if (!ctx) return;
+        ctx.fillStyle = "#04070e";
+        ctx.fillRect(0, 0, w, h);
+        if (useVideo) ctx.drawImage(media, 0, 0, w, h);
+        else ctx.drawImage(vizCanvas, 0, 0, w, h);
+        const barH = Math.max(28, Math.round(h * 0.08));
+        ctx.fillStyle = "rgba(4, 7, 15, 0.78)";
+        ctx.fillRect(0, h - barH, w, barH);
+        ctx.fillStyle = "#38bdf8";
+        ctx.font = "bold " + Math.max(11, Math.round(barH * 0.42)) + "px ui-monospace, SFMono-Regular, Menlo, monospace";
+        const trackName = curTrack ? curTrack.name : "AmpDeck Studio Pro";
+        ctx.fillText("⚡ AMPDECK PRO // " + trackName, 14, h - Math.round(barH * 0.34));
+        ctx.textAlign = "right";
+        ctx.fillStyle = "#f8fafc";
+        ctx.fillText((useVideo ? "VIDEO STAGE" : formatVizLabel(state.vizMode)) + " · " + formatClock(media.currentTime), w - 14, h - Math.round(barH * 0.34));
+        const a = document.createElement("a");
+        a.href = snapCanvas.toDataURL("image/png");
+        a.download = "ampdeck-snapshot-" + Math.round(media.currentTime || 0) + "s.png";
+        document.body.append(a);
+        a.click();
+        a.remove();
+      } catch {}
     }
 
     function renderPlaylist() {
@@ -956,18 +1238,21 @@ function buildMediaPlayerHtml(options: { apiUrl?: string; token?: string } = {})
       if (idx < 0 || idx >= state.tracks.length) return;
       media.pause();
       state.currentIndex = idx;
+      state.cues = [null, null, null, null];
+      renderCues();
       queue.jumpTo(idx);
       const tr = state.tracks[idx];
       const isVid = tr.kind === "video";
       shell.classList.toggle("is-video", isVid);
       marquee.textContent = "*** " + (idx + 1) + ". " + tr.name.toUpperCase() + " ***";
+      if (pipTitle) pipTitle.textContent = tr.name;
       media.src = API_BASE + "/api/raw?path=" + encodeURIComponent(tr.path) + "&token=" + encodeURIComponent(TOKEN);
       media.playbackRate = state.rate;
       media.preservesPitch = !state.vinylPitch;
       renderPlaylist();
       loadLyricsForTrack(tr);
       try {
-        if (!isVid || state.dspBass || state.dspTreble || state.dspVocal || state.balance !== 0) {
+        if (!isVid || state.dspBass || state.dspTreble || state.dspVocal || state.dspSpatial || state.dspWarmth || state.dspCompressor || state.balance !== 0) {
           ensureAudioGraph();
           if (graph && graph.ctx.state === "suspended") await graph.ctx.resume();
         }
@@ -993,6 +1278,7 @@ function buildMediaPlayerHtml(options: { apiUrl?: string; token?: string } = {})
     $("#select-skin").addEventListener("change", (e) => {
       state.skin = e.target.value;
       shell.dataset.skin = state.skin;
+      if (floatingPip) floatingPip.dataset.skin = state.skin;
       drawEqSpline();
       if (media.paused) drawVisualizerFrame();
     });
@@ -1080,14 +1366,117 @@ function buildMediaPlayerHtml(options: { apiUrl?: string; token?: string } = {})
       });
     }
     vizCanvas.addEventListener("click", () => $("#btn-viz-mode").click());
+    $("#btn-video-snap")?.addEventListener("click", () => captureStageSnapshot());
     $("#btn-video-pip").addEventListener("click", () => {
-      if (document.pictureInPictureElement) document.exitPictureInPicture?.().catch(() => {});
-      else media.requestPictureInPicture?.().catch(() => {});
+      if (state.pipOpen) closeFloatingPip();
+      else openFloatingPip();
     });
-    $("#btn-video-fs").addEventListener("click", () => {
+    $("#btn-pip-size")?.addEventListener("click", (e) => {
+      const order = ["sm", "md", "lg"];
+      state.pipSize = order[(order.indexOf(state.pipSize) + 1) % order.length];
+      if (floatingPip) floatingPip.dataset.size = state.pipSize;
+      e.currentTarget.textContent = state.pipSize.toUpperCase();
+    });
+    $("#btn-pip-os")?.addEventListener("click", () => popOutNativeOsPip());
+    $("#btn-pip-close")?.addEventListener("click", () => closeFloatingPip());
+    $("#btn-pip-prev")?.addEventListener("click", () => $("#btn-prev")?.click());
+    $("#btn-pip-play")?.addEventListener("click", () => playBtn.click());
+    $("#btn-pip-next")?.addEventListener("click", () => $("#btn-next")?.click());
+    $("#btn-pip-mute")?.addEventListener("click", () => $("#btn-mute")?.click());
+    $("#btn-pip-viz")?.addEventListener("click", () => $("#btn-viz-mode")?.click());
+    $("#btn-pip-snap")?.addEventListener("click", () => captureStageSnapshot());
+    pipCanvas?.addEventListener("click", () => playBtn.click());
+    pipCanvas?.addEventListener("dblclick", () => $("#btn-viz-mode")?.click());
+    pipSeekSlider?.addEventListener("input", () => {
+      if (Number.isFinite(media.duration) && media.duration > 0) {
+        media.currentTime = (Number(pipSeekSlider.value) / 1000) * media.duration;
+      }
+      syncSlider(pipSeekSlider);
+    });
+    let pipDrag = null;
+    pipHeader?.addEventListener("pointerdown", (ev) => {
+      if (ev.target instanceof HTMLElement && ev.target.closest("button")) return;
+      const rect = floatingPip.getBoundingClientRect();
+      pipDrag = { id: ev.pointerId, startX: ev.clientX, startY: ev.clientY, origLeft: rect.left, origTop: rect.top };
+      pipHeader.setPointerCapture?.(ev.pointerId);
+    });
+    pipHeader?.addEventListener("pointermove", (ev) => {
+      if (!pipDrag || pipDrag.id !== ev.pointerId) return;
+      const maxLeft = Math.max(8, (window.innerWidth || 1200) - floatingPip.offsetWidth - 8);
+      const maxTop = Math.max(8, (window.innerHeight || 800) - floatingPip.offsetHeight - 8);
+      floatingPip.style.left = Math.max(8, Math.min(maxLeft, pipDrag.origLeft + (ev.clientX - pipDrag.startX))) + "px";
+      floatingPip.style.top = Math.max(8, Math.min(maxTop, pipDrag.origTop + (ev.clientY - pipDrag.startY))) + "px";
+      floatingPip.style.right = "auto";
+      floatingPip.style.bottom = "auto";
+    });
+    pipHeader?.addEventListener("pointerup", () => { pipDrag = null; });
+    pipHeader?.addEventListener("pointercancel", () => { pipDrag = null; });
+
+    const videoFsBtn = $("#btn-video-fs");
+    function setStageFill(on) {
       const stage = $("#stage-box");
-      if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
-      else stage.requestFullscreen?.().catch(() => {});
+      if (!stage) return;
+      stage.classList.toggle("is-stage-fullscreen", on);
+      if (videoFsBtn) {
+        videoFsBtn.classList.toggle("is-on", on);
+        videoFsBtn.setAttribute("aria-pressed", String(on));
+        videoFsBtn.textContent = on ? "🗗 Restore" : "⛶ Full";
+      }
+    }
+    videoFsBtn.addEventListener("click", async () => {
+      const stage = $("#stage-box");
+      if (stage.classList.contains("is-stage-fullscreen")) {
+        setStageFill(false);
+        return;
+      }
+      const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+      if (fsEl) {
+        try { await (document.exitFullscreen || document.webkitExitFullscreen)?.call(document); } catch {}
+        return;
+      }
+      try {
+        if (stage.requestFullscreen && document.fullscreenEnabled) {
+          await stage.requestFullscreen();
+          return;
+        }
+        if (stage.webkitRequestFullscreen && document.webkitFullscreenEnabled) {
+          stage.webkitRequestFullscreen();
+          return;
+        }
+      } catch {}
+      setStageFill(true);
+    });
+    window.addEventListener("keydown", (ev) => {
+      if (ev.key === "Escape" && !ev.defaultPrevented && !ev.ctrlKey && !ev.metaKey && !ev.altKey && !ev.shiftKey) {
+        const stage = $("#stage-box");
+        if (stage && stage.classList.contains("is-stage-fullscreen")) {
+          ev.preventDefault();
+          ev.stopPropagation();
+          setStageFill(false);
+        }
+      }
+    }, true);
+    seekWrap?.addEventListener("pointermove", (ev) => {
+      const rect = seekWrap.getBoundingClientRect();
+      if (!rect.width || !seekTooltip) return;
+      const ratio = Math.max(0, Math.min(1, (ev.clientX - rect.left) / rect.width));
+      seekWrap.style.setProperty("--seek-hover-x", (Math.round(ratio * 1000) / 10) + "%");
+      const d = media.duration;
+      const hoverTime = Number.isFinite(d) && d > 0 ? formatClock(ratio * d) : "0:00";
+      seekTooltip.textContent = hoverTime + " · " + Math.round(ratio * 100) + "%";
+      seekTooltip.hidden = false;
+    });
+    seekWrap?.addEventListener("pointerleave", () => {
+      if (seekTooltip) seekTooltip.hidden = true;
+    });
+    [0, 1, 2, 3].forEach((i) => {
+      const b = $("#btn-cue-" + i);
+      b?.addEventListener("click", (ev) => triggerOrSetCue(i, ev.shiftKey));
+      b?.addEventListener("contextmenu", (ev) => { ev.preventDefault(); triggerOrSetCue(i, true); });
+    });
+    $("#btn-cue-clear")?.addEventListener("click", () => {
+      state.cues = [null, null, null, null];
+      renderCues();
     });
     seekSlider.addEventListener("input", () => {
       if (Number.isFinite(media.duration) && media.duration > 0) {
@@ -1098,7 +1487,10 @@ function buildMediaPlayerHtml(options: { apiUrl?: string; token?: string } = {})
     $("#btn-mute").addEventListener("click", () => {
       state.muted = !state.muted;
       media.muted = state.muted;
-      $("#btn-mute").textContent = state.muted ? "🔇" : "🔊";
+      const icon = state.muted ? "🔇" : "🔊";
+      $("#btn-mute").textContent = icon;
+      const pm = $("#btn-pip-mute");
+      if (pm) pm.textContent = icon;
     });
     volSlider.addEventListener("input", () => {
       state.volume = Number(volSlider.value) / 100;
@@ -1205,6 +1597,32 @@ function buildMediaPlayerHtml(options: { apiUrl?: string; token?: string } = {})
         applyEq();
       });
     });
+    let draggingEqCurve = false;
+    function sculptEqFromPointer(ev) {
+      const rect = eqCanvas.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      const xRatio = Math.max(0, Math.min(0.999, (ev.clientX - rect.left) / rect.width));
+      const yRatio = Math.max(0, Math.min(1, (ev.clientY - rect.top) / rect.height));
+      const bandIdx = Math.min(EQ_BANDS.length - 1, Math.floor(xRatio * EQ_BANDS.length));
+      const gain = clampGain(Math.round((0.5 - yRatio) * 24));
+      if (state.eq[bandIdx] !== gain) {
+        state.eq[bandIdx] = gain;
+        state.preset = "Custom";
+        state.eqOn = true;
+        eqOnChk.checked = true;
+        applyEq();
+      }
+    }
+    eqCanvas.addEventListener("pointerdown", (ev) => {
+      draggingEqCurve = true;
+      eqCanvas.setPointerCapture?.(ev.pointerId);
+      sculptEqFromPointer(ev);
+    });
+    eqCanvas.addEventListener("pointermove", (ev) => {
+      if (draggingEqCurve) sculptEqFromPointer(ev);
+    });
+    eqCanvas.addEventListener("pointerup", () => { draggingEqCurve = false; });
+    eqCanvas.addEventListener("pointercancel", () => { draggingEqCurve = false; });
     $("#btn-dsp-bass").addEventListener("click", (e) => {
       state.dspBass = !state.dspBass;
       e.currentTarget.classList.toggle("is-on", state.dspBass);
@@ -1221,6 +1639,24 @@ function buildMediaPlayerHtml(options: { apiUrl?: string; token?: string } = {})
       state.dspVocal = !state.dspVocal;
       e.currentTarget.classList.toggle("is-on", state.dspVocal);
       e.currentTarget.setAttribute("aria-pressed", String(state.dspVocal));
+      applyEq();
+    });
+    $("#btn-dsp-spatial")?.addEventListener("click", (e) => {
+      state.dspSpatial = !state.dspSpatial;
+      e.currentTarget.classList.toggle("is-on", state.dspSpatial);
+      e.currentTarget.setAttribute("aria-pressed", String(state.dspSpatial));
+      applyEq();
+    });
+    $("#btn-dsp-warmth")?.addEventListener("click", (e) => {
+      state.dspWarmth = !state.dspWarmth;
+      e.currentTarget.classList.toggle("is-on", state.dspWarmth);
+      e.currentTarget.setAttribute("aria-pressed", String(state.dspWarmth));
+      applyEq();
+    });
+    $("#btn-dsp-comp")?.addEventListener("click", (e) => {
+      state.dspCompressor = !state.dspCompressor;
+      e.currentTarget.classList.toggle("is-on", state.dspCompressor);
+      e.currentTarget.setAttribute("aria-pressed", String(state.dspCompressor));
       applyEq();
     });
     $("#btn-load-library").addEventListener("click", () => scanFolder(""));
@@ -1263,16 +1699,18 @@ function buildMediaPlayerHtml(options: { apiUrl?: string; token?: string } = {})
 
     media.addEventListener("play", () => {
       playBtn.textContent = "⏸";
+      if (pipPlayBtn) pipPlayBtn.textContent = "⏸";
       playState.textContent = "▶ PLAYING";
-      const curTrack = state.tracks[state.currentIndex];
-      if ((!curTrack || curTrack.kind !== "video") && !raf) raf = requestAnimationFrame(drawVisualizerFrame);
+      if (!raf) raf = requestAnimationFrame(drawVisualizerFrame);
     });
     media.addEventListener("pause", () => {
       playBtn.textContent = "▶";
+      if (pipPlayBtn) pipPlayBtn.textContent = "▶";
       playState.textContent = "⏸ PAUSED";
     });
     media.addEventListener("loadedmetadata", () => {
       durationLbl.textContent = formatClock(media.duration);
+      renderCues();
       const tr = state.tracks[state.currentIndex];
       if (tr && tr.size && media.duration > 0) {
         kbpsBadge.textContent = Math.round((tr.size * 8) / media.duration / 1000) + " KBPS";
@@ -1285,8 +1723,13 @@ function buildMediaPlayerHtml(options: { apiUrl?: string; token?: string } = {})
       elapsedLbl.textContent = formatClock(media.currentTime);
       ledClock.textContent = formatLedClock(media.currentTime, media.duration, state.remainingTime);
       if (Number.isFinite(media.duration) && media.duration > 0) {
-        seekSlider.value = String(Math.round((media.currentTime / media.duration) * 1000));
+        const val = String(Math.round((media.currentTime / media.duration) * 1000));
+        seekSlider.value = val;
         syncSlider(seekSlider);
+        if (pipSeekSlider) {
+          pipSeekSlider.value = val;
+          syncSlider(pipSeekSlider);
+        }
       }
       if (state.lrcCues.length) {
         const idx = activeLrcIndex(state.lrcCues, media.currentTime);
@@ -1300,7 +1743,7 @@ function buildMediaPlayerHtml(options: { apiUrl?: string; token?: string } = {})
       if (idx >= 0) playTrack(idx);
     });
 
-    for (const s of [seekSlider, volSlider, balSlider, preampSlider, ...bandSliders]) syncSlider(s);
+    for (const s of [seekSlider, pipSeekSlider, volSlider, balSlider, preampSlider, ...bandSliders]) syncSlider(s);
     applyEq();
     drawVisualizerFrame();
     if (API_BASE || TOKEN) scanFolder(folderInput.value);

@@ -12,7 +12,7 @@ import { emit, state } from "./state.js";
 
 /** The groups the tab strip is arranged in, in this order. A tab can name one with `group`. */
 const GROUPS = [["files", "Files and text"], ["data", "Databases"], ["media", "Pictures and media"], ["automate", "Automate"], ["security", "Security"], ["network", "Network"], ["handy", "Handy"], ["more", "More"]];
-const DEFAULT_GROUP = { find: "files", compare: "files", projects: "files", sd: "files", code: "files", dev: "files", databases: "data", paint: "media", phonon: "media", watch: "automate", actions: "automate", serve: "automate", ollama: "automate", crypto: "security", vault: "security", ip: "network", net: "network", calc: "handy", timer: "handy", qr: "handy" };
+const DEFAULT_GROUP = { find: "files", compare: "files", projects: "files", sd: "files", code: "files", dev: "files", databases: "data", paint: "media", phonon: "media", watch: "automate", actions: "automate", serve: "automate", ollama: "automate", bionic: "automate", crypto: "security", vault: "security", ip: "network", net: "network", calc: "handy", timer: "handy", qr: "handy" };
 const EMBEDDED_IDS = new Set([
   "calc", "timer", "paint",
   "balatro", "blackjack", "breakout", "codecaine_bros", "connect4",
@@ -38,7 +38,7 @@ let host = null;
 const groupOf = (t) => (GROUPS.some(([g]) => g === t.group) ? t.group : DEFAULT_GROUP[t.id] ?? "more");
 
 /** The tools in the order the tab strip shows them within a group; a tool not listed comes after these. */
-const TOOL_ORDER = ["find", "compare", "sd", "code", "dev", "projects", "bundler", "watch", "actions", "serve", "ollama", "crypto", "vault", "env", "ip", "net", "subs", "downloads", "api", "calc", "timer", "qr", "imagestudio", "paint", "player", "mediastudio", "phonon", "databases", "tasks", "sysinfo", "games"];
+const TOOL_ORDER = ["find", "compare", "sd", "code", "dev", "projects", "bundler", "watch", "actions", "cliutils", "serve", "ollama", "bionic", "crypto", "vault", "env", "ip", "net", "subs", "downloads", "api", "calc", "timer", "qr", "imagestudio", "paint", "player", "mediastudio", "phonon", "databases", "tasks", "sysinfo", "games"];
 
 /** The tabs in the order they are shown: grouped, then in a steady order within a group. */
 function orderedTabs() {
@@ -94,7 +94,8 @@ export function setPowerExpanded(expanded) {
   if (frame) {
     try {
       frame.focus();
-      frame.contentWindow?.focus?.();
+      const childWin = frame.contentWindow?.frames?.length ? frame.contentWindow.frames[0] : frame.contentWindow;
+      childWin?.focus?.();
       frame.contentWindow?.dispatchEvent?.(new Event("resize"));
     } catch { /* cross-origin frame */ }
   }
@@ -495,7 +496,7 @@ export function wirePower() {
   });
   if (typeof window !== "undefined") {
     window.addEventListener("message", (e) => {
-      if (!e.data || typeof e.data !== "object" || document.querySelector(".modal-backdrop")) return;
+      if (!e.data || typeof e.data !== "object") return;
       const ownOrigin = typeof location !== "undefined" ? location.origin : "";
       const altOrigin =
         typeof location !== "undefined" && (location.hostname === "127.0.0.1" || location.hostname === "localhost")
@@ -503,9 +504,14 @@ export function wirePower() {
           : "";
       const isAllowedOrigin =
         !e.origin || e.origin === ownOrigin || (Boolean(altOrigin) && e.origin === altOrigin);
+      const isLoopbackOrigin =
+        !e.origin || /^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/i.test(String(e.origin));
       const frames = [...document.querySelectorAll("#power-panel iframe")];
       const fromMountedFrame = frames.some((f) => {
         if (f.contentWindow === e.source) return true;
+        try {
+          if (e.source && e.source.parent === f.contentWindow) return true;
+        } catch { /* cross-origin frame */ }
         try {
           for (let i = 0; i < (f.contentWindow?.frames?.length ?? 0); i++) {
             if (f.contentWindow.frames[i] === e.source) return true;
@@ -515,14 +521,21 @@ export function wirePower() {
       });
       const fromPowerFrame =
         (e.source === window && isAllowedOrigin) ||
-        (fromMountedFrame && isAllowedOrigin) ||
-        (frames.length > 0 && Boolean(e.origin) && (e.origin === ownOrigin || (Boolean(altOrigin) && e.origin === altOrigin)));
+        (fromMountedFrame && isLoopbackOrigin) ||
+        (frames.length > 0 && Boolean(e.origin) && isLoopbackOrigin);
       if (!fromPowerFrame) return;
+      if (e.data.fmCloseApp) {
+        const quit = window.quitApp || window.closeApp || window.closeWindow;
+        if (typeof quit === "function") void quit.call(window);
+        return;
+      }
+      if (document.querySelector(".modal-backdrop")) return;
       if (e.data.fmToggleExpand) togglePowerExpanded();
       else if (e.data.fmEscapeExpand) {
         const app = document.getElementById("app");
         if (app?.classList.contains("db-studio-max")) app.querySelector(".db-studio:not([hidden]) .db-expand")?.click();
         else if (isPowerExpanded()) setPowerExpanded(false);
+        else if (app?.classList.contains("focus-mode")) document.getElementById("focus-toggle")?.click();
       }
       else if (e.data.fmFilterTools) focusPowerFilter();
       else if (typeof e.data.fmCopyText === "string" && e.data.fmCopyText.length > 0 && e.data.fmCopyText.length <= 1_000_000) {

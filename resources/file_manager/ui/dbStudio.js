@@ -5,9 +5,10 @@ import { ApiError, call } from "./api.js";
 import { confirmBox } from "./dialogs.js";
 import { clear, h } from "./dom.js";
 import { db, errorText, loadOverview } from "./dbState.js";
-import { embeddedUrl } from "./embed.js";
+import { embeddedUrl, syncFrameTheme } from "./embed.js";
 import { toast } from "./menus.js";
-import { emit } from "./state.js";
+import { emit, on } from "./state.js";
+import { currentThemePayload } from "./themes.js";
 
 /**
  * What the frame may do, and why each is needed:
@@ -47,6 +48,16 @@ export function setStudioExpanded(next) {
   if (root) root.dataset.maximized = expanded ? "true" : "false";
   if (typeof document !== "undefined") document.getElementById("app")?.classList.toggle("db-studio-max", expanded);
   for (const p of panes.values()) syncExpandButton(p.parts.expand);
+  if (expanded && activeId) {
+    const frame = panes.get(activeId)?.frame;
+    if (frame) {
+      try {
+        frame.focus();
+        const inner = frame.contentWindow?.frames?.length ? frame.contentWindow.frames[0] : frame.contentWindow;
+        inner?.focus?.();
+      } catch { /* cross-origin frame */ }
+    }
+  }
 }
 
 export function toggleStudioExpanded() {
@@ -63,6 +74,20 @@ function ensureEscapeListener() {
     e.stopPropagation();
     setStudioExpanded(false);
   }, true);
+  if (typeof window !== "undefined") {
+    window.addEventListener("message", (e) => {
+      if (e.data && typeof e.data === "object" && e.data.fmRequestTheme) {
+        try {
+          e.source?.postMessage?.({ fmTheme: currentThemePayload() }, "*");
+        } catch { /* ignore */ }
+      }
+    });
+  }
+  on("theme-changed", (payload) => {
+    for (const p of panes.values()) {
+      if (p.frame) syncFrameTheme(p.frame, payload);
+    }
+  });
 }
 
 /** Where the panes live (the Databases tab gives one container). */
@@ -199,6 +224,10 @@ function paint(pane) {
   parts.message.textContent = note ?? "";
   if (live && !pane.frame) {
     const frame = h("iframe", { class: "db-studio-frame", title: info.title, src: embeddedUrl(`dbstudio/${info.id}`), referrerpolicy: "no-referrer", loading: "eager", allow: "clipboard-write", sandbox: STUDIO_SANDBOX });
+    frame.addEventListener("load", () => {
+      syncFrameTheme(frame);
+      setTimeout(() => syncFrameTheme(frame), 180);
+    });
     pane.frame = frame;
     clear(pane.frameBox);
     pane.frameBox.append(frame);

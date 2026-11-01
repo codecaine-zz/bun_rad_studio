@@ -367,10 +367,72 @@ function studioPolishClient() {
     setupTabs();
     setupEditorCollapse();
     ["toastBox", "toast"].forEach((id) => { const t = document.getElementById(id); if (t) { t.setAttribute("role", "status"); t.setAttribute("aria-live", "polite"); } });
+    try {
+      if (window.top && window.top !== window) {
+        window.top.postMessage({ fmRequestTheme: true }, "*");
+      }
+    } catch (e) {}
   }
+  function applyFmTheme(t) {
+    if (!t || typeof t !== "object") return;
+    const v = t.vars || {};
+    const sv = t.subStudioVars || {};
+    const bg = v.bg || (t.scheme === "light" ? "#ffffff" : "#07090e");
+    const panel = v.panel || (t.scheme === "light" ? "#f3f5f8" : "#0d1117");
+    const card = v["surface-elevated"] || panel;
+    const sunken = v["surface-sunken"] || bg;
+    const text = v.text || (t.scheme === "light" ? "#0f172a" : "#e2e8f0");
+    const muted = v.muted || (t.scheme === "light" ? "#334155" : "#94a3b8");
+    const border = v.border || (t.scheme === "light" ? "#cbd5e1" : "rgba(255,255,255,0.12)");
+    const accent = v.accent || "#38bdf8";
+    const hover = v.hover || panel;
+    const r = document.documentElement;
+    r.dataset.theme = t.scheme || "dark";
+    r.dataset.palette = t.palette || "";
+    r.style.colorScheme = t.scheme || "dark";
+    r.style.setProperty("--bg-base", bg);
+    r.style.setProperty("--bg-surface", panel);
+    r.style.setProperty("--bg-card", card);
+    r.style.setProperty("--text-main", text);
+    r.style.setProperty("--text-muted", muted);
+    r.style.setProperty("--text-dim", muted);
+    r.style.setProperty("--cyan", accent);
+    r.style.setProperty("--cyan-glow", accent);
+    r.style.setProperty("--purple", v.selected || accent);
+    r.style.setProperty("--emerald", v.good || "#10b981");
+    r.style.setProperty("--rose", v.danger || "#f43f5e");
+    r.style.setProperty("--amber", v["warn-text"] || "#f59e0b");
+    r.style.setProperty("--border-subtle", border);
+    r.style.setProperty("--sc-line", border);
+    r.style.setProperty("--sc-line-strong", v["border-strong"] || border);
+    r.style.setProperty("--sc-hover", hover);
+    let st = document.getElementById("fm-db-studio-theme");
+    if (!st && document.head) {
+      st = document.createElement("style");
+      st.id = "fm-db-studio-theme";
+      document.head.appendChild(st);
+    }
+    if (st) {
+      const thBg = sv["--fm-db-header-bg"] || panel;
+      const rowAlt = sv["--fm-db-row-alt"] || sunken;
+      st.textContent =
+        `html, body { background: ${bg} !important; color: ${text} !important; }\n` +
+        `header, aside, #sidebar, #mainSidebar, .sidebar, .editor-banner, .toolbar, .status-bar { background: ${panel} !important; border-color: ${border} !important; color: ${text} !important; }\n` +
+        `table th, thead th { background: ${thBg} !important; color: ${text} !important; border-color: ${border} !important; }\n` +
+        `table td { border-color: ${border} !important; color: ${text} !important; }\n` +
+        `tbody tr:nth-child(even) { background: ${rowAlt}; }\n` +
+        `tbody tr:hover { background: ${hover} !important; }\n` +
+        `input, select, textarea, .sql-input, #sqlEditor { background: ${sunken} !important; color: ${text} !important; border-color: ${border} !important; }`;
+    }
+  }
+  window.addEventListener("message", (e) => {
+    if (e.data && typeof e.data === "object" && e.data.fmTheme) {
+      applyFmTheme(e.data.fmTheme);
+    }
+  });
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
   window.addEventListener("load", () => { wrapLoader("fetchTableData"); wrapLoader("loadTableData"); init(); });
-  window.StudioPolish = { enhanceBody, init };
+  window.StudioPolish = { enhanceBody, init, applyFmTheme };
 }
 
 export const STUDIO_POLISH_SCRIPT = `(${studioPolishClient.toString()})();`;

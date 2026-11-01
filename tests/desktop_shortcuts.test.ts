@@ -217,3 +217,96 @@ describe("SimpleGUI theme cycling", () => {
         expect(win.getValue("my_colors")).toBe(win.theme);
     });
 });
+
+describe("macOS native True Full Screen Escape preservation", () => {
+    test.skipIf(process.platform !== "darwin")("silenceMacKeyBeep neutralizes NSWindow cancelOperation: and _cancelKey: so Escape never exits macOS True Full Screen", async () => {
+        const { dlopen, FFIType } = await import("bun:ffi");
+        await import("webview-bun");
+        const { silenceMacKeyBeep } = await import("../src/windowNative");
+        silenceMacKeyBeep();
+        const objc = dlopen("libobjc.dylib", {
+            objc_getClass: { args: [FFIType.cstring], returns: FFIType.pointer },
+            sel_registerName: { args: [FFIType.cstring], returns: FFIType.pointer },
+            class_getMethodImplementation: { args: [FFIType.pointer, FFIType.pointer], returns: FFIType.pointer },
+        }).symbols;
+        const nsObject = objc.objc_getClass(Buffer.from("NSObject\0"));
+        const nsWindow = objc.objc_getClass(Buffer.from("NSWindow\0"));
+        const selfImp = objc.class_getMethodImplementation(nsObject, objc.sel_registerName(Buffer.from("self\0")));
+        const cancelImp = objc.class_getMethodImplementation(nsWindow, objc.sel_registerName(Buffer.from("cancelOperation:\0")));
+        const cancelKeyImp = objc.class_getMethodImplementation(nsWindow, objc.sel_registerName(Buffer.from("_cancelKey:\0")));
+        expect(cancelImp).toBe(selfImp);
+        expect(cancelKeyImp).toBe(selfImp);
+    });
+
+    test("hostedPage and studioShortcuts call preventDefault() on Escape when forwarding fmEscapeExpand from an iframe", async () => {
+        const { hostedPage } = await import("../src/simplegui_host");
+        const { STUDIO_SHORTCUTS_SCRIPT } = await import("../src/shared/studioShortcuts");
+        const hostedHtml = hostedPage({ id: "t", title: "T", html: "<!doctype html><head></head><body></body>", binds: new Map(), send: () => {} } as unknown as Parameters<typeof hostedPage>[0], "ws://127.0.0.1:1/ws");
+        const hostedScript = /<script>([\s\S]*?)<\/script>/i.exec(hostedHtml)![1]!;
+        for (const script of [hostedScript, STUDIO_SHORTCUTS_SCRIPT]) {
+            const parentDom = new JSDOM("<!doctype html><body><iframe></iframe></body>", { url: "http://127.0.0.1:9999/" });
+            const messages: unknown[] = [];
+            parentDom.window.postMessage = (msg: unknown) => { messages.push(msg); };
+            const frame = parentDom.window.document.querySelector("iframe")!;
+            const childWin = frame.contentWindow! as unknown as typeof parentDom.window;
+            new Function("window", "document", "parent", "navigator", "WebSocket", "location", script)(
+                childWin,
+                childWin.document,
+                parentDom.window,
+                childWin.navigator,
+                class { addEventListener() {} close() {} },
+                childWin.location,
+            );
+            const ev = new childWin.KeyboardEvent("keydown", { key: "Escape", code: "Escape", bubbles: true, cancelable: true });
+            childWin.dispatchEvent(ev);
+            expect(ev.defaultPrevented).toBe(true);
+            expect(messages).toContainEqual({ fmEscapeExpand: true });
+
+            const quitEv = new childWin.KeyboardEvent("keydown", { key: "q", code: "KeyQ", metaKey: true, bubbles: true, cancelable: true });
+            childWin.dispatchEvent(quitEv);
+            expect(quitEv.defaultPrevented).toBe(true);
+            expect(messages).toContainEqual({ fmCloseApp: true });
+            parentDom.window.close();
+        }
+    });
+
+    test("embedded studio iframes forward Cmd+Q and Cmd+W to the top host instead of shutting down the studio subprocess", () => {
+        for (const script of [DESKTOP_SHORTCUTS_SCRIPT, getWindowShortcutsScript(), simpleScript!]) {
+            const parentDom = new JSDOM("<!doctype html><body><iframe></iframe></body>", { url: "http://127.0.0.1:9999/" });
+            const posted: unknown[] = [];
+            parentDom.window.postMessage = (msg: unknown) => { posted.push(msg); };
+            const frame = parentDom.window.document.querySelector("iframe")!;
+            const childWin = frame.contentWindow! as unknown as typeof parentDom.window;
+            childWin.document.body.innerHTML = "<input id='sqlInput'>";
+            const fetchedUrls: string[] = [];
+            Object.assign(childWin, {
+                fetch: (url: string) => {
+                    fetchedUrls.push(String(url));
+                    return Promise.resolve({ ok: true });
+                },
+            });
+
+            new Function(
+                "window", "document", "Event", "navigator", "setTimeout", "setInterval", "fetch", "console", script,
+            )(
+                childWin,
+                childWin.document,
+                childWin.Event,
+                childWin.navigator,
+                () => 0,
+                () => 0,
+                (childWin as unknown as { fetch: unknown }).fetch,
+                console,
+            );
+
+            const input = childWin.document.getElementById("sqlInput")!;
+            const qEvent = new childWin.KeyboardEvent("keydown", { key: "q", code: "KeyQ", metaKey: true, bubbles: true, cancelable: true });
+            input.dispatchEvent(qEvent);
+            expect(qEvent.defaultPrevented).toBe(true);
+            expect(posted).toContainEqual({ fmCloseApp: true });
+            expect(fetchedUrls).toEqual([]);
+            expect(childWin.document.getElementById("shutdownOverlay")).toBeNull();
+            parentDom.window.close();
+        }
+    });
+});

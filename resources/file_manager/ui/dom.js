@@ -1156,6 +1156,10 @@ export function placeIconFor(placeId, label, packOverride, fallbackIcon) {
 /** Resolves the display icon for a File Manager entry, respecting custom Icon Pack styles when active. */
 export function iconForEntry(entry, packOverride) {
   const isDir = Boolean(entry?.isDir || entry?.isDirectory);
+  const folderFxOnly = typeof document !== "undefined" && document.documentElement?.dataset?.folderFxOnly === "true";
+  if (folderFxOnly && !isDir) {
+    return entry?.icon || iconFor(entry?.name || "", false, "default", entry?.kind);
+  }
   const pack = packOverride && ICON_PACK_GLYPHS[packOverride] ? packOverride : activeIconPackStyle();
   if (pack !== "default") {
     return iconFor(entry?.name || "", isDir, pack, entry?.kind);
@@ -1168,6 +1172,7 @@ export const entryIcon = iconForEntry;
 export function syncVisibleIcons(root = typeof document !== "undefined" ? document : null) {
   if (!root?.querySelectorAll) return;
   const pack = activeIconPackStyle();
+  const folderFxOnly = typeof document !== "undefined" && document.documentElement?.dataset?.folderFxOnly === "true";
   const activePalette = typeof document !== "undefined" ? (document.documentElement?.dataset?.palette || "") : "";
   const activeUiFx = typeof document !== "undefined" ? (document.documentElement?.dataset?.uiFx || "") : "";
   const holidaySpec = HOLIDAY_THEME_CRESTS[activePalette] || (activeUiFx === "holiday_festive_glow" ? HOLIDAY_THEME_CRESTS.holiday_halloween_jack_o_lantern : null);
@@ -1178,12 +1183,14 @@ export function syncVisibleIcons(root = typeof document !== "undefined" ? docume
     const nameEl = row.querySelector(".name-text");
     const isDir = row.classList.contains("is-folder") || row.dataset.isDir === "1";
     const name = row.dataset.entryName || nameEl?.textContent || "";
-    const holidayBadge = holidaySpec?.badge || "";
+    const holidayBadge = folderFxOnly ? "" : (holidaySpec?.badge || "");
+    const rowPack = (!isDir && folderFxOnly) ? "default" : pack;
     if (isDir) {
       if (holidayCrest) {
         if (row.dataset.holidayCrest !== holidayCrest) row.dataset.holidayCrest = holidayCrest;
         if (ico.dataset.holidayCrest !== holidayCrest) ico.dataset.holidayCrest = holidayCrest;
-        if (nameEl && nameEl.dataset.holidayCrest !== holidayCrest) nameEl.dataset.holidayCrest = holidayCrest;
+        if (!folderFxOnly && nameEl && nameEl.dataset.holidayCrest !== holidayCrest) nameEl.dataset.holidayCrest = holidayCrest;
+        if (folderFxOnly && nameEl?.dataset?.holidayCrest) delete nameEl.dataset.holidayCrest;
       } else {
         if (row.dataset.holidayCrest) delete row.dataset.holidayCrest;
         if (ico.dataset.holidayCrest) delete ico.dataset.holidayCrest;
@@ -1201,7 +1208,7 @@ export function syncVisibleIcons(root = typeof document !== "undefined" ? docume
       if (ico.dataset.holidayBadge) delete ico.dataset.holidayBadge;
       if (nameEl?.dataset?.holidayBadge) delete nameEl.dataset.holidayBadge;
     }
-    if (ico.dataset.appliedPack === pack && ico.dataset.appliedName === name && ico.dataset.iconKind) {
+    if (ico.dataset.appliedPack === rowPack && ico.dataset.appliedName === name && ico.dataset.iconKind) {
       return;
     }
     const kind = classifyIconKind(name, isDir);
@@ -1220,11 +1227,11 @@ export function syncVisibleIcons(root = typeof document !== "undefined" ? docume
       if (ico.dataset.folderTopic !== topic) ico.dataset.folderTopic = topic;
       if (ico.dataset.topic !== topic) ico.dataset.topic = topic;
     }
-    const nextGlyph = pack === "default"
+    const nextGlyph = rowPack === "default"
       ? (row.dataset.defaultIcon || iconFor(name, isDir, "default", kind))
-      : iconFor(name, isDir, pack, kind);
+      : iconFor(name, isDir, rowPack, kind);
     if (ico.textContent !== nextGlyph) ico.textContent = nextGlyph;
-    ico.dataset.appliedPack = pack;
+    ico.dataset.appliedPack = rowPack;
     ico.dataset.appliedName = name;
   });
 
@@ -1232,27 +1239,29 @@ export function syncVisibleIcons(root = typeof document !== "undefined" ? docume
   root.querySelectorAll(".info-icon[data-entry-name]").forEach((el) => {
     const name = el.dataset.entryName || "";
     const isDir = el.dataset.isDir === "1";
+    const elPack = (!isDir && folderFxOnly) ? "default" : pack;
     const defaultIcon = el.dataset.defaultIcon || el.textContent || "";
     if (!el.dataset.defaultIcon && defaultIcon) el.dataset.defaultIcon = defaultIcon;
-    if (el.dataset.appliedPack === pack && el.dataset.appliedName === name) return;
-    const nextGlyph = pack === "default"
+    if (el.dataset.appliedPack === elPack && el.dataset.appliedName === name) return;
+    const nextGlyph = elPack === "default"
       ? (defaultIcon || iconFor(name, isDir, "default"))
-      : iconFor(name, isDir, pack);
+      : iconFor(name, isDir, elPack);
     if (el.textContent !== nextGlyph) el.textContent = nextGlyph;
-    el.dataset.appliedPack = pack;
+    el.dataset.appliedPack = elPack;
     el.dataset.appliedName = name;
   });
 
   // Sync toolbar & quick-action button icons (`[data-btn-icon]`)
+  const btnPack = folderFxOnly ? "default" : pack;
   root.querySelectorAll("[data-btn-icon]").forEach((el) => {
     const btnId = el.dataset.btnIcon;
     if (!btnId) return;
     const defaultIcon = el.dataset.defaultIcon || el.textContent || "";
     if (!el.dataset.defaultIcon && defaultIcon) el.dataset.defaultIcon = defaultIcon;
-    if (el.dataset.appliedPack === pack) return;
-    const nextGlyph = buttonIconFor(btnId, pack, defaultIcon);
+    if (el.dataset.appliedPack === btnPack) return;
+    const nextGlyph = buttonIconFor(btnId, btnPack, defaultIcon);
     if (el.textContent !== nextGlyph) el.textContent = nextGlyph;
-    el.dataset.appliedPack = pack;
+    el.dataset.appliedPack = btnPack;
   });
 
   // Sync sidebar places, favorites, recents, and Home place cards (`[data-place-icon]`)

@@ -614,9 +614,14 @@ export async function fetchTelemetryKpis() {
     si.battery().catch(() => ({ hasBattery: false, percent: 100, isCharging: false })),
   ]);
 
-  const usedGb = ((mem.used || 0) / (1024 * 1024 * 1024)).toFixed(1);
+  const realUsedBytes = (mem as any).active
+    ? Number((mem as any).active)
+    : (mem as any).available
+      ? Math.max(0, (mem.total || 0) - Number((mem as any).available))
+      : (mem.used || 0);
+  const usedGb = (realUsedBytes / (1024 * 1024 * 1024)).toFixed(1);
   const totalGb = ((mem.total || 1) / (1024 * 1024 * 1024)).toFixed(1);
-  const memPct = Math.round(((mem.used || 0) / (mem.total || 1)) * 100);
+  const memPct = Math.round((realUsedBytes / (mem.total || 1)) * 100);
 
   return {
     cpuBrand: `${cpu.manufacturer || ""} ${cpu.brand || "CPU"}`.trim(),

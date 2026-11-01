@@ -35,7 +35,7 @@ function syncSliderVars(el) {
 
 function loadDeckPrefs() {
   const d = {
-    skin: "classic",
+    skin: "theme",
     vizMode: "spectrum",
     hwTier: "auto",
     vizMixMode: false,
@@ -54,6 +54,9 @@ function loadDeckPrefs() {
     dspBass: false,
     dspTreble: false,
     dspVocal: false,
+    dspSpatial: false,
+    dspWarmth: false,
+    dspCompressor: false,
     showEq: true,
     showPl: true,
     showLyr: true,
@@ -85,6 +88,9 @@ function loadDeckPrefs() {
       d.dspBass = raw.dspBass === true;
       d.dspTreble = raw.dspTreble === true;
       d.dspVocal = raw.dspVocal === true;
+      d.dspSpatial = raw.dspSpatial === true;
+      d.dspWarmth = raw.dspWarmth === true;
+      d.dspCompressor = raw.dspCompressor === true;
       if (typeof raw.showEq === "boolean") d.showEq = raw.showEq;
       if (typeof raw.showPl === "boolean") d.showPl = raw.showPl;
       if (typeof raw.showLyr === "boolean") d.showLyr = raw.showLyr;
@@ -127,7 +133,11 @@ function mount(root) {
   let currentTags = null;
   let currentCover = "";
   let loop = { a: null, b: null };
-  let graph = null; // { ctx, preamp, filters, dspLow, dspHigh, dspMid, panner, analyser, out }
+  let cues = [null, null, null, null];
+  let pipOpen = false;
+  let pipSize = "md";
+  let pipProxyVideo = null;
+  let graph = null; // { ctx, preamp, filters, dspLow, dspHigh, dspMid, dspSpatial, warmthShaper, compressor, panner, analyser, out }
   let graphTried = false;
   let raf = 0;
   let loadToken = 0;
@@ -145,7 +155,7 @@ function mount(root) {
   let vizAutoCycle = false;
   let userEnabledVideoDsp = false;
 
-  const media = h("video", { class: "wa-media", playsinline: true, preload: "metadata", "aria-label": "Media Deck player" });
+  const media = h("video", { class: "wa-media", width: 640, height: 360, playsinline: true, preload: "metadata", "aria-label": "Media Deck player" });
   media.volume = prefs.volume;
   media.muted = prefs.muted;
   media.defaultPlaybackRate = media.playbackRate = prefs.rate;
@@ -337,7 +347,8 @@ function mount(root) {
   }, "🔄 Auto");
 
   const subSelect = h("select", { class: "wa-select", hidden: true, "aria-label": "Video subtitles", title: "Choose subtitle track" });
-  const pipBtn = h("button", { type: "button", class: "wa-pill-btn", hidden: true, title: "Picture in picture", "aria-label": "Picture in picture", onclick: () => togglePip() }, "⧉ PiP");
+  const snapBtn = h("button", { type: "button", class: "wa-pill-btn", title: "Capture a high-res PNG snapshot of the video frame or visualizer stage (I)", "aria-label": "Capture snapshot", onclick: () => captureStageSnapshot() }, "📸 Snap");
+  const pipBtn = h("button", { type: "button", class: "wa-pill-btn", title: "Toggle Floating Picture-in-Picture Mini-Monitor & OS Pop-out (P)", "aria-label": "Picture in picture", onclick: () => togglePip() }, "⧉ PiP");
   const fsBtn = h("button", { type: "button", class: "wa-pill-btn", title: "Full screen stage (F)", "aria-label": "Full screen video", onclick: () => toggleFullscreen() }, "⛶ Full");
 
   const stageCard = h("div", { class: "wa-stage" },
@@ -346,7 +357,7 @@ function mount(root) {
     coverBox,
     h("div", { class: "wa-stage-overlay" },
       h("div", { class: "wa-viz-controls" }, vizSelect, vizModeBtn, vizSurpriseBtn, vizFxStudioBtn, vizAutoBtn),
-      h("div", { class: "wa-video-tools" }, subSelect, pipBtn, fsBtn),
+      h("div", { class: "wa-video-tools" }, subSelect, snapBtn, pipBtn, fsBtn),
     ),
   );
 
@@ -354,10 +365,47 @@ function mount(root) {
   const seekTotal = h("span", { class: "wa-time" }, "0:00");
   const seekInput = h("input", { type: "range", class: "wa-slider wa-seek", min: "0", max: "1000", step: "1", value: "0", "aria-label": "Track position" });
   const abHighlight = h("div", { class: "wa-ab-bar", hidden: true });
+  const cueMarkers = h("div", { class: "wa-cue-markers", "aria-hidden": "true" });
+  const seekTooltip = h("div", { class: "wa-seek-tooltip", hidden: true }, "0:00");
+  const seekWrap = h("div", { class: "wa-seek-wrap" }, seekInput, abHighlight, cueMarkers, seekTooltip);
+  seekWrap.addEventListener("pointermove", (ev) => {
+    const rect = seekWrap.getBoundingClientRect();
+    if (!rect.width) return;
+    const ratio = Math.max(0, Math.min(1, (ev.clientX - rect.left) / rect.width));
+    seekWrap.style.setProperty("--seek-hover-x", `${Math.round(ratio * 1000) / 10}%`);
+    const d = media.duration;
+    const hoverTime = Number.isFinite(d) && d > 0 ? formatClock(ratio * d) : "0:00";
+    seekTooltip.textContent = `${hoverTime} · ${Math.round(ratio * 100)}%`;
+    seekTooltip.hidden = false;
+  });
+  seekWrap.addEventListener("pointerleave", () => {
+    seekTooltip.hidden = true;
+  });
   const seekRow = h("div", { class: "wa-seek-row" },
     seekElapsed,
-    h("div", { class: "wa-seek-wrap" }, seekInput, abHighlight),
+    seekWrap,
     seekTotal,
+  );
+
+  // --- 4 DJ Hot-Cue Memory Pads ----------------------------------------------------------------------------------
+  const cuePadLabels = [0, 1, 2, 3].map((i) => h("span", { class: "wa-cue-label" }, `CUE ${i + 1}`));
+  const cuePadBtns = [0, 1, 2, 3].map((i) => h("button", {
+    type: "button",
+    class: "wa-cue-btn",
+    title: `Hot-Cue Pad ${i + 1} (${i + 1}): Click to stamp or jump to timestamp · Shift+Click or Right-Click to clear`,
+    onclick: (ev) => triggerOrSetCue(i, ev.shiftKey),
+    oncontextmenu: (ev) => { ev.preventDefault(); clearCue(i); },
+  }, h("span", { class: "wa-cue-dot" }), cuePadLabels[i]));
+  const cueClearBtn = h("button", {
+    type: "button",
+    class: "wa-pill-btn",
+    title: "Clear all 4 Hot-Cue memory pads",
+    onclick: () => clearAllCues(),
+  }, "🧹 Clear");
+  const cueRow = h("div", { class: "wa-cue-row" },
+    h("span", { class: "wa-cue-title" }, "HOT CUES:"),
+    h("div", { class: "wa-cue-pads" }, ...cuePadBtns),
+    cueClearBtn,
   );
 
   const muteBtn = h("button", { type: "button", class: "wa-btn wa-btn-sm", title: "Mute or unmute sound (M)", "aria-label": "Mute", onclick: () => setMuted(!prefs.muted) }, "🔊");
@@ -404,6 +452,7 @@ function mount(root) {
     displayBox,
     stageCard,
     seekRow,
+    cueRow,
     mixerRow,
     transportBar,
   );
@@ -418,8 +467,40 @@ function mount(root) {
   const dspBassBtn = h("button", { type: "button", class: `wa-pill-btn${prefs.dspBass ? " is-on" : ""}`, "aria-pressed": String(prefs.dspBass), title: "Sub-bass boost (+5 dB below 90 Hz)", onclick: () => toggleDsp("dspBass") }, "🔊 Sub-Bass +5dB");
   const dspTrebleBtn = h("button", { type: "button", class: `wa-pill-btn${prefs.dspTreble ? " is-on" : ""}`, "aria-pressed": String(prefs.dspTreble), title: "Air treble crispness (+4 dB above 6 kHz)", onclick: () => toggleDsp("dspTreble") }, "✨ Air Exciter +4dB");
   const dspVocalBtn = h("button", { type: "button", class: `wa-pill-btn${prefs.dspVocal ? " is-on" : ""}`, "aria-pressed": String(prefs.dspVocal), title: "Vocal presence boost (+3.5 dB around 1.8 kHz)", onclick: () => toggleDsp("dspVocal") }, "🎙️ Vocal Presence");
+  const dspSpatialBtn = h("button", { type: "button", class: `wa-pill-btn${prefs.dspSpatial ? " is-on" : ""}`, "aria-pressed": String(prefs.dspSpatial), title: "3D Spatial Wide Stage (psychoacoustic stereo presence & upper-harmonic width)", onclick: () => toggleDsp("dspSpatial") }, "🎧 3D Spatial Wide");
+  const dspWarmthBtn = h("button", { type: "button", class: `wa-pill-btn${prefs.dspWarmth ? " is-on" : ""}`, "aria-pressed": String(prefs.dspWarmth), title: "Analog Tube / Tape Harmonic Saturation Warmth (WaveShaper soft-clipping)", onclick: () => toggleDsp("dspWarmth") }, "🔥 Tape Warmth");
+  const dspCompBtn = h("button", { type: "button", class: `wa-pill-btn${prefs.dspCompressor ? " is-on" : ""}`, "aria-pressed": String(prefs.dspCompressor), title: "Studio Mastering Dynamics Compressor & Brickwall Limiter", onclick: () => toggleDsp("dspCompressor") }, "🛡️ Mastering Limiter");
 
-  const eqSplineCanvas = h("canvas", { class: "wa-eq-curve", width: 320, height: 62, "aria-hidden": "true" });
+  const eqSplineCanvas = h("canvas", {
+    class: "wa-eq-curve",
+    width: 320,
+    height: 62,
+    title: "Click and drag across the EQ curve to sculpt all 10 frequency bands directly",
+    "aria-hidden": "true",
+  });
+  let draggingEqCurve = false;
+  function sculptEqFromPointer(ev) {
+    const rect = eqSplineCanvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const xRatio = Math.max(0, Math.min(0.999, (ev.clientX - rect.left) / rect.width));
+    const yRatio = Math.max(0, Math.min(1, (ev.clientY - rect.top) / rect.height));
+    const bandIdx = Math.min(EQ_BANDS.length - 1, Math.floor(xRatio * EQ_BANDS.length));
+    const gain = clampGain(Math.round((0.5 - yRatio) * 24));
+    if (prefs.eq[bandIdx] !== gain) {
+      bandSliders[bandIdx].value = String(gain);
+      onBandInput(bandIdx);
+    }
+  }
+  eqSplineCanvas.addEventListener("pointerdown", (ev) => {
+    draggingEqCurve = true;
+    eqSplineCanvas.setPointerCapture?.(ev.pointerId);
+    sculptEqFromPointer(ev);
+  });
+  eqSplineCanvas.addEventListener("pointermove", (ev) => {
+    if (draggingEqCurve) sculptEqFromPointer(ev);
+  });
+  eqSplineCanvas.addEventListener("pointerup", () => { draggingEqCurve = false; });
+  eqSplineCanvas.addEventListener("pointercancel", () => { draggingEqCurve = false; });
   const preampValLabel = h("span", { class: "wa-band-val" }, `${prefs.preamp > 0 ? "+" : ""}${prefs.preamp}dB`);
   const preampSlider = h("input", {
     type: "range", class: "wa-vslider", min: "-12", max: "12", step: "1",
@@ -459,6 +540,9 @@ function mount(root) {
       dspBassBtn,
       dspTrebleBtn,
       dspVocalBtn,
+      dspSpatialBtn,
+      dspWarmthBtn,
+      dspCompBtn,
     ),
   );
 
@@ -618,6 +702,7 @@ function mount(root) {
   const miniPrevBtn = h("button", { type: "button", class: "wa-mini-btn", title: "Previous track", "aria-label": "Previous track", onclick: () => previous() }, "⏮");
   const miniNextBtn = h("button", { type: "button", class: "wa-mini-btn", title: "Next track", "aria-label": "Next track", onclick: () => next(false) }, "⏭");
   const miniVol = h("input", { type: "range", class: "wa-slider wa-mini-vol", min: "0", max: "100", value: String(Math.round(prefs.volume * 100)), "aria-label": "Mini player volume", oninput: () => setVolume(Number(miniVol.value) / 100) });
+  const miniPipBtn = h("button", { type: "button", class: "wa-mini-btn", title: "Toggle Floating Picture-in-Picture Mini-Monitor (P)", onclick: () => togglePip() }, "⧉ PiP");
   const miniOpenBtn = h("button", { type: "button", class: "wa-mini-btn wa-mini-open", title: "Open full Media Deck", onclick: () => openPower("player") }, "🎛️ Deck");
   const miniCloseBtn = h("button", { type: "button", class: "wa-mini-btn", title: "Stop and hide mini-player", "aria-label": "Close mini-player", onclick: () => { stopPlayback(); miniBar.hidden = true; } }, "✕");
   const miniBar = h("aside", { class: "wa-mini-bar", dataset: { skin: prefs.skin }, "aria-label": "Media Deck Mini Player", hidden: true },
@@ -631,6 +716,7 @@ function mount(root) {
       miniPlayBtn,
       miniNextBtn,
       miniVol,
+      miniPipBtn,
       miniOpenBtn,
       miniCloseBtn,
     ),
@@ -640,9 +726,143 @@ function mount(root) {
   if (appEl && statusEl && statusEl.parentNode === appEl) appEl.insertBefore(miniBar, statusEl);
   else appEl?.append(miniBar);
 
-  for (const s of [seekInput, volInput, balInput, preampSlider, miniVol, ...bandSliders]) syncSliderVars(s);
+  // --- Draggable & Resizable Floating Picture-in-Picture (PiP) Mini-Monitor --------------------------------------
+  const pipTitleEl = h("span", { class: "wa-pip-title" }, "AmpDeck Pro — Ready");
+  const pipSizeBtn = h("button", {
+    type: "button",
+    class: "wa-pip-btn",
+    title: "Cycle Floating PiP monitor size (Small / Medium / Large)",
+    onclick: () => {
+      const order = ["sm", "md", "lg"];
+      pipSize = order[(order.indexOf(pipSize) + 1) % order.length];
+      floatingPip.dataset.size = pipSize;
+      pipSizeBtn.textContent = pipSize.toUpperCase();
+    },
+  }, "MD");
+  const pipNativeOsBtn = h("button", {
+    type: "button",
+    class: "wa-pip-btn",
+    title: "Pop out into Native OS Picture-in-Picture window",
+    onclick: () => popOutNativeOsPip(),
+  }, "⧉ OS");
+  const pipOpenDeckBtn = h("button", {
+    type: "button",
+    class: "wa-pip-btn",
+    title: "Open full Media Deck rack",
+    onclick: () => openPower("player"),
+  }, "🎛️");
+  const pipCloseBtn = h("button", {
+    type: "button",
+    class: "wa-pip-btn",
+    title: "Close Picture-in-Picture monitor",
+    onclick: () => closeFloatingPip(),
+  }, "✕");
 
-  // --- Audio Graph (Preamp + 10-Band EQ + 3 DSP Filters + Stereo Panner + Analyser) ------------------------------
+  const pipHeader = h("div", { class: "wa-pip-header" },
+    h("span", { class: "wa-pip-badge" }, "🔴 LIVE PiP"),
+    pipTitleEl,
+    pipSizeBtn,
+    pipNativeOsBtn,
+    pipOpenDeckBtn,
+    pipCloseBtn,
+  );
+
+  const pipCanvas = h("canvas", {
+    class: "wa-pip-canvas",
+    width: 420,
+    height: 236,
+    title: "Click to play/pause · Double-click to cycle visualizer preset",
+    onclick: () => togglePlay(),
+    ondblclick: () => cycleVizMode(),
+  });
+  const pipModeChip = h("span", { class: "wa-pip-chip" }, "✨ 108 FX STAGE");
+  const pipClockChip = h("span", { class: "wa-pip-chip" }, "0:00 / 0:00");
+  const pipStage = h("div", { class: "wa-pip-stage" },
+    pipCanvas,
+    h("div", { class: "wa-pip-hud" }, pipModeChip, pipClockChip),
+  );
+
+  const pipSeekInput = h("input", {
+    type: "range",
+    class: "wa-slider wa-seek",
+    min: "0",
+    max: "1000",
+    step: "1",
+    value: "0",
+    "aria-label": "PiP track position",
+    oninput: () => {
+      syncSliderVars(pipSeekInput);
+      if (Number.isFinite(media.duration)) media.currentTime = (Number(pipSeekInput.value) / 1000) * media.duration;
+    },
+  });
+  const pipPrevBtn = h("button", { type: "button", class: "wa-pip-btn", title: "Previous track", onclick: () => previous() }, "⏮");
+  const pipPlayBtn = h("button", { type: "button", class: "wa-pip-btn is-primary", title: "Play or pause", onclick: () => togglePlay() }, "▶");
+  const pipNextBtn = h("button", { type: "button", class: "wa-pip-btn", title: "Next track", onclick: () => next(false) }, "⏭");
+  const pipMuteBtn = h("button", { type: "button", class: "wa-pip-btn", title: "Mute or unmute", onclick: () => setMuted(!prefs.muted) }, "🔊");
+  const pipVizBtn = h("button", { type: "button", class: "wa-pip-btn", title: "Cycle visualizer preset (V)", onclick: () => cycleVizMode() }, "⏭ Viz");
+  const pipSnapBtn = h("button", { type: "button", class: "wa-pip-btn", title: "Capture PNG snapshot", onclick: () => captureStageSnapshot() }, "📸");
+
+  const floatingPip = h("aside", {
+    class: "wa-floating-pip",
+    dataset: { skin: prefs.skin, size: pipSize },
+    "aria-label": "Picture-in-Picture Floating Monitor",
+    hidden: true,
+  },
+    pipHeader,
+    pipStage,
+    h("div", { class: "wa-pip-footer" },
+      h("div", { class: "wa-pip-seek-row" }, pipSeekInput),
+      h("div", { class: "wa-pip-controls" },
+        h("div", { class: "wa-pip-transport" }, pipPrevBtn, pipPlayBtn, pipNextBtn, pipMuteBtn),
+        h("div", { class: "wa-pip-transport" }, pipVizBtn, pipSnapBtn),
+      ),
+    ),
+  );
+  (appEl || document.body).append(floatingPip);
+
+  // Make Floating PiP header draggable across the workspace
+  let pipDrag = null;
+  pipHeader.addEventListener("pointerdown", (ev) => {
+    if (ev.target instanceof HTMLElement && ev.target.closest("button")) return;
+    const rect = floatingPip.getBoundingClientRect();
+    pipDrag = {
+      id: ev.pointerId,
+      startX: ev.clientX,
+      startY: ev.clientY,
+      origLeft: rect.left,
+      origTop: rect.top,
+    };
+    pipHeader.setPointerCapture?.(ev.pointerId);
+  });
+  pipHeader.addEventListener("pointermove", (ev) => {
+    if (!pipDrag || pipDrag.id !== ev.pointerId) return;
+    const maxLeft = Math.max(8, (window.innerWidth || 1200) - floatingPip.offsetWidth - 8);
+    const maxTop = Math.max(8, (window.innerHeight || 800) - floatingPip.offsetHeight - 8);
+    const nextLeft = Math.max(8, Math.min(maxLeft, pipDrag.origLeft + (ev.clientX - pipDrag.startX)));
+    const nextTop = Math.max(8, Math.min(maxTop, pipDrag.origTop + (ev.clientY - pipDrag.startY)));
+    floatingPip.style.left = `${nextLeft}px`;
+    floatingPip.style.top = `${nextTop}px`;
+    floatingPip.style.right = "auto";
+    floatingPip.style.bottom = "auto";
+  });
+  pipHeader.addEventListener("pointerup", () => { pipDrag = null; });
+  pipHeader.addEventListener("pointercancel", () => { pipDrag = null; });
+
+  for (const s of [seekInput, volInput, balInput, preampSlider, miniVol, pipSeekInput, ...bandSliders]) syncSliderVars(s);
+
+  // Build analog tube/tape saturation curve for WaveShaperNode
+  function buildTapeWarmthCurve(drive = 2.4) {
+    const samples = 1024;
+    const curve = new Float32Array(samples);
+    const norm = Math.tanh(drive);
+    for (let i = 0; i < samples; i++) {
+      const x = (i * 2) / (samples - 1) - 1;
+      curve[i] = Math.tanh(x * drive) / norm;
+    }
+    return curve;
+  }
+
+  // --- Audio Graph (Preamp + 10-Band EQ + 6 DSP Processors + Stereo Panner + Analyser) ---------------------------
   async function ensureGraph() {
     if (graph || graphTried) return graph;
     graphTried = true;
@@ -671,15 +891,45 @@ function mount(root) {
       const dspHigh = ctx.createBiquadFilter();
       dspHigh.type = "highshelf";
       dspHigh.frequency.value = 6500;
+      const dspSpatial = ctx.createBiquadFilter();
+      dspSpatial.type = "peaking";
+      dspSpatial.frequency.value = 3800;
+      dspSpatial.Q.value = 0.65;
+
+      const warmthShaper = typeof ctx.createWaveShaper === "function" ? ctx.createWaveShaper() : null;
+      if (warmthShaper) warmthShaper.oversample = "2x";
+
+      const compressor = typeof ctx.createDynamicsCompressor === "function" ? ctx.createDynamicsCompressor() : null;
+      if (compressor) {
+        compressor.threshold.value = -18;
+        compressor.knee.value = 12;
+        compressor.ratio.value = 4;
+        compressor.attack.value = 0.004;
+        compressor.release.value = 0.18;
+      }
 
       const panner = typeof ctx.createStereoPanner === "function" ? ctx.createStereoPanner() : null;
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 256;
       analyser.smoothingTimeConstant = 0.78;
       const out = ctx.createGain();
-      const chain = [source, preamp, ...filters, dspLow, dspMid, dspHigh, ...(panner ? [panner] : []), analyser, out, ctx.destination];
+      const chain = [
+        source,
+        preamp,
+        ...filters,
+        dspLow,
+        dspMid,
+        dspHigh,
+        dspSpatial,
+        ...(warmthShaper ? [warmthShaper] : []),
+        ...(compressor ? [compressor] : []),
+        ...(panner ? [panner] : []),
+        analyser,
+        out,
+        ctx.destination,
+      ];
       chain.reduce((a, b) => (a.connect(b), b));
-      graph = { ctx, preamp, filters, dspLow, dspMid, dspHigh, panner, analyser, out };
+      graph = { ctx, preamp, filters, dspLow, dspMid, dspHigh, dspSpatial, warmthShaper, compressor, panner, analyser, out };
       if (ctx.sampleRate) khzBadge.textContent = `${(ctx.sampleRate / 1000).toFixed(1)} KHZ`;
       applyLevel();
       applyEqAndDsp();
@@ -692,10 +942,17 @@ function mount(root) {
       graph.preamp.gain.value = prefs.eqOn ? Math.pow(10, prefs.preamp / 20) : 1;
       graph.filters.forEach((f, i) => { f.gain.value = prefs.eqOn ? prefs.eq[i] : 0; });
       graph.dspLow.gain.value = prefs.dspBass ? 5.5 : 0;
-      graph.dspHigh.gain.value = prefs.dspTreble ? 4.5 : 0;
+      graph.dspHigh.gain.value = prefs.dspTreble ? 4.5 : (prefs.dspSpatial ? 2.5 : 0);
       graph.dspMid.gain.value = prefs.dspVocal ? 3.5 : 0;
+      if (graph.dspSpatial) graph.dspSpatial.gain.value = prefs.dspSpatial ? 4.2 : 0;
+      if (graph.warmthShaper) graph.warmthShaper.curve = prefs.dspWarmth ? buildTapeWarmthCurve(2.2) : null;
+      if (graph.compressor) {
+        graph.compressor.threshold.value = prefs.dspCompressor ? -16 : 0;
+        graph.compressor.ratio.value = prefs.dspCompressor ? 6 : 1;
+      }
       if (graph.panner) graph.panner.pan.value = Math.max(-1, Math.min(1, prefs.balance / 100));
     }
+    chanBadge.textContent = prefs.dspSpatial ? "3D WIDE" : "STEREO";
     eqOnCheck.checked = prefs.eqOn;
     preampSlider.value = String(prefs.preamp);
     preampValLabel.textContent = `${prefs.preamp > 0 ? "+" : ""}${prefs.preamp}dB`;
@@ -714,6 +971,12 @@ function mount(root) {
     dspTrebleBtn.setAttribute("aria-pressed", String(prefs.dspTreble));
     dspVocalBtn.classList.toggle("is-on", prefs.dspVocal);
     dspVocalBtn.setAttribute("aria-pressed", String(prefs.dspVocal));
+    dspSpatialBtn.classList.toggle("is-on", prefs.dspSpatial);
+    dspSpatialBtn.setAttribute("aria-pressed", String(prefs.dspSpatial));
+    dspWarmthBtn.classList.toggle("is-on", prefs.dspWarmth);
+    dspWarmthBtn.setAttribute("aria-pressed", String(prefs.dspWarmth));
+    dspCompBtn.classList.toggle("is-on", prefs.dspCompressor);
+    dspCompBtn.setAttribute("aria-pressed", String(prefs.dspCompressor));
     eqPresetSelect.value = Object.keys(EQ_PRESETS).includes(prefs.preset) ? prefs.preset : "Custom";
     drawEqSplineCanvas(eqSplineCanvas, prefs.preamp, prefs.eq, prefs.eqOn);
   }
@@ -733,7 +996,9 @@ function mount(root) {
     volLabel.textContent = `${pct}%`;
     syncSliderVars(volInput);
     syncSliderVars(miniVol);
-    muteBtn.textContent = prefs.muted || prefs.volume === 0 ? "🔇" : prefs.volume < 0.4 ? "🔉" : "🔊";
+    const icon = prefs.muted || prefs.volume === 0 ? "🔇" : prefs.volume < 0.4 ? "🔉" : "🔊";
+    muteBtn.textContent = icon;
+    pipMuteBtn.textContent = icon;
     save();
   }
 
@@ -835,19 +1100,49 @@ function mount(root) {
     save();
   }
 
-  function drawIdleViz() {
-    if (isVideo() || (typeof HTMLCanvasElement !== "undefined" && vizCanvas instanceof HTMLCanvasElement && typeof navigator !== "undefined" && /jsdom/i.test(navigator.userAgent ?? ""))) return;
-    const g2 = typeof vizCanvas.getContext === "function" ? vizCanvas.getContext("2d") : null;
-    if (!g2) return;
-    const freqData = new Uint8Array(128);
-    const timeData = new Uint8Array(128);
-    for (let i = 0; i < 128; i++) {
-      freqData[i] = Math.max(12, Math.round(95 * Math.exp(-i / 42) + 45 * Math.sin(i * 0.28 + 0.8) * Math.sin(i * 0.11)));
-      timeData[i] = Math.round(128 + 38 * Math.sin(i * 0.22) * Math.cos(i * 0.07));
+  function drawPipFrame() {
+    if (!pipOpen) return;
+    const pCtx = typeof pipCanvas.getContext === "function" ? pipCanvas.getContext("2d") : null;
+    if (!pCtx) return;
+    const w = pipCanvas.width;
+    const h = pipCanvas.height;
+    pCtx.fillStyle = "#04070e";
+    pCtx.fillRect(0, 0, w, h);
+    if (isVideo() && media.readyState >= 2 && media.videoWidth > 0 && media.videoHeight > 0) {
+      const scale = Math.min(w / media.videoWidth, h / media.videoHeight);
+      const dw = media.videoWidth * scale;
+      const dh = media.videoHeight * scale;
+      try {
+        pCtx.drawImage(media, (w - dw) / 2, (h - dh) / 2, dw, dh);
+      } catch { /* cross-origin or unready frame */ }
+      pipModeChip.textContent = `🎞️ VIDEO ${media.videoWidth}×${media.videoHeight}`;
+    } else {
+      try {
+        pCtx.drawImage(vizCanvas, 0, 0, w, h);
+      } catch { /* canvas copy fallback */ }
+      pipModeChip.textContent = `✨ ${formatVizLabel(prefs.vizMode)}`;
     }
-    vizPhase += 4;
-    const accent = getComputedStyle(shell).getPropertyValue("--wa-led").trim() || "#00ff44";
-    renderAudioVisualizer(g2, vizCanvas.width, vizCanvas.height, prefs.vizMode, freqData, timeData, peaks, accent, vizPhase);
+    const d = media.duration;
+    pipClockChip.textContent = `${formatClock(media.currentTime)} / ${Number.isFinite(d) && d > 0 ? formatClock(d) : "0:00"}`;
+  }
+
+  function drawIdleViz() {
+    if (typeof HTMLCanvasElement !== "undefined" && vizCanvas instanceof HTMLCanvasElement && typeof navigator !== "undefined" && /jsdom/i.test(navigator.userAgent ?? "")) return;
+    if (!isVideo()) {
+      const g2 = typeof vizCanvas.getContext === "function" ? vizCanvas.getContext("2d") : null;
+      if (g2) {
+        const freqData = new Uint8Array(128);
+        const timeData = new Uint8Array(128);
+        for (let i = 0; i < 128; i++) {
+          freqData[i] = Math.max(12, Math.round(95 * Math.exp(-i / 42) + 45 * Math.sin(i * 0.28 + 0.8) * Math.sin(i * 0.11)));
+          timeData[i] = Math.round(128 + 38 * Math.sin(i * 0.22) * Math.cos(i * 0.07));
+        }
+        vizPhase += 4;
+        const accent = getComputedStyle(shell).getPropertyValue("--wa-led").trim() || "#00ff44";
+        renderAudioVisualizer(g2, vizCanvas.width, vizCanvas.height, prefs.vizMode, freqData, timeData, peaks, accent, vizPhase);
+      }
+    }
+    if (pipOpen) drawPipFrame();
   }
 
   function syncVizSelectUI() {
@@ -1040,27 +1335,38 @@ function mount(root) {
   }
 
   function startVizLoop() {
-    if (raf || isVideo() || !graph || window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) return;
+    if (raf || window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) return;
+    if (media.paused && !pipOpen) return;
     const g2 = vizCanvas.getContext("2d");
-    const freqData = new Uint8Array(graph.analyser.frequencyBinCount);
-    const timeData = new Uint8Array(graph.analyser.frequencyBinCount);
+    const freqData = new Uint8Array(graph ? graph.analyser.frequencyBinCount : 128);
+    const timeData = new Uint8Array(graph ? graph.analyser.frequencyBinCount : 128);
     let last = 0;
     const frame = (now) => {
       raf = 0;
-      if (isVideo() || media.paused || document.hidden || !vizCanvas.isConnected) return;
+      if ((media.paused && !pipOpen) || document.hidden || (!vizCanvas.isConnected && !pipOpen)) return;
       raf = requestAnimationFrame(frame);
       const tier = effectiveHwTier();
       const minDelta = tier === "low" ? 38 : tier === "medium" ? 24 : 16;
       if (now - last < minDelta) return;
       last = now;
       vizPhase++;
-      if (vizAutoCycle && vizPhase % 210 === 0) cycleVizMode();
-      graph.analyser.getByteFrequencyData(freqData);
-      if (typeof graph.analyser.getByteTimeDomainData === "function") {
-        graph.analyser.getByteTimeDomainData(timeData);
+      if (vizAutoCycle && !media.paused && vizPhase % 210 === 0) cycleVizMode();
+      if (!isVideo() && g2) {
+        if (graph && !media.paused) {
+          graph.analyser.getByteFrequencyData(freqData);
+          if (typeof graph.analyser.getByteTimeDomainData === "function") {
+            graph.analyser.getByteTimeDomainData(timeData);
+          }
+        } else {
+          for (let i = 0; i < freqData.length; i++) {
+            freqData[i] = Math.max(12, Math.round(85 * Math.exp(-i / 42) + 42 * Math.sin(i * 0.25 + vizPhase * 0.04)));
+            timeData[i] = Math.round(128 + 34 * Math.sin(i * 0.2 + vizPhase * 0.05));
+          }
+        }
+        const accent = getComputedStyle(shell).getPropertyValue("--wa-led").trim() || "#00ff41";
+        renderAudioVisualizer(g2, vizCanvas.width, vizCanvas.height, prefs.vizMode, freqData, timeData, peaks, accent, vizPhase);
       }
-      const accent = getComputedStyle(shell).getPropertyValue("--wa-led").trim() || "#00ff41";
-      renderAudioVisualizer(g2, vizCanvas.width, vizCanvas.height, prefs.vizMode, freqData, timeData, peaks, accent, vizPhase);
+      if (pipOpen) drawPipFrame();
     };
     raf = requestAnimationFrame(frame);
   }
@@ -1158,11 +1464,12 @@ function mount(root) {
     if (!currentEntry) {
       marqueeText.textContent = "*** AMPDECK PRO — SELECT OR LOAD A TRACK TO PLAY ***";
       miniTitle.textContent = "AmpDeck Pro";
+      pipTitleEl.textContent = "AmpDeck Pro — Ready";
       coverBox.style.backgroundImage = "";
       coverBox.textContent = "🎵";
       kbpsBadge.textContent = "--- KBPS";
       shell.classList.remove("is-video");
-      pipBtn.hidden = true;
+      pipBtn.hidden = false;
       drawIdleViz();
       return;
     }
@@ -1174,11 +1481,13 @@ function mount(root) {
     const durText = Number.isFinite(media.duration) && media.duration > 0 ? ` (${formatClock(media.duration)})` : "";
     const banner = `${numPrefix}${trackArtist ? `${trackArtist} - ` : ""}${trackTitle}${t.album ? ` [${t.album}]` : ""}${durText}  ***  `;
     marqueeText.textContent = `${banner}${banner}`;
-    miniTitle.textContent = `${trackArtist ? `${trackArtist} — ` : ""}${trackTitle}`;
+    const shortTitle = `${trackArtist ? `${trackArtist} — ` : ""}${trackTitle}`;
+    miniTitle.textContent = shortTitle;
+    pipTitleEl.textContent = shortTitle;
     coverBox.style.backgroundImage = currentCover ? `url("${currentCover}")` : "";
     coverBox.textContent = currentCover ? "" : isVideo() ? "🎞️" : "💿";
     shell.classList.toggle("is-video", isVideo());
-    pipBtn.hidden = !isVideo();
+    pipBtn.hidden = false;
     if (Number.isFinite(media.duration) && media.duration > 0 && currentEntry.size > 0) {
       const kbps = Math.max(32, Math.min(9999, Math.round((currentEntry.size * 8) / (media.duration * 1000))));
       kbpsBadge.textContent = `${kbps} KBPS`;
@@ -1193,6 +1502,7 @@ function mount(root) {
     playBtn.textContent = paused ? "▶" : "⏸";
     playBtn.setAttribute("aria-label", paused ? "Play" : "Pause");
     miniPlayBtn.textContent = paused ? "▶" : "⏸";
+    pipPlayBtn.textContent = paused ? "▶" : "⏸";
     playGlyph.textContent = !currentEntry ? "■ READY" : paused ? "❚❚ PAUSED" : "▶ PLAYING";
     shufBtn.classList.toggle("is-on", queue.shuffle);
     shufBtn.setAttribute("aria-pressed", String(queue.shuffle));
@@ -1201,6 +1511,9 @@ function mount(root) {
     abLoopBtn.classList.toggle("is-on", loop.a !== null);
     abLoopBtn.textContent = loop.a === null ? "A–B" : loop.b === null ? "A→" : "A⇄B";
     loopBadge.hidden = loop.a === null;
+    pipBtn.classList.toggle("is-on", pipOpen);
+    pipBtn.setAttribute("aria-pressed", String(pipOpen));
+    miniPipBtn.classList.toggle("is-on", pipOpen);
     updateMiniBar();
   }
 
@@ -1216,9 +1529,17 @@ function mount(root) {
     miniClock.textContent = clockStr;
     seekElapsed.textContent = formatClock(media.currentTime);
     seekTotal.textContent = Number.isFinite(d) ? formatClock(d) : "0:00";
+    const sliderVal = Number.isFinite(d) && d > 0 ? String(Math.round((media.currentTime / d) * 1000)) : "0";
     if (document.activeElement !== seekInput || !seekInput.matches(":active")) {
-      seekInput.value = Number.isFinite(d) && d > 0 ? String(Math.round((media.currentTime / d) * 1000)) : "0";
+      seekInput.value = sliderVal;
       syncSliderVars(seekInput);
+    }
+    if (document.activeElement !== pipSeekInput || !pipSeekInput.matches(":active")) {
+      pipSeekInput.value = sliderVal;
+      syncSliderVars(pipSeekInput);
+    }
+    if (pipOpen) {
+      pipClockChip.textContent = `${formatClock(media.currentTime)} / ${Number.isFinite(d) && d > 0 ? formatClock(d) : "0:00"}`;
     }
     if (loop.a !== null && loop.b !== null && media.currentTime >= loop.b) media.currentTime = loop.a;
     refreshKaraokeHighlight();
@@ -1230,6 +1551,49 @@ function mount(root) {
     if (abHighlight.hidden) return;
     abHighlight.style.left = `${(loop.a / d) * 100}%`;
     abHighlight.style.width = `${(((loop.b ?? media.currentTime) - loop.a) / d) * 100}%`;
+  }
+
+  function renderCues() {
+    const d = media.duration;
+    const markerNodes = [];
+    cues.forEach((timeVal, i) => {
+      const hasCue = typeof timeVal === "number" && Number.isFinite(timeVal);
+      cuePadBtns[i].classList.toggle("is-set", hasCue);
+      cuePadLabels[i].textContent = hasCue ? `${i + 1} · ${formatClock(timeVal)}` : `CUE ${i + 1}`;
+      if (hasCue && Number.isFinite(d) && d > 0) {
+        const pct = Math.max(0, Math.min(100, (timeVal / d) * 100));
+        markerNodes.push(h("span", { class: "wa-cue-marker", style: `left:${pct}%` }));
+      }
+    });
+    cueMarkers.replaceChildren(...markerNodes);
+  }
+
+  function triggerOrSetCue(idx, clear = false) {
+    if (idx < 0 || idx >= cues.length) return;
+    if (clear) {
+      clearCue(idx);
+      return;
+    }
+    if (cues[idx] === null) {
+      cues[idx] = Number.isFinite(media.currentTime) ? media.currentTime : 0;
+      renderCues();
+      toast(`Hot-Cue ${idx + 1} stamped at ${formatClock(cues[idx])}.`, { kind: "info" });
+    } else {
+      media.currentTime = cues[idx];
+      refreshTime();
+      if (media.paused && currentEntry) play();
+    }
+  }
+
+  function clearCue(idx) {
+    if (idx < 0 || idx >= cues.length) return;
+    cues[idx] = null;
+    renderCues();
+  }
+
+  function clearAllCues() {
+    cues = [null, null, null, null];
+    renderCues();
   }
 
   // --- Subtitles & Synced Karaoke Lyrics -------------------------------------------------------------------------
@@ -1348,6 +1712,7 @@ function mount(root) {
     currentTags = null;
     currentCover = "";
     loop = { a: null, b: null };
+    cues = [null, null, null, null];
     stageStatus.hidden = true;
     stageStatus.textContent = "";
     clearTextTracks();
@@ -1364,6 +1729,7 @@ function mount(root) {
     renderPlaylist();
     refreshButtons();
     drawAbBar();
+    renderCues();
     if (autoplay) await play();
     if (isVideo()) {
       await loadTrackSubtitlesAndLyrics(token, null);
@@ -1396,7 +1762,7 @@ function mount(root) {
     if (!currentEntry) return;
     try {
       await media.play();
-      if (!isVideo() || prefs.eqOn || prefs.bassBoost > 0 || prefs.trebleBoost > 0 || prefs.stereoWidth !== 100 || prefs.balance !== 0) {
+      if (!isVideo() || prefs.eqOn || prefs.dspBass || prefs.dspTreble || prefs.dspVocal || prefs.dspSpatial || prefs.dspWarmth || prefs.dspCompressor || prefs.balance !== 0) {
         await ensureGraph();
         graph?.ctx.resume?.();
       }
@@ -1475,22 +1841,169 @@ function mount(root) {
     drawAbBar();
   }
 
-  async function togglePip() {
-    try {
-      if (document.pictureInPictureEnabled && typeof media.requestPictureInPicture === "function") {
-        if (document.pictureInPictureElement) await document.exitPictureInPicture();
-        else await media.requestPictureInPicture();
-      } else if (typeof media.webkitSupportsPresentationMode === "function" && media.webkitSupportsPresentationMode("picture-in-picture")) {
-        media.webkitSetPresentationMode(media.webkitPresentationMode === "picture-in-picture" ? "inline" : "picture-in-picture");
-      }
-    } catch { /* ignore */ }
+  function openFloatingPip() {
+    pipOpen = true;
+    floatingPip.hidden = false;
+    floatingPip.dataset.skin = prefs.skin;
+    floatingPip.dataset.size = pipSize;
+    if (media.paused) drawIdleViz();
+    drawPipFrame();
+    startVizLoop();
+    refreshButtons();
   }
 
-  async function toggleFullscreen() {
+  async function closeFloatingPip() {
+    pipOpen = false;
+    floatingPip.hidden = true;
     try {
-      if (document.fullscreenElement) await document.exitFullscreen();
-      else if (stageCard.requestFullscreen) await stageCard.requestFullscreen();
+      if (document.pictureInPictureElement) await document.exitPictureInPicture();
+      else if (typeof media.webkitSetPresentationMode === "function" && media.webkitPresentationMode === "picture-in-picture") {
+        media.webkitSetPresentationMode("inline");
+      }
     } catch { /* ignore */ }
+    refreshButtons();
+  }
+
+  async function popOutNativeOsPip() {
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+        return;
+      }
+      if (typeof media.webkitSetPresentationMode === "function" && media.webkitPresentationMode === "picture-in-picture") {
+        media.webkitSetPresentationMode("inline");
+        return;
+      }
+      // 1. If playing a real video with decoded frames, request native OS PiP directly on <video>
+      if (isVideo() && media.readyState >= 1 && media.videoWidth > 0) {
+        if (typeof media.requestPictureInPicture === "function") {
+          await media.requestPictureInPicture();
+          return;
+        }
+        if (typeof media.webkitSupportsPresentationMode === "function" && media.webkitSupportsPresentationMode("picture-in-picture")) {
+          media.webkitSetPresentationMode("picture-in-picture");
+          return;
+        }
+      }
+      // 2. For audio tracks (108-mode Visualizer stage), stream vizCanvas into a proxy <video> for native OS PiP
+      if (typeof vizCanvas.captureStream === "function") {
+        if (media.paused) drawIdleViz();
+        startVizLoop();
+        if (!pipProxyVideo) {
+          pipProxyVideo = h("video", {
+            muted: true,
+            playsinline: true,
+            width: 540,
+            height: 170,
+            style: "position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;",
+          });
+          document.body.append(pipProxyVideo);
+        }
+        pipProxyVideo.srcObject = vizCanvas.captureStream(30);
+        await pipProxyVideo.play();
+        if (typeof pipProxyVideo.requestPictureInPicture === "function") {
+          await pipProxyVideo.requestPictureInPicture();
+          return;
+        }
+        if (typeof pipProxyVideo.webkitSupportsPresentationMode === "function" && pipProxyVideo.webkitSupportsPresentationMode("picture-in-picture")) {
+          pipProxyVideo.webkitSetPresentationMode("picture-in-picture");
+          return;
+        }
+      }
+    } catch { /* Fall back to Floating PiP Monitor */ }
+    if (!pipOpen) openFloatingPip();
+    toast("Floating Picture-in-Picture Monitor active (drag header anywhere in the workspace).", { kind: "info" });
+  }
+
+  async function togglePip() {
+    if (pipOpen) {
+      await closeFloatingPip();
+    } else {
+      openFloatingPip();
+    }
+  }
+
+  function captureStageSnapshot() {
+    try {
+      stageCard.classList.remove("is-flashing");
+      void stageCard.offsetWidth;
+      stageCard.classList.add("is-flashing");
+      setTimeout(() => stageCard.classList.remove("is-flashing"), 420);
+
+      const useVideo = isVideo() && media.readyState >= 2 && media.videoWidth > 0 && media.videoHeight > 0;
+      const w = useVideo ? media.videoWidth : 1080;
+      const h = useVideo ? media.videoHeight : 420;
+      const snapCanvas = document.createElement("canvas");
+      snapCanvas.width = w;
+      snapCanvas.height = h;
+      const ctx = snapCanvas.getContext("2d");
+      if (!ctx) return;
+
+      ctx.fillStyle = "#04070e";
+      ctx.fillRect(0, 0, w, h);
+      if (useVideo) {
+        ctx.drawImage(media, 0, 0, w, h);
+      } else {
+        if (media.paused) drawIdleViz();
+        ctx.drawImage(vizCanvas, 0, 0, w, h);
+      }
+
+      // Draw studio slate footer watermark
+      const barH = Math.max(28, Math.round(h * 0.08));
+      ctx.fillStyle = "rgba(4, 7, 15, 0.78)";
+      ctx.fillRect(0, h - barH, w, barH);
+      ctx.fillStyle = "#38bdf8";
+      ctx.font = `bold ${Math.max(11, Math.round(barH * 0.42))}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+      const trackLabel = miniTitle.textContent || "AmpDeck Pro";
+      const modeLabel = useVideo ? "VIDEO STAGE" : formatVizLabel(prefs.vizMode);
+      ctx.fillText(`⚡ AMPDECK PRO // ${trackLabel}`, 14, h - Math.round(barH * 0.34));
+      ctx.textAlign = "right";
+      ctx.fillStyle = "#f8fafc";
+      ctx.fillText(`${modeLabel} · ${formatClock(media.currentTime)}`, w - 14, h - Math.round(barH * 0.34));
+
+      const dataUrl = snapCanvas.toDataURL("image/png");
+      const a = document.createElement("a");
+      const safeName = (currentEntry?.name || "ampdeck-stage").replace(/[^a-z0-9_-]+/gi, "-").toLowerCase();
+      a.href = dataUrl;
+      a.download = `${safeName}-${Math.round(media.currentTime || 0)}s.png`;
+      document.body.append(a);
+      a.click();
+      a.remove();
+      toast("📸 Captured high-resolution stage snapshot!", { kind: "success" });
+    } catch {
+      toast("Couldn't capture stage snapshot.", { kind: "error" });
+    }
+  }
+
+  const fsElement = () => document.fullscreenElement ?? document.webkitFullscreenElement ?? null;
+  function setStageFill(on) {
+    stageCard.classList.toggle("is-stage-fullscreen", on);
+    fsBtn.classList.toggle("is-on", on);
+    fsBtn.setAttribute("aria-pressed", String(on));
+    fsBtn.textContent = on ? "🗗 Restore" : "⛶ Full";
+    fsBtn.title = on ? "Leave full screen stage (F or Esc)" : "Full screen stage (F)";
+    announce(on ? "Full screen stage" : "Full screen stage off");
+  }
+  async function toggleFullscreen() {
+    if (stageCard.classList.contains("is-stage-fullscreen")) {
+      setStageFill(false);
+      return;
+    }
+    if (fsElement()) {
+      try { await (document.exitFullscreen ?? document.webkitExitFullscreen)?.call(document); } catch { /* ignore */ }
+      return;
+    }
+    try {
+      if (stageCard.requestFullscreen && document.fullscreenEnabled) {
+        await stageCard.requestFullscreen();
+        return;
+      }
+      if (stageCard.webkitRequestFullscreen && document.webkitFullscreenEnabled) {
+        stageCard.webkitRequestFullscreen();
+        return;
+      }
+    } catch { /* refused: fill the window instead */ }
+    setStageFill(true);
   }
 
   // --- Playlist Loading & M3U Import/Export ----------------------------------------------------------------------
@@ -1626,6 +2139,7 @@ function mount(root) {
     prefs.skin = skinSelect.value;
     shell.dataset.skin = prefs.skin;
     miniBar.dataset.skin = prefs.skin;
+    floatingPip.dataset.skin = prefs.skin;
     drawEqSplineCanvas(eqSplineCanvas, prefs.preamp, prefs.eq, prefs.eqOn);
     if (media.paused) drawIdleViz();
     save();
@@ -1667,13 +2181,14 @@ function mount(root) {
   });
 
   media.addEventListener("timeupdate", () => { refreshTime(); drawAbBar(); });
-  media.addEventListener("durationchange", () => { refreshTime(); refreshDisplay(); drawAbBar(); });
+  media.addEventListener("durationchange", () => { refreshTime(); refreshDisplay(); drawAbBar(); renderCues(); });
   media.addEventListener("loadedmetadata", () => {
     if (currentEntry && Number.isFinite(media.duration)) {
       currentEntry.duration = media.duration;
       renderPlaylist();
     }
     refreshDisplay();
+    renderCues();
   });
   media.addEventListener("play", () => { refreshButtons(); startVizLoop(); });
   media.addEventListener("pause", refreshButtons);
@@ -1685,6 +2200,14 @@ function mount(root) {
     refreshButtons();
   });
 
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !e.defaultPrevented && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey && stageCard.classList.contains("is-stage-fullscreen")) {
+      e.preventDefault();
+      e.stopPropagation();
+      setStageFill(false);
+    }
+  }, true);
+
   shell.addEventListener("keydown", (e) => {
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement || e.target instanceof HTMLTextAreaElement) return;
     if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -1695,6 +2218,7 @@ function mount(root) {
     else if (k === "ArrowLeft") { e.preventDefault(); if (Number.isFinite(media.duration)) media.currentTime = Math.max(0, media.currentTime - 5); }
     else if (k === "ArrowUp") { e.preventDefault(); setVolume(prefs.volume + 0.05); }
     else if (k === "ArrowDown") { e.preventDefault(); setVolume(prefs.volume - 0.05); }
+    else if (lower === "m") { e.preventDefault(); setMuted(!prefs.muted); }
     else if (lower === "n") { e.preventDefault(); next(false); }
     else if (lower === "b") { e.preventDefault(); previous(); }
     else if (lower === "s") { e.preventDefault(); setShuffle(!queue.shuffle); }
@@ -1705,7 +2229,25 @@ function mount(root) {
     else if (lower === "x") { e.preventDefault(); toggleRack("fx"); }
     else if (lower === "v") { e.preventDefault(); cycleVizMode(); }
     else if (lower === "a") { e.preventDefault(); cycleAbLoop(); }
-    else if (lower === "j") { e.preventDefault(); if (!prefs.showPl) toggleRack("pl"); plSearchInput.focus(); }
+    else if (lower === "p") { e.preventDefault(); togglePip(); }
+    else if (lower === "i") { e.preventDefault(); captureStageSnapshot(); }
+    else if (lower === "f") { e.preventDefault(); toggleFullscreen(); }
+    else if (k === "1" || k === "2" || k === "3" || k === "4") { e.preventDefault(); triggerOrSetCue(Number(k) - 1, e.shiftKey); }
+    else if (k === "[") {
+      e.preventDefault();
+      const idx = Math.max(0, SPEEDS.indexOf(prefs.rate) - 1);
+      prefs.rate = SPEEDS[idx];
+      speedSelect.value = String(prefs.rate);
+      media.playbackRate = prefs.rate;
+      save();
+    } else if (k === "]") {
+      e.preventDefault();
+      const idx = Math.min(SPEEDS.length - 1, SPEEDS.indexOf(prefs.rate) + 1);
+      prefs.rate = SPEEDS[idx];
+      speedSelect.value = String(prefs.rate);
+      media.playbackRate = prefs.rate;
+      save();
+    } else if (lower === "j") { e.preventDefault(); if (!prefs.showPl) toggleRack("pl"); plSearchInput.focus(); }
   });
 
   on("power", updateMiniBar);
@@ -1720,6 +2262,7 @@ function mount(root) {
 
   deckController = {
     open(opts = {}) {
+      if (opts.openPip === true) openFloatingPip();
       if (Array.isArray(opts.entries) && opts.entries.length) {
         ingestEntries(opts.entries, {
           replace: opts.enqueue !== true,
@@ -1762,6 +2305,7 @@ function mount(root) {
       announce("Media Deck open");
     },
     hide() {
+      if (stageCard.classList.contains("is-stage-fullscreen")) setStageFill(false);
       updateMiniBar();
     },
   };

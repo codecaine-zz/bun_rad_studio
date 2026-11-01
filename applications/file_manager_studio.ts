@@ -24,6 +24,7 @@
 import type { Webview } from "webview-bun";
 import { delimiter, resolve } from "path";
 import { APP_NAME, startFileManagerServer, type FileManagerServerOptions } from "../src/features/filemanager/fmServer";
+import { isFileManagerCliInvocation, runFileManagerCli } from "../src/features/filemanager/fmCli";
 import { shutdownOllamaForFileManager } from "../src/features/filemanager/fmOllama";
 import { openManagedWindow } from "../src/features/filemanager/fmWindowControl";
 import { readWindowPrefs, reduceReport, resetWindowPrefs, sanitizeWindowState, windowDataDir, writeWindowPrefs } from "../src/features/filemanager/fmWindow";
@@ -299,6 +300,10 @@ function argValue(args: string[], name: string): string | undefined {
 
 if (import.meta.main) {
   const args = process.argv.slice(2);
+  if (isFileManagerCliInvocation(args)) {
+    const code = await runFileManagerCli(args);
+    process.exit(code);
+  }
   const port = Number(argValue(args, "--port") ?? process.env.PORT ?? 0) || 0;
   const startPath = argValue(args, "--path");
   const startTool = argValue(args, "--tool");

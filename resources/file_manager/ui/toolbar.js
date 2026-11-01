@@ -75,6 +75,7 @@ function buttonSpecs() {
       { id: "info", icon: "ℹ️", label: "Details", get tip() { return `Show or hide the details panel${hintOf("view.info")}`; }, run: () => emit("toggle-info"), enabled: () => true, toggle: () => state.settings.showInfoPanel },
       { id: "lock", icon: "🔒", label: "Lock", get tip() { return `Protect the selected files or folders with a password (encrypt), or unlock a selected .radenc file. A lost password can't be recovered.${hintOf("file.lock")}`; }, run: lockSelection, enabled: () => sel() > 0, hide: inTrash },
       { id: "ollama", icon: "🤖", label: "Ollama AI", tip: "Open Built-In Ollama AI Assistant & Full Capability Router: chat, deep thinking, vision, SystemOne decision, cross-platform text-to-audio speech, meaning search, web search, and 1-click auto-install", run: () => openPower("ollama"), enabled: () => true },
+      { id: "bionic", icon: "🧬", label: "Bionic AI", tip: "Open Built-In LM Studio Bionic AI Studio: Apple Silicon MLX/oMLX/Splash LLMs & VLMs, @Skill Agent Hub, Bionic Projects, Phonon 40M Multilingual 24kHz TTS, ExecuTorch Whisper ASR, and Nomic Embeddings", run: () => openPower("bionic"), enabled: () => true },
       ...(isPhononSupported() ? [{ id: "phonon", icon: "🗣️", label: "Ollama TTS", tip: "Open Ollama Text-to-Speech (Phonon Voice Reader): read text & documents out loud, convert to plain text, set default voice, and save as any audio file", run: () => { const readable = selectedEntries().filter((e) => !e.isDir && canReadWithPhonon(e)); openPower("phonon", readable.length ? { paths: readable.map((e) => e.path) } : undefined); }, enabled: () => true }] : []),
       { id: "tools", icon: "🧰", label: "Convert", get tip() { return `Convert, shrink or combine pictures, video, sound and documents, and set up the helper programs${hintOf("file.convert")}`; }, run: showToolsDialog, enabled: () => !inTrash() },
       { id: "power", icon: "🔎", label: "Find & more", get tip() { return `Power tools: advanced find, watch folders and run commands, hashes and encryption, IP lookup and network checks${hintOf("nav.findTool")}`; }, run: () => togglePower(), enabled: () => true, toggle: () => state.powerOpen === true },
@@ -359,6 +360,12 @@ export function wireToolbar() {
   if (vbOllama) {
     vbOllama.addEventListener("click", () => {
       openPower("ollama");
+    });
+  }
+  const vbBionic = $("#viewbar-bionic");
+  if (vbBionic) {
+    vbBionic.addEventListener("click", () => {
+      openPower("bionic");
     });
   }
   const vbPhonon = $("#viewbar-phonon");

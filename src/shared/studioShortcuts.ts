@@ -40,6 +40,8 @@ function studioShortcutsClient() {
 
   add("Visual Query Designer", "Mod+Enter", "Run the query (Design / Datasheet) or the SQL as written (SQL view)");
   add("Visual Query Designer", "F5", "Run the query, same as Mod+Enter (the page does not reload)");
+  add("Macro Automation", "Mod+Enter", "Run the current macro");
+  add("Macro Automation", "F5", "Run the current macro, same as Mod+Enter");
   add("SQL console", "Mod+Enter", "Run the statement in the SQL editor");
   add("Everywhere", "Mod+/", "Show this list (F1 works too)");
   add("Everywhere", "Esc", "Close the open dialog, menu or popover (only that one)");
@@ -66,10 +68,31 @@ function studioShortcutsClient() {
   };
 
   function designerShowing() { try { return typeof activeTab !== "undefined" && activeTab === "designer"; } catch (e) { return false; } }
+  function macrosShowing() {
+    try {
+      if (typeof activeTab !== "undefined" && activeTab === "macros") return true;
+      const pane = document.getElementById && document.getElementById("tabMacros");
+      return Boolean(pane && pane.classList && pane.classList.contains("active"));
+    } catch (e) {
+      return false;
+    }
+  }
 
   window.addEventListener("keydown", (e) => {
     const mod = e.metaKey || e.ctrlKey;
     const k = String(e.key || "").toLowerCase();
+    const isCloseChord = ((mod && !e.altKey && !e.shiftKey) && (k === "q" || k === "w" || e.code === "KeyQ" || e.code === "KeyW")) ||
+      (e.altKey && !mod && !e.shiftKey && (e.key === "F4" || e.code === "F4" || k === "q" || k === "w" || e.code === "KeyQ" || e.code === "KeyW"));
+    if (isCloseChord && window.parent && window.parent !== window) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      if (e.repeat || e.isComposing) return;
+      try { window.top.postMessage({ fmCloseApp: true }, "*"); } catch (_) {}
+      if (window.parent !== window.top) {
+        try { window.parent.postMessage({ fmCloseApp: true }, "*"); } catch (_) {}
+      }
+      return;
+    }
     const isF11 = e.key === "F11" || e.code === "F11" || e.key === "\uF70E" || e.keyCode === 122;
     const isExpandChord = isF11 || (e.ctrlKey && e.metaKey && !e.altKey && (k === "f" || e.code === "KeyF")) || (mod && e.shiftKey && !e.altKey && (k === "u" || e.code === "KeyU"));
     if (isExpandChord) {
@@ -95,6 +118,21 @@ function studioShortcutsClient() {
       window.runDesignerActive();
       return;
     }
+    if (run && macrosShowing()) {
+      if (dialogOpen()) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      if (e.repeat || e.isComposing) return;
+      if (document.activeElement && typeof document.activeElement.dispatchEvent === "function") {
+        try {
+          document.activeElement.dispatchEvent(new Event("input", { bubbles: true }));
+          document.activeElement.dispatchEvent(new Event("change", { bubbles: true }));
+        } catch (_) {}
+      }
+      if (typeof window.runCurrentMacro === "function") window.runCurrentMacro(false);
+      else if (typeof runCurrentMacro === "function") runCurrentMacro(false);
+      return;
+    }
     if ((mod && e.key === "/") || (e.key === "F1" && !mod)) {
       if (dialogOpen()) return;
       e.preventDefault();
@@ -115,6 +153,7 @@ function studioShortcutsClient() {
       return;
     }
     if (!dialogOpen() && window.parent && window.parent !== window) {
+      e.preventDefault();
       try { window.top.postMessage({ fmEscapeExpand: true }, "*"); } catch (_) {}
     }
   });

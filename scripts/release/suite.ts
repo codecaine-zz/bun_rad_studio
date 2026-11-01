@@ -32,6 +32,7 @@ export const WEBVIEW_VERSION = "0.12.0";
 `;
 
 const FILE_MANAGER_WORKER = "fmFindWorker.ts";
+const FILE_MANAGER_DB_STUDIOS = ["sqlite-studio.js", "mysql-studio.js", "postgres-studio.js", "redis-studio.js"];
 
 /** Copies an app and the separately bundled worker it loads relative to its own URL. */
 export function copyAppBundle(app: SourceApp, destination: string, outRoot = BUNDLE_DIR): void {
@@ -39,6 +40,18 @@ export function copyAppBundle(app: SourceApp, destination: string, outRoot = BUN
   cpSync(join(source, `${app.name}.js`), join(destination, `${app.name}.js`));
   if (app.name === "file-manager-studio") {
     cpSync(join(source, FILE_MANAGER_WORKER), join(destination, FILE_MANAGER_WORKER));
+    for (const dbStudio of FILE_MANAGER_DB_STUDIOS) {
+      const dbPath = join(source, dbStudio);
+      if (existsSync(dbPath)) {
+        cpSync(dbPath, join(destination, dbStudio));
+      }
+    }
+    const cliDir = join(outRoot, "cli");
+    if (existsSync(cliDir) && readdirSync(cliDir).some((f) => f.endsWith(".js"))) {
+      const destCli = join(destination, "..", "cli");
+      mkdirSync(destCli, { recursive: true });
+      cpSync(cliDir, destCli, { recursive: true });
+    }
   }
 }
 

@@ -64,13 +64,29 @@ body:not(.ready) #stage { visibility: hidden; }
 #app[data-workspace="split"][data-split-side="bottom"] { --side-w: 13rem; }
 
 /* The sidebar can be folded away (and Focus folds it too). Its grid column shrinks to nothing. */
-#app.sidebar-collapsed, #app.focus-mode, #app[data-workspace="split"].db-studio-open { --side-w: 0px; }
+#app.sidebar-collapsed,
+#app.focus-mode,
+#app[data-workspace="split"][data-split-side].sidebar-collapsed,
+#app[data-workspace="split"][data-split-side].focus-mode,
+#app[data-workspace="split"].db-studio-open { --side-w: 0px; }
 #app.focus-mode { --info-w: 0px; }
 #app.sidebar-collapsed #sidebar, #app.focus-mode #sidebar, #app[data-workspace="split"].db-studio-open #sidebar { visibility: hidden; padding: 0; border-right: 0; overflow: hidden; }
 #app.focus-mode #info { display: none; }
+#focus-toggle[aria-pressed="true"] { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 650; }
 
-/* Focus: only the view switcher (with its Focus button) and the content stay. */
-#app.focus-mode #toolbar-row, #app.focus-mode #tabbar, #app.focus-mode #status { display: none; }
+/* Focus: only the view switcher (with its Focus button) and the content stay, in both file and tool views. */
+#app.focus-mode #toolbar-row,
+#app.focus-mode #tabbar,
+#app.focus-mode #addressbar:not(:focus-within),
+#app.focus-mode #quickbar:not(:focus-within),
+#app.focus-mode #status,
+#app.focus-mode #power-panel > .power-filter:not(:focus-within),
+#app.focus-mode #power-panel > .power-head,
+#app.focus-mode .embed-pane > .embed-bar,
+#app.focus-mode .games-pane.games-mode-play > .games-topbar,
+#app.focus-mode .db-root[data-view="studio"] > .db-strip,
+#app.focus-mode .db-root[data-view="studio"] .db-studio[data-state="running"] > .db-studio-head,
+#app.focus-mode .db-root[data-view="studio"] .db-studio[data-state="running"] > .db-logs:not([open]) { display: none; }
 
 /* Home and Tools have their own headings, so the address bar and search box step aside. */
 #app[data-workspace="home"] #tabbar,

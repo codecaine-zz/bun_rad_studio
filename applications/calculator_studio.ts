@@ -191,6 +191,13 @@ function buildCalculatorHtml(options: CalculatorStudioHtmlOptions = {}): string 
           if (typeof window.doCloseOrQuit === "function") {
             try { window.doCloseOrQuit(); return; } catch(err) {}
           }
+          if (window.parent && window.parent !== window) {
+            try { (window.top || window.parent).postMessage({ fmCloseApp: true }, "*"); } catch(err) {}
+            try {
+              if (window.parent !== window.top) window.parent.postMessage({ fmCloseApp: true }, "*");
+            } catch(err) {}
+            return;
+          }
           try { fetch("/api/shutdown", { method: "POST" }); } catch(err) {}
           try { fetch("/api/close", { method: "POST" }); } catch(err) {}
           try { window.close(); } catch(err) {}
@@ -267,7 +274,12 @@ function buildCalculatorHtml(options: CalculatorStudioHtmlOptions = {}): string 
               else if (typeof window.parent?.closeWindow === "function") window.parent.closeWindow();
               else if (typeof window.doCloseOrQuit === "function") window.doCloseOrQuit();
               else if (window.parent && typeof window.parent.doCloseOrQuit === "function") window.parent.doCloseOrQuit();
-              else {
+              else if (window.parent && window.parent !== window) {
+                try { (window.top || window.parent).postMessage({ fmCloseApp: true }, "*"); } catch(err) {}
+                try {
+                  if (window.parent !== window.top) window.parent.postMessage({ fmCloseApp: true }, "*");
+                } catch(err) {}
+              } else {
                 try { fetch("/api/shutdown", { method: "POST" }); } catch(err) {}
                 try { window.close(); } catch(err) {}
               }
@@ -344,7 +356,9 @@ function buildCalculatorHtml(options: CalculatorStudioHtmlOptions = {}): string 
                   if (typeof window.quitApp === "function") window.quitApp();
                   else if (typeof window.closeWindow === "function") window.closeWindow();
                   else if (typeof window.doCloseOrQuit === "function") window.doCloseOrQuit();
-                  else {
+                  else if (window.parent && window.parent !== window) {
+                    try { (window.top || window.parent).postMessage({ fmCloseApp: true }, "*"); } catch(err) {}
+                  } else {
                     try { fetch("/api/shutdown", { method: "POST" }); } catch(err) {}
                     try { window.close(); } catch(err) {}
                   }

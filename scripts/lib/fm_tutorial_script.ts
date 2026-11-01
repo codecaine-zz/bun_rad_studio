@@ -10,7 +10,9 @@ import { ending } from "./fm_tutorial_ch_ending";
 
 // The real path (on macOS /tmp is a link to /private/tmp): the terminal reports the real folder after `cd`, and the file
 // list follows it, so the sample home must already be written that way to stay the same folder on screen.
-export const FM_HOME = process.platform === "darwin" ? "/private/tmp/fmv/home" : "/tmp/fmv/home";
+const WORKER_ID = Number(process.env.FM_TUTORIAL_WORKER || 0);
+const WORKER_ROOT = WORKER_ID > 0 ? `/tmp/fmv_w${WORKER_ID}` : "/tmp/fmv";
+export const FM_HOME = process.platform === "darwin" ? `/private${WORKER_ROOT}/home` : `${WORKER_ROOT}/home`;
 
 const place = (c: Chapter): Chapter => ({ ...c, path: c.path?.replace("<HOME>", FM_HOME) });
 

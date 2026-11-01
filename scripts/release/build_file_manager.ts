@@ -433,11 +433,11 @@ async function main() {
   }
   if (chosen.some((d) => d.os === "macos") && process.platform !== "darwin") throw new Error("The macOS .app downloads can only be built on a Mac (they need codesign, sips and iconutil).");
 
-  const sources = listSourceApps().filter((s) => s.name === MAIN || STUDIOS.includes(s.name));
+  const sources = listSourceApps().filter((s) => s.name === MAIN || STUDIOS.includes(s.name) || s.kind === "cli");
   if (!sources.some((s) => s.name === MAIN)) throw new Error("applications/file_manager_studio.ts was not found");
   mkdirSync(OUT_DIR, { recursive: true });
 
-  log("🧩", `Bundling ${sources.length} programs (the File Manager and its ${sources.length - 1} database studios)`);
+  log("🧩", `Bundling ${sources.length} programs (the File Manager, its database studios, and its built-in CLI utilities)`);
   const bundles = await bundleApps(sources, undefined, jobs);
   logBundleFailures(bundles);
   if (!bundles.built.some((s) => s.name === MAIN)) throw new Error("The File Manager did not bundle");

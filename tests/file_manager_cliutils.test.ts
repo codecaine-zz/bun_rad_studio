@@ -1,8 +1,9 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, rmSync, statSync } from "fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
-import { cliUtilsDir, ensureCliUtilsFolder, listCliUtils, terminalEnv } from "../src/features/filemanager/fmCliUtils";
+import { isFileManagerCliInvocation, runFileManagerCli } from "../src/features/filemanager/fmCli";
+import { cliUtilsDir, ensureCliUtilsFolder, listCliUtils, parseCliArgsString, runCliUtil, terminalEnv } from "../src/features/filemanager/fmCliUtils";
 import { createContext } from "../src/features/filemanager/fmCore";
 import { listFolder } from "../src/features/filemanager/fmList";
 import { startFileManagerServer } from "../src/features/filemanager/fmServer";
@@ -282,6 +283,15 @@ describe("File Manager UI integration for CLI utilities", () => {
         command: `${prefix}calc`,
         submit: true,
       });
+
+      // 6. Quick Run button executes the CLI utility inline and renders the CLI Quick Runner Console
+      const quickBtn = [...calcCard!.querySelectorAll("button")].find((b) => b.textContent?.includes("⚡ Quick Run")) as HTMLButtonElement | undefined;
+      expect(quickBtn).toBeDefined();
+      quickBtn!.click();
+      for (let i = 0; i < 100 && !doc.querySelector(".cliutil-console-out"); i++) await Bun.sleep(30);
+      const consoleOut = doc.querySelector(".cliutil-console-out") as HTMLElement | null;
+      expect(consoleOut).not.toBeNull();
+      expect(consoleOut!.textContent).toContain("4");
     } finally {
       unsubRun?.();
       (await import("../resources/file_manager/ui/menus.js")).closeMenu();
@@ -292,6 +302,207 @@ describe("File Manager UI integration for CLI utilities", () => {
         else delete g[k];
       }
     }
+  });
+
+  test("enriches catalog metadata, parses CLI argument strings, and executes cliutils/run", async () => {
+    expect(parseCliArgsString('--expr "2 + 2 * 10" --verbose')).toEqual(["--expr", "2 + 2 * 10", "--verbose"]);
+    expect(parseCliArgsString("-p 'hello world' file.txt")).toEqual(["-p", "hello world", "file.txt"]);
+
+    const ctx = createContext({ home, dataDir });
+    const catalog = listCliUtils(ctx);
+    const calc = catalog.tools.find((t) => t.id === "calc");
+    expect(calc).toBeDefined();
+    expect(calc!.icon).toBe("🧮");
+    expect(calc!.flags.some((f) => f.name === "expr")).toBe(true);
+    expect(calc!.examples.length).toBeGreaterThan(0);
+
+    const runRes = await runCliUtil(ctx, {
+      tool: "calc",
+      args: '--expr "12 * 12"',
+      cwd: work,
+    });
+    expect(runRes.ok).toBe(true);
+    expect(runRes.exitCode).toBe(0);
+    expect(runRes.cleanOutput).toContain("144");
+
+    const apiRes = await api("cliutils/run", {
+      tool: "sed",
+      args: '--expr "s/world/codecaine/g" --text "hello world"',
+      cwd: work,
+    });
+    expect(apiRes.status).toBe(200);
+    expect(apiRes.json.ok).toBe(true);
+    expect(apiRes.json.cleanOutput).toContain("hello codecaine");
+  });
+
+  test("upgraded file/text/database CLI utilities perform real transformations", async () => {
+    const ctx = createContext({ home, dataDir });
+    const sampleFile = join(work, "sample.txt");
+    writeFileSync(sampleFile, "alpha,10\nbeta,25\ngamma,40\n", "utf8");
+
+    const gawkRes = await runCliUtil(ctx, {
+      tool: "gawk",
+      args: ["--field", "2", "--delim", ",", "--sum", "--file", sampleFile],
+      cwd: work,
+    });
+    expect(gawkRes.ok).toBe(true);
+    expect(gawkRes.cleanOutput).toContain("SUM=75");
+
+    const pandocRes = await runCliUtil(ctx, {
+      tool: "pandoc",
+      args: ["--from", "markdown", "--to", "html", "--text", "# Title\\n\\nHello **RAD**"],
+      cwd: work,
+    });
+    expect(pandocRes.ok).toBe(true);
+    expect(pandocRes.cleanOutput).toContain("<h1>Title</h1>");
+    expect(pandocRes.cleanOutput).toContain("<strong>RAD</strong>");
+
+    const exifRes = await runCliUtil(ctx, {
+      tool: "exif",
+      args: ["--file", sampleFile, "--json"],
+      cwd: work,
+    });
+    expect(exifRes.ok).toBe(true);
+    const exifJson = JSON.parse(exifRes.stdout.trim());
+    expect(exifJson.file).toBe("sample.txt");
+    expect(exifJson.sha256).toHaveLength(64);
+
+    const sqliteRes = await runCliUtil(ctx, {
+      tool: "sqlite",
+      args: ["--db", ":memory:", "--query", "SELECT 21 * 2 AS answer;", "--json"],
+      cwd: work,
+    });
+    expect(sqliteRes.ok).toBe(true);
+    const rows = JSON.parse(sqliteRes.stdout.trim());
+    expect(rows).toEqual([{ answer: 42 }]);
+  });
+
+  test("headless File Manager CLI subcommands (ls, info, find, hash, trash, restore, tools, cli-utils)", async () => {
+    expect(isFileManagerCliInvocation(["--help"])).toBe(true);
+    expect(isFileManagerCliInvocation(["ls", work])).toBe(true);
+    expect(isFileManagerCliInvocation(["--server", "--port", "0"])).toBe(false);
+
+    const runCli = async (args: string[]) => {
+      const out: string[] = [];
+      const err: string[] = [];
+      const code = await runFileManagerCli(args, {
+        stdout: (s) => out.push(s),
+        stderr: (s) => err.push(s),
+        cwd: work,
+        contextOptions: { home, dataDir },
+      });
+      return { code, stdout: out.join("\n"), stderr: err.join("\n") };
+    };
+
+    const help = await runCli(["--help"]);
+    expect(help.code).toBe(0);
+    expect(help.stdout).toContain("Codecaine File Manager");
+    expect(help.stdout).toContain("cli-utils");
+
+    const cliTarget = join(work, "cli-target.txt");
+    writeFileSync(cliTarget, "codecaine-cli-content", "utf8");
+
+    const lsRes = await runCli(["ls", work, "--json"]);
+    expect(lsRes.code).toBe(0);
+    const lsJson = JSON.parse(lsRes.stdout);
+    expect(lsJson.entries.some((e: any) => e.name === "cli-target.txt")).toBe(true);
+
+    const infoRes = await runCli(["info", cliTarget, "--json"]);
+    expect(infoRes.code).toBe(0);
+    const infoJson = JSON.parse(infoRes.stdout);
+    expect(infoJson.name).toBe("cli-target.txt");
+    expect(infoJson.size).toBe(21);
+
+    const findRes = await runCli(["find", "cli-target", work, "--json"]);
+    expect(findRes.code).toBe(0);
+    const findJson = JSON.parse(findRes.stdout);
+    expect(findJson.entries.some((e: any) => e.name === "cli-target.txt")).toBe(true);
+
+    const hashRes = await runCli(["hash", cliTarget, "--json"]);
+    expect(hashRes.code).toBe(0);
+    const hashJson = JSON.parse(hashRes.stdout);
+    expect(hashJson.sha256).toHaveLength(64);
+
+    const trashRes = await runCli(["trash", cliTarget, "--json"]);
+    expect(trashRes.code).toBe(0);
+    expect(existsSync(cliTarget)).toBe(false);
+    const trashJson = JSON.parse(trashRes.stdout);
+    const trashId = trashJson[0].value.id;
+
+    const trashListRes = await runCli(["trash-list", "--json"]);
+    expect(trashListRes.code).toBe(0);
+    expect(JSON.parse(trashListRes.stdout).items.some((i: any) => i.id === trashId)).toBe(true);
+
+    const restoreRes = await runCli(["restore", trashId, "--json"]);
+    expect(restoreRes.code).toBe(0);
+    expect(existsSync(cliTarget)).toBe(true);
+
+    const toolsRes = await runCli(["tools", "--json"]);
+    expect(toolsRes.code).toBe(0);
+    expect(Array.isArray(JSON.parse(toolsRes.stdout).tools)).toBe(true);
+
+    const cliUtilsRun = await runCli(["cli-utils", "run", "calc", "--expr", "9 * 9"]);
+    expect(cliUtilsRun.code).toBe(0);
+    expect(cliUtilsRun.stdout).toContain("81");
+  });
+
+  test("calculates accurate macOS, Linux, and Windows memory and disk usage without counting file cache as used", async () => {
+    const { Sys } = await import("../src/simplecli/sys/index.ts");
+    const sampleVmStat = [
+      "Mach Virtual Memory Statistics: (page size of 16384 bytes)",
+      "Pages free:                                    69510.",
+      "Pages active:                                1411476.",
+      "Pages inactive:                              1411243.",
+      "Pages speculative:                              5322.",
+      "Pages throttled:                                   0.",
+      "Pages wired down:                             175376.",
+      "Pages purgeable:                               93899.",
+      "File-backed pages:                           1463093.",
+      "Anonymous pages:                             1364948.",
+      "Pages occupied by compressor:                  17057.",
+    ].join("\n");
+
+    const total48Gb = 48 * 1024 * 1024 * 1024;
+    const macMem = Sys.parseMacVmStat(sampleVmStat, total48Gb, 69510 * 16384);
+    expect(macMem).not.toBeNull();
+    // (1364948 - 93899 + 175376 + 17057) * 16384 = 23,977,689,088 bytes (~22.33 GB, 46.5%)
+    expect(macMem!.used).toBe(23977689088);
+    expect(macMem!.percent).toBe(46.5);
+    expect(macMem!.free).toBe(total48Gb - 23977689088);
+
+    const sampleMeminfo = [
+      "MemTotal:       32768000 kB",
+      "MemFree:         1024000 kB",
+      "MemAvailable:   20480000 kB",
+      "Buffers:          512000 kB",
+      "Cached:         18432000 kB",
+      "SReclaimable:    1024000 kB",
+      "Active:         10240000 kB",
+    ].join("\n");
+    const linuxMem = Sys.parseLinuxMeminfo(sampleMeminfo, 32768000 * 1024, 1024000 * 1024);
+    expect(linuxMem).not.toBeNull();
+    expect(linuxMem!.percent).toBe(37.5);
+    expect(linuxMem!.free).toBe(20480000 * 1024);
+
+    const sampleWinMem = [
+      "FreePhysicalMemory=20971520",
+      "TotalVisibleMemorySize=33554432",
+    ].join("\r\n");
+    const winMem = Sys.parseWindowsMeminfo(sampleWinMem, 33554432 * 1024, 20971520 * 1024);
+    expect(winMem).not.toBeNull();
+    expect(winMem!.percent).toBe(37.5);
+    expect(winMem!.used).toBe(12582912 * 1024);
+    expect(winMem!.free).toBe(20971520 * 1024);
+
+    const disk = Sys.diskStats("/");
+    expect(disk.totalBytes).toBeGreaterThan(0);
+    expect(disk.usedBytes).toBeGreaterThan(0);
+    expect(disk.percent).toBeGreaterThan(0);
+
+    const ctx = createContext({ home, dataDir });
+    const sentinelRes = await runCliUtil(ctx, { tool: "devops_sentinel" });
+    expect(sentinelRes.exitCode).toBe(0);
+    expect(sentinelRes.stdout).toContain("Memory Breakdown");
   });
 });
 

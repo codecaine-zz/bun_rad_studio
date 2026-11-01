@@ -446,24 +446,109 @@ function studioColumnsClient() {
     ds.clearSelection = () => { sel = []; enhance(); };
 
     // ---- filters (on the rows of the page that is showing) ----------------------------------------------
-    const numOf = (s) => { const n = Number(String(s).replace(/,/g, "")); return String(s).trim() !== "" && isFinite(n) ? n : null; };
+    const numOf = (s) => { const cleaned = String(s).replace(/^\$/, "").replace(/,/g, "").trim(); const n = Number(cleaned); return cleaned !== "" && /^[+-]?(\d+\.?\d*|\.\d+)$/.test(cleaned) && isFinite(n) ? n : null; };
+    const dateOf = (s) => {
+      const raw = String(s ?? "").replace(/^['"#]|['"#]$/g, "").trim();
+      if (!raw) return null;
+      const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T\s](\d{1,2}:\d{2}(?::\d{2})?))?/.exec(raw);
+      if (iso) {
+        const day = iso[1] + "-" + iso[2].padStart(2, "0") + "-" + iso[3].padStart(2, "0");
+        const t = iso[4] ? (iso[4].length === 4 ? "0" + iso[4] : iso[4]) : null;
+        return { day, ms: Date.parse(day + "T" + (t ? (t.length === 5 ? t + ":00" : t) : "00:00:00") + "Z"), dateOnly: !t };
+      }
+      const us = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(raw);
+      if (us) {
+        const day = us[3] + "-" + us[1].padStart(2, "0") + "-" + us[2].padStart(2, "0");
+        return { day, ms: Date.parse(day + "T00:00:00Z"), dateOnly: true };
+      }
+      return null;
+    };
+    const wildcardRe = (pat) => {
+      let r = "^";
+      const s = String(pat ?? "");
+      for (let i = 0; i < s.length; i++) {
+        const c = s[i];
+        if (c === "*" || c === "%") r += ".*";
+        else if (c === "?" || c === "_") r += ".";
+        else if (/[.+^${}()|[\]\\]/.test(c)) r += "\\" + c;
+        else r += c;
+      }
+      return new RegExp(r + "$", "i");
+    };
     function matches(text, f) {
       const raw = String(text).trim();
-      const isNull = raw === "NULL";
+      const isNull = raw === "NULL" || raw === "";
       if (f.op === "isnull") return isNull;
       if (f.op === "notnull") return !isNull;
-      if (f.set) return f.set.has(isNull ? "NULL" : raw);
-      const a = raw.toLowerCase(), v = String(f.val || "").toLowerCase(), v2 = String(f.val2 || "").toLowerCase();
+      if (f.set) return f.set.has(raw === "NULL" ? "NULL" : raw);
+      if (f.op === "expr" && typeof window.evaluateAccessFilter === "function") {
+        return window.evaluateAccessFilter(raw === "NULL" ? null : raw, f.val, "");
+      }
+      // If user typed a direct Access operator expression (e.g. `<= 500`, `>= 2025-01-01`, `BETWEEN 100 AND 500`) into Value with `eq` or `expr`
+      if ((f.op === "eq" || f.op === "contains") && /^(>=|<=|<>|!=|>|<|=|\b(?:between|not\s+between|in|like|is\s+null|is\s+not\s+null)\b)/i.test(String(f.val || "").trim()) && typeof window.evaluateAccessFilter === "function") {
+        return window.evaluateAccessFilter(raw === "NULL" ? null : raw, f.val, "");
+      }
+      if (isNull) {
+        return f.op === "ne" || f.op === "notcontains" || f.op === "notbegins" || f.op === "notends";
+      }
+      const a = raw.toLowerCase(), v = String(f.val || "").replace(/^['"#]|['"#]$/g, "").trim().toLowerCase(), v2 = String(f.val2 || "").replace(/^['"#]|['"#]$/g, "").trim().toLowerCase();
       const na = numOf(raw), nv = numOf(f.val), nv2 = numOf(f.val2);
+      const da = dateOf(raw), dv = dateOf(f.val), dv2 = dateOf(f.val2);
+      const cmpVal = (opName) => {
+        if (da && dv) {
+          const lhs = dv.dateOnly ? da.day : da.ms;
+          const rhs = dv.dateOnly ? dv.day : dv.ms;
+          if (opName === "eq") return lhs === rhs;
+          if (opName === "ne") return lhs !== rhs;
+          if (opName === "gt") return lhs > rhs;
+          if (opName === "gte") return lhs >= rhs;
+          if (opName === "lt") return lhs < rhs;
+          if (opName === "lte") return lhs <= rhs;
+        }
+        if (na !== null && nv !== null) {
+          if (opName === "eq") return na === nv;
+          if (opName === "ne") return na !== nv;
+          if (opName === "gt") return na > nv;
+          if (opName === "gte") return na >= nv;
+          if (opName === "lt") return na < nv;
+          if (opName === "lte") return na <= nv;
+        }
+        if (opName === "eq") return a === v;
+        if (opName === "ne") return a !== v;
+        if (opName === "gt") return a > v;
+        if (opName === "gte") return a >= v;
+        if (opName === "lt") return a < v;
+        if (opName === "lte") return a <= v;
+        return true;
+      };
       switch (f.op) {
-        case "eq": return na !== null && nv !== null ? na === nv : a === v;
-        case "ne": return na !== null && nv !== null ? na !== nv : a !== v;
+        case "eq": return cmpVal("eq");
+        case "ne": return cmpVal("ne");
         case "contains": return a.includes(v);
+        case "notcontains": return !a.includes(v);
         case "begins": return a.startsWith(v);
+        case "notbegins": return !a.startsWith(v);
         case "ends": return a.endsWith(v);
-        case "gt": return na !== null && nv !== null ? na > nv : a > v;
-        case "lt": return na !== null && nv !== null ? na < nv : a < v;
-        case "between": return na !== null && nv !== null && nv2 !== null ? na >= nv && na <= nv2 : a >= v && a <= v2;
+        case "notends": return !a.endsWith(v);
+        case "like": return wildcardRe(v.includes("*") || v.includes("?") || v.includes("%") ? v : "*" + v + "*").test(raw);
+        case "in": {
+          const list = String(f.val || "").split(",").map((s) => s.replace(/^['"]|['"]$/g, "").trim()).filter(Boolean);
+          return list.some((item) => { const ni = numOf(item); return na !== null && ni !== null ? na === ni : a === item.toLowerCase(); });
+        }
+        case "gt":
+        case "after": return cmpVal("gt");
+        case "gte":
+        case "onorafter": return cmpVal("gte");
+        case "lt":
+        case "before": return cmpVal("lt");
+        case "lte":
+        case "onorbefore": return cmpVal("lte");
+        case "between":
+          if (da && dv && dv2) return (dv.dateOnly && dv2.dateOnly) ? (da.day >= dv.day && da.day <= dv2.day) : (da.ms >= dv.ms && da.ms <= dv2.ms);
+          return na !== null && nv !== null && nv2 !== null ? na >= nv && na <= nv2 : a >= v && a <= v2;
+        case "notbetween":
+          if (da && dv && dv2) return !((dv.dateOnly && dv2.dateOnly) ? (da.day >= dv.day && da.day <= dv2.day) : (da.ms >= dv.ms && da.ms <= dv2.ms));
+          return !(na !== null && nv !== null && nv2 !== null ? na >= nv && na <= nv2 : a >= v && a <= v2);
       }
       return true;
     }
@@ -482,9 +567,34 @@ function studioColumnsClient() {
       const sorted = Array.from(values.entries()).sort((a, b) => { const na = numOf(a[0]), nb = numOf(b[0]); return na !== null && nb !== null ? na - nb : String(a[0]).localeCompare(String(b[0])); }).slice(0, 300);
       const cur = filters[col] || null;
       const op = d.el("select", { class: "sd-select", id: "scFilterOp", "aria-label": "Condition" },
-        ...[["", "(choose values below)"], ["eq", "equals"], ["ne", "does not equal"], ["contains", "contains"], ["begins", "begins with"], ["ends", "ends with"], ["gt", "is greater than"], ["lt", "is less than"], ["between", "is between"], ["isnull", "is empty (NULL)"], ["notnull", "is not empty"]].map(([v, l]) => d.el("option", { value: v }, l)));
+        ...[
+          ["", "(choose values below)"],
+          ["eq", "equals (=)"],
+          ["ne", "does not equal (<>)"],
+          ["lt", "is less than (<)"],
+          ["lte", "is less than or equal to (<=)"],
+          ["gt", "is greater than (>)"],
+          ["gte", "is greater than or equal to (>=)"],
+          ["between", "is between (a..b)"],
+          ["notbetween", "is not between"],
+          ["contains", "contains"],
+          ["notcontains", "does not contain"],
+          ["begins", "begins with (A*)"],
+          ["notbegins", "does not begin with"],
+          ["ends", "ends with (*Z)"],
+          ["notends", "does not end with"],
+          ["like", "matches pattern (Like * / ?)"],
+          ["in", "in list (a, b, c)"],
+          ["before", "date is before (< YYYY-MM-DD)"],
+          ["onorbefore", "date is on or before (<= YYYY-MM-DD)"],
+          ["after", "date is after (> YYYY-MM-DD)"],
+          ["onorafter", "date is on or after (>= YYYY-MM-DD)"],
+          ["expr", "Access expression (e.g. <= 500 OR >= 1000)"],
+          ["isnull", "is empty (NULL)"],
+          ["notnull", "is not empty (NOT NULL)"],
+        ].map(([v, l]) => d.el("option", { value: v }, l)));
       op.value = cur && !cur.set ? cur.op : "";
-      const v1 = d.el("input", { type: "text", class: "sd-input", id: "scFilterVal", "aria-label": "Value", value: cur && cur.val ? cur.val : "" });
+      const v1 = d.el("input", { type: "text", class: "sd-input", id: "scFilterVal", "aria-label": "Value", placeholder: "Number, text, YYYY-MM-DD, or <= 500", value: cur && cur.val ? cur.val : "" });
       const v2 = d.el("input", { type: "text", class: "sd-input", id: "scFilterVal2", "aria-label": "Second value", value: cur && cur.val2 ? cur.val2 : "", placeholder: "and\u2026" });
       const search = d.el("input", { type: "search", class: "sd-input", "aria-label": "Search the values", placeholder: "Search " + sorted.length + " distinct values on this page\u2026", id: "scFilterSearch" });
       const checked = new Set(cur && cur.set ? Array.from(cur.set) : []);
@@ -504,15 +614,19 @@ function studioColumnsClient() {
       search.addEventListener("input", draw);
       draw();
       const body = d.el("div", { class: "sc-fd" },
-        d.el("p", { class: "sd-note" }, "Filters the rows of the page that is showing. The database query is not changed; clear the filter to see every row again."),
+        d.el("p", { class: "sd-note" }, "Microsoft Access-style filter for numbers, text, and dates (<=, <, >, >=, =, <>, Between, Like, In, NULL)."),
         d.el("div", { class: "sd-row" }, d.el("label", { class: "sd-label", style: "flex:1" }, "Condition", op)),
         d.el("div", { class: "sd-row" }, d.el("label", { class: "sd-label", style: "flex:1" }, "Value", v1), d.el("label", { class: "sd-label", style: "flex:1" }, "To (between)", v2)),
         d.el("div", { class: "sd-label" }, "Values", search, list));
       const apply = (c) => {
         let spec = null;
+        if (!op.value && v1.value.trim() && !checked.size) {
+          // Automatically evaluate direct Access expression typed into v1 (e.g. `<= 500`)
+          op.value = /^(>=|<=|<>|!=|>|<|=|\b(?:between|not\s+between|in|like|is\s+null|is\s+not\s+null)\b)/i.test(v1.value.trim()) ? "expr" : "eq";
+        }
         if (op.value) {
-          if (/^(eq|ne|contains|begins|ends|gt|lt|between)$/.test(op.value) && !v1.value.trim()) { c.setError("Type a value for this condition."); v1.focus(); return false; }
-          if (op.value === "between" && !v2.value.trim()) { c.setError("Type both values for \u201Cis between\u201D."); v2.focus(); return false; }
+          if (!/^(isnull|notnull)$/.test(op.value) && !v1.value.trim()) { c.setError("Type a value for this condition."); v1.focus(); return false; }
+          if ((op.value === "between" || op.value === "notbetween") && !v2.value.trim()) { c.setError("Type both values for \u201Cis between\u201D."); v2.focus(); return false; }
           spec = { op: op.value, val: v1.value, val2: v2.value, set: null };
         } else if (checked.size) spec = { op: "in", val: "", val2: "", set: new Set(checked) };
         c.close(null);

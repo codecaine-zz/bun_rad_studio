@@ -1292,14 +1292,16 @@ function buildMysqlHtml(): string {
     }
 
     .qbe-show-checkbox {
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      text-align: center;
+      vertical-align: middle;
     }
 
     .qbe-show-checkbox input[type="checkbox"] {
       width: 15px;
       height: 15px;
+      margin: 0;
+      padding: 0;
+      vertical-align: middle;
       accent-color: var(--cyan);
       cursor: pointer;
     }
@@ -2746,11 +2748,14 @@ ${STUDIO_STAGING_STYLE}
     // ---------------------------------------------------------------------------------------------
     // Direct API Client
     // ---------------------------------------------------------------------------------------------
-    async function apiRequest(endpoint, body) {
+    async function apiRequest(endpoint, methodOrBody, maybeBody) {
       try {
-        const opts = body 
-          ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
-          : { method: 'GET' };
+        const hasMethod = typeof methodOrBody === "string";
+        const method = hasMethod ? methodOrBody.toUpperCase() : (methodOrBody ? "POST" : "GET");
+        const body = hasMethod ? maybeBody : methodOrBody;
+        const opts = (body !== undefined && body !== null && method !== "GET")
+          ? { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+          : { method };
         const res = await fetch(endpoint, opts);
         if (!res.ok) {
           try {
@@ -3548,6 +3553,7 @@ ${STUDIO_STAGING_STYLE}
     // ---------------------------------------------------------------------------------------------
     async function selectTable(tableName) {
       activeTable = tableName;
+      window.__activeMacroFilter = null;
       if (!queryDesignerState.selectedTables.includes(tableName)) {
         queryDesignerState.selectedTables = [tableName, ...queryDesignerState.selectedTables.filter(name => name !== tableName)];
       }
@@ -3746,13 +3752,14 @@ ${STUDIO_STAGING_STYLE}
       }
       if (!accessFilterBarVisible) {
         activeColumnFilters = {};
-        if (currentGridRawRows.length > 0) {
+        if (activeTable && (!window.crud || window.crud.source !== "query")) {
+          fetchTableData();
+        } else if (currentGridRawRows.length > 0) {
           currentGridRows = [...currentGridRawRows];
           renderDataGrid(currentGridColumns, currentGridRows, false);
-        } else if (activeTable) {
-          fetchTableData();
         }
       } else {
+        window.__keepFilterRow = false;
         renderFilterBar(currentGridColumns);
       }
       showToast(accessFilterBarVisible ? "Quick Filter Bar opened" : "Quick Filter Bar cleared");
@@ -3766,9 +3773,13 @@ ${STUDIO_STAGING_STYLE}
         return;
       }
       filterRow.style.display = "table-row";
+      if (window.__keepFilterRow && filterRow.querySelector("input.access-filter-input")) return;
       const lead = gridLeadCols();
-      filterRow.innerHTML = (lead ? '<th colspan="' + lead + '" style="text-align:center; color:var(--cyan);" title="Quick filter row">⚡</th>' : '') + gridShownOnly(columns).map(col => {
+      filterRow.innerHTML = (lead ? '<th colspan="' + lead + '" style="text-align:center; color:var(--cyan);" title="Microsoft Access Quick Filter Row (=, <>, <, <=, >, >=, BETWEEN, LIKE, IN, IS NULL)">⚡</th>' : '') + gridShownOnly(columns).map(col => {
         const currentVal = activeColumnFilters[col] || "";
+        if (typeof window.renderAccessFilterCellHtml === "function") {
+          return '<th style="padding: 2px 4px; vertical-align: middle;">' + window.renderAccessFilterCellHtml(col, currentVal) + '</th>';
+        }
         const safeCol = String(col || "").replace(/"/g, '&quot;');
         const safeVal = String(currentVal || "").replace(/"/g, '&quot;');
         return '<th style="padding: 2px 4px; vertical-align: middle;">' +
@@ -3793,10 +3804,15 @@ ${STUDIO_STAGING_STYLE}
       const filterRow = document.getElementById("gridFilterBarRow");
       if (filterRow) filterRow.style.display = "table-row";
 
-      activeColumnFilters[colName] = String(colVal);
+      activeColumnFilters[colName] = colVal === null || colVal === undefined ? "IS NULL" : String(colVal);
+      window.__keepFilterRow = false;
       renderFilterBar(currentGridColumns);
-      showToast("Filtered by " + colName + " = " + colVal);
-      filterLoadedRowsInMemory();
+      showToast("Filtered by " + colName + ": " + activeColumnFilters[colName]);
+      if (typeof window.onColumnFilterInput === "function") {
+        window.onColumnFilterInput(colName, activeColumnFilters[colName]);
+      } else {
+        filterLoadedRowsInMemory();
+      }
     }
 
     function filterLoadedRowsInMemory() {
@@ -3804,9 +3820,14 @@ ${STUDIO_STAGING_STYLE}
       const filterKeys = Object.keys(activeColumnFilters);
       if (filterKeys.length === 0) {
         currentGridRows = [...currentGridRawRows];
+      } else if (typeof window.filterRowsWithAccessFilters === "function") {
+        currentGridRows = window.filterRowsWithAccessFilters(currentGridRawRows, activeColumnFilters, "", currentGridColumns);
       } else {
         currentGridRows = currentGridRawRows.filter(row => {
           return filterKeys.every(k => {
+            if (typeof window.evaluateAccessFilter === "function") {
+              return window.evaluateAccessFilter(row[k], activeColumnFilters[k], k);
+            }
             const needle = activeColumnFilters[k].toLowerCase();
             const val = row[k];
             if (val === null || val === undefined) return needle === "null";
@@ -3814,7 +3835,12 @@ ${STUDIO_STAGING_STYLE}
           });
         });
       }
-      renderDataGrid(currentGridColumns, currentGridRows, false);
+      window.__keepFilterRow = true;
+      try {
+        renderDataGrid(currentGridColumns, currentGridRows, false);
+      } finally {
+        window.__keepFilterRow = false;
+      }
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -6165,14 +6191,16 @@ ${STUDIO_STAGING_STYLE}
     }
 
     function loadDesignerSqlToEditor() {
-      const value = buildDesignerSql();
+      const preview = document.getElementById("designerSqlPreview");
+      const value = (preview && preview.value.trim()) ? preview.value : buildDesignerSql();
       const editor = document.getElementById("sqlEditor");
       if (editor) editor.value = value;
       showToast("Designer SQL loaded into editor");
     }
 
     function copyDesignerSql() {
-      const value = buildDesignerSql();
+      const preview = document.getElementById("designerSqlPreview");
+      const value = (preview && preview.value.trim()) ? preview.value : buildDesignerSql();
       if (navigator.clipboard) {
         navigator.clipboard.writeText(value);
         showToast("SQL copied to clipboard");
@@ -6180,7 +6208,8 @@ ${STUDIO_STAGING_STYLE}
     }
 
     function explainDesignerQuery() {
-      const sql = buildDesignerSql();
+      const preview = document.getElementById("designerSqlPreview");
+      const sql = (preview && preview.value.trim()) ? preview.value : buildDesignerSql();
       const editor = document.getElementById("sqlEditor");
       if (editor) editor.value = sql;
       explainCurrentQuery();
@@ -6599,15 +6628,16 @@ ${STUDIO_STAGING_STYLE}
                   <button class="btn btn-sm" onclick="toggleSqlEditorHeight()" title="Expand / shrink editor height" style="padding: 1px 6px; font-size: 10px;">↕ Resize Editor</button>
                 </div>
               </div>
-              <div style="display:flex; gap:6px;">
+              <div style="display:flex; gap:6px; flex-wrap: wrap;">
                 <button class="btn btn-sm btn-primary" onclick="runCustomDesignerSql()" title="Execute SQL directly in Datasheet">! Run Edited SQL</button>
+                <button class="btn btn-sm" id="btnDesignerFormatSql" onclick="if(window.formatStudioSql) window.formatStudioSql(document.getElementById('designerSqlPreview'))" title="Format SQL statement with sql-formatter (Shift+Alt+F)">✨ Format SQL</button>
                 <button class="btn btn-sm" onclick="resetDesignerSqlToQbe()" title="Reset SQL back to QBE generated SQL">🔄 Reset from QBE</button>
-                <button class="btn btn-sm" onclick="loadDesignerSqlToEditor()">Load into Editor</button>
-                <button class="btn btn-sm" onclick="copyDesignerSql()">Copy SQL</button>
-                <button class="btn btn-sm" onclick="explainDesignerQuery()">Explain Plan</button>
+                <button class="btn btn-sm" onclick="loadDesignerSqlToEditor()" title="Copy this SQL query into the main SQL Editor">Load into Editor</button>
+                <button class="btn btn-sm" onclick="copyDesignerSql()" title="Copy SQL query to clipboard">Copy SQL</button>
+                <button class="btn btn-sm" onclick="explainDesignerQuery()" title="Analyze query execution plan">Explain Plan</button>
               </div>
             </div>
-            <textarea class="designer-sql-preview" id="designerSqlPreview" style="font-size: \${queryDesignerState.sqlFontSize || 13}px;" placeholder="Write or edit SQL statement..." onkeydown="if((event.metaKey||event.ctrlKey)&&event.key==='Enter') runCustomDesignerSql()">\${escapeHtml(sqlPreview)}</textarea>
+            <textarea class="designer-sql-preview" id="designerSqlPreview" style="font-size: \${queryDesignerState.sqlFontSize || 13}px;" placeholder="Write or edit SQL statement..." onkeydown="if((event.metaKey||event.ctrlKey)&&event.key==='Enter'){event.preventDefault();runCustomDesignerSql();}else if(event.shiftKey&&event.altKey&&(event.key==='F'||event.key==='f')&&window.formatStudioSql){event.preventDefault();window.formatStudioSql(this);}">\${escapeHtml(sqlPreview)}</textarea>
             <div style="margin-top: 8px;">
               <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 6px; font-weight: 600;">Saved Queries:</div>
               <div style="display: flex; flex-wrap: wrap; gap: 6px;">\${savedList}</div>

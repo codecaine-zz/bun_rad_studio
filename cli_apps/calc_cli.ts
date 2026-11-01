@@ -5,6 +5,7 @@ const app = SimpleCLI.newApp('calc-cli', '1.0.0')
   .setDescription('Programmer Calculator (HEX, DEC, OCT, BIN, Bitwise Ops) CLI');
 
 app.addFlagString('val', 'v', '255', 'Numeric value (prefix with 0x for Hex, 0b for Binary, or standard Decimal)');
+app.addFlagString('expr', 'e', '', 'Arithmetic or bitwise expression to evaluate (e.g. "12 * 12" or "2^16 + 1024")');
 app.addFlagString('op', 'o', '', 'Bitwise operation (e.g. NOT, AND, OR, XOR, SHL, SHR)');
 app.addFlagString('val2', 'w', '', 'Second operand for binary bitwise operation');
 app.addFlagBool('interactive', 'x', false, 'Launch interactive programmer calculator');
@@ -21,6 +22,25 @@ if (app.getFlagBool('gui')) {
 
 app.banner('Programmer Calculator CLI', 'v1.0.0 - Radix & Bitwise Engine');
 
+function evaluateMathExpr(expr: string): number | null {
+  const sanitized = expr
+    .trim()
+    .replace(/\bpi\b/gi, 'Math.PI')
+    .replace(/\bsqrt\s*\(/gi, 'Math.sqrt(')
+    .replace(/\bsin\s*\(/gi, 'Math.sin(')
+    .replace(/\bcos\s*\(/gi, 'Math.cos(')
+    .replace(/\btan\s*\(/gi, 'Math.tan(')
+    .replace(/\babs\s*\(/gi, 'Math.abs(')
+    .replace(/\^/g, '**');
+  if (!/^[0-9a-fA-FxXoObB+\-*/%&|~<>().\s,MathPIsqrtincosab]+$/.test(sanitized)) return null;
+  try {
+    const res = Function(`"use strict"; return (${sanitized});`)();
+    return typeof res === 'number' && Number.isFinite(res) ? res : null;
+  } catch {
+    return null;
+  }
+}
+
 function parseRadixNumber(s: string): bigint {
   const clean = s.trim().toLowerCase();
   try {
@@ -33,6 +53,8 @@ function parseRadixNumber(s: string): bigint {
     }
     return BigInt(clean);
   } catch {
+    const evaluated = evaluateMathExpr(s);
+    if (evaluated !== null) return BigInt(Math.trunc(evaluated));
     return 0n;
   }
 }
@@ -83,7 +105,18 @@ async function runInteractive() {
 if (app.getFlagBool('interactive')) {
   runInteractive();
 } else {
-  const valStr = app.getPositionalArgs()[0] || app.getFlagString('val') || '255';
-  const num = parseRadixNumber(valStr);
-  displayRadixTable(num);
+  const exprStr = app.getFlagString('expr');
+  if (exprStr) {
+    const res = evaluateMathExpr(exprStr);
+    if (res !== null) {
+      app.info(`Expression: ${exprStr} = ${res}`);
+      displayRadixTable(BigInt(Math.trunc(res)));
+    } else {
+      displayRadixTable(parseRadixNumber(exprStr));
+    }
+  } else {
+    const valStr = app.getPositionalArgs()[0] || app.getFlagString('val') || '255';
+    const num = parseRadixNumber(valStr);
+    displayRadixTable(num);
+  }
 }

@@ -148,9 +148,15 @@ export function silenceMacKeyBeep(): void {
     }).symbols;
     const nsObject = objc.objc_getClass(Buffer.from("NSObject\0"));
     const nsResponder = objc.objc_getClass(Buffer.from("NSResponder\0"));
+    const nsWindow = objc.objc_getClass(Buffer.from("NSWindow\0"));
     const noopImp = nsObject ? objc.class_getMethodImplementation(nsObject, sel("self")) : null;
     if (noopImp && nsResponder) {
       objc.class_replaceMethod(nsResponder, sel("noResponderFor:"), noopImp, Buffer.from("v@::\0"));
+    }
+    if (noopImp && nsWindow) {
+      // Prevent unhandled Escape key events (e.g. inside expanded tool iframes) from triggering -[NSWindow cancelOperation:] / _cancelKey:, which exits macOS True Full Screen back to a normal window.
+      objc.class_replaceMethod(nsWindow, sel("cancelOperation:"), noopImp, Buffer.from("v@:@\0"));
+      objc.class_replaceMethod(nsWindow, sel("_cancelKey:"), noopImp, Buffer.from("v@:@\0"));
     }
   });
   ok(() => {
@@ -163,9 +169,40 @@ export function silenceMacKeyBeep(): void {
   });
 }
 
+function enableMacWebviewMediaCapabilities(winPtr: Pointer): void {
+  ok(() => {
+    const contentView = send([P, P], P)(winPtr, sel("contentView"));
+    if (!contentView) return;
+    let wkView = contentView;
+    if (!send([P, P, P], FFIType.bool)(wkView, sel("respondsToSelector:"), sel("configuration"))) {
+      const subviews = send([P, P], P)(contentView, sel("subviews"));
+      if (subviews) wkView = send([P, P], P)(subviews, sel("firstObject"));
+    }
+    if (!wkView || !send([P, P, P], FFIType.bool)(wkView, sel("respondsToSelector:"), sel("configuration"))) return;
+    const config = send([P, P], P)(wkView, sel("configuration"));
+    if (!config) return;
+    if (send([P, P, P], FFIType.bool)(config, sel("respondsToSelector:"), sel("setAllowsAirPlayForMediaPlayback:"))) {
+      send([P, P, FFIType.bool], FFIType.void)(config, sel("setAllowsAirPlayForMediaPlayback:"), true);
+    }
+    const prefs = send([P, P], P)(config, sel("preferences"));
+    if (!prefs) return;
+    // Do not enable element fullscreen (setElementFullscreenEnabled: / _setFullScreenEnabled:) on the desktop WKWebView:
+    // WebKit's WKFullScreenWindowController intercepts Escape and exits the NSWindow out of macOS True Full Screen back to a normal window.
+    for (const s of [
+      "_setAllowsPictureInPictureMediaPlayback:",
+      "_setAllowsInlineMediaPlayback:",
+    ]) {
+      if (send([P, P, P], FFIType.bool)(prefs, sel("respondsToSelector:"), sel(s))) {
+        send([P, P, FFIType.bool], FFIType.void)(prefs, sel(s), true);
+      }
+    }
+  });
+}
+
 function macNative(wv: Webview): WindowNative {
   silenceMacKeyBeep();
   const win = (): Pointer => wv.unsafeWindowHandle as Pointer;
+  enableMacWebviewMediaCapabilities(win());
   let screens: FmScreen[] | null = null;
   let primaryHeight = 0;
 

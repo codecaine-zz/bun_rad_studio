@@ -40,6 +40,7 @@ const TOOL_TEXT = {
   sysinfo: "System Information and hardware telemetry: live CPU, RAM, storage, GPU, network, USB, battery and OS details with deep system probes and report export.",
   phonon: "Read text and documents out loud with Ollama Phonon neural voices, convert formats to plain text, set your default voice, and save as any audio file format.",
   ollama: "Built-In Ollama AI Assistant & Full Capability Router: chat, deep thinking, vision, SystemOne decision, cross-platform text-to-audio speech LLMs, meaning search, web search, and 1-click auto-install.",
+  bionic: "Built-In LM Studio Bionic AI Studio: Apple Silicon MLX/oMLX/Splash LLMs & VLMs, @Skill Agent Hub, Bionic Projects, Phonon 40M Multilingual 24kHz Metal TTS, ExecuTorch Whisper ASR, and Nomic Embeddings.",
   games: "Play all 24 Codecaine arcade, puzzle, card, casino and word games right inside the File Manager, in a separate desktop window, or in your browser.",
 };
 

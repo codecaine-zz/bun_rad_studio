@@ -18,17 +18,17 @@
 .dl-empty { margin: 0; }
 .dl-list { display: flex; flex-direction: column; gap: 8px; }
 .dl-row { border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; background: var(--bg); display: flex; flex-direction: column; gap: 5px; }
-.dl-row[data-state="done"] { border-color: var(--success, #2e8b57); }
+.dl-row[data-state="done"] { border-color: var(--good, var(--success, #2e8b57)); }
 .dl-row[data-state="error"] { border-color: var(--danger, #c0392b); }
 .dl-top { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
 .dl-name-text { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1 1 auto; }
-.dl-chip { flex: none; font-size: 0.78em; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--border); background: var(--panel); }
+.dl-chip { flex: none; font-size: 0.78em; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--border); background: var(--panel); color: var(--text); }
 .dl-row[data-state="downloading"] .dl-chip { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
-.dl-row[data-state="done"] .dl-chip { background: var(--success, #2e8b57); color: #fff; border-color: transparent; }
-.dl-row[data-state="error"] .dl-chip { background: var(--danger, #c0392b); color: #fff; border-color: transparent; }
+.dl-row[data-state="done"] .dl-chip { background: color-mix(in oklab, var(--good, #2e8b57) 18%, var(--panel)); color: var(--good, #2e8b57); border-color: var(--good, #2e8b57); font-weight: 600; }
+.dl-row[data-state="error"] .dl-chip { background: var(--danger-bg, #fde8e6); color: var(--danger-text, #c0392b); border-color: var(--danger, #c0392b); font-weight: 600; }
 .dl-track { height: 10px; border-radius: 999px; background: var(--panel); border: 1px solid var(--border); overflow: hidden; }
 .dl-bar-fill { height: 100%; width: 0; background: var(--accent); transition: width 0.45s linear; }
-.dl-row[data-state="done"] .dl-bar-fill { background: var(--success, #2e8b57); }
+.dl-row[data-state="done"] .dl-bar-fill { background: var(--good, var(--success, #2e8b57)); }
 .dl-row[data-state="paused"] .dl-bar-fill { opacity: 0.5; }
 .dl-track.dl-unknown .dl-bar-fill { animation: dl-slide 1.4s ease-in-out infinite alternate; transition: none; width: 30%; }
 @keyframes dl-slide { from { margin-left: 0; } to { margin-left: 70%; } }

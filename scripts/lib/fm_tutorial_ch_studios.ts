@@ -407,7 +407,7 @@ export const studios: Chapter[] = [
   },
 
   {
-    id: "21g_player_paint_games", chapter: "MEDIA DECK, PAINT & GAMES", title: "Media Deck, Paint Studio & 24 Built-in Arcade Games", blurb: "10-band equalizer, 108 visualizers, pixel and vector Paint Studio, and 24 arcade, puzzle and card games",
+    id: "21g_player_paint_games", chapter: "MEDIA DECK, PAINT & 60 GAMES", title: "Media Deck, Paint Studio & All 60 Built-in Arcade Games", blurb: "10-band equalizer, 108 visualizers, pixel and vector Paint Studio, and all 60 arcade, puzzle, card, casino and TV game show games",
     path: "<HOME>/Media",
     steps: [
       {
@@ -423,14 +423,123 @@ export const studios: Chapter[] = [
         },
       },
       {
-        cap: "Paint Studio & 24 Built-in Arcade Games",
-        say: "Next to it, Paint Studio gives you a full canvas with brushes, shapes, layers, and filters right inside the File Manager. And when you want a break, the Games tab packs twenty-four built-in arcade, puzzle, card, and word games, from Tetris and Pac-Man to Poker, Blackjack, and Balatro Deluxe, playable here or in their own window.",
+        cap: "Paint Studio & All 60 Built-in Arcade, Puzzle, Casino & TV Show Games",
+        say: "Next to it, Paint Studio gives you a full canvas with brushes, shapes, layers, filters, and a vector coloring library right inside the File Manager. And when you want a break, the Codecaine Games tab packs sixty built-in arcade, puzzle, card, casino, board, and TV game show classics—from TetroGrid, Codecaine Bros, Dr. Codecaine, and CyberChomp to Balatro Joker Royale, CyberPeggle, NightSavior Vampire Survivors, Mr. Game Show Royale, and Vegas Jackpot Slots—playable right here or in their own desktop window.",
         act: async (d) => {
           await d.click("#power-tab-paint", { pause: 1800 });
           await d.hover("#power-body", 1400);
           await d.click("#power-tab-games", { pause: 1400 });
           await d.click("#games-view-play", { pause: 2000 }).catch(() => {});
           await d.click("#games-close-game", { pause: 900 }).catch(() => {});
+          await d.click("#view-files", { pause: 800 });
+        },
+      },
+    ],
+  },
+
+  {
+    id: "21h_phonon_voice_studio",
+    chapter: "PHONON VOICE STUDIO",
+    title: "Ollama Phonon TTS (Zoey), 5s Voice Cloning & Full-Book EPUB-to-MP4 Video Export",
+    blurb: "38 neural voices, persistent Zoey default, pitch-sync teleprompter, 5-second F5-TTS-MLX zero-shot voice cloning, 25+ document extractor, batch audiobooks & 242-chunk EPUB-to-MP4 Read-Along video export",
+    path: "<HOME>/Projects/shop-app",
+    steps: [
+      {
+        cap: "Voice Reader: 38 neural voices, persistent Zoey default, Speed, Pitch (±6 st) & Sync",
+        say: "Click Ollama T T S in the top bar, or open the Voice Reader tab in Tools, to launch the local Phonon Neural Text-to-Speech Studio. Powered by a compact one-hundred-twelve megabyte Apple M L X model, it includes thirty-eight conversational, narrator, and character voices—including my voice, Zoey. Click Set Default Voice to make Zoey your persistent narrator across the app, and adjust speaking speed, time-locked pitch up or down six semitones, and millisecond word sync.",
+        act: async (d) => {
+          await d.click("#viewbar-phonon", { pause: 1400 }).catch(async () => {
+            await d.click("#view-tools", { pause: 700 });
+            await d.click("#power-tab-phonon", { pause: 1200 });
+          });
+          await d.eval(`(() => {
+            const sel = document.getElementById('phonon-voice-select');
+            if (sel) {
+              for (const v of ['Easton', 'Freya', 'Zoey']) {
+                sel.value = v;
+                sel.dispatchEvent(new Event('change', { bubbles: true }));
+              }
+            }
+          })()`);
+          await d.wait(1200);
+          await d.click("#phonon-set-default-btn", { pause: 1100 }).catch(() => {});
+          await d.hover("#phonon-speed-range", 900).catch(() => {});
+          await d.hover("#phonon-pitch-range", 900).catch(() => {});
+        },
+      },
+      {
+        cap: "Pitch-Sync Follow-Along Teleprompter & 25+ Format Plain-Text Converter",
+        say: "Load any file—from P D F, Word, and E P U B books to Markdown, HTML, subtitles, and source code—and the studio extracts clean speech-ready text with six smart cleanup filters to strip code blocks, U R Ls, or timestamps. As Zoey reads aloud, the Pitch-Sync Follow-Along Teleprompter highlights every word in real time.",
+        act: async (d) => {
+          await d.eval(`(() => {
+            const ta = document.getElementById('phonon-text-input');
+            if (ta) {
+              ta.value = "Welcome to the Codecaine Phonon Voice Studio on the Apple Mac Studio M4 Ultra. Every word is highlighted live in the Pitch-Sync Follow-Along Teleprompter while Zoey narrates 100% offline.";
+              ta.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+          })()`);
+          await d.wait(1100);
+          await d.hover("#phonon-teleprompter, #phonon-text-input", 1500).catch(() => {});
+        },
+      },
+      {
+        cap: "5-Second Zero-Shot Voice Cloning (F5-TTS-MLX) & AI Voice Recorder",
+        say: "Scroll to the Zero-Shot Voice Cloning Studio powered by F5-T T S-M L X. You can record a five-to-ten-second microphone sample in the built-in A I Voice Recorder, auto-transcribe the reference audio locally with Whisper M L X, and save custom cloned voices that stay strictly private and git-ignored on your Mac.",
+        act: async (d) => {
+          await d.eval(`(() => {
+            const c = document.getElementById('phonon-clone-card');
+            if (c) c.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          })()`);
+          await d.wait(1400);
+          await d.hover("#phonon-clone-card", 1800).catch(() => {});
+        },
+      },
+      {
+        cap: "Batch Audiobook Queue & 242-Chunk Full-Book EPUB-to-MP4 Read-Along Video Export",
+        say: "For full-length books like a two-hundred-forty-two-chunk E P U B, our hierarchical splitter divides the book into context-safe segments, synthesizes every chunk, and exports either multi-format audiobooks—including W A V, M P 3, M 4 A, and F L A C—or a complete ten-eighty-p Read-Along M P 4 video with synchronized word highlighting in a single F F mpeg pass.",
+        act: async (d) => {
+          await d.eval(`(() => {
+            const b = document.getElementById('phonon-save-video-btn') || document.getElementById('phonon-export-btn');
+            if (b) b.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          })()`);
+          await d.wait(1200);
+          await d.hover("#phonon-save-video-btn, #phonon-export-btn", 1800).catch(() => {});
+        },
+      },
+    ],
+  },
+
+  {
+    id: "21i_ollama_ai_assistant",
+    chapter: "LOCAL OLLAMA AI ASSISTANT",
+    title: "Built-In Local Ollama AI Assistant, Document Q&A & Read Aloud with Zoey",
+    blurb: "100% offline local LLM chat, active file & folder context injection, 1-click document summarize & Q&A, full capability router, and 1-click Read Aloud with Phonon Zoey",
+    path: "<HOME>/Projects/shop-app",
+    steps: [
+      {
+        cap: "Ollama AI Assistant: 100% offline local LLM chat & active file context",
+        say: "Right next to Ollama T T S in the top bar is the built-in Ollama A I Assistant. It connects to your local Ollama server with one-click setup for starter models like Qwen three point five and L F M three Omni, and automatically attaches your active folder and selected files as local context—with zero cloud A P Is.",
+        act: async (d) => {
+          await d.click("#viewbar-ollama", { pause: 1400 }).catch(async () => {
+            await d.click("#view-tools", { pause: 700 });
+            await d.click("#power-tab-ollama", { pause: 1200 });
+          });
+          await d.hover("#power-pane-ollama", 1800).catch(() => {});
+        },
+      },
+      {
+        cap: "1-Click Summarize, Document Q&A, Capability Router & Read Aloud with Phonon Zoey",
+        say: "Use the one-click quick actions to summarize a document, explain source code, generate a study guide, or route commands across any of the thirty-three File Manager tools. And with one click on Read Aloud with Phonon, the assistant hands its answer straight to Zoey so your Mac speaks the response out loud!",
+        act: async (d) => {
+          await d.eval(`(() => {
+            const inp = document.querySelector('#power-pane-ollama textarea, #ollama-prompt-input');
+            if (inp) {
+              inp.value = 'Summarize the architecture of this project and read the summary aloud with Zoey.';
+              inp.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+          })()`);
+          await d.wait(1400);
+          await d.hover("#power-pane-ollama", 1600).catch(() => {});
           await d.click("#view-files", { pause: 800 });
         },
       },

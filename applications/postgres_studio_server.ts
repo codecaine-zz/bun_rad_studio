@@ -17,6 +17,7 @@ import { viewApi } from "../src/shared/studioViews";
 import {
   formatSqlDialect,
   buildColumnFilterWhere,
+  buildSearchFilterWhere,
   buildOrderClause,
   computeSchemaDiffDdl,
   type SortColumnSpec,
@@ -1472,9 +1473,11 @@ export class PostgresManager {
       }
 
       if (search && search.trim() && validColNames.length > 0) {
-        const filterClauses = validColNames.map((c) => `CAST(${pgq(c)} AS TEXT) ILIKE $1`).join(" OR ");
-        whereParts.push(`(${filterClauses})`);
-        params.push(`%${search.trim()}%`);
+        const searchFilter = buildSearchFilterWhere(search, validColNames, "postgres", params.length + 1);
+        if (searchFilter.clause) {
+          whereParts.push(searchFilter.clause);
+          params.push(...searchFilter.params);
+        }
       }
 
       if (extraOptions?.columnFilters && validColNames.length > 0) {
@@ -2555,6 +2558,7 @@ export class PostgresManager {
           name VARCHAR(150) NOT NULL,
           email VARCHAR(150) NOT NULL UNIQUE,
           tier VARCHAR(20) DEFAULT 'Standard',
+          balance NUMERIC(12,2) DEFAULT 0.00,
           preferences JSONB DEFAULT '{"theme": "dark", "notifications": true, "newsletter": false}'::jsonb,
           created_at TIMESTAMPTZ DEFAULT NOW()
         );
@@ -2613,12 +2617,12 @@ export class PostgresManager {
 
       // 8. Populate Data
       await this.sql_conn.unsafe(`
-        INSERT INTO ${pgq(s)}."customers" (name, email, tier, preferences) VALUES
-          ('Alice Johnson', 'alice.johnson@enterprise.io', 'VIP', '{"theme": "dark", "loyalty_pts": 1450, "priority_support": true}'::jsonb),
-          ('Bob Smith', 'bob.smith@cloudtech.com', 'Standard', '{"theme": "light", "loyalty_pts": 320, "priority_support": false}'::jsonb),
-          ('Carol Williams', 'carol.williams@fintech.org', 'VIP', '{"theme": "system", "loyalty_pts": 2890, "priority_support": true}'::jsonb),
-          ('David Miller', 'david.miller@devops.net', 'Gold', '{"theme": "dark", "loyalty_pts": 950, "priority_support": false}'::jsonb),
-          ('Elena Rostova', 'elena.rostova@quantum.ai', 'VIP', '{"theme": "dark", "loyalty_pts": 4120, "priority_support": true}'::jsonb);
+        INSERT INTO ${pgq(s)}."customers" (name, email, tier, balance, preferences) VALUES
+          ('Alice Johnson', 'alice.johnson@enterprise.io', 'VIP', 1450.00, '{"theme": "dark", "loyalty_pts": 1450, "priority_support": true}'::jsonb),
+          ('Bob Smith', 'bob.smith@cloudtech.com', 'Standard', 320.00, '{"theme": "light", "loyalty_pts": 320, "priority_support": false}'::jsonb),
+          ('Carol Williams', 'carol.williams@fintech.org', 'VIP', 2890.00, '{"theme": "system", "loyalty_pts": 2890, "priority_support": true}'::jsonb),
+          ('David Miller', 'david.miller@devops.net', 'Gold', 450.00, '{"theme": "dark", "loyalty_pts": 950, "priority_support": false}'::jsonb),
+          ('Elena Rostova', 'elena.rostova@quantum.ai', 'VIP', 4120.00, '{"theme": "dark", "loyalty_pts": 4120, "priority_support": true}'::jsonb);
 
         INSERT INTO ${pgq(s)}."products" (sku, name, category, price, stock, specs, tags) VALUES
           ('SRV-EPYC-01', 'AMD EPYC 9654 Server Blade', 'Compute', 4299.99, 45, '{"cores": 96, "ram_gb": 384, "tdp_w": 360}'::jsonb, ARRAY['server', 'datacenter', 'high-performance']),
@@ -3834,6 +3838,14 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
         } catch (err: any) {
           return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
         }
+      }
+
+      // Shutdown / Close workstation
+      if ((url.pathname === "/api/shutdown" || url.pathname === "/api/close") && req.method === "POST") {
+        if (!process.env.STUDIO_PARENT_PID) {
+          setTimeout(() => process.exit(0), 100);
+        }
+        return Response.json({ success: true, message: "Workstation shutting down..." }, { headers: corsHeaders });
       }
 
       const macroRes = await handleMacroRoute(manager.getMacroAdapter(), manager.macroStore, req, url.pathname, corsHeaders);

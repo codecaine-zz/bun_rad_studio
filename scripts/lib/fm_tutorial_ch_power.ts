@@ -231,7 +231,10 @@ export const power: Chapter[] = [
   },
 
   {
-    id: "21_toolbox", chapter: "THE TOOLBOX", title: "The rest of the toolbox", blurb: "Security, network and handy tools, all one click away",
+    id: "21_toolbox",
+    chapter: "THE TOOLBOX IN DETAIL",
+    title: "Crypto, Secrets Vault, Env, IP & Subnet, Network, Subdomains, Downloads, API, Bundler, Calc, Timer & Graveyard",
+    blurb: "Step-by-step live walkthrough of every security, network, developer, and productivity tool in the Tools panel",
     path: "<HOME>/Projects/shop-app",
     view: "#view-tools",
     setup: (w) => {
@@ -239,28 +242,93 @@ export const power: Chapter[] = [
     },
     steps: [
       {
-        cap: "Crypto: hashes, passwords, encryption",
-        say: "Crypto collects the security helpers. Make a hash of a file, to check that a download was not changed. Make a strong password, or a random token. Encrypt and decrypt text with a passphrase. And encode or decode things like base sixty four. Nothing you type here is saved anywhere.",
-        act: async (d) => { await tab(d, "crypto", 2000); await d.scroll("#power-body", 600, 6).catch(() => {}); await d.click("#power-body button >> Generate password", { pause: 2200 }); },
+        cap: "Crypto Studio Pro: SHA-256/512/BLAKE2b hashes, HMAC, AES-256 lock, Argon2id, UUID v7 & keys",
+        say: "Let's explore every remaining tool in the Tools panel in full detail, starting with Crypto. In the Hash some text card, I type a release string and click Calculate hashes. Instantly it computes SHA two fifty-six, SHA five twelve, SHA three, BLAKE2b, and fast checksums like C R C thirty-two and x x Hash. You can also hash up to twenty selected files in bulk and verify them against a published checksum. Scrolling down, you can lock and unlock text with A E S two fifty-six, hash passwords with Argon2id or bcrypt, and generate bulk U U I D version seven keys, two-fifty-six-bit hex or Base64 secrets, and high-entropy passphrases.",
+        act: async (d) => {
+          await tab(d, "crypto", 1000);
+          await d.click("#power-pane-crypto textarea", { pause: 400 }).catch(() => {});
+          await d.type("Codecaine File Manager M4 Ultra Release v4.2", 45);
+          await d.click("#power-pane-crypto button >> Calculate hashes", { pause: 1600 }).catch(() => {});
+          await d.hover("#power-pane-crypto .crypto-tablehost", 1400).catch(() => {});
+          await d.scroll("#power-body", 650, 6).catch(() => {});
+          await d.click("#power-pane-crypto button >> New UUID v7", { pause: 1000 }).catch(() => {});
+          await d.click("#power-pane-crypto button >> 32-byte hex key", { pause: 1000 }).catch(() => {});
+          await d.click("#power-pane-crypto button >> Generate password", { pause: 1200 }).catch(() => {});
+        },
       },
       {
-        cap: "Secrets and Env: passwords and .env files",
-        say: "Secrets is an encrypted vault for passwords and private notes, locked with one master password. And Env opens dot env files, the settings files many projects use. It finds duplicate names and mistakes, compares with an example file, and keeps the values hidden until you choose to see them.",
-        act: async (d) => { await tab(d, "secrets", 2600); await tab(d, "env", 2600); },
+        cap: "Secrets Vault: encrypted password manager, hardware strength benchmark & recovery keys",
+        say: "Next is Secrets, a complete encrypted password and secure-notes vault locked with one master password and Argon2id memory-hard encryption. You can click Suggest a passphrase to generate a four-word passphrase, choose an optional key file and recovery key, and click Measure on this computer to benchmark Standard two-fifty-six megabyte, Strong five-twelve megabyte, and Maximum one gigabyte vault unlocking right on your hardware. Once unlocked, it stores logins, secure notes, payment cards, S S H keys, Wi-Fi credentials, and A P I tokens with a password health report and one-click auto-lock.",
+        act: async (d) => {
+          await tab(d, "secrets", 1000);
+          await d.click("#power-pane-secrets button >> Suggest a passphrase", { pause: 1300 }).catch(() => {});
+          await d.click("#power-pane-secrets button >> Measure on this computer", { pause: 2200 }).catch(() => {});
+          await d.hover("#power-pane-secrets", 1400).catch(() => {});
+        },
       },
       {
-        cap: "IP info, Network, Subdomains, Downloads",
-        say: "The network tools. IP info looks up an address or a web site, and has subnet helpers. Network checks ports, D N S records, and security certificates, so you can see why a site will not load. Subdomains lists the public sub addresses of a domain. And Downloads fetches big files fast, with pause and resume.",
-        act: async (d) => { await tab(d, "ip", 1800); await tab(d, "net", 1800); await tab(d, "subs", 1500); await tab(d, "downloads", 1500); },
+        cap: "Env Studio: inspect .env files, mask secrets, spot duplicate keys & compare with .env.example",
+        say: "Beside Secrets is Env Studio, dedicated to dot E N V configuration files. It runs inside an isolated loopback security frame, masks secret-looking API keys and tokens on screen until you reveal them, highlights duplicate keys or syntax mistakes, and compares your local dot env file against dot env dot example so no required variable is ever missing before deployment.",
+        act: async (d) => {
+          await tab(d, "env", 2200);
+          await d.hover("#power-pane-env .embed-bar", 1200).catch(() => {});
+          await d.hover("#power-pane-env iframe", 1800).catch(() => {});
+        },
       },
       {
-        cap: "Calculator, Timer, QR, API, Bundler",
-        say: "And the handy ones. A full Calculator, with scientific, graphing, programmer and unit modes. A Timer, for work sprints and breaks. QR codes, which we saw earlier. API, to send web requests and look at the answers. And Bundler, which turns a Bun project into a single program, or a Mac app.",
-        act: async (d) => { await tab(d, "calc", 2000); await tab(d, "timer", 1600); await tab(d, "api", 1500); await tab(d, "bundler", 1500); },
+        cap: "IP Info & Subnet Calculator: public IP, CIDR range math, and local network adapters",
+        say: "Now let's open the Network group, starting with I P info. You can look up any public I P address or domain, or type a C I D R block like one nine two dot one six eight dot one dot zero slash twenty-four and click Subnet calculator. It calculates the netmask, network and broadcast addresses, and usable host range right on your machine. And clicking Network adapters lists every local network interface and I P v 4 or I P v 6 address on this computer, ready to copy as J S O N or C S V.",
+        act: async (d) => {
+          await tab(d, "ip", 1000);
+          await d.click("#power-pane-ip .ip-target", { pause: 400 }).catch(() => {});
+          await d.eval(`(() => { const el = document.querySelector('#power-pane-ip .ip-target'); if (el) { el.value = ''; el.dispatchEvent(new Event('input', { bubbles: true })); } })()`);
+          await d.type("192.168.1.0/24", 60);
+          await d.click("#power-pane-ip button >> Subnet calculator", { pause: 1600 }).catch(() => {});
+          await d.hover("#power-pane-ip .ip-details", 1400).catch(() => {});
+          await d.click("#power-pane-ip button >> Network adapters", { pause: 1600 }).catch(() => {});
+          await d.click("#power-pane-ip button >> Copy JSON", { pause: 900 }).catch(() => {});
+        },
       },
       {
-        cap: "Graveyard: bury (Rip), inspect, and restore in one click",
-        say: "Finally, Graveyard, shared with Rip Studio and the rip command line tool. When you right-click a file and choose Bury, it rests safely in the graveyard instead of being lost. Here in the Graveyard tab, you see its original folder and size, and clicking Select all and Restore brings it right back to its home folder.",
+        cap: "Network Inspector: HTTP probe, live TCP port scanner, Full DNS Audit, SSL Certs & TCP Ping",
+        say: "The Network tab is your complete diagnostics workbench. You can check a website's status and headers, inspect its S S L certificate chain and expiration date, run a five-packet T C P latency ping, or run a Full D N S Audit across A, quad-A, M X, T X T, N S, S O A, and C A A records. Let's click Scan common ports on localhost: it scans web, S S H, and database ports in parallel, shows every open port in the results table, logs every step in the live diagnostics stream, and saves the report straight to your open folder.",
+        act: async (d) => {
+          await tab(d, "net", 1000);
+          await d.click("#power-pane-net button >> Scan common ports", { pause: 2400 }).catch(() => {});
+          await d.hover("#power-pane-net .net-results", 1500).catch(() => {});
+          await d.click("#power-pane-net button >> Use current folder", { pause: 900 }).catch(() => {});
+          await d.click("#power-pane-net button >> Save report", { pause: 1200 }).catch(() => {});
+        },
+      },
+      {
+        cap: "Subdomains Recon & Multi-Connection Downloads Accelerator",
+        say: "Next are Subdomains and Downloads. Subdomains queries passive Certificate Transparency logs and public archives to discover subdomains for a domain, with optional D N S resolution, H T T P status probing, wildcard detection, and one-click export to C S V, J S O N, Markdown, or a hosts list. And Downloads is a multi-connection download manager that splits large files across up to thirty-two parallel connections with pause and resume, bandwidth limits, custom request headers, and automatic S H A two fifty-six checksum verification.",
+        act: async (d) => {
+          await tab(d, "subs", 1000);
+          await d.click('#power-pane-subs input[aria-label="Domain to look up"]', { pause: 400 }).catch(() => {});
+          await d.type("example.com", 70);
+          await d.hover("#power-pane-subs .subs-sources", 1200).catch(() => {});
+          await tab(d, "downloads", 1000);
+          await d.click("#power-pane-downloads .dl-urls", { pause: 400 }).catch(() => {});
+          await d.type("https://example.com/releases/codecaine-studio-arm64.dmg", 40);
+          await d.click("#power-pane-downloads button >> Use the open folder", { pause: 900 }).catch(() => {});
+          await d.eval(`(() => { const s = document.querySelector('#power-pane-downloads select[aria-label="Connections per file"]'); if (s) { s.value = '16'; s.dispatchEvent(new Event('change', { bubbles: true })); } })()`);
+          await d.hover("#power-pane-downloads .dl-add", 1200).catch(() => {});
+        },
+      },
+      {
+        cap: "Calculator, Pomodoro Timer, REST API Studio & Bun App Bundler",
+        say: "In the Handy and Files groups, Calculator gives you scientific, graphing, programmer binary and hex, and unit conversion modes. Timer runs Pomodoro focus sprints, countdowns, and lap stopwatches. A P I Studio sends local H T T P and R E S T requests, imports c U R L commands, and formats J S O N responses. And Bundler packages any Bun or TypeScript project into a single bundled script, a standalone native binary executable, or a signed mac O S dot app bundle.",
+        act: async (d) => {
+          await tab(d, "calc", 1600);
+          await tab(d, "timer", 1500);
+          await tab(d, "api", 1600);
+          await tab(d, "bundler", 1600);
+        },
+      },
+      {
+        cap: "Graveyard: bury (Rip), inspect original path & size, and bulk restore in one click",
+        say: "Finally, Graveyard, shared with Rip Studio and the rip command-line tool. When you right-click any file or selection and choose Bury, it moves safely into the Graveyard with its original folder path, size, and deletion date preserved. Here in the Graveyard tab, clicking Select all and Restore returns every buried item straight back to its original folder.",
         act: async (d) => {
           await d.eval(`(async () => {
             const { call } = await import('/ui/api.js');
@@ -268,10 +336,10 @@ export const power: Chapter[] = [
             const folder = currentPath();
             if (folder) await call('grave/bury', { paths: [folder + '/old-draft-to-bury.txt'] }).catch(() => {});
           })()`);
-          await tab(d, "grave", 1800);
+          await tab(d, "grave", 1600);
           await d.click("#power-body .pw-btn >> Select all", { pause: 1000 }).catch(() => {});
           await d.click("#power-body .pw-btn >> Restore", { pause: 1400 }).catch(() => {});
-          await d.click("#view-files", { pause: 1500 });
+          await d.click("#view-files", { pause: 1400 });
         },
       },
     ],

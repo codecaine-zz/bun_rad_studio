@@ -56,6 +56,12 @@ import {
   handleOllamaStreamRequest,
   shutdownOllamaForFileManager,
 } from "./fmOllama";
+import {
+  BIONIC_OPS,
+  getCachedBionicAudioFile,
+  handleBionicStreamRequest,
+  shutdownBionicForFileManager,
+} from "./fmBionic";
 import type { HostedPeer, HostedSession } from "../../simplegui_host";
 import { dbState } from "./fmDbState";
 import { watchOperations } from "./fmWatchOps";
@@ -289,6 +295,9 @@ const LINK_BRIDGE = `<script>(function(){` +
   `try{if(window.AudioContext)window.AudioContext=_wrapAc(window.AudioContext);if(window.webkitAudioContext)window.webkitAudioContext=_wrapAc(window.webkitAudioContext)}catch(_){}` +
   `window.__fmSilenceAll=function(){try{if(window.AudioEngine&&typeof window.AudioEngine.stopMusic==="function")window.AudioEngine.stopMusic();if(window.sound&&typeof window.sound.stopBGM==="function")window.sound.stopBGM();if(window.sfx&&typeof window.sfx.stopBGM==="function")window.sfx.stopBGM()}catch(_){}for(var i=0;i<_acs.length;i++){try{_acs[i].suspend()}catch(_){}try{_acs[i].close()}catch(_){}}try{var m=document.querySelectorAll("audio,video");for(var j=0;j<m.length;j++){try{m[j].pause();m[j].src=""}catch(_){}}}catch(_){}try{if(window.speechSynthesis)window.speechSynthesis.cancel()}catch(_){}};` +
   `window.addEventListener("message",function(e){if(e.data&&typeof e.data==="object"&&e.data.fmStopGame){window.__fmSilenceAll()}});` +
+  `var _applyFmTheme=function(t){if(!t||typeof t!=="object")return;var r=document.documentElement;var s=t.scheme||"dark";var v=t.vars||{};r.dataset.theme=s;r.dataset.palette=t.palette||"";r.style.colorScheme=s;for(var k in v){if(Object.prototype.hasOwnProperty.call(v,k))r.style.setProperty("--"+k,v[k])}if(v.bg){r.style.setProperty("--surface",v.panel||v.bg);r.style.setProperty("--surface-2",v["surface-elevated"]||v.panel||v.bg);r.style.setProperty("--surface-3",v["surface-sunken"]||v.bg);r.style.setProperty("--line",v.border||"#384252");r.style.setProperty("--line-strong",v["border-strong"]||v.border||"#526075");r.style.setProperty("--accent-strong",v.accent||"#38bdf8");r.style.setProperty("--bg-base",v.bg);r.style.setProperty("--bg-surface",v.panel||v.bg);r.style.setProperty("--bg-card",v["surface-elevated"]||v.panel||v.bg);r.style.setProperty("--bg-card-hover",v.hover||v.panel||v.bg);r.style.setProperty("--border-highlight",v["border-strong"]||v.border||"#526075");r.style.setProperty("--text-primary",v.text||"#f8fafc");r.style.setProperty("--text-secondary",v.muted||v.text||"#94a3b8");r.style.setProperty("--text-tertiary",v.muted||"#64748b");r.style.setProperty("--bg-dark",v["surface-sunken"]||v.bg);r.style.setProperty("--panel-bg",v.panel||v.bg);r.style.setProperty("--panel-border",v.border||"#384252");r.style.setProperty("--accent-blue",v.accent||"#38bdf8");r.style.setProperty("--accent-purple",v.selected||v.accent||"#a855f7");r.style.setProperty("--text-main",v.text||"#f8fafc");r.style.setProperty("--text-muted",v.muted||"#94a3b8");r.style.setProperty("--active-tool-border",v.accent||"#38bdf8")}var st=document.getElementById("fm-embedded-theme");if(!st&&document.head){st=document.createElement("style");st.id="fm-embedded-theme";document.head.appendChild(st)}if(st&&v.bg){st.textContent=":root,body{background-color:"+v.bg+";color:"+(v.text||"inherit")+"}.top-bar,.left-toolbar,.right-sidebar,.status-bar{background:"+(v.panel||v.bg)+" !important;border-color:"+(v.border||"transparent")+" !important;color:"+(v.text||"inherit")+" !important}.workspace{background:"+(v["surface-sunken"]||v.bg)+" !important}"}var tb=document.getElementById("themeToggle");if(tb)tb.textContent=s==="light"?"Dark":"Light"};` +
+  `window.addEventListener("message",function(e){if(e.data&&typeof e.data==="object"&&e.data.fmTheme){_applyFmTheme(e.data.fmTheme)}});` +
+  `window.addEventListener("DOMContentLoaded",function(){try{if(window.parent&&window.parent!==window)window.parent.postMessage({fmRequestTheme:true},"*")}catch(_){}});` +
   `window.addEventListener("pagehide",window.__fmSilenceAll);window.addEventListener("beforeunload",window.__fmSilenceAll);` +
   `document.addEventListener("visibilitychange",function(){try{for(var i=0;i<_acs.length;i++){if(document.hidden)_acs[i].suspend();else if(_acs[i].state==="suspended")_acs[i].resume()}}catch(_){}});` +
   `var _origFetch=window.fetch;if(typeof _origFetch==="function"){window.fetch=function(input,init){var u=typeof input==="string"?input:(input&&input.url)||"";if(/(^|\\/)api\\/(state|scores| telemetry)\\b/.test(u)){return Promise.resolve(new Response(JSON.stringify({ok:true,status:"ok",highScore:0}),{status:200,headers:{"Content-Type":"application/json"}}))}return _origFetch.apply(this,arguments)}}` +
@@ -297,9 +306,10 @@ const LINK_BRIDGE = `<script>(function(){` +
   `document.addEventListener("click",function(e){var closeBtn=e.target&&e.target.closest&&e.target.closest("#btnHub,.hub-return-btn,[data-close-game],a[href='/']");if(closeBtn&&window.parent&&window.parent!==window){e.preventDefault();e.stopPropagation();window.__fmSilenceAll();try{parent.postMessage({fmCloseGame:true},"*")}catch(_){}return}var a=e.target&&e.target.closest&&e.target.closest("a[href]");if(!a||e.defaultPrevented||e.button>1)return;var u=abs(a.getAttribute("href"));if(u){e.preventDefault();send(u)}},true);` +
   `document.addEventListener("click",function(){try{window.focus();setTimeout(function(){var el=document.activeElement;if(el&&el.tagName==="BUTTON"&&(el.offsetParent===null||document.querySelector("canvas"))){try{el.blur()}catch(_){}}window.focus()},0)}catch(e){}},false);` +
   `window.addEventListener("load",function(){setTimeout(function(){try{window.dispatchEvent(new Event("resize"));window.focus()}catch(e){}},32);setTimeout(function(){try{window.dispatchEvent(new Event("resize"))}catch(e){}},160)});` +
-  `var _lastF11=0;window.addEventListener("keydown",function(e){if(!window.parent||window.parent===window)return;var mod=e.ctrlKey||e.metaKey;var k=(e.key||"").toLowerCase();var isF11=e.key==="F11"||e.code==="F11"||e.key==="\\uF70E"||e.keyCode===122;if(isF11||(mod&&e.shiftKey&&!e.altKey&&(k==="u"||e.code==="KeyU"))||(e.ctrlKey&&e.metaKey&&!e.altKey&&(k==="f"||e.code==="KeyF"))||(e.altKey&&!mod&&!e.shiftKey&&(e.code==="Digit8"||e.key==="8"))){if(isF11)_lastF11=Date.now();e.preventDefault();e.stopPropagation();try{parent.postMessage({fmToggleExpand:true},"*")}catch(_){}return}if(mod&&!e.altKey&&!e.shiftKey&&(k==="k"||e.code==="KeyK")){e.preventDefault();e.stopPropagation();try{parent.postMessage({fmFilterTools:true},"*")}catch(_){}return}if(mod&&!e.altKey&&!e.shiftKey&&(k==="c"||e.code==="KeyC")){var t="";var el=e.target;if(el&&(el.tagName==="INPUT"||el.tagName==="TEXTAREA")&&el.type!=="password"&&typeof el.selectionStart==="number"&&typeof el.selectionEnd==="number"&&el.selectionEnd>el.selectionStart){t=String(el.value||"").slice(el.selectionStart,el.selectionEnd)}else if(typeof window.getSelection==="function"){var s=window.getSelection();if(s&&!s.isCollapsed)t=s.toString()}if(t){e.preventDefault();try{parent.postMessage({fmCopyText:t},"*")}catch(_){}return}}},true);` +
-  `window.addEventListener("keydown",function(e){if(!window.parent||window.parent===window)return;if(e.key==="Escape"&&!e.defaultPrevented&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&!e.shiftKey){if(document.querySelector&&document.querySelector(".sgd-container,.modal-backdrop.active,.modal-overlay.open,.modal-overlay.active,dialog[open]"))return;try{parent.postMessage({fmEscapeExpand:true},"*")}catch(_){}}},false);` +
+  `var _lastF11=0;window.addEventListener("keydown",function(e){if(!window.parent||window.parent===window)return;var mod=e.ctrlKey||e.metaKey;var k=(e.key||"").toLowerCase();if((mod&&!e.altKey&&!e.shiftKey&&(k==="q"||k==="w"||e.code==="KeyQ"||e.code==="KeyW"))||(e.altKey&&!mod&&!e.shiftKey&&(e.key==="F4"||e.code==="F4"||k==="q"||k==="w"||e.code==="KeyQ"||e.code==="KeyW"))){e.preventDefault();e.stopPropagation();if(!e.repeat&&!e.isComposing){try{window.top.postMessage({fmCloseApp:true},"*")}catch(_){}if(window.parent!==window.top){try{parent.postMessage({fmCloseApp:true},"*")}catch(_){}}}return}var isF11=e.key==="F11"||e.code==="F11"||e.key==="\\uF70E"||e.keyCode===122;if(isF11||(mod&&e.shiftKey&&!e.altKey&&(k==="u"||e.code==="KeyU"))||(e.ctrlKey&&e.metaKey&&!e.altKey&&(k==="f"||e.code==="KeyF"))||(e.altKey&&!mod&&!e.shiftKey&&(e.code==="Digit8"||e.key==="8"))){if(isF11)_lastF11=Date.now();e.preventDefault();e.stopPropagation();try{parent.postMessage({fmToggleExpand:true},"*")}catch(_){}return}if(mod&&!e.altKey&&!e.shiftKey&&(k==="k"||e.code==="KeyK")){e.preventDefault();e.stopPropagation();try{parent.postMessage({fmFilterTools:true},"*")}catch(_){}return}if(mod&&!e.altKey&&!e.shiftKey&&(k==="c"||e.code==="KeyC")){var t="";var el=e.target;if(el&&(el.tagName==="INPUT"||el.tagName==="TEXTAREA")&&el.type!=="password"&&typeof el.selectionStart==="number"&&typeof el.selectionEnd==="number"&&el.selectionEnd>el.selectionStart){t=String(el.value||"").slice(el.selectionStart,el.selectionEnd)}else if(typeof window.getSelection==="function"){var s=window.getSelection();if(s&&!s.isCollapsed)t=s.toString()}if(t){e.preventDefault();try{parent.postMessage({fmCopyText:t},"*")}catch(_){}return}}},true);` +
+  `window.addEventListener("keydown",function(e){if(!window.parent||window.parent===window)return;if(e.key==="Escape"&&!e.defaultPrevented&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&!e.shiftKey){if(document.querySelector&&document.querySelector(".sgd-container,.modal-backdrop.active,.modal-overlay.open,.modal-overlay.active,dialog[open]"))return;e.preventDefault();try{parent.postMessage({fmEscapeExpand:true},"*")}catch(_){}}},false);` +
   `window.addEventListener("keyup",function(e){if(!window.parent||window.parent===window)return;var isF11=e.key==="F11"||e.code==="F11"||e.key==="\\uF70E"||e.keyCode===122;if(isF11&&Date.now()-_lastF11>300){e.preventDefault();e.stopPropagation();try{parent.postMessage({fmToggleExpand:true},"*")}catch(_){}}},true);` +
+  `if(window.parent&&window.parent!==window){try{var _reqFs=function(){try{parent.postMessage({fmToggleExpand:true},"*")}catch(_){}return Promise.resolve()};var _exitFs=function(){try{parent.postMessage({fmEscapeExpand:true},"*")}catch(_){}return Promise.resolve()};if(typeof Element!=="undefined"&&Element.prototype){Element.prototype.requestFullscreen=_reqFs;Element.prototype.webkitRequestFullscreen=_reqFs}if(typeof Document!=="undefined"&&Document.prototype){Document.prototype.exitFullscreen=_exitFs;Document.prototype.webkitExitFullscreen=_exitFs}}catch(_){}}` +
   `window.open=function(u){var x=u&&abs(u);if(x)send(x);return null}})();</script>`;
 
 const EMBED_TYPES: Record<string, string> = { html: "text/html; charset=utf-8", js: "text/javascript; charset=utf-8", css: "text/css; charset=utf-8", svg: "image/svg+xml", json: "application/json; charset=utf-8", png: "image/png", gif: "image/gif", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp", woff2: "font/woff2", mp3: "audio/mpeg", wav: "audio/wav", ogg: "audio/ogg" };
@@ -567,7 +577,7 @@ Object.assign(operations, hostedStudioOperations);
 // Fast, resumable downloads split over several connections.
 Object.assign(operations, downloadOperations);
 // Built-in RAD Studio command-line utilities folder and catalog.
-Object.assign(operations, cliUtilsOperations, taskManagerOperations, sysinfoOperations, PHONON_OPS, OLLAMA_OPS);
+Object.assign(operations, cliUtilsOperations, taskManagerOperations, sysinfoOperations, PHONON_OPS, OLLAMA_OPS, BIONIC_OPS);
 
 export const API_OPERATIONS = Object.keys(operations);
 
@@ -854,6 +864,21 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
           return await handleOllamaStreamRequest(ctx, req);
         }
 
+        if (req.method === "GET" && path === "/api/bionic/audio") {
+          if (!tokenMatches(url.searchParams.get("token"), token)) return json(401, { ok: false, error: { code: "NO_TOKEN", message: "Not allowed." } });
+          const audioId = url.searchParams.get("id") ?? "";
+          const cached = getCachedBionicAudioFile(audioId) ?? getCachedOllamaAudioFile(audioId);
+          if (!cached) return json(404, { ok: false, error: { code: "NOT_FOUND", message: "Bionic speech audio expired or not found." } });
+          const st = await fsp.stat(cached.absPath).catch(() => null);
+          if (!st?.isFile()) return json(404, { ok: false, error: { code: "NOT_FOUND", message: "Bionic speech audio file not found." } });
+          return fileResponse(req, cached.absPath, st.size, secureHeaders({ "Content-Type": cached.mime, "Cache-Control": "private, max-age=600" }));
+        }
+
+        if (req.method === "POST" && path === "/api/bionic/stream") {
+          if (!tokenMatches(req.headers.get("x-fm-token"), token)) return json(401, { ok: false, error: { code: "NO_TOKEN", message: "Not allowed. Reload the File Manager window." } });
+          return await handleBionicStreamRequest(ctx, req);
+        }
+
         if (req.method === "GET" && path === "/api/raw") {
           if (!tokenMatches(url.searchParams.get("token"), token)) return json(401, { ok: false, error: { code: "NO_TOKEN", message: "Not allowed." } });
           const file = absolutePath(ctx, url.searchParams.get("path"));
@@ -921,7 +946,7 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
           const handler = Object.prototype.hasOwnProperty.call(operations, op) ? operations[op] : undefined;
           if (!handler) return json(404, { ok: false, error: { code: "UNKNOWN_OPERATION", message: "Unknown operation." } });
           if (!(req.headers.get("content-type") ?? "").toLowerCase().startsWith("application/json")) return json(415, { ok: false, error: { code: "NOT_JSON", message: "Requests must be JSON." } });
-          const maxBodyBytes = op === "phonon/clone-voice" || op.startsWith("ollama/") ? 8 * 1024 * 1024 : MAX_BODY_BYTES;
+          const maxBodyBytes = op === "phonon/clone-voice" || op.startsWith("ollama/") || op.startsWith("bionic/") ? 8 * 1024 * 1024 : MAX_BODY_BYTES;
           const declared = Number(req.headers.get("content-length") ?? 0);
           if (declared > maxBodyBytes) return json(413, { ok: false, error: { code: "TOO_LARGE", message: "That request is too large." } });
           const text = await req.text();
@@ -950,6 +975,7 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
     terminals.closeAll();
     ctx.jobs.cancelAll();
     void shutdownOllamaForFileManager(ctx, { timeoutMs: 1800 });
+    void shutdownBionicForFileManager(ctx);
     for (const dispose of ctx.disposers.splice(0)) {
       try { dispose(); } catch {}
     }

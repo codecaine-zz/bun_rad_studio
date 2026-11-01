@@ -2,6 +2,7 @@ import { describe, it, expect, afterAll } from "bun:test";
 import {
   formatSqlDialect,
   buildColumnFilterWhere,
+  buildSearchFilterWhere,
   buildOrderClause,
   computeSchemaDiffDdl,
 } from "../../src/shared/studioServerEnhancements";
@@ -55,6 +56,49 @@ describe("Studio Server Enhancements (SQL Formatting, Column Filters, Multi-Sort
       'CAST("balance" AS DOUBLE PRECISION) < $4',
     ]);
     expect(pgClause.params).toEqual(["Bob", 50]);
+
+    // Microsoft Access operators for numbers, strings, dates, ranges, sets, wildcards, and compound AND/OR
+    const accessCols = ["id", "name", "balance", "created_at", "tier"];
+    const accessClause = buildColumnFilterWhere(
+      {
+        balance: "<= 500",
+        created_at: ">= 2026-01-15",
+        name: "LIKE 'A*'",
+        tier: "IN ('VIP', 'Gold')",
+      },
+      accessCols,
+      "sqlite"
+    );
+    expect(accessClause.clauses.length).toBe(4);
+    expect(accessClause.params).toEqual([500, "2026-01-15", "A%", "VIP", "Gold"]);
+
+    const betweenClause = buildColumnFilterWhere(
+      {
+        balance: "BETWEEN 100 AND 500",
+        created_at: "2026-01-01..2026-12-31",
+      },
+      accessCols,
+      "postgres",
+      1
+    );
+    expect(betweenClause.clauses).toEqual([
+      'CAST("balance" AS DOUBLE PRECISION) BETWEEN $1 AND $2',
+      'SUBSTR(CAST("created_at" AS TEXT), 1, 10) BETWEEN $3 AND $4',
+    ]);
+    expect(betweenClause.params).toEqual([100, 500, "2026-01-01", "2026-12-31"]);
+
+    // Incomplete operator while typing (e.g. "<=" or "<") should be ignored so it doesn't return 0 rows
+    const incompleteClause = buildColumnFilterWhere(
+      { balance: "<=", name: "LIKE" },
+      accessCols,
+      "sqlite"
+    );
+    expect(incompleteClause.clauses).toEqual([]);
+
+    // Global search box with column-targeted Access expression (`balance <= 500`)
+    const searchExpr = buildSearchFilterWhere("balance <= 500", accessCols, "sqlite");
+    expect(searchExpr.clause).toBe('CAST("balance" AS REAL) <= ?');
+    expect(searchExpr.params).toEqual([500]);
   });
 
   it("builds multi-column ORDER BY clauses and ignores invalid columns", () => {
@@ -164,6 +208,43 @@ describe("Studio HTTP Endpoints (/api/sql/format, /api/schema/diff, /api/table/d
     expect(res.success).toBe(true);
     expect(res.totalRows).toBe(2);
     expect(res.rows.map((r: any) => r.score)).toEqual([30, 20]);
+
+    // Test Microsoft Access filter operators (<=, <, BETWEEN, dates, wildcards) on /api/table/data
+    const lteRes = await post(Number(sqlite.port), "/api/table/data", {
+      table: "accounts",
+      page: 1,
+      pageSize: 10,
+      columnFilters: { score: "<= 25", tier: "g*" },
+    });
+    expect(lteRes.success).toBe(true);
+    expect(lteRes.rows.map((r: any) => r.score).sort((a: number, b: number) => a - b)).toEqual([10, 20]);
+
+    // Test AutoExec macro ApplyFilter with balance > 500 vs balance < 500
+    const gtMacro = await post(Number(sqlite.port), "/api/macros/run", {
+      macro: {
+        id: "test_gt",
+        name: "TestGT",
+        actions: [
+          { id: "s1", action: "OpenTable", parameters: { table: "customers" }, enabled: true },
+          { id: "s2", action: "ApplyFilter", parameters: { condition: "balance > 500" }, enabled: true },
+        ],
+      },
+    });
+    expect(gtMacro.success).toBe(true);
+    expect(gtMacro.result.variables.totalRows).toBe(9);
+
+    const ltMacro = await post(Number(sqlite.port), "/api/macros/run", {
+      macro: {
+        id: "test_lt",
+        name: "TestLT",
+        actions: [
+          { id: "s1", action: "OpenTable", parameters: { table: "customers" }, enabled: true },
+          { id: "s2", action: "ApplyFilter", parameters: { condition: "balance < 500" }, enabled: true },
+        ],
+      },
+    });
+    expect(ltMacro.success).toBe(true);
+    expect(ltMacro.result.variables.totalRows).toBe(3);
   });
 
   it("exposes /api/sql/format and /api/schema/diff across SQLite, MySQL, and Postgres studio servers", async () => {

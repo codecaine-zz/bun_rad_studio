@@ -15,6 +15,7 @@ import { viewApi } from "../src/shared/studioViews";
 import {
   formatSqlDialect,
   buildColumnFilterWhere,
+  buildSearchFilterWhere,
   buildOrderClause,
   computeSchemaDiffDdl,
   type SortColumnSpec,
@@ -1037,10 +1038,11 @@ export class MysqlManager {
       const whereParts: string[] = [];
       const params: any[] = [];
       if (options.search && options.search.trim() && columns.length > 0) {
-        const searchVal = `%${options.search.trim()}%`;
-        const conditions = columns.map((col: string) => `${qm(col)} LIKE ?`);
-        whereParts.push(`(${conditions.join(" OR ")})`);
-        columns.forEach(() => params.push(searchVal));
+        const searchFilter = buildSearchFilterWhere(options.search, columns, "mysql");
+        if (searchFilter.clause) {
+          whereParts.push(searchFilter.clause);
+          params.push(...searchFilter.params);
+        }
       }
       if (options.columnFilters && typeof options.columnFilters === "object") {
         const colFilter = buildColumnFilterWhere(options.columnFilters, columns, "mysql");
@@ -1964,12 +1966,12 @@ export class MysqlManager {
           ["Linus Torvalds", "linus@kernel.org", "Linux Foundation", "United States", "Enterprise", 45200.5],
           ["Brendan Eich", "brendan@brave.com", "Brave Software", "United States", "Enterprise", 31800.0],
           ["Jarred Sumner", "jarred@oven.sh", "Oven Inc / Bun", "United States", "VIP", 94500.0],
-          ["Guido van Rossum", "guido@python.org", "Python Software Foundation", "Netherlands", "Standard", 12400.75],
+          ["Guido van Rossum", "guido@python.org", "Python Software Foundation", "Netherlands", "Standard", 245.75],
           ["Dennis Ritchie", "dennis@bell-labs.com", "Bell Labs", "United States", "Honorary", 75000.0],
           ["Ada Lovelace", "ada@babbage.engine", "Analytical Research", "United Kingdom", "Pioneering", 120000.0],
           ["Grace Hopper", "grace@navy.mil", "Naval Computing", "United States", "Pioneering", 88000.0],
-          ["Ken Thompson", "ken@unix.org", "Bell Labs", "United States", "VIP", 62000.0],
-          ["Bjarne Stroustrup", "bjarne@morgan.com", "C++ Standards", "United States", "Enterprise", 54000.0],
+          ["Ken Thompson", "ken@unix.org", "Bell Labs", "United States", "VIP", 380.0],
+          ["Bjarne Stroustrup", "bjarne@morgan.com", "C++ Standards", "United States", "Enterprise", 490.0],
           ["Anders Hejlsberg", "anders@microsoft.com", "TypeScript / C#", "United States", "Enterprise", 67000.0],
           ["Sophie Wilson", "sophie@arm.com", "ARM Architecture", "United Kingdom", "VIP", 83000.0],
           ["Donald Knuth", "knuth@stanford.edu", "Stanford University", "United States", "Honorary", 99000.0],
@@ -2882,7 +2884,9 @@ export function startMysqlStudioServer(options: ServerOptions = {}) {
 
       // Shutdown / Close workstation
       if ((url.pathname === "/api/shutdown" || url.pathname === "/api/close") && req.method === "POST") {
-        setTimeout(() => process.exit(0), 100);
+        if (!process.env.STUDIO_PARENT_PID) {
+          setTimeout(() => process.exit(0), 100);
+        }
         return Response.json({ success: true, message: "Workstation shutting down..." }, { headers: corsHeaders });
       }
 

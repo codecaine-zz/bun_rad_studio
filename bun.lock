@@ -7,7 +7,7 @@
       "dependencies": {
         "prettier": "^3.9.10",
         "sql-formatter": "^15.9.0",
-        "systeminformation": "^5.33.12",
+        "systeminformation": "^5.33.16",
         "webview-bun": "^2.4.0",
       },
       "devDependencies": {
@@ -110,7 +110,7 @@
 
     "symbol-tree": ["symbol-tree@3.2.4", "", {}, "sha512-9QNk5KwDF+Bvz+PyObkmSYjI5ksVUYtjW7AU22r2NKcfLJcXp96hkDWU3+XndOsUb+AQ9QhfzfCT2O+CNWT5Tw=="],
 
-    "systeminformation": ["systeminformation@5.33.14", "", { "os": "!aix", "bin": { "systeminformation": "lib/cli.js" } }, "sha512-9liS0hutibZOitbibm90AK3WZe/1rGhNGZSw+/4TbY5moax6KkWwv1TKJmk9uSOD4bvPPg57VAuuNN+4edIpBg=="],
+    "systeminformation": ["systeminformation@5.33.16", "", { "os": "!aix", "bin": { "systeminformation": "lib/cli.js" } }, "sha512-R+Lh69IJXfJj6bfyH1In5cIR9FTr4hBS39YvlZHZjsK1p9cuELPq7hplZZIb56ZESMMb+DzdKqqE6Iomi01Mvg=="],
 
     "tldts": ["tldts@7.4.18", "", { "dependencies": { "tldts-core": "^7.4.18" }, "bin": { "tldts": "bin/cli.js" } }, "sha512-somxA8xKAUzlAxl0TX/jMSYIbRNFIVGnI96pVGJPeMc5BsHmfVXn6mOJT6U++ELnl04eGfzpfcEuZe8WiASkXg=="],
 

@@ -28,6 +28,8 @@ export interface Settings {
   palette: string;
   /** Whether theme special effects, animations, and background canvas shaders are toggled off (`Cmd+0` / `Alt+0`) while keeping the active color palette. */
   themeFxOff: boolean;
+  /** Whether to keep ONLY 3D folder & folder-icon effects while suppressing background atmosphere particles, screen filters, grain, vignette, and non-folder overlays. */
+  folderFxOnly: boolean;
   /** Optional light theme key used automatically when `theme === "auto"` and `palette === ""` while the OS is in light mode. */
   preferredLightPalette: string;
   /** Optional dark theme key used automatically when `theme === "auto"` and `palette === ""` while the OS is in dark mode. */
@@ -317,6 +319,7 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: "auto",
   palette: "",
   themeFxOff: false,
+  folderFxOnly: false,
   preferredLightPalette: "",
   preferredDarkPalette: "",
   solarScheduleEnabled: false,
@@ -482,6 +485,7 @@ export function sanitizeSettings(raw: unknown, ctx: FmContext): Settings {
     theme: oneOf(r.theme, ["auto", "light", "dark"], DEFAULT_SETTINGS.theme),
     palette: isPaletteKey(r.palette) ? r.palette : "",
     themeFxOff: typeof r.themeFxOff === "boolean" ? r.themeFxOff : DEFAULT_SETTINGS.themeFxOff,
+    folderFxOnly: typeof r.folderFxOnly === "boolean" ? r.folderFxOnly : DEFAULT_SETTINGS.folderFxOnly,
     preferredLightPalette: isPaletteKey(r.preferredLightPalette) ? r.preferredLightPalette : "",
     preferredDarkPalette: isPaletteKey(r.preferredDarkPalette) ? r.preferredDarkPalette : "",
     solarScheduleEnabled: typeof r.solarScheduleEnabled === "boolean" ? r.solarScheduleEnabled : DEFAULT_SETTINGS.solarScheduleEnabled,

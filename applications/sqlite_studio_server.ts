@@ -15,6 +15,7 @@ import { viewApi } from "../src/shared/studioViews";
 import {
   formatSqlDialect,
   buildColumnFilterWhere,
+  buildSearchFilterWhere,
   buildOrderClause,
   computeSchemaDiffDdl,
   type SortColumnSpec,
@@ -614,10 +615,11 @@ export class SqliteManager {
       const whereParts: string[] = [];
       const params: any[] = [];
       if (options.search && options.search.trim() && columns.length > 0) {
-        const searchVal = `%${options.search.trim()}%`;
-        const conditions = columns.map((col) => `CAST("${col.replace(/"/g, '""')}" AS TEXT) LIKE ?`);
-        whereParts.push(`(${conditions.join(" OR ")})`);
-        columns.forEach(() => params.push(searchVal));
+        const searchFilter = buildSearchFilterWhere(options.search, columns, "sqlite");
+        if (searchFilter.clause) {
+          whereParts.push(searchFilter.clause);
+          params.push(...searchFilter.params);
+        }
       }
       if (options.columnFilters && typeof options.columnFilters === "object") {
         const colFilter = buildColumnFilterWhere(options.columnFilters, columns, "sqlite");
@@ -1428,12 +1430,12 @@ export class SqliteManager {
           ["Linus Torvalds", "linus@kernel.org", "Linux Foundation", "United States", "Enterprise", 45200.50],
           ["Brendan Eich", "brendan@brave.com", "Brave Software", "United States", "Enterprise", 31800.00],
           ["Jarred Sumner", "jarred@oven.sh", "Oven Inc / Bun", "United States", "VIP", 94500.00],
-          ["Guido van Rossum", "guido@python.org", "Python Software Foundation", "Netherlands", "Standard", 12400.75],
+          ["Guido van Rossum", "guido@python.org", "Python Software Foundation", "Netherlands", "Standard", 245.75],
           ["Dennis Ritchie", "dennis@bell-labs.com", "Bell Labs", "United States", "Honorary", 75000.00],
           ["Ada Lovelace", "ada@babbage.engine", "Analytical Research", "United Kingdom", "Pioneering", 120000.00],
           ["Grace Hopper", "grace@navy.mil", "Naval Computing", "United States", "Pioneering", 88000.00],
-          ["Ken Thompson", "ken@unix.org", "Bell Labs", "United States", "VIP", 62000.00],
-          ["Bjarne Stroustrup", "bjarne@morgan.com", "C++ Standards", "United States", "Enterprise", 54000.00],
+          ["Ken Thompson", "ken@unix.org", "Bell Labs", "United States", "VIP", 380.00],
+          ["Bjarne Stroustrup", "bjarne@morgan.com", "C++ Standards", "United States", "Enterprise", 490.00],
           ["Anders Hejlsberg", "anders@microsoft.com", "TypeScript / C#", "United States", "Enterprise", 67000.00],
           ["Sophie Wilson", "sophie@arm.com", "ARM Architecture", "United Kingdom", "VIP", 83000.00],
           ["Donald Knuth", "knuth@stanford.edu", "Stanford University", "United States", "Honorary", 99000.00],
@@ -1904,6 +1906,33 @@ export class SqliteManager {
         let message = `Action ${act.action} executed`;
 
         switch (act.action) {
+          case "OpenTable": {
+            const tbl = p.table || p.tableName || p.targetTable || variables.activeTable;
+            if (!tbl) throw new Error("OpenTable requires target table");
+            variables.activeTable = tbl;
+            const res = this.query(`SELECT * FROM ${qi(tbl)} LIMIT 100;`);
+            if (!res.success) throw new Error(res.error || "OpenTable failed");
+            variables.totalRows = res.rows?.length || 0;
+            output = { table: tbl, columns: res.columns, rows: res.rows, rowsCount: res.rows?.length || 0 };
+            message = `Opened table '${tbl}' (${res.rows?.length || 0} rows)`;
+            break;
+          }
+          case "ApplyFilter": {
+            const cond = p.condition || p.where || p.whereCondition;
+            const tbl = p.table || p.tableName || variables.activeTable || "customers";
+            if (!cond) {
+              message = "No filter condition provided";
+              break;
+            }
+            const resolvedCond = this.resolvePromptParams(String(cond), promptParams);
+            const sql = `SELECT * FROM ${qi(tbl)} WHERE ${resolvedCond} LIMIT 100;`;
+            const res = this.query(sql);
+            if (!res.success) throw new Error(res.error || "ApplyFilter failed");
+            variables.totalRows = res.rows?.length || 0;
+            output = { table: tbl, condition: resolvedCond, columns: res.columns, rows: res.rows, rowsCount: res.rows?.length || 0 };
+            message = `Applied filter '${resolvedCond}' (${res.rows?.length || 0} matching records)`;
+            break;
+          }
           case "OpenQuery": {
             let sql = p.sql;
             if (p.queryName) {
@@ -3061,7 +3090,9 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
 
       // Shutdown / Close workstation
       if ((url.pathname === "/api/shutdown" || url.pathname === "/api/close") && req.method === "POST") {
-        setTimeout(() => process.exit(0), 100);
+        if (!process.env.STUDIO_PARENT_PID) {
+          setTimeout(() => process.exit(0), 100);
+        }
         return Response.json({ success: true, message: "Workstation shutting down..." }, { headers: corsHeaders });
       }
 

@@ -1047,4 +1047,48 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
     expect(closeSmartB.daemonStopped).toBe(true);
     expect(daemonKilled).toBe(true);
   });
+
+  test("12. Universal Theme Adaptation: Ollama AI CSS & JS harmonize across Light, Dark, FX Glass, Corner, OLED, and High-Contrast themes", async () => {
+    const ollamaCss = await Bun.file("resources/file_manager/ui/ollama.css").text();
+    const ollamaJs = await Bun.file("resources/file_manager/ui/ollama.js").text();
+    const phononCss = await Bun.file("resources/file_manager/ui/phonon.css").text();
+    const themesJs = await Bun.file("resources/file_manager/ui/themes.js").text();
+    const themeEffectsCss = await Bun.file("resources/file_manager/ui/themeEffects.css").text();
+
+    // Must NOT reference non-existent --fg-0, --fg-1, --bg-1, --bg-2 tokens or hardcoded inline #cbd5e1
+    expect(ollamaCss).not.toContain("--fg-0");
+    expect(ollamaCss).not.toContain("--fg-1");
+    expect(ollamaCss).not.toContain("--bg-1");
+    expect(ollamaCss).not.toContain("--bg-2");
+    expect(ollamaJs).not.toContain("color: #cbd5e1");
+    expect(phononCss).not.toContain("var(--fg,");
+
+    // Must derive scoped --ollama-* tokens from File Manager's contrast-verified theme variables
+    expect(ollamaCss).toContain("--ollama-bg: var(--bg,");
+    expect(ollamaCss).toContain("--ollama-panel: var(--panel,");
+    expect(ollamaCss).toContain("--ollama-text: var(--text,");
+    expect(ollamaCss).toContain("--ollama-muted: var(--muted,");
+    expect(ollamaCss).toContain("--ollama-accent: var(--accent,");
+    expect(ollamaCss).toContain("--ollama-accent-vivid: var(--accent-p3, var(--ollama-accent))");
+    expect(ollamaCss).toContain("--ollama-accent-text: var(--accent-text,");
+    expect(ollamaCss).toContain("accent-color: var(--ollama-accent)");
+    expect(ollamaCss).toContain("@supports not (scrollbar-color: auto)");
+    expect(ollamaCss).toContain(".ollama-close-label");
+
+    // Must sync theme scheme & palette attributes and subscribe to theme-changed events
+    expect(ollamaJs).toContain('"data-theme-scheme"');
+    expect(ollamaJs).toContain('"data-theme-palette"');
+    expect(ollamaJs).toContain('on("theme-changed"');
+    expect(ollamaJs).toContain("ollama-close-label");
+
+    // Must compute --fm-ollama-* sub-studio tokens in themes.js and apply FX / Corner / OLED / High-Contrast rules in themeEffects.css
+    expect(themesJs).toContain('"--fm-ollama-bg"');
+    expect(themesJs).toContain('"--fm-ollama-panel"');
+    expect(themesJs).toContain('"--fm-ollama-console-bg"');
+    expect(themesJs).toContain('"--fm-ollama-header-bg"');
+    expect(themesJs).toContain('"--fm-ollama-thinking-bg"');
+    expect(themeEffectsCss).toContain("html[data-sub-studio-sync=\"active\"] .ollama-suite");
+    expect(themeEffectsCss).toContain(".ollama-hero-banner");
+    expect(themeEffectsCss).toContain(".ollama-output-console");
+  });
 });

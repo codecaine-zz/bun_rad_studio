@@ -8,17 +8,17 @@ export const basics: Chapter[] = [
       kicker: "A calm, complete MacAcademy-style tour · Apple Mac Studio M4 Ultra · Pro Display XDR 6K 120Hz",
       title: "Codecaine File Manager",
       lines: [
-        "Every single button, menu, shortcut & studio explained step by step",
-        "Quickbar, Command Palette (⌘⇧P), Starter Templates, Zip & Extract",
-        "Terminal + files together, Image & Media Studios, Paint & 24 Games",
-        "310 Themes, 194 120Hz Shaders, Process & Hardware Telemetry, and 4 Databases",
-        "🍎 Recorded on Apple Mac Studio M4 Ultra · 32c CPU · 80c GPU · 192GB Unified · 6K XDR 120Hz",
+        "Every single button, menu, shortcut, bulk workflow & studio explained step by step",
+        "Quickbar Predicates (is:dir, ext:), Folder Sizes, Command Palette (⌘⇧P), Templates, Zip & Extract",
+        "Synced Terminal, Bulk Rename & Replace, Image & Media Studios, Paint & All 60 Arcade Games",
+        "Ollama Phonon TTS (--voice Zoey), 5s Voice Cloning, EPUB-to-MP4 Video & Local Ollama AI",
+        "🎃 Halloween Ultra (3D Folder FX Only) · 310+ Themes · 4 Database Studios & Cross-Engine Cloning",
       ],
     },
     steps: [
       {
-        cap: "Welcome · Apple Mac Studio M4 Ultra · Pro Display XDR 6K @ 120Hz ProMotion",
-        say: "Welcome. In this video, we are going to take our time, and learn the Codecaine File Manager one piece at a time, in the classic MacAcademy style where every single click is shown on screen. We are recording on our flagship workstation: an Apple Mac Studio with the M4 Ultra chip, featuring a thirty-two-core C P U, an eighty-core G P U, one hundred and ninety-two gigabytes of unified memory, and an Apple Pro Display X D R six-K monitor running at one hundred and twenty Hertz ProMotion. There is no rush. We will press every button together, and I will tell you what it does before we press it. First, the basics: the window, views, folder tabs, the sidebar folder tree, color tags, the Quick-Filter Bar, the Universal Command Palette, starter file templates, and archive extraction. Then, copying, moving, Undo, Quick Look, permissions, and file encryption. Next, the terminal and your files following each other automatically. After that, every power tool, the Image and Media Studios, Paint, twenty-four arcade games, three hundred and ten themes with one hundred and ninety-four live shaders, and the four built-in database studios. Everything happens on sample files, so nothing real is touched. Pause whenever you like, and follow along at your own pace. Let's begin.",
+        cap: "Welcome · Apple Mac Studio M4 Ultra · Halloween Ultra (3D Folder FX Only) · Narrated by Zoey",
+        say: "Welcome. In this video, we are going to take our time, and learn the Codecaine File Manager one piece at a time, in the classic MacAcademy style where every single click is shown on screen, and where we show you the most productive ways to work in bulk. We are recording on our flagship workstation: an Apple Mac Studio with the M4 Ultra chip, featuring a thirty-two-core C P U, an eighty-core G P U, one hundred and ninety-two gigabytes of unified memory, and an Apple Pro Display X D R six-K monitor running at one hundred and twenty Hertz ProMotion, narrated locally by Ollama Phonon with my voice, Zoey. First, we cover the window, views, folder tabs, the sidebar folder tree, color tags, on-demand folder sizes, power filter predicates, the Universal Command Palette, starter file templates, and bulk zip and archive extraction. Next, safe copying, Dual-Pane F5 and F6 transfers, the background task queue, Undo, Quick Look, visual permissions, and password encryption. Then, two-way synced terminal workflows, bulk search and rename, multi-file replace, two-folder diff and sync, saved batch actions, the Image and Media Studios with reusable bulk presets, Paint, all sixty arcade games, the Phonon Voice and Read-Along Video Studio with five-second voice cloning, the local Ollama A I Assistant, the Theme Studio in our Halloween Ultra theme with three-D folder effects only, and all four built-in database studios. Everything happens on sample files, so nothing real is touched. Let's begin.",
       },
     ],
   },
@@ -32,8 +32,8 @@ export const basics: Chapter[] = [
         act: async (d) => { await d.wait(1500); await d.click(".dialog button >> Start", { pause: 900 }); },
       },
       {
-        cap: "The main window · Halloween Jack-O'-Lantern 6K Ultra Intro & 3D Icons Mode",
-        say: "Because it is Halloween month, we are opening our tour in the Ultra Halloween Carved Jack-O'-Lantern and Witching Hour theme at one hundred and twenty Hertz. Watch what happens when we switch to Icons view for a moment: every folder is a sculpted three-D tile spinning on a one-hundred-and-twenty-Hertz turntable, wearing a bobbing Jack-O'-Lantern crest in the corner while autumn leaves, embers, and fireflies drift across the screen. Let's admire the three-D folders in Icons mode, and then switch back to Details view to tour the window bands from top to bottom: Places on the left, files in the middle, and action buttons along the top.",
+        cap: "The main window · Halloween Ultra Theme with 3D Folder Icon FX Only",
+        say: "Because it is Halloween month, we are opening our tour in the Halloween Carved Jack-O'-Lantern Ultra theme with Folder Effects Only mode enabled: every folder keeps its sculpted three-D Halloween look and Jack-O'-Lantern crest, while floating particles and button overrides stay out of the way so your workspace remains crystal clear. Let's switch to Icons view for a moment to see the three-D folders, and then switch back to Details view to tour the window bands from top to bottom: Places on the left, files in the middle, and action buttons along the top.",
         act: async (d) => {
           await d.click("#status-views button >> Icons", { pause: 600 });
           await d.row("src", "click", { pause: 900 });
@@ -344,15 +344,16 @@ export const basics: Chapter[] = [
     blurb: "Smart file-kind chips, live folder filter, 1-click grouping & density, Command Palette (⌘⇧P), 12 starter templates, floating selection bar, Zip & Extract",
     steps: [
       {
-        cap: "Quick-Filter Bar: Smart File-Kind Chips & Live Folder Filter (⌘⌥F)",
-        say: "Right below the address bar is the Quick-Filter and Productivity Bar. Along the middle are Smart File-Kind Chips with live item counts for Folders, Code, Docs, Pictures, Media, Data, and Archives. Click Code to show only source files, click Docs to show documentation, or click All to show everything again. On the left is the instant folder filter box, which you can focus anytime with Command Option F. Type a few letters to filter the current folder as you type, then click the clear button or press Escape.",
+        cap: "Quick-Filter Bar: On-Demand Folder Sizes, Smart Kind-Chips & Power Predicates (⌘⌥F)",
+        say: "Right below the address bar is the Quick-Filter and Productivity Bar. Click Sizes on the right to calculate folder sizes on demand across the open directory. Along the middle are Smart File-Kind Chips with live item counts for Folders, Code, Docs, Pictures, Media, Data, and Archives. Click Code to show only source files, click Docs to show documentation, or click All to show everything again. And in the instant folder filter box on the left, you can type plain words or power predicates like e x t colon t s comma m d to filter multiple extensions in bulk.",
         act: async (d) => {
           await d.hover("#quickbar", 900);
+          await d.click("#qb-sizes-btn", { pause: 1100 }).catch(() => {});
           await d.click('#kind-chips [data-kind-chip="code"]', { pause: 1300 });
           await d.click('#kind-chips [data-kind-chip="document"]', { pause: 1300 });
           await d.click('#kind-chips [data-kind-chip="all"]', { pause: 1000 });
           await d.click("#quick-filter", { pause: 500 });
-          await d.type("json", 110);
+          await d.type("ext:ts,md", 100);
           await d.wait(1100);
           await d.click("#quick-filter-clear", { pause: 900 });
         },

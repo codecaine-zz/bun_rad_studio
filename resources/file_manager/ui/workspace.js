@@ -147,6 +147,10 @@ function applyFocusMode(on, { save = true } = {}) {
   if (btn) btn.title = on ? "Bring back the toolbar and side panels (Esc or Alt+6)" : `Hide the toolbar and side panels so the list or tool has the whole window (${altKey()}6). Press Esc to bring them back.`;
   state.settings.focusMode = on;
   syncSidebarButton();
+  emit("focus-mode", on);
+  if (typeof window !== "undefined") {
+    try { window.dispatchEvent(new Event("resize")); } catch {}
+  }
   if (save) saveSettings({ focusMode: on }).catch(() => {});
 }
 

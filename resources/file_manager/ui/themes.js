@@ -970,6 +970,46 @@ export function applyUiImmersionProfiles(overrides = {}) {
     delete root.dataset.visionMode;
   }
 
+  // Sync Folder-Icon-FX-Only mode (`data-folder-fx-only`): keeps 3D folder & folder-icon effects while stripping
+  // floating atmosphere canvas particles, holiday bursts, screen filters, grain, scanlines, chromatic aberration, vignette & cursor trails.
+  const folderFxOnly = !isPreview && Boolean(
+    overrides && Object.prototype.hasOwnProperty.call(overrides, "folderFxOnly")
+      ? overrides.folderFxOnly
+      : s.folderFxOnly,
+  );
+  if (folderFxOnly) {
+    root.dataset.folderFxOnly = "true";
+    for (const attr of [
+      "data-fx-atmosphere",
+      "data-fx-scan",
+      "data-fx-scanlines",
+      "data-fx-grain",
+      "data-fx-chromatic",
+      "data-fx-ca",
+      "data-fx-noise",
+      "data-fx-crt",
+      "data-fx-vignette",
+      "data-screen-filter",
+      "data-fx-screen-filter",
+      "data-fx-ambient",
+    ]) {
+      root.removeAttribute(attr);
+    }
+    delete root.dataset.screenFilter;
+    delete root.dataset.stageMode;
+    delete root.dataset.cursorTrail;
+    delete root.dataset.wallpaperScene;
+    delete root.dataset.atmosphere;
+    document.getElementById("fm-atmosphere-layer")?.remove();
+    document.getElementById("fm-holiday-celebration-burst")?.remove();
+    document.getElementById("fm-cursor-spotlight-layer")?.remove();
+    try {
+      applyAtmosphere("none");
+    } catch {}
+  } else {
+    delete root.dataset.folderFxOnly;
+  }
+
   // Sync Deep Sub-Studio Theme Tokens (Code Editor, Markdown Preview, Database Studio)
   syncSubStudioThemeTokens();
 
@@ -1057,14 +1097,69 @@ export function effectiveAutoPalette(dark = isSystemDark(), hour = new Date().ge
 
 const DEFAULT_TERM_THEME = { background: "#1e1e1e", foreground: "#e6e6e6", cursor: "#e6e6e6", cursorAccent: "#1e1e1e", selectionBackground: "#3d5a80" };
 
+const STANDARD_LIGHT_VARS = {
+  bg: "#ffffff",
+  panel: "#f3f5f8",
+  "surface-elevated": "#ffffff",
+  "surface-sunken": "#eaeef3",
+  text: "#0f172a",
+  muted: "#334155",
+  border: "#cbd5e1",
+  "border-subtle": "#dfe4ec",
+  "border-strong": "#94a3b8",
+  accent: "#0b5cd5",
+  "accent-text": "#ffffff",
+  "accent-soft": "#e6f0ff",
+  "focus-ring": "#0b5cd5",
+  "scrollbar-thumb": "#b8c0cc",
+  selected: "#d4e4ff",
+  "selected-text": "#0b1f3a",
+  hover: "#e7ecf3",
+  danger: "#b42318",
+  "danger-bg": "#fde8e6",
+  "danger-text": "#7a1710",
+  good: "#166534",
+  "warn-bg": "#fff4d6",
+  "warn-text": "#5c3d00",
+};
+
+const STANDARD_DARK_VARS = {
+  bg: "#141820",
+  panel: "#1c222d",
+  "surface-elevated": "#242b38",
+  "surface-sunken": "#0f131a",
+  text: "#f8fafc",
+  muted: "#bcc6d4",
+  border: "#384252",
+  "border-subtle": "#29313d",
+  "border-strong": "#526075",
+  accent: "#6ea8ff",
+  "accent-text": "#0a1424",
+  "accent-soft": "#1d3354",
+  "focus-ring": "#6ea8ff",
+  "scrollbar-thumb": "#4a5568",
+  selected: "#284a7e",
+  "selected-text": "#ffffff",
+  hover: "#28303d",
+  danger: "#ff8a80",
+  "danger-bg": "#4a1f1c",
+  "danger-text": "#ffd7d3",
+  good: "#7ee2a0",
+  "warn-bg": "#3d3210",
+  "warn-text": "#ffe9a8",
+};
+
 /** Snapshot of the currently active theme for embedded tools and the terminal. */
 export function currentThemePayload() {
   const root = document.documentElement;
   const scheme = root.dataset.theme || (isSystemDark() ? "dark" : "light");
+  const fallbackVars = scheme === "dark" ? STANDARD_DARK_VARS : STANDARD_LIGHT_VARS;
+  const vars = Object.keys(currentVars).length > 0 ? { ...currentVars } : { ...fallbackVars };
   return {
     scheme,
     palette: root.dataset.palette || "",
-    vars: { ...currentVars },
+    vars,
+    subStudioVars: computeSubStudioThemeTokens(vars, scheme === "dark"),
   };
 }
 
@@ -3423,15 +3518,16 @@ export function isThemePeekCompareActive() {
 
 /** Computes harmonized syntax highlighting, code gutter, Markdown preview, and Database Studio CSS variables from the active theme palette. */
 export function computeSubStudioThemeTokens(vars = currentVars, isDark = isSystemDark()) {
-  const v = vars && typeof vars === "object" ? vars : {};
+  const fallback = isDark ? STANDARD_DARK_VARS : STANDARD_LIGHT_VARS;
+  const v = vars && typeof vars === "object" && Object.keys(vars).length > 0 ? vars : fallback;
   const bg = v.bg || (isDark ? "#0f141c" : "#f8fafc");
   const panel = v.panel || v["surface-sunken"] || (isDark ? "#161d2a" : "#ffffff");
   const text = v.text || (isDark ? "#e6edf3" : "#0f172a");
   const accent = v.accent || "#38bdf8";
   const selected = v.selected || accent;
   const danger = v.danger || (isDark ? "#ff6b81" : "#dc2626");
-  const warning = v.warning || (isDark ? "#fbbf24" : "#d97706");
-  const success = v.ok || (isDark ? "#34d399" : "#16a34a");
+  const warning = v.warning || v["warn-text"] || (isDark ? "#fbbf24" : "#d97706");
+  const success = v.ok || v.good || (isDark ? "#34d399" : "#16a34a");
   const info = v.info || accent;
 
   const codeBg = mixHexOklab(bg, isDark ? "#05070c" : "#ffffff", 0.28);
@@ -3441,6 +3537,8 @@ export function computeSubStudioThemeTokens(vars = currentVars, isDark = isSyste
   const comment = mixHexOklab(text, bg, 0.48);
   const dbHeaderBg = mixHexOklab(panel, accent, isDark ? 0.16 : 0.12);
   const dbRowAlt = mixHexOklab(bg, panel, 0.45);
+  const ollamaHeaderBg = mixHexOklab(panel, accent, isDark ? 0.14 : 0.09);
+  const ollamaThinkingBg = mixHexOklab(codeBg, accent, isDark ? 0.1 : 0.07);
 
   return {
     "--fm-code-bg": codeBg,
@@ -3460,6 +3558,12 @@ export function computeSubStudioThemeTokens(vars = currentVars, isDark = isSyste
     "--fm-db-row-alt": dbRowAlt,
     "--fm-db-cell-focus": accent,
     "--fm-db-null-fg": comment,
+    "--fm-ollama-bg": bg,
+    "--fm-ollama-panel": panel,
+    "--fm-ollama-console-bg": codeBg,
+    "--fm-ollama-header-bg": ollamaHeaderBg,
+    "--fm-ollama-thinking-bg": ollamaThinkingBg,
+    "--fm-ollama-accent": accent,
   };
 }
 

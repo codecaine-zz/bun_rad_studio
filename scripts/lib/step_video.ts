@@ -154,7 +154,7 @@ async function recordChapter(ch: Chapter) {
   const d = makeDo(S.cdp(), world);
   if (ch.before) await ch.before(d);
   await S.cdp().startRecording();
-  const t0 = performance.now();
+  const t0 = S.cdp().getRecordStartTime() || performance.now();
   const steps: StepTime[] = [];
   try {
     for (let i = 0; i < ch.steps.length; i++) {
@@ -167,13 +167,13 @@ async function recordChapter(ch: Chapter) {
     }
   } catch (e) {
     try { await S.cdp().screenshot(join(OUT, `${ch.id}.failed.png`)); } catch {}
-    try { await S.cdp().stopRecording(join(LIVE, `${ch.id}.failed.mp4`), join(OUT, "frames_tmp"), 1); } catch {}
+    try { await S.cdp().stopRecording(join(LIVE, `${ch.id}.failed.mp4`), join(OUT, `frames_tmp_${ch.id}`), 1); } catch {}
     throw e;
   }
   const seconds = steps.at(-1)!.end;
   mkdirSync(LIVE, { recursive: true });
   const clip = join(LIVE, `${ch.id}.mp4`);
-  const r = await S.cdp().stopRecording(clip, join(OUT, "frames_tmp"), seconds);
+  const r = await S.cdp().stopRecording(clip, join(OUT, `frames_tmp_${ch.id}`), seconds);
   console.log(`  ✓ ${seconds.toFixed(1)}s, ${r.frames} frames${r.speed > 1 ? `, sped up ${r.speed.toFixed(2)}x` : ""}`);
   writeTimeline(ch, clip, steps, seconds);
 }
@@ -224,7 +224,13 @@ function buildChapter(ch: Chapter, tl: Timeline): string {
   const lines: string[] = [];
   tl.steps.forEach((st, i) => {
     const piece = join(work, `a${i}.wav`);
-    sh([FFMPEG, "-y", "-i", spoken(ch, i).file, "-af", `apad=pad_dur=${(st.end - st.start + 1).toFixed(3)}`, "-t", (st.end - st.start).toFixed(3), "-ar", "48000", "-ac", "2", piece], { quiet: true });
+    const sp = spoken(ch, i);
+    const stepDur = Math.max(0.5, st.end - st.start);
+    const neededTempo = sp.seconds > stepDur - 0.08 ? Math.min(2.0, (sp.seconds + 0.08) / stepDur) : 1.0;
+    const afChain = neededTempo > 1.002
+      ? `atempo=${neededTempo.toFixed(4)},apad=pad_dur=${(stepDur + 1).toFixed(3)}`
+      : `apad=pad_dur=${(stepDur + 1).toFixed(3)}`;
+    sh([FFMPEG, "-y", "-i", sp.file, "-af", afChain, "-t", stepDur.toFixed(3), "-ar", "48000", "-ac", "2", piece], { quiet: true });
     lines.push(`file '${piece}'`);
   });
   writeFileSync(join(work, "list.txt"), lines.join("\n"));

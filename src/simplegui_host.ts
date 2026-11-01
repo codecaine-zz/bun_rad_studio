@@ -197,9 +197,71 @@ function clientScript(names: string[], wsUrl: string): string {
   var NAMES = ${JSON.stringify(names)};
   var WS_URL = ${JSON.stringify(wsUrl)};
   var ws = null, ready = false, outbox = [], pending = {}, counter = 0, evals = [], domReady = document.readyState !== "loading";
-  function runEval(code) { try { (0, eval)(code); } catch (e) { console.error(e); } }
-  function flushEvals() { domReady = true; evals.splice(0).forEach(runEval); }
+  function runEval(code) { try { (0, eval)(code); if (_lastFmTheme) applyFmTheme(_lastFmTheme); } catch (e) { console.error(e); } }
+  function flushEvals() { domReady = true; evals.splice(0).forEach(runEval); if (_lastFmTheme) applyFmTheme(_lastFmTheme); }
   if (!domReady) document.addEventListener("DOMContentLoaded", flushEvals);
+  var _lastFmTheme = null;
+  function applyFmTheme(t) {
+    if (!t || typeof t !== "object") return;
+    _lastFmTheme = t;
+    var v = t.vars || {};
+    var bg = v.bg || (t.scheme === "light" ? "#ffffff" : "#141820");
+    var panel = v.panel || (t.scheme === "light" ? "#f3f5f8" : "#1c222d");
+    var sunken = v["surface-sunken"] || bg;
+    var text = v.text || (t.scheme === "light" ? "#0f172a" : "#f8fafc");
+    var muted = v.muted || (t.scheme === "light" ? "#334155" : "#bcc6d4");
+    var border = v.border || (t.scheme === "light" ? "#cbd5e1" : "#384252");
+    var accent = v.accent || "#38bdf8";
+    var accentText = v["accent-text"] || "#ffffff";
+    var hover = v.hover || panel;
+    var r = document.documentElement;
+    r.dataset.theme = t.scheme || "dark";
+    r.dataset.palette = t.palette || "";
+    r.style.colorScheme = t.scheme || "dark";
+    for (var k in v) {
+      if (Object.prototype.hasOwnProperty.call(v, k)) r.style.setProperty("--" + k, v[k]);
+    }
+    r.style.setProperty("--accent", accent);
+    r.style.setProperty("--accent-secondary", v.selected || accent);
+    r.style.setProperty("--btn-bg", panel);
+    r.style.setProperty("--btn-fg", text);
+    r.style.setProperty("--card-bg", panel);
+    r.style.setProperty("--card-border", border);
+    r.style.setProperty("--theme-fg", text);
+    r.style.setProperty("--theme-muted", muted);
+    r.style.setProperty("--input-bg", sunken);
+    r.style.setProperty("--input-border", border);
+    var st = document.getElementById("fm-hosted-studio-theme");
+    if (!st && document.head) {
+      st = document.createElement("style");
+      st.id = "fm-hosted-studio-theme";
+      document.head.appendChild(st);
+    }
+    if (st) {
+      st.textContent =
+        "html, body { background: " + bg + " !important; color: " + text + " !important; }\\n" +
+        "fieldset, .simplegui-card, .sg-card { background: " + panel + " !important; border-color: " + border + " !important; color: " + text + " !important; }\\n" +
+        "legend { color: " + accent + " !important; }\\n" +
+        "label, .rad-label, span, p, td, th { color: " + text + "; }\\n" +
+        "input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']), select, textarea { background: " + sunken + " !important; color: " + text + " !important; border-color: " + border + " !important; }\\n" +
+        "button { background: " + panel + " !important; color: " + text + " !important; border-color: " + border + " !important; }\\n" +
+        "button:hover:not(:disabled) { background: " + hover + " !important; border-color: " + accent + " !important; }\\n" +
+        "table, th, td { border-color: " + border + " !important; }\\n" +
+        "th { background: " + panel + " !important; color: " + text + " !important; }";
+    }
+  }
+  window.addEventListener("message", function (e) {
+    if (e.data && typeof e.data === "object" && e.data.fmTheme) {
+      applyFmTheme(e.data.fmTheme);
+    }
+  });
+  window.addEventListener("load", function () {
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ fmRequestTheme: true }, "*");
+      }
+    } catch (_) {}
+  });
   function define(name) {
     if (window[name] && window[name].__hosted) return;
     var f = function () {
@@ -244,6 +306,17 @@ function clientScript(names: string[], wsUrl: string): string {
     if (!window.parent || window.parent === window) return;
     var mod = e.ctrlKey || e.metaKey;
     var k = (e.key || "").toLowerCase();
+    if ((mod && !e.altKey && !e.shiftKey && (k === "q" || k === "w" || e.code === "KeyQ" || e.code === "KeyW")) || (e.altKey && !mod && !e.shiftKey && (e.key === "F4" || e.code === "F4" || k === "q" || k === "w" || e.code === "KeyQ" || e.code === "KeyW"))) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!e.repeat && !e.isComposing) {
+        try { window.top.postMessage({ fmCloseApp: true }, "*"); } catch (_) {}
+        if (window.parent !== window.top) {
+          try { parent.postMessage({ fmCloseApp: true }, "*"); } catch (_) {}
+        }
+      }
+      return;
+    }
     var isF11 = e.key === "F11" || e.code === "F11" || e.key === "\\uF70E" || e.keyCode === 122;
     if (isF11 || (mod && e.shiftKey && !e.altKey && (k === "u" || e.code === "KeyU")) || (e.ctrlKey && e.metaKey && !e.altKey && (k === "f" || e.code === "KeyF")) || (e.altKey && !mod && !e.shiftKey && (e.code === "Digit8" || e.key === "8"))) {
       if (isF11) _lastF11 = Date.now();
@@ -278,6 +351,7 @@ function clientScript(names: string[], wsUrl: string): string {
     if (!window.parent || window.parent === window) return;
     if (e.key === "Escape" && !e.defaultPrevented && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
       if (document.querySelector && document.querySelector(".sgd-container, .modal-backdrop.active, .modal-overlay.open, .modal-overlay.active, dialog[open]")) return;
+      e.preventDefault();
       try { parent.postMessage({ fmEscapeExpand: true }, "*"); } catch (_) {}
     }
   }, false);

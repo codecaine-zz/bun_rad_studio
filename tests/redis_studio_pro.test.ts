@@ -248,5 +248,61 @@ describeRedis("⚡ Redis Studio Pro Enterprise Engine Suite", () => {
     expect(typeof app.generateHtml).toBe("function");
     const html = app.generateHtml();
     expect(html).toContain("Redis Studio Pro");
+    expect(html).toContain('id="newKeyField"');
+    expect(html).toContain("onNewKeyTypeChange");
+  });
+
+  it("11. Creating a Hash key via /api/key/set works with explicit field, JSON object, key:value lines, or plain string", async () => {
+    const k1 = `test_hash_field_${Date.now()}`;
+    const r1 = await (await fetch(`${baseUrl}/api/key/set`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: k1, type: "hash", field: "username", value: "alice", ttl: 120 }),
+    })).json() as any;
+    expect(r1.success).toBe(true);
+    const g1 = await (await fetch(`${baseUrl}/api/key/get?key=${encodeURIComponent(k1)}`)).json() as any;
+    expect(g1.type).toBe("hash");
+    expect(g1.value).toEqual({ username: "alice" });
+
+    const k2 = `test_hash_json_${Date.now()}`;
+    const r2 = await (await fetch(`${baseUrl}/api/key/set`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: k2, type: "hash", value: '{"role":"admin","tier":"gold"}' }),
+    })).json() as any;
+    expect(r2.success).toBe(true);
+    const g2 = await (await fetch(`${baseUrl}/api/key/get?key=${encodeURIComponent(k2)}`)).json() as any;
+    expect(g2.type).toBe("hash");
+    expect(g2.value).toEqual({ role: "admin", tier: "gold" });
+
+    const k3 = `test_hash_lines_${Date.now()}`;
+    const r3 = await (await fetch(`${baseUrl}/api/key/set`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: k3, type: "hash", value: "host:127.0.0.1\nport=6379" }),
+    })).json() as any;
+    expect(r3.success).toBe(true);
+    const g3 = await (await fetch(`${baseUrl}/api/key/get?key=${encodeURIComponent(k3)}`)).json() as any;
+    expect(g3.type).toBe("hash");
+    expect(g3.value).toEqual({ host: "127.0.0.1", port: "6379" });
+
+    const k4 = `test_hash_plain_${Date.now()}`;
+    const r4 = await (await fetch(`${baseUrl}/api/key/set`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: k4, type: "hash", value: "single_value" }),
+    })).json() as any;
+    expect(r4.success).toBe(true);
+    const g4 = await (await fetch(`${baseUrl}/api/key/get?key=${encodeURIComponent(k4)}`)).json() as any;
+    expect(g4.type).toBe("hash");
+    expect(g4.value).toEqual({ field1: "single_value" });
+
+    for (const k of [k1, k2, k3, k4]) {
+      await fetch(`${baseUrl}/api/key/delete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: k }),
+      });
+    }
   });
 });

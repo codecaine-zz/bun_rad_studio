@@ -73,6 +73,7 @@ export class Cdp {
   private proc!: ReturnType<typeof Bun.spawn>;
   private frames: { t: number; data: string }[] = [];
   private recording = false;
+  private recordStartTime = 0;
   private frameSessions: { id: string; targetId: string; url: string }[] = [];
   /** The height of the recorded picture (the window height it was launched with). */
   private height = 1080;
@@ -337,37 +338,55 @@ export class Cdp {
     await Bun.write(path, Buffer.from(r.data, "base64"));
   }
 
+  getRecordStartTime(): number {
+    return this.recordStartTime;
+  }
+
   async startRecording() {
     this.frames = [];
+    this.recordStartTime = performance.now();
     this.recording = true;
+    try {
+      const initShot = await this.send("Page.captureScreenshot", { format: "jpeg", quality: 98 });
+      if (initShot?.data) {
+        this.frames.push({ t: this.recordStartTime, data: initShot.data });
+      }
+    } catch {}
     await this.send("Page.startScreencast", { format: "jpeg", quality: 98, maxWidth: 1920, maxHeight: this.height, everyNthFrame: 1 });
-    // The first frame only arrives after something repaints.
+    // Ensure screencast emits immediately as well.
     await this.eval(`window.__cc.move(window.__cc.state.x + 1, window.__cc.state.y, 50)`);
   }
 
-  /** Stop and encode to a constant 30 fps clip of exactly `seconds` (holds the last frame / trims the tail). */
+  /** Stop and encode to a constant 30 fps clip of² exact wall-clock alignment with `recordStartTime`. */
   async stopRecording(outPath: string, workDir: string, seconds: number) {
+    try {
+      const endShot = await this.send("Page.captureScreenshot", { format: "jpeg", quality: 98 });
+      if (endShot?.data) {
+        this.frames.push({ t: performance.now(), data: endShot.data });
+      }
+    } catch {}
     await this.send("Page.stopScreencast");
     this.recording = false;
     const frames = this.frames;
     if (frames.length === 0) throw new Error("no screencast frames captured");
     rmSync(workDir, { recursive: true, force: true });
     mkdirSync(workDir, { recursive: true });
+    const tOrigin = this.recordStartTime > 0 ? Math.min(this.recordStartTime, frames[0]!.t) : frames[0]!.t;
+    const targetEndMs = tOrigin + (seconds + 1.0) * 1000;
     const lines: string[] = [];
     frames.forEach((f, i) => {
       const file = join(workDir, `f${String(i).padStart(5, "0")}.jpg`);
       writeFileSync(file, Buffer.from(f.data, "base64"));
-      const next = i + 1 < frames.length ? frames[i + 1]!.t : f.t + 1000;
-      lines.push(`file '${file}'`, `duration ${Math.max(0.001, (next - f.t) / 1000).toFixed(4)}`);
+      const curT = i === 0 ? tOrigin : f.t;
+      const nextT = i + 1 < frames.length ? Math.max(curT + 1, frames[i + 1]!.t) : Math.max(curT + 1000, targetEndMs);
+      lines.push(`file '${file}'`, `duration ${Math.max(0.001, (nextT - curT) / 1000).toFixed(4)}`);
     });
     lines.push(`file '${join(workDir, `f${String(frames.length - 1).padStart(5, "0")}.jpg`)}'`);
     const list = join(workDir, "list.txt");
     writeFileSync(list, lines.join("\n"));
-    // If the actions ran a little long, play the clip slightly faster instead of cutting its end off.
-    const recordedSec = (frames[frames.length - 1]!.t - frames[0]!.t) / 1000;
-    const speed = recordedSec > seconds + 0.2 ? Math.min(1.35, recordedSec / seconds) : 1;
-    const retime = speed > 1 ? `setpts=PTS/${speed.toFixed(4)},` : "";
-    const p = Bun.spawnSync([FFMPEG, "-y", "-f", "concat", "-safe", "0", "-i", list, "-vf", `fps=30,${retime}tpad=stop_mode=clone:stop_duration=${seconds},scale=1920:${this.height}:flags=lanczos,format=yuv420p`,
+    const recordedSec = (frames[frames.length - 1]!.t - tOrigin) / 1000;
+    const speed = 1;
+    const p = Bun.spawnSync([FFMPEG, "-y", "-f", "concat", "-safe", "0", "-i", list, "-vf", `fps=30,tpad=stop_mode=clone:stop_duration=${seconds},scale=1920:${this.height}:flags=lanczos,format=yuv420p`,
       "-t", seconds.toFixed(3), "-c:v", "libx264", "-preset", "medium", "-crf", "14", outPath], { stdout: "ignore", stderr: "pipe" });
     if (p.exitCode !== 0) throw new Error(`clip encode failed: ${p.stderr.toString().slice(-400)}`);
     rmSync(workDir, { recursive: true, force: true });

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
 import { describeRedis, TEST_REDIS_URL } from "./helpers/redis";
-import { startRedisStudioServer } from "../applications/redis_studio_server.ts";
+import { startRedisStudioServer, RedisManager } from "../applications/redis_studio_server.ts";
 import { generateRedisStudioHtml } from "../applications/redis_studio.ts";
 import {
   isDangerousCommand,
@@ -8,6 +8,90 @@ import {
   validateExportDoc,
   exportFileName,
 } from "../src/redis_helpers";
+
+describe("RedisManager.setKeyValue Hash & ZSet key creation (offline unit tests)", () => {
+  const makeMockManager = () => {
+    const hsetCalls: Array<[string, string, string]> = [];
+    const expireCalls: Array<[string, number]> = [];
+    const zaddCalls: Array<[string, number, string]> = [];
+    const mgr = Object.create(RedisManager.prototype) as RedisManager;
+    (mgr as any).client = {
+      hset: async (k: string, f: string, v: string) => {
+        hsetCalls.push([k, f, v]);
+        return 1;
+      },
+      expire: async (k: string, ttl: number) => {
+        expireCalls.push([k, ttl]);
+        return 1;
+      },
+      zadd: async (k: string, score: number, val: string) => {
+        zaddCalls.push([k, score, val]);
+        return 1;
+      },
+    };
+    return { mgr, hsetCalls, expireCalls, zaddCalls };
+  };
+
+  it("creates a Hash key from explicit field + value, JSON object string, field:value lines, or single string fallback", async () => {
+    const m1 = makeMockManager();
+    expect((await m1.mgr.setKeyValue({ key: "user:1", type: "hash", field: "name", value: "Alice", ttl: 60 })).success).toBe(true);
+    expect(m1.hsetCalls).toEqual([["user:1", "name", "Alice"]]);
+    expect(m1.expireCalls).toEqual([["user:1", 60]]);
+
+    const m2 = makeMockManager();
+    expect((await m2.mgr.setKeyValue({ key: "user:2", type: "hash", value: '{"role":"admin","tier":"pro"}' })).success).toBe(true);
+    expect(m2.hsetCalls).toEqual([
+      ["user:2", "role", "admin"],
+      ["user:2", "tier", "pro"],
+    ]);
+
+    const m3 = makeMockManager();
+    expect((await m3.mgr.setKeyValue({ key: "user:3", type: "hash", value: "host:127.0.0.1\nport=6379" })).success).toBe(true);
+    expect(m3.hsetCalls).toEqual([
+      ["user:3", "host", "127.0.0.1"],
+      ["user:3", "port", "6379"],
+    ]);
+
+    const m4 = makeMockManager();
+    expect((await m4.mgr.setKeyValue({ key: "user:4", type: "hash", value: "just_a_value" })).success).toBe(true);
+    expect(m4.hsetCalls).toEqual([["user:4", "field1", "just_a_value"]]);
+
+    const m5 = makeMockManager();
+    expect((await m5.mgr.setKeyValue({ key: "user:5", type: "hash", value: "" })).success).toBe(true);
+    expect(m5.hsetCalls).toEqual([["user:5", "field1", ""]]);
+
+    const m6 = makeMockManager();
+    expect((await m6.mgr.setKeyValue({ key: "lb:1", type: "zset", score: 42.5, value: "player1" })).success).toBe(true);
+    expect(m6.zaddCalls).toEqual([["lb:1", 42.5, "player1"]]);
+  });
+
+  it("renders #newKeyField, #newKeyScore, and onNewKeyTypeChange in the Create New Redis Key modal", () => {
+    const html = generateRedisStudioHtml();
+    expect(html).toContain('id="newKeyField"');
+    expect(html).toContain('id="newKeyScore"');
+    expect(html).toContain("function onNewKeyTypeChange()");
+    const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]!);
+    expect(scripts.length).toBeGreaterThan(0);
+    for (const s of scripts) expect(() => new Function(s)).not.toThrow();
+  });
+
+  it("disables autocorrect, autocapitalize, spellcheck, and autocomplete on body and all Redis database text/number inputs and textareas", () => {
+    const html = generateRedisStudioHtml();
+    expect(html).toContain('<body spellcheck="false" autocorrect="off" autocapitalize="off" oncontextmenu="return false;">');
+    expect(html).toContain("function disableInputAutoCorrect(el)");
+    expect(html).toContain("disableInputAutoCorrect(input)");
+
+    const tags = [...html.matchAll(/<(?:input|textarea)\b[^>]*>/g)].map((m) => m[0]!);
+    expect(tags.length).toBeGreaterThanOrEqual(20);
+    for (const tag of tags) {
+      if (/type=["'](?:file|checkbox)["']/.test(tag)) continue;
+      expect(tag).toContain('spellcheck="false"');
+      expect(tag).toContain('autocomplete="off"');
+      expect(tag).toContain('autocorrect="off"');
+      expect(tag).toContain('autocapitalize="off"');
+    }
+  });
+});
 
 describe("redis_helpers", () => {
   it("flags dangerous commands", () => {

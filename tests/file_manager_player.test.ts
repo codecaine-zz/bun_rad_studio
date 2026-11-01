@@ -389,13 +389,39 @@ describe("Digital LED clock, synced LRC lyrics, and M3U8 playlists", () => {
     expect(isPlayableOrPlaylist("clip.mov")).toBe(true);
   });
 
-  test("standalone Media Player Studio server serves HTML with 108 FX Studio Rack, Studio Clock, and library JSON", async () => {
+  test("standalone Media Player Studio server serves HTML with 108 FX Studio Rack, Floating PiP, Hot-Cues, DSP Mastering Rack, and library JSON", async () => {
     const html = generateMediaPlayerStudioHtml();
     expect(html).toContain("AMPDECK STUDIO PRO");
     expect(html).toContain("btn-studio-clock");
     expect(html).toContain("rack-fx");
     expect(html).toContain("btn-fx-mix-mode");
+    expect(html).toContain("floating-pip");
+    expect(html).toContain("btn-video-snap");
+    expect(html).toContain("btn-video-pip");
+    expect(html).toContain("btn-cue-0");
+    expect(html).toContain("btn-cue-3");
+    expect(html).toContain("seek-tooltip");
+    expect(html).toContain("btn-dsp-spatial");
+    expect(html).toContain("btn-dsp-warmth");
+    expect(html).toContain("btn-dsp-comp");
+    expect(html).toContain("sculptEqFromPointer");
+    expect(html).toContain("is-stage-fullscreen");
+    expect(html).toContain("setStageFill");
     expect(html).toContain("studio-help:media_player_studio");
+
+    const deckJs = readFileSync(join(import.meta.dir, "../resources/file_manager/ui/playerDeck.js"), "utf8");
+    expect(deckJs).toContain("wa-floating-pip");
+    expect(deckJs).toContain("openFloatingPip");
+    expect(deckJs).toContain("popOutNativeOsPip");
+    expect(deckJs).toContain("captureStageSnapshot");
+    expect(deckJs).toContain("triggerOrSetCue");
+    expect(deckJs).toContain("dspSpatial");
+    expect(deckJs).toContain("dspWarmth");
+    expect(deckJs).toContain("dspCompressor");
+    expect(deckJs).toContain("sculptEqFromPointer");
+    expect(deckJs).toContain("is-stage-fullscreen");
+    expect(deckJs).toContain("setStageFill");
+
     const started = startMediaPlayerStudioServer({ port: 0 });
     try {
       const pageRes = await fetch(`${started.url}/`);

@@ -103,6 +103,34 @@ export const STUDIO_IDE_ENHANCEMENTS_STYLE = `
       color: #fca5a5 !important;
       border-color: rgba(239, 68, 68, 0.55) !important;
     }
+    /* Microsoft Access Quick Filter Cell (Operator Select + Input) */
+    .access-filter-cell {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      width: 100%;
+    }
+    .access-filter-op-select {
+      width: 44px;
+      min-width: 44px;
+      padding: 2px 2px;
+      font-size: 10px;
+      font-family: var(--font-mono, monospace);
+      font-weight: 700;
+      color: var(--cyan, #38bdf8);
+      background: rgba(0, 0, 0, 0.38);
+      border: 1px solid var(--border-color, rgba(255,255,255,0.14));
+      border-radius: 4px;
+      cursor: pointer;
+      outline: none;
+    }
+    .access-filter-op-select:focus {
+      border-color: var(--cyan, #38bdf8);
+    }
+    .access-filter-cell .access-filter-input {
+      flex: 1;
+      min-width: 60px;
+    }
     /* Autocomplete Popup */
     #studioSqlSuggest {
       position: fixed;
@@ -304,7 +332,6 @@ function studioIdeEnhancementsClient() {
     try {
       const fn = window.apiRequest || (typeof apiRequest === "function" ? apiRequest : null);
       if (fn) {
-        if (fn.length >= 3) return await fn(endpoint, "POST", payload);
         return await fn(endpoint, payload);
       }
       const r = await fetch(endpoint, {
@@ -383,14 +410,14 @@ function studioIdeEnhancementsClient() {
           return { success: false, error: "Blocked by Read-Only Guard (mutating statement prevented)" };
         }
         const t0 = performance.now();
-        const res = isThreeArg ? await orig.call(this, endpoint, arg2, body) : await orig.call(this, endpoint, body);
+        const res = (isThreeArg && orig.length >= 3) ? await orig.call(this, endpoint, arg2, body) : await orig.call(this, endpoint, body);
         const elapsed = (res && typeof res.latencyMs === "number") ? res.latencyMs : Math.round(performance.now() - t0);
         const rowsCount = res && Array.isArray(res.rows) ? res.rows.length : (res && res.rowsAffected !== undefined ? res.rowsAffected : 0);
         recordQueryHistory(sqlTrim, elapsed, rowsCount, res && res.success !== false, res && res.error);
         return res;
       }
 
-      return isThreeArg ? await orig.call(this, endpoint, arg2, body) : await orig.call(this, endpoint, body);
+      return (isThreeArg && orig.length >= 3) ? await orig.call(this, endpoint, arg2, body) : await orig.call(this, endpoint, body);
     };
     wrapped.__studioEnhanced = true;
     window.apiRequest = wrapped;
@@ -400,13 +427,24 @@ function studioIdeEnhancementsClient() {
   // =========================================================================
   // 2. Wrap runEditorQuery for Highlighted Selection Execution
   // =========================================================================
-  function getPrimaryEditor() {
+  function getPrimaryEditor(preferredEditor) {
+    if (preferredEditor && preferredEditor.tagName === "TEXTAREA") {
+      return preferredEditor;
+    }
+    if (document.activeElement && document.activeElement.id === "designerSqlPreview") {
+      return document.activeElement;
+    }
+    const designerTabEl = document.getElementById("tabDesigner");
+    if (designerTabEl && designerTabEl.classList.contains("active")) {
+      const dp = document.getElementById("designerSqlPreview");
+      if (dp) return dp;
+    }
     const activeTabEl = document.getElementById("tabSql");
     if (activeTabEl && activeTabEl.classList.contains("active")) {
       const ta = document.getElementById("sqlEditorTextarea");
       if (ta) return ta;
     }
-    return document.getElementById("sqlEditor") || document.getElementById("sqlEditorTextarea");
+    return document.getElementById("sqlEditor") || document.getElementById("sqlEditorTextarea") || document.getElementById("designerSqlPreview");
   }
 
   function wrapRunEditorQuery() {
@@ -547,18 +585,14 @@ function studioIdeEnhancementsClient() {
     }
   }
 
-  async function formatStudioSql() {
-    const ed = getPrimaryEditor();
-    if (!ed) return;
+  async function formatSingleEditor(ed) {
+    if (!ed || typeof ed.value !== "string") return false;
     const hasSel = typeof ed.selectionStart === "number" && ed.selectionStart !== ed.selectionEnd;
     const rawSql = hasSel ? ed.value.slice(ed.selectionStart, ed.selectionEnd) : ed.value;
-    if (!rawSql.trim()) {
-      notify("Enter a SQL query to format.");
-      return;
-    }
+    if (!rawSql.trim()) return false;
     const res = await callApi("/api/sql/format", { sql: rawSql, dialect: getDialect() });
     const formattedSql = res && (typeof res.formatted === "string" ? res.formatted : typeof res.sql === "string" ? res.sql : null);
-    if (res && res.success && formattedSql !== null) {
+    if (res && res.success && formattedSql !== null && formattedSql.trim().length > 0) {
       if (hasSel) {
         const start = ed.selectionStart;
         const end = ed.selectionEnd;
@@ -567,14 +601,42 @@ function studioIdeEnhancementsClient() {
       } else {
         ed.value = formattedSql;
       }
-      const cur = worksheets.find((w) => w.id === activeWsId);
-      if (cur) { cur.sql = ed.value; saveWorksheets(); }
+      if (ed.id === "sqlEditor") {
+        const cur = worksheets.find((w) => w.id === activeWsId);
+        if (cur) { cur.sql = ed.value; saveWorksheets(); }
+      }
+      return { ok: true };
+    }
+    return { ok: false, error: res?.error || "Unable to format SQL" };
+  }
+
+  async function formatStudioSql(preferredEditor) {
+    const explicitEditor = (preferredEditor && preferredEditor.tagName === "TEXTAREA") ? preferredEditor : null;
+    const ed = getPrimaryEditor(explicitEditor);
+    if (!ed) return;
+    if (!ed.value || !ed.value.trim()) {
+      notify("Enter a SQL query to format.");
+      return;
+    }
+    const outcome = await formatSingleEditor(ed);
+    // If invoked from top toolbar while Query Designer SQL preview is also open, format the other SQL editor too
+    if (!explicitEditor) {
+      const topEd = document.getElementById("sqlEditor") || document.getElementById("sqlEditorTextarea");
+      const designerEd = document.getElementById("designerSqlPreview");
+      if (ed === designerEd && topEd && topEd !== ed && topEd.value && topEd.value.trim()) {
+        await formatSingleEditor(topEd);
+      } else if (ed === topEd && designerEd && designerEd !== ed && designerEd.value && designerEd.value.trim()) {
+        await formatSingleEditor(designerEd);
+      }
+    }
+    if (outcome && outcome.ok) {
       notify("✨ SQL formatted");
-    } else {
-      notify("Format error: " + (res?.error || "Unable to format SQL"));
+    } else if (outcome) {
+      notify("Format error: " + (outcome.error || "Unable to format SQL"));
     }
   }
   window.formatStudioSql = formatStudioSql;
+  window.formatDesignerSql = () => formatStudioSql(document.getElementById("designerSqlPreview"));
 
   async function runTxCommand(cmd) {
     const prevGuard = window.__studioReadOnlyGuard;
@@ -891,7 +953,7 @@ function studioIdeEnhancementsClient() {
       fmtBtn.id = "btnStudioFormatSql";
       fmtBtn.title = "Format SQL with sql-formatter (Shift+Alt+F)";
       fmtBtn.textContent = "✨ Format";
-      fmtBtn.addEventListener("click", formatStudioSql);
+      fmtBtn.addEventListener("click", () => formatStudioSql());
       controlsLeft.appendChild(fmtBtn);
 
       const histBtn = document.createElement("button");
@@ -929,12 +991,400 @@ function studioIdeEnhancementsClient() {
   // =========================================================================
   // 6. Server-Backed Quick Filter & Shift+Click Multi-Column Sort
   // =========================================================================
+  function stripAccessDelimiters(raw) {
+    const s = String(raw ?? "").trim();
+    if (s.length >= 2) {
+      if ((s.startsWith("'") && s.endsWith("'")) || (s.startsWith('"') && s.endsWith('"')) || (s.startsWith("#") && s.endsWith("#"))) {
+        return s.slice(1, -1).trim();
+      }
+    }
+    return s;
+  }
+
+  function parseAccessNumber(raw) {
+    const cleaned = stripAccessDelimiters(raw).replace(/^\$/, "").replace(/,/g, "").trim();
+    if (!cleaned || !/^[+-]?(\d+\.?\d*|\.\d+)$/.test(cleaned)) return null;
+    const n = Number(cleaned);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function parseAccessDate(raw) {
+    const s = stripAccessDelimiters(raw);
+    if (!s) return null;
+    const isoDate = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(s);
+    if (isoDate) {
+      const iso = `${isoDate[1]}-${isoDate[2].padStart(2, "0")}-${isoDate[3].padStart(2, "0")}`;
+      return { iso, isDateOnly: true, ms: Date.parse(iso + "T00:00:00Z") };
+    }
+    const usDate = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(s);
+    if (usDate) {
+      const iso = `${usDate[3]}-${usDate[1].padStart(2, "0")}-${usDate[2].padStart(2, "0")}`;
+      return { iso, isDateOnly: true, ms: Date.parse(iso + "T00:00:00Z") };
+    }
+    const isoTs = /^(\d{4})-(\d{1,2})-(\d{1,2})[T\s](\d{1,2}:\d{2}(?::\d{2})?)/.exec(s);
+    if (isoTs) {
+      const tPart = isoTs[4].length === 4 ? "0" + isoTs[4] : isoTs[4];
+      const fullTime = tPart.length === 5 ? tPart + ":00" : tPart;
+      const iso = `${isoTs[1]}-${isoTs[2].padStart(2, "0")}-${isoTs[3].padStart(2, "0")} ${tPart}`;
+      const dateOnly = `${isoTs[1]}-${isoTs[2].padStart(2, "0")}-${isoTs[3].padStart(2, "0")}`;
+      return { iso, dateOnly, isDateOnly: false, ms: Date.parse(`${dateOnly}T${fullTime}Z`) };
+    }
+    return null;
+  }
+
+  function wildcardToRegExp(pattern) {
+    let re = "^";
+    for (let i = 0; i < pattern.length; i++) {
+      const ch = pattern[i];
+      if (ch === "*" || ch === "%") re += ".*";
+      else if (ch === "?" || ch === "_") re += ".";
+      else if (/[.+^${}()|[\]\\]/.test(ch)) re += "\\" + ch;
+      else re += ch;
+    }
+    re += "$";
+    return new RegExp(re, "i");
+  }
+
+  function evaluateSingleAccessAtom(cellValue, rawAtom, colName) {
+    let expr = String(rawAtom ?? "").trim();
+    if (!expr) return true;
+
+    if (colName) {
+      const esc = String(colName).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const prefixRe = new RegExp(`^(?:\\[?["\`]?${esc}["\`]?\\]?)\\s+(?=(?:>=|<=|!=|<>|>|<|=|between\\b|not\\b|in\\b|like\\b|is\\b|starts\\b|begins\\b|ends\\b|contains\\b))`, "i");
+      expr = expr.replace(prefixRe, "").trim();
+      if (!expr) return true;
+    }
+
+    // While user is mid-typing an operator with no operand yet, keep rows visible
+    if (/^(>=|<=|!=|<>|>|<|=|!|not|between|not\s+between|in|not\s+in|like|not\s+like|starts\s+with|begins\s+with|ends\s+with|contains|not\s+contains)$/i.test(expr)) {
+      return true;
+    }
+
+    const isNull = cellValue === null || cellValue === undefined || String(cellValue).trim() === "NULL";
+    const cellStr = isNull ? "" : String(cellValue).trim();
+    const cellLower = cellStr.toLowerCase();
+    const lower = expr.toLowerCase();
+
+    if (lower === "null" || lower === "is null" || lower === "= null" || lower === "=null" || lower === "empty" || lower === "is empty") {
+      return isNull || cellStr === "";
+    }
+    if (lower === "!null" || lower === "not null" || lower === "is not null" || lower === "<> null" || lower === "!= null" || lower === "<>null" || lower === "!=null" || lower === "not empty" || lower === "is not empty") {
+      return !isNull && cellStr !== "";
+    }
+    if (isNull) {
+      if (/^(not\s+contains|!contains|does\s+not\s+contain)\s+/i.test(expr) || (expr.startsWith("!") && expr.length > 1 && !expr.startsWith("!="))) {
+        return true;
+      }
+      return false;
+    }
+
+    // BETWEEN a AND b / NOT BETWEEN a AND b / a..b
+    const betweenMatch = /^(not\s+)?between\s+(.+?)\s+and\s+(.+)$/i.exec(expr);
+    const dotsMatch = !betweenMatch ? /^([^.]+?)\s*\.\.\s*(.+)$/.exec(expr) : null;
+    if (betweenMatch || dotsMatch) {
+      const isNot = Boolean(betweenMatch && betweenMatch[1]);
+      const rawLow = (betweenMatch ? betweenMatch[2] : dotsMatch[1]).trim();
+      const rawHigh = (betweenMatch ? betweenMatch[3] : dotsMatch[2]).trim();
+      if (!rawLow || !rawHigh) return true;
+      const nCell = parseAccessNumber(cellStr);
+      const nLow = parseAccessNumber(rawLow);
+      const nHigh = parseAccessNumber(rawHigh);
+      let inRange = false;
+      if (nCell !== null && nLow !== null && nHigh !== null) {
+        inRange = nCell >= nLow && nCell <= nHigh;
+      } else {
+        const dCell = parseAccessDate(cellStr);
+        const dLow = parseAccessDate(rawLow);
+        const dHigh = parseAccessDate(rawHigh);
+        if (dCell && dLow && dHigh) {
+          if (dLow.isDateOnly && dHigh.isDateOnly) {
+            const cDay = dCell.iso.slice(0, 10);
+            inRange = cDay >= dLow.iso && cDay <= dHigh.iso;
+          } else {
+            inRange = dCell.ms >= dLow.ms && dCell.ms <= dHigh.ms;
+          }
+        } else {
+          const sLow = stripAccessDelimiters(rawLow).toLowerCase();
+          const sHigh = stripAccessDelimiters(rawHigh).toLowerCase();
+          inRange = cellLower >= sLow && cellLower <= sHigh;
+        }
+      }
+      return isNot ? !inRange : inRange;
+    }
+
+    // IN (a, b, c) / NOT IN (a, b, c)
+    const inMatch = /^(not\s+)?in\s*\((.*)\)$/i.exec(expr);
+    if (inMatch) {
+      const isNot = Boolean(inMatch[1]);
+      const items = inMatch[2].split(",").map((s) => stripAccessDelimiters(s)).filter(Boolean);
+      if (items.length === 0) return true;
+      const nCell = parseAccessNumber(cellStr);
+      const matched = items.some((item) => {
+        const nItem = parseAccessNumber(item);
+        if (nCell !== null && nItem !== null) return nCell === nItem;
+        return cellLower === item.toLowerCase();
+      });
+      return isNot ? !matched : matched;
+    }
+
+    // STARTS WITH / BEGINS WITH / ENDS WITH / CONTAINS / NOT CONTAINS
+    const textFnMatch = /^(not\s+contains|!contains|does\s+not\s+contain|contains|starts\s+with|begins\s+with|ends\s+with)\s+(.+)$/i.exec(expr);
+    if (textFnMatch) {
+      const fn = textFnMatch[1].toLowerCase().replace(/\s+/g, " ");
+      const val = stripAccessDelimiters(textFnMatch[2]).toLowerCase();
+      if (!val) return true;
+      if (fn === "starts with" || fn === "begins with") return cellLower.startsWith(val);
+      if (fn === "ends with") return cellLower.endsWith(val);
+      if (fn === "contains") return cellLower.includes(val);
+      return !cellLower.includes(val);
+    }
+
+    // LIKE / NOT LIKE
+    const likeMatch = /^(not\s+)?like\s+(.+)$/i.exec(expr);
+    if (likeMatch) {
+      const isNot = Boolean(likeMatch[1]);
+      let pat = stripAccessDelimiters(likeMatch[2]);
+      if (!pat) return true;
+      if (!/[*%?_]/.test(pat)) pat = "*" + pat + "*";
+      const ok = wildcardToRegExp(pat).test(cellStr);
+      return isNot ? !ok : ok;
+    }
+
+    // Comparison operators: >=, <=, !=, <>, >, <, =
+    const opMatch = /^(>=|<=|!=|<>|>|<|=)\s*(.*)$/.exec(expr);
+    if (opMatch) {
+      const rawOp = opMatch[1];
+      const op = rawOp === "!=" ? "<>" : rawOp;
+      const rawRhs = opMatch[2].trim();
+      if (!rawRhs) return true;
+
+      const isExplicitlyQuoted =
+        (rawRhs.startsWith("'") && rawRhs.endsWith("'")) ||
+        (rawRhs.startsWith('"') && rawRhs.endsWith('"'));
+      const unquotedRhs = stripAccessDelimiters(rawRhs);
+
+      const dRhs = parseAccessDate(rawRhs);
+      const dCell = dRhs ? parseAccessDate(cellStr) : null;
+      if (dRhs && dCell) {
+        const lhsCmp = dRhs.isDateOnly ? dCell.iso.slice(0, 10) : dCell.ms;
+        const rhsCmp = dRhs.isDateOnly ? dRhs.iso : dRhs.ms;
+        if (op === "=") return lhsCmp === rhsCmp;
+        if (op === "<>") return lhsCmp !== rhsCmp;
+        if (op === "<") return lhsCmp < rhsCmp;
+        if (op === "<=") return lhsCmp <= rhsCmp;
+        if (op === ">") return lhsCmp > rhsCmp;
+        if (op === ">=") return lhsCmp >= rhsCmp;
+      }
+
+      const nRhs = !isExplicitlyQuoted ? parseAccessNumber(rawRhs) : null;
+      const nCell = nRhs !== null ? parseAccessNumber(cellStr) : null;
+      if (nRhs !== null && nCell !== null) {
+        if (op === "=") return nCell === nRhs;
+        if (op === "<>") return nCell !== nRhs;
+        if (op === "<") return nCell < nRhs;
+        if (op === "<=") return nCell <= nRhs;
+        if (op === ">") return nCell > nRhs;
+        if (op === ">=") return nCell >= nRhs;
+      }
+
+      if ((op === "=" || op === "<>") && /[*?]/.test(unquotedRhs)) {
+        const ok = wildcardToRegExp(unquotedRhs).test(cellStr);
+        return op === "<>" ? !ok : ok;
+      }
+
+      const rhsLower = unquotedRhs.toLowerCase();
+      if (op === "=") return cellLower === rhsLower;
+      if (op === "<>") return cellLower !== rhsLower;
+      if (op === "<") return cellLower < rhsLower;
+      if (op === "<=") return cellLower <= rhsLower;
+      if (op === ">") return cellLower > rhsLower;
+      if (op === ">=") return cellLower >= rhsLower;
+    }
+
+    const unquoted = stripAccessDelimiters(expr);
+    if (/[*?]/.test(unquoted)) {
+      return wildcardToRegExp(unquoted).test(cellStr);
+    }
+
+    if (expr.startsWith("!") && expr.length > 1) {
+      const neg = stripAccessDelimiters(expr.slice(1)).toLowerCase();
+      return !neg ? true : !cellLower.includes(neg);
+    }
+
+    return cellLower.includes(unquoted.toLowerCase());
+  }
+
+  function evaluateAccessFilter(cellValue, rawExpr, colName) {
+    const expr = String(rawExpr ?? "").trim();
+    if (!expr) return true;
+
+    const isSingleBetween = /^\s*(?:not\s+)?between\s+.+\s+and\s+.+$/i.test(expr) && !/\s+or\s+/i.test(expr) && ((expr.match(/\band\b/gi) || []).length === 1);
+    if (!isSingleBetween) {
+      const orParts = expr.split(/\s+or\s+/i).map((s) => s.trim()).filter(Boolean);
+      if (orParts.length > 1) {
+        return orParts.some((part) => evaluateAccessFilter(cellValue, part, colName));
+      }
+      if (!/^\s*(?:not\s+)?between\b/i.test(expr)) {
+        const andParts = expr.split(/\s+and\s+/i).map((s) => s.trim()).filter(Boolean);
+        if (andParts.length > 1) {
+          return andParts.every((part) => evaluateSingleAccessAtom(cellValue, part, colName));
+        }
+      }
+    }
+    return evaluateSingleAccessAtom(cellValue, expr, colName);
+  }
+
+  function filterRowsWithAccessFilters(rows, activeFilters, searchQuery, columns) {
+    if (!Array.isArray(rows)) return [];
+    const colList = Array.isArray(columns) && columns.length > 0 ? columns : (rows[0] ? Object.keys(rows[0]) : []);
+    const colMap = new Map();
+    colList.forEach((c) => colMap.set(String(c).toLowerCase(), String(c)));
+
+    const rawSearch = String(searchQuery ?? "").trim();
+    let searchColTarget = null;
+    let searchColExpr = null;
+    if (rawSearch) {
+      const m = /^\[?["`]?([a-zA-Z0-9_]+)["`]?\]?\s*(>=|<=|!=|<>|>|<|=|\.\.|\b(?:between|not\s+between|in|not\s+in|like|not\s+like|is\s+null|is\s+not\s+null|starts\s+with|begins\s+with|ends\s+with|contains|not\s+contains)\b)(.*)$/i.exec(rawSearch);
+      if (m && colMap.has(m[1].toLowerCase())) {
+        searchColTarget = colMap.get(m[1].toLowerCase());
+        searchColExpr = `${m[2]} ${m[3] || ""}`.trim();
+      }
+    }
+
+    const filterEntries = Object.entries(activeFilters || {}).filter(([, v]) => String(v ?? "").trim() !== "");
+
+    return rows.filter((row) => {
+      if (rawSearch) {
+        if (searchColTarget && searchColExpr) {
+          if (!evaluateAccessFilter(row[searchColTarget], searchColExpr, searchColTarget)) return false;
+        } else {
+          const isOpSearch = /^(>=|<=|!=|<>|>|<|=)\s*\S+/.test(rawSearch);
+          const matchedSearch = Object.entries(row).some(([k, v]) => {
+            if (isOpSearch) return evaluateAccessFilter(v, rawSearch, k);
+            return v !== null && v !== undefined && String(v).toLowerCase().includes(rawSearch.toLowerCase());
+          });
+          if (!matchedSearch) return false;
+        }
+      }
+      for (const [col, fVal] of filterEntries) {
+        if (!evaluateAccessFilter(row[col], fVal, col)) return false;
+      }
+      return true;
+    });
+  }
+
+  function detectAccessFilterOpPrefix(val) {
+    const s = String(val ?? "").trim();
+    if (!s) return "";
+    if (/^is\s+not\s+null$/i.test(s) || /^!null$/i.test(s)) return "IS NOT NULL";
+    if (/^is\s+null$/i.test(s) || /^null$/i.test(s)) return "IS NULL";
+    if (/^between\b/i.test(s)) return "BETWEEN ";
+    if (/^like\b/i.test(s)) return "LIKE ";
+    if (/^in\s*\(/i.test(s)) return "IN (";
+    if (/^starts\s+with\b/i.test(s)) return "STARTS WITH ";
+    if (/^ends\s+with\b/i.test(s)) return "ENDS WITH ";
+    if (/^not\s+contains\b/i.test(s)) return "NOT CONTAINS ";
+    const m = /^(>=|<=|<>|!=|>|<|=)/.exec(s);
+    if (m) return m[1] === "!=" ? "<> " : m[1] + " ";
+    return "";
+  }
+
+  function renderAccessFilterCellHtml(colName, currentVal) {
+    const val = String(currentVal ?? "");
+    const safeCol = String(colName).replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/"/g, "&quot;");
+    const safeAttrCol = String(colName).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+    const safeVal = val.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+    const curOp = detectAccessFilterOpPrefix(val);
+    const ops = [
+      ["", "🔍"],
+      ["= ", "="],
+      ["<> ", "<>"],
+      ["< ", "<"],
+      ["<= ", "<="],
+      ["> ", ">"],
+      [">= ", ">="],
+      ["BETWEEN ", "a..b"],
+      ["LIKE ", "Like"],
+      ["IN (", "In"],
+      ["STARTS WITH ", "A*"],
+      ["ENDS WITH ", "*Z"],
+      ["NOT CONTAINS ", "!~"],
+      ["IS NULL", "∅"],
+      ["IS NOT NULL", "!∅"],
+    ];
+    const optionsHtml = ops
+      .map(([opVal, label]) => `<option value="${opVal}"${curOp === opVal ? " selected" : ""}>${label}</option>`)
+      .join("");
+    return `<div class="access-filter-cell">` +
+      `<select class="access-filter-op-select" data-filter-op-col="${safeAttrCol}" title="Microsoft Access filter operator for ${safeAttrCol} (=, <>, <, <=, >, >=, BETWEEN, LIKE, IN, IS NULL)" onchange="window.onAccessFilterOpSelect && window.onAccessFilterOpSelect('${safeCol}', this.value)">${optionsHtml}</select>` +
+      `<input type="text" class="access-filter-input" data-filter-col="${safeAttrCol}" placeholder="Filter ${safeAttrCol} (e.g. <= 500, >= 2025-01-01, *text*)" value="${safeVal}" oninput="onColumnFilterInput('${safeCol}', this.value)" />` +
+      `</div>`;
+  }
+
+  function onAccessFilterOpSelect(colName, opPrefix) {
+    const filterRow = document.getElementById("gridFilterBarRow");
+    if (!filterRow) return;
+    let input = null;
+    filterRow.querySelectorAll("input.access-filter-input").forEach((el) => {
+      if (el.getAttribute("data-filter-col") === colName) input = el;
+    });
+    if (!input) return;
+
+    let cur = String(input.value || "").trim();
+    // Strip existing operator prefix
+    cur = cur
+      .replace(/^(?:is\s+not\s+null|is\s+null|!null|null)$/i, "")
+      .replace(/^(?:>=|<=|<>|!=|>|<|=|between|like|starts\s+with|ends\s+with|not\s+contains)\s*/i, "")
+      .replace(/^in\s*\((.*)\)$/i, "$1")
+      .trim();
+
+    let nextVal = "";
+    if (opPrefix === "IS NULL" || opPrefix === "IS NOT NULL") {
+      nextVal = opPrefix;
+    } else if (opPrefix === "BETWEEN ") {
+      nextVal = cur ? (/\band\b/i.test(cur) ? `BETWEEN ${cur}` : `BETWEEN ${cur} AND `) : "BETWEEN ";
+    } else if (opPrefix === "IN (") {
+      nextVal = cur ? `IN (${cur})` : "IN ()";
+    } else if (opPrefix === "") {
+      nextVal = cur;
+    } else {
+      nextVal = opPrefix + cur;
+    }
+
+    input.value = nextVal;
+    input.focus();
+    if (nextVal === "IN ()") {
+      try { input.setSelectionRange(4, 4); } catch (e) {}
+    } else {
+      try { input.setSelectionRange(nextVal.length, nextVal.length); } catch (e) {}
+    }
+    if (typeof window.onColumnFilterInput === "function") {
+      window.onColumnFilterInput(colName, nextVal);
+    }
+  }
+
+  window.evaluateAccessFilter = evaluateAccessFilter;
+  window.filterRowsWithAccessFilters = filterRowsWithAccessFilters;
+  window.renderAccessFilterCellHtml = renderAccessFilterCellHtml;
+  window.onAccessFilterOpSelect = onAccessFilterOpSelect;
+
   let filterDebounceTimer = null;
   function wrapColumnFilterInput() {
     const orig = window.onColumnFilterInput || (typeof onColumnFilterInput === "function" ? onColumnFilterInput : null);
     if (!orig || orig.__studioServerWrapped) return;
     const wrapped = function (colName, filterVal) {
       const res = orig.apply(this, arguments);
+      // Sync operator dropdown badge if present
+      const filterRow = document.getElementById("gridFilterBarRow");
+      if (filterRow) {
+        filterRow.querySelectorAll("select.access-filter-op-select").forEach((sel) => {
+          if (sel.getAttribute("data-filter-op-col") === colName) {
+            const detected = detectAccessFilterOpPrefix(filterVal);
+            if (sel.value !== detected) sel.value = detected;
+          }
+        });
+      }
       if (filterDebounceTimer) clearTimeout(filterDebounceTimer);
       filterDebounceTimer = setTimeout(() => {
         const tbl = getActiveTable();

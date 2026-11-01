@@ -290,6 +290,7 @@ async function runCore(
   depth: number,
 ): Promise<MacroExecutionResult> {
   const d = adapter.dialect;
+  const qi = (ident: string) => quoteIdentFor(d, ident);
   const all = store.getMacros();
   const macro: MacroDefinition | null =
     typeof macroOrId === "string"
@@ -373,6 +374,30 @@ async function runCore(
       let message = `Action ${act.action} executed`;
 
       switch (act.action) {
+        case "OpenTable": {
+          const targetTbl = tbl || variables.activeTable;
+          if (!targetTbl) throw new Error("OpenTable requires target table");
+          variables.activeTable = targetTbl;
+          const res = await run(`SELECT * FROM ${qi(targetTbl)} LIMIT 100;`, "OpenTable");
+          variables.totalRows = res.rows?.length || 0;
+          output = { table: targetTbl, columns: res.columns, rows: res.rows, rowsCount: res.rows?.length || 0 };
+          message = `Opened table '${targetTbl}' (${res.rows?.length || 0} rows)`;
+          break;
+        }
+        case "ApplyFilter": {
+          const cond = p.condition || p.where || p.whereCondition;
+          const targetTbl = tbl || variables.activeTable || "customers";
+          if (!cond) {
+            message = "No filter condition provided";
+            break;
+          }
+          const resolvedCond = resolvePrompts(String(cond), promptParams, d);
+          const res = await run(`SELECT * FROM ${qi(targetTbl)} WHERE ${resolvedCond} LIMIT 100;`, "ApplyFilter");
+          variables.totalRows = res.rows?.length || 0;
+          output = { table: targetTbl, condition: resolvedCond, columns: res.columns, rows: res.rows, rowsCount: res.rows?.length || 0 };
+          message = `Applied filter '${resolvedCond}' (${res.rows?.length || 0} matching records)`;
+          break;
+        }
         case "OpenQuery": {
           let sql: string | undefined = p.sql;
           if (p.queryName) {

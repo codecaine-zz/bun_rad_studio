@@ -921,7 +921,7 @@ function buildRedisHtml(): string {
     }
   </style>
 </head>
-<body oncontextmenu="return false;">
+<body spellcheck="false" autocorrect="off" autocapitalize="off" oncontextmenu="return false;">
 
   <!-- Header Bar -->
   <header>
@@ -985,7 +985,7 @@ function buildRedisHtml(): string {
 
         <div class="search-box">
           <span>🔍</span>
-          <input type="text" id="searchPattern" placeholder="Pattern (e.g. * or auth:*)" oninput="filterKeys()" />
+          <input type="text" id="searchPattern" placeholder="Pattern (e.g. * or auth:*)" oninput="filterKeys()" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" />
         </div>
 
         <div class="type-filter-bar" id="typeFilterBar">
@@ -1088,7 +1088,7 @@ function buildRedisHtml(): string {
           </div>
           <div class="cli-input-bar">
             <span style="color: var(--accent-cyan); font-weight: 700;">redis&gt;</span>
-            <input type="text" id="cliInput" placeholder="e.g. GET mykey, HGETALL myhash, ZRANGE myzset 0 -1 WITHSCORES" onkeydown="handleCliKeyDown(event)" />
+            <input type="text" id="cliInput" placeholder="e.g. GET mykey, HGETALL myhash, ZRANGE myzset 0 -1 WITHSCORES" onkeydown="handleCliKeyDown(event)" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" />
             <button class="btn btn-primary" onclick="submitCli()">Run</button>
           </div>
         </div>
@@ -1138,18 +1138,18 @@ function buildRedisHtml(): string {
             <div style="font-weight: 700; font-size: 13px; color: var(--text-main);">Publish Message</div>
             <div class="form-group">
               <label>Target Channel</label>
-              <input type="text" id="pubChannel" value="notifications" />
+              <input type="text" id="pubChannel" value="notifications" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" />
             </div>
             <div class="form-group">
               <label>Payload / Message</label>
-              <textarea id="pubPayload" rows="4" placeholder="Enter text or JSON payload...">{"event": "USER_SIGNUP", "userId": "usr_9021"}</textarea>
+              <textarea id="pubPayload" rows="4" placeholder="Enter text or JSON payload..." spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">{"event": "USER_SIGNUP", "userId": "usr_9021"}</textarea>
             </div>
             <button class="btn btn-primary" onclick="publishPubSub()">🚀 Publish Broadcast</button>
 
             <div style="margin-top: 16px; font-weight: 700; font-size: 13px; color: var(--text-main);">Subscribe Channel</div>
             <div class="form-group">
               <label>Channel Name</label>
-              <input type="text" id="subChannelInput" value="notifications" />
+              <input type="text" id="subChannelInput" value="notifications" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" />
             </div>
             <button class="btn btn-cyan" onclick="subscribePubSub()">📥 Subscribe Live</button>
           </div>
@@ -1192,7 +1192,7 @@ function buildRedisHtml(): string {
       <div class="modal-body">
         <div class="form-group">
           <label>Data Structure Type</label>
-          <select id="newKeyType">
+          <select id="newKeyType" onchange="onNewKeyTypeChange()">
             <option value="string">String</option>
             <option value="hash">Hash</option>
             <option value="list">List</option>
@@ -1202,15 +1202,23 @@ function buildRedisHtml(): string {
         </div>
         <div class="form-group">
           <label>Key Name (Supports namespaces e.g. cache:user:101)</label>
-          <input type="text" id="newKeyName" placeholder="e.g. app:session:tok_123" />
+          <input type="text" id="newKeyName" placeholder="e.g. app:session:tok_123" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" />
+        </div>
+        <div class="form-group" id="newKeyFieldGroup" style="display: none;">
+          <label>Hash Field Name (Optional if entering JSON or field:value pairs below)</label>
+          <input type="text" id="newKeyField" placeholder="e.g. name, email, role (defaults to field1)" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" />
+        </div>
+        <div class="form-group" id="newKeyScoreGroup" style="display: none;">
+          <label>Initial Score (Sorted Set rank score)</label>
+          <input type="number" step="any" id="newKeyScore" value="0" placeholder="0" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" />
         </div>
         <div class="form-group">
-          <label>Initial Value / Payload</label>
-          <textarea id="newKeyValue" rows="5" placeholder="Value, JSON, or comma-separated list/set items"></textarea>
+          <label id="newKeyValueLabel">Initial Value / Payload</label>
+          <textarea id="newKeyValue" rows="5" placeholder="Value, JSON, or comma-separated list/set items" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
         </div>
         <div class="form-group">
           <label>Time to Live (Seconds, optional)</label>
-          <input type="number" id="newKeyTtl" placeholder="Leave empty for persistent" />
+          <input type="number" id="newKeyTtl" placeholder="Leave empty for persistent" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" />
         </div>
       </div>
       <div class="modal-footer">
@@ -1230,7 +1238,7 @@ function buildRedisHtml(): string {
       <div class="modal-body">
         <div class="form-group">
           <label>Redis Connection URL</label>
-          <input type="text" id="connectUrlInput" value="redis://127.0.0.1:6379" placeholder="redis://:password@host:port/db" />
+          <input type="text" id="connectUrlInput" value="redis://127.0.0.1:6379" placeholder="redis://:password@host:port/db" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" />
         </div>
         <div class="form-group">
           <label>Select Target Database (0 - 15)</label>
@@ -1285,12 +1293,12 @@ function buildRedisHtml(): string {
           </div>
           <div style="flex:1;">
             <label>Key Prefix (optional)</label>
-            <input type="text" id="importKeyPrefix" placeholder="e.g. app: or users:" style="width:100%;" />
+            <input type="text" id="importKeyPrefix" placeholder="e.g. app: or users:" style="width:100%;" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" />
           </div>
         </div>
         <div class="form-group">
           <label>...or paste JSON, CSV, YAML, TOML, XML, SQL, .env, or Redis CLI commands</label>
-          <textarea id="importText" rows="8" style="width:100%; font-family: var(--font-mono); font-size: 11px;" placeholder="{ &quot;format&quot;: &quot;redis-studio-export&quot;, ... } or CSV / YAML / TOML / .env / SET key value"></textarea>
+          <textarea id="importText" rows="8" style="width:100%; font-family: var(--font-mono); font-size: 11px;" placeholder="{ &quot;format&quot;: &quot;redis-studio-export&quot;, ... } or CSV / YAML / TOML / .env / SET key value" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
         </div>
         <div class="form-group">
           <label><input type="checkbox" id="importOverwrite" /> Overwrite keys that already exist</label>
@@ -1313,7 +1321,7 @@ function buildRedisHtml(): string {
       <div class="modal-body">
         <div class="form-group">
           <label>TTL in Seconds (-1 for Persist / No Expiry)</label>
-          <input type="number" id="ttlSecondsInput" placeholder="-1 to remove expiry, or seconds" />
+          <input type="number" id="ttlSecondsInput" placeholder="-1 to remove expiry, or seconds" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" />
         </div>
       </div>
       <div class="modal-footer">
@@ -1333,7 +1341,7 @@ function buildRedisHtml(): string {
       <div class="modal-body">
         <div class="form-group">
           <label>New Key Name</label>
-          <input type="text" id="renameInput" />
+          <input type="text" id="renameInput" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" />
         </div>
       </div>
       <div class="modal-footer">
@@ -1705,7 +1713,7 @@ function buildRedisHtml(): string {
                 <button class="btn" style="font-size: 10px; padding: 2px 8px;" onclick="copyEditorContent()">📋 Copy Value</button>
               </div>
             </div>
-            <textarea id="stringEditor" style="flex: 1; width: 100%; background: #05070a; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; color: #a5f3fc; font-family: var(--font-mono); font-size: 13px; line-height: 1.5; resize: none;">\${escapeHtml(displayVal)}</textarea>
+            <textarea id="stringEditor" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" style="flex: 1; width: 100%; background: #05070a; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; color: #a5f3fc; font-family: var(--font-mono); font-size: 13px; line-height: 1.5; resize: none;">\${escapeHtml(displayVal)}</textarea>
           </div>
         \`;
       } else if (details.type === 'hash') {
@@ -1722,7 +1730,7 @@ function buildRedisHtml(): string {
                 \${entries.map(([f, v]) => \`
                   <tr>
                     <td style="color: var(--accent-cyan); font-weight: 600;"><span style="background: rgba(6,182,212,0.1); padding: 2px 6px; border-radius: 4px;">\${escapeHtml(f)}</span></td>
-                    <td><input type="text" value="\${escapeHtml(v)}" class="hash-field-input" data-field="\${escapeHtml(f)}" style="width: 100%; background: transparent; border: 1px solid var(--border-color); border-radius: 4px; padding: 2px 6px; color: #fff; font-family: var(--font-mono); font-size: 12px;" /></td>
+                    <td><input type="text" value="\${escapeHtml(v)}" class="hash-field-input" data-field="\${escapeHtml(f)}" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" style="width: 100%; background: transparent; border: 1px solid var(--border-color); border-radius: 4px; padding: 2px 6px; color: #fff; font-family: var(--font-mono); font-size: 12px;" /></td>
                     <td><button class="btn btn-danger" style="font-size: 10px; padding: 2px 6px;" data-field="\${escapeHtml(f)}" onclick="deleteHashField(this.dataset.field)">Delete</button></td>
                   </tr>
                 \`).join('')}
@@ -1744,7 +1752,7 @@ function buildRedisHtml(): string {
                 \${items.map((it, idx) => \`
                   <tr>
                     <td style="color: var(--text-dim); font-weight: 700;">[\${idx}]</td>
-                    <td><input type="text" value="\${escapeHtml(it)}" class="list-item-input" data-idx="\${idx}" style="width: 100%; background: transparent; border: 1px solid var(--border-color); border-radius: 4px; padding: 2px 6px; color: #fff; font-family: var(--font-mono); font-size: 12px;" /></td>
+                    <td><input type="text" value="\${escapeHtml(it)}" class="list-item-input" data-idx="\${idx}" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" style="width: 100%; background: transparent; border: 1px solid var(--border-color); border-radius: 4px; padding: 2px 6px; color: #fff; font-family: var(--font-mono); font-size: 12px;" /></td>
                     <td style="color: var(--text-dim);">\${(String(it) || '').length} chars</td>
                     <td><button class="btn btn-danger" style="font-size: 10px; padding: 2px 6px;" data-idx="\${idx}" onclick="removeListItem(Number(this.dataset.idx))">Delete</button></td>
                   </tr>
@@ -1767,7 +1775,7 @@ function buildRedisHtml(): string {
                 \${members.map((m, idx) => \`
                   <tr>
                     <td style="color: var(--text-dim);">\${idx + 1}</td>
-                    <td><input type="text" value="\${escapeHtml(m)}" class="set-member-input" data-idx="\${idx}" style="width: 100%; background: transparent; border: 1px solid var(--border-color); border-radius: 4px; padding: 2px 6px; color: #fff; font-family: var(--font-mono); font-size: 12px;" /></td>
+                    <td><input type="text" value="\${escapeHtml(m)}" class="set-member-input" data-idx="\${idx}" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" style="width: 100%; background: transparent; border: 1px solid var(--border-color); border-radius: 4px; padding: 2px 6px; color: #fff; font-family: var(--font-mono); font-size: 12px;" /></td>
                     <td><button class="btn btn-danger" style="font-size: 10px; padding: 2px 6px;" data-idx="\${idx}" onclick="removeSetMember(Number(this.dataset.idx))">Delete</button></td>
                   </tr>
                 \`).join('')}
@@ -1791,8 +1799,8 @@ function buildRedisHtml(): string {
                   return \`
                     <tr>
                       <td><span class="rank-pill \${rankClass}">\${idx + 1}</span></td>
-                      <td><input type="number" step="any" value="\${Number(it.score)}" class="zset-score-input" data-idx="\${idx}" style="width: 100%; background: transparent; border: 1px solid var(--border-color); border-radius: 4px; padding: 2px 6px; color: var(--accent-amber); font-family: var(--font-mono); font-size: 12px; font-weight: 700;" /></td>
-                      <td><input type="text" value="\${escapeHtml(it.member)}" class="zset-member-input" data-idx="\${idx}" style="width: 100%; background: transparent; border: 1px solid var(--border-color); border-radius: 4px; padding: 2px 6px; color: #fff; font-family: var(--font-mono); font-size: 12px; font-weight: 600;" /></td>
+                      <td><input type="number" step="any" value="\${Number(it.score)}" class="zset-score-input" data-idx="\${idx}" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" style="width: 100%; background: transparent; border: 1px solid var(--border-color); border-radius: 4px; padding: 2px 6px; color: var(--accent-amber); font-family: var(--font-mono); font-size: 12px; font-weight: 700;" /></td>
+                      <td><input type="text" value="\${escapeHtml(it.member)}" class="zset-member-input" data-idx="\${idx}" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" style="width: 100%; background: transparent; border: 1px solid var(--border-color); border-radius: 4px; padding: 2px 6px; color: #fff; font-family: var(--font-mono); font-size: 12px; font-weight: 600;" /></td>
                       <td><button class="btn btn-danger" style="font-size: 10px; padding: 2px 6px;" data-idx="\${idx}" onclick="removeZsetMember(Number(this.dataset.idx))">Delete</button></td>
                     </tr>
                   \`;
@@ -1855,7 +1863,7 @@ function buildRedisHtml(): string {
                 ＋ Add Unique Item to HyperLogLog (PFADD)
               </h4>
               <div style="display: flex; gap: 8px;">
-                <input id="hllNewItemInput" type="text" placeholder="e.g. usr_session_9921 or 192.168.1.55" style="flex: 1; background: #05070a; border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 12px; color: #fff; font-family: var(--font-mono); font-size: 12px;" />
+                <input id="hllNewItemInput" type="text" placeholder="e.g. usr_session_9921 or 192.168.1.55" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" style="flex: 1; background: #05070a; border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 12px; color: #fff; font-family: var(--font-mono); font-size: 12px;" />
                 <button class="btn btn-cyan" onclick="addHllElement()">PFADD Element</button>
               </div>
             </div>
@@ -1900,7 +1908,7 @@ function buildRedisHtml(): string {
                 Set Bit Offset (SETBIT)
               </h4>
               <div style="display: flex; gap: 8px; align-items: center;">
-                <input id="bitmapOffsetInput" type="number" min="0" placeholder="Bit Offset (e.g. 15)" style="width: 160px; background: #05070a; border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 12px; color: #fff; font-family: var(--font-mono); font-size: 12px;" />
+                <input id="bitmapOffsetInput" type="number" min="0" placeholder="Bit Offset (e.g. 15)" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" style="width: 160px; background: #05070a; border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 12px; color: #fff; font-family: var(--font-mono); font-size: 12px;" />
                 <select id="bitmapValueInput" style="background: #05070a; border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 12px; color: #fff; font-size: 12px;">
                   <option value="1">1 (Set Active)</option>
                   <option value="0">0 (Clear)</option>
@@ -1913,6 +1921,7 @@ function buildRedisHtml(): string {
       } else {
         area.innerHTML = \`<pre style="color: #cbd5e1; font-family: var(--font-mono); font-size: 12px;">\${escapeHtml(JSON.stringify(details.value, null, 2))}</pre>\`;
       }
+      disableAutoCorrectIn(area);
     }
 
     async function addHllElement() {
@@ -2081,66 +2090,71 @@ function buildRedisHtml(): string {
     function postElement(payload) { return postJson('/api/key/element', payload); }
 
     async function finishKeyEdit(result, failMsg) {
-      if (!result.success) alert('Error: ' + (result.error || failMsg));
+      if (!result.success) notify('Error: ' + (result.error || failMsg), 'error');
       await selectKey(activeKey);
       refreshAll();
     }
 
     async function addHashField() {
-      const field = prompt('New field name:');
-      if (field === null || field === '') return;
-      const val = prompt('Value for "' + field + '":', '');
+      const field = await uiAsk('Add Hash Field', 'Enter the new field name:', { input: { placeholder: 'e.g. email' }, okText: 'Next' });
+      if (field === null || field.trim() === '') return;
+      const val = await uiAsk('Add Hash Field', 'Value for "' + field.trim() + '":', { input: { value: '', placeholder: 'Field value' }, okText: 'Add Field' });
       if (val === null) return;
-      await finishKeyEdit(await postElement({ key: activeKey, type: 'hash', op: 'update', field, value: val }), 'Failed to add field');
+      await finishKeyEdit(await postElement({ key: activeKey, type: 'hash', op: 'update', field: field.trim(), value: val }), 'Failed to add field');
     }
 
     async function deleteHashField(field) {
-      if (!confirm('Delete field "' + field + '"?')) return;
+      const ok = await uiAsk('Delete Hash Field', 'Delete field "' + field + '" from "' + activeKey + '"?', { okText: 'Delete', danger: true });
+      if (!ok) return;
       await finishKeyEdit(await postElement({ key: activeKey, type: 'hash', op: 'remove', field }), 'Failed to delete field');
     }
 
     async function pushListItem() {
-      const val = prompt('Value to push to the end of the list:');
+      const val = await uiAsk('Push List Element', 'Value to push to the end of the list (RPUSH):', { input: { placeholder: 'Element value' }, okText: 'Push Element' });
       if (val === null) return;
       await finishKeyEdit(await postJson('/api/key/set', { key: activeKey, type: 'list', value: val }), 'Failed to push element');
     }
 
     async function removeListItem(idx) {
-      if (!confirm('Delete list element [' + idx + ']?')) return;
+      const ok = await uiAsk('Delete List Element', 'Delete list element [' + idx + ']?', { okText: 'Delete', danger: true });
+      if (!ok) return;
       await finishKeyEdit(await postElement({ key: activeKey, type: 'list', op: 'remove', index: idx }), 'Failed to delete element');
     }
 
     async function addSetMember() {
-      const val = prompt('New set member:');
+      const val = await uiAsk('Add Set Member', 'New unique member value (SADD):', { input: { placeholder: 'Member value' }, okText: 'Add Member' });
       if (val === null || val === '') return;
       await finishKeyEdit(await postJson('/api/key/set', { key: activeKey, type: 'set', value: val }), 'Failed to add member');
     }
 
     async function removeSetMember(idx) {
       const member = activeKeyData.value[idx];
-      if (!confirm('Remove member "' + member + '"?')) return;
+      const ok = await uiAsk('Remove Set Member', 'Remove member "' + member + '"?', { okText: 'Remove', danger: true });
+      if (!ok) return;
       await finishKeyEdit(await postElement({ key: activeKey, type: 'set', op: 'remove', oldMember: String(member) }), 'Failed to remove member');
     }
 
     async function addZsetMember() {
-      const member = prompt('New member name:');
+      const member = await uiAsk('Add Ranked Item', 'New member name:', { input: { placeholder: 'e.g. player:101' }, okText: 'Next' });
       if (member === null || member === '') return;
-      const scoreText = prompt('Score for "' + member + '":', '0');
+      const scoreText = await uiAsk('Add Ranked Item', 'Score for "' + member + '":', { input: { value: '0', placeholder: '0' }, okText: 'Add Item' });
       if (scoreText === null) return;
       const score = Number(scoreText);
-      if (!Number.isFinite(score)) { alert('Score must be a number'); return; }
+      if (!Number.isFinite(score)) { notify('Score must be a valid number', 'warning'); return; }
       await finishKeyEdit(await postJson('/api/key/set', { key: activeKey, type: 'zset', value: member, score }), 'Failed to add member');
     }
 
     async function removeZsetMember(idx) {
       const item = activeKeyData.value[idx];
-      if (!confirm('Remove member "' + item.member + '"?')) return;
+      const ok = await uiAsk('Remove Ranked Item', 'Remove member "' + item.member + '"?', { okText: 'Remove', danger: true });
+      if (!ok) return;
       await finishKeyEdit(await postElement({ key: activeKey, type: 'zset', op: 'remove', oldMember: String(item.member) }), 'Failed to remove member');
     }
 
     async function deleteCurrentKey() {
       if (!activeKey) return;
-      if (!confirm(\`Are you sure you want to delete key "\${activeKey}"?\`)) return;
+      const ok = await uiAsk('Delete Key', \`Are you sure you want to delete key "\${activeKey}"?\`, { okText: 'Delete Key', danger: true });
+      if (!ok) return;
 
       const res = await fetch('/api/key/delete', {
         method: 'POST',
@@ -2380,6 +2394,37 @@ function buildRedisHtml(): string {
       setTimeout(function() { el.remove(); }, 3500);
     }
 
+    function disableInputAutoCorrect(el) {
+      if (!el || !el.setAttribute) return;
+      el.setAttribute('spellcheck', 'false');
+      el.setAttribute('autocomplete', 'off');
+      el.setAttribute('autocorrect', 'off');
+      el.setAttribute('autocapitalize', 'off');
+      el.spellcheck = false;
+    }
+
+    function disableAutoCorrectIn(root) {
+      var scope = root && root.querySelectorAll ? root : document;
+      if (!scope || !scope.querySelectorAll) return;
+      scope.querySelectorAll('input, textarea, [contenteditable="true"]').forEach(disableInputAutoCorrect);
+    }
+
+    disableAutoCorrectIn(document);
+    if (typeof MutationObserver === 'function' && document.body) {
+      new MutationObserver(function(mutations) {
+        for (var i = 0; i < mutations.length; i++) {
+          var added = mutations[i].addedNodes;
+          for (var j = 0; j < added.length; j++) {
+            var n = added[j];
+            if (n && n.nodeType === 1) {
+              if (n.matches && n.matches('input, textarea, [contenteditable="true"]')) disableInputAutoCorrect(n);
+              disableAutoCorrectIn(n);
+            }
+          }
+        }
+      }).observe(document.body, { childList: true, subtree: true });
+    }
+
     // In-page confirm/prompt (native dialogs are unreliable inside embedded webviews).
     function uiAsk(title, message, opts) {
       opts = opts || {};
@@ -2402,6 +2447,7 @@ function buildRedisHtml(): string {
         if (opts.input) {
           input = document.createElement('input');
           input.type = 'text';
+          disableInputAutoCorrect(input);
           input.value = opts.input.value || '';
           input.placeholder = opts.input.placeholder || '';
           input.style.marginTop = '10px';
@@ -2627,12 +2673,43 @@ function buildRedisHtml(): string {
           return;
         }
         if (window.parent && window.parent !== window) {
+          e.preventDefault();
           try { window.top.postMessage({ fmEscapeExpand: true }, '*'); } catch (_) {}
         }
       }
     });
 
-    function openAddKeyModal() { openModal('addKeyModal'); }
+    function onNewKeyTypeChange() {
+      const typeEl = document.getElementById('newKeyType');
+      const fieldGroup = document.getElementById('newKeyFieldGroup');
+      const scoreGroup = document.getElementById('newKeyScoreGroup');
+      const valLabel = document.getElementById('newKeyValueLabel');
+      const valInput = document.getElementById('newKeyValue');
+      if (!typeEl) return;
+      const t = typeEl.value;
+      if (fieldGroup) fieldGroup.style.display = t === 'hash' ? 'flex' : 'none';
+      if (scoreGroup) scoreGroup.style.display = t === 'zset' ? 'flex' : 'none';
+      if (valLabel && valInput) {
+        if (t === 'hash') {
+          valLabel.textContent = 'Field Value, JSON Object, or field:value Lines';
+          valInput.placeholder = 'e.g. {"name": "Alice", "role": "admin"} or name: Alice\\nrole: admin (or single field value if Field Name is set above)';
+        } else if (t === 'zset') {
+          valLabel.textContent = 'Initial Member Value';
+          valInput.placeholder = 'e.g. player:101';
+        } else if (t === 'list' || t === 'set') {
+          valLabel.textContent = 'Initial Element / Member Value';
+          valInput.placeholder = 'Initial item value';
+        } else {
+          valLabel.textContent = 'Initial Value / Payload';
+          valInput.placeholder = 'String text or JSON payload';
+        }
+      }
+    }
+
+    function openAddKeyModal() {
+      onNewKeyTypeChange();
+      openModal('addKeyModal');
+    }
     function openConnectModal() { openModal('connectModal'); }
     function openTtlModal() {
       if (activeKeyData && typeof activeKeyData.ttl === 'number') {
@@ -2650,22 +2727,42 @@ function buildRedisHtml(): string {
       const type = document.getElementById('newKeyType').value;
       const key = document.getElementById('newKeyName').value.trim();
       const val = document.getElementById('newKeyValue').value;
+      const fieldEl = document.getElementById('newKeyField');
+      const scoreEl = document.getElementById('newKeyScore');
+      const field = fieldEl ? fieldEl.value.trim() : '';
+      const score = scoreEl ? parseFloat(scoreEl.value) : 0;
       const ttl = parseInt(document.getElementById('newKeyTtl').value, 10);
 
-      if (!key) { alert('Key name is required'); return; }
+      if (!key) { notify('Key name is required', 'warning'); return; }
 
-      const res = await fetch('/api/key/set', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key, type, value: val, ttl: isNaN(ttl) ? undefined : ttl }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        closeModal('addKeyModal');
-        refreshAll();
-        selectKey(key);
-      } else {
-        alert('Error: ' + data.error);
+      try {
+        const res = await fetch('/api/key/set', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            key,
+            type,
+            value: val,
+            field: type === 'hash' && field ? field : undefined,
+            score: type === 'zset' && !isNaN(score) ? score : undefined,
+            ttl: isNaN(ttl) ? undefined : ttl,
+          }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          closeModal('addKeyModal');
+          document.getElementById('newKeyName').value = '';
+          document.getElementById('newKeyValue').value = '';
+          if (fieldEl) fieldEl.value = '';
+          document.getElementById('newKeyTtl').value = '';
+          notify('Created ' + type.toUpperCase() + ' key "' + key + '"', 'success');
+          await refreshAll();
+          await selectKey(key);
+        } else {
+          notify('Error: ' + (data.error || 'Failed to create key'), 'error');
+        }
+      } catch (err) {
+        notify('Error creating key: ' + (err && err.message ? err.message : String(err)), 'error');
       }
     }
 

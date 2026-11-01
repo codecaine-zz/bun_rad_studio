@@ -403,6 +403,12 @@ describe("the real SQLite Studio, started by the File Manager (no stand-in)", ()
       expect(foreign.status).toBe(403);
       // and the studio is bound to the loopback address only
       expect(studio.url.startsWith("http://127.0.0.1:")).toBe(true);
+      // POST /api/shutdown and /api/close must not kill a studio managed by the File Manager (STUDIO_PARENT_PID)
+      await fetch(`${studio.url}api/shutdown`, { method: "POST" });
+      await fetch(`${studio.url}api/close`, { method: "POST" });
+      await Bun.sleep(200);
+      expect(alive(studio.pid)).toBe(true);
+      expect((await fetch(`${studio.url}api/schema`)).status).toBe(200);
       const pid = studio.pid;
       await c.ok("db/studio/stop", { id: studio.id });
       await gone(pid);

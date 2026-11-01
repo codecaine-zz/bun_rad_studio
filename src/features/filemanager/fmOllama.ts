@@ -1251,13 +1251,22 @@ export async function ollamaFetchJson(
       endpointPath === "/v1/audio/speech" ||
       endpointPath === "/api/embed")
   ) {
-    await captureOllamaStartupSnapshot(ctx);
-    try {
-      const parsedBody = JSON.parse(init.body);
-      if (parsedBody?.model && parsedBody?.keep_alive !== 0) {
-        recordSessionLoadedModel(ctx, String(parsedBody.model));
+    const bodyHead = init.body.length > 4096 ? init.body.slice(0, 4096) : init.body;
+    const isUnloadRequest = init.body.length <= 512 && /"keep_alive"\s*:\s*0\b/.test(bodyHead);
+    if (!isUnloadRequest) {
+      await captureOllamaStartupSnapshot(ctx);
+      const modelMatch = bodyHead.match(/"model"\s*:\s*"([^"\\]+)"/);
+      if (modelMatch?.[1]) {
+        recordSessionLoadedModel(ctx, modelMatch[1]);
+      } else if (init.body.length <= 65_536) {
+        try {
+          const parsedBody = JSON.parse(init.body);
+          if (parsedBody?.model && parsedBody?.keep_alive !== 0) {
+            recordSessionLoadedModel(ctx, String(parsedBody.model));
+          }
+        } catch {}
       }
-    } catch {}
+    }
   }
   try {
     const res = await fetch(url, {
@@ -1654,19 +1663,10 @@ export async function listRunningModelsPs(ctx: FmContext): Promise<{
   };
 }
 
-/**
- * Free Up RAM Action: Unloads one or all currently running models from memory immediately
- * by sending `keep_alive: 0` to `/api/generate` (and `/api/chat` fallback).
- */
-export async function unloadModelsFromRam(
+async function unloadModelListFromRam(
   ctx: FmContext,
-  targetModel?: string,
+  toUnload: Array<{ name: string; sizeBytes: number }>,
 ): Promise<{ unloaded: string[]; freedBytes: number; freedGb: number }> {
-  const running = await listRunningModelsPs(ctx);
-  const toUnload = targetModel
-    ? [{ name: targetModel, sizeBytes: running.models.find((m) => m.name === targetModel)?.sizeBytes ?? 0 }]
-    : running.models;
-
   const unloaded: string[] = [];
   let freedBytes = 0;
 
@@ -1694,6 +1694,21 @@ export async function unloadModelsFromRam(
     freedBytes,
     freedGb: Math.round((freedBytes / 1024 ** 3) * 100) / 100,
   };
+}
+
+/**
+ * Free Up RAM Action: Unloads one or all currently running models from memory immediately
+ * by sending `keep_alive: 0` to `/api/generate` (and `/api/chat` fallback).
+ */
+export async function unloadModelsFromRam(
+  ctx: FmContext,
+  targetModel?: string,
+): Promise<{ unloaded: string[]; freedBytes: number; freedGb: number }> {
+  const running = await listRunningModelsPs(ctx);
+  const toUnload = targetModel
+    ? [{ name: targetModel, sizeBytes: running.models.find((m) => m.name === targetModel)?.sizeBytes ?? 0 }]
+    : running.models;
+  return unloadModelListFromRam(ctx, toUnload);
 }
 
 const spawnedOllamaDaemons = new Set<{ kill: () => void }>();
@@ -1916,6 +1931,7 @@ export async function shutdownOllamaForFileManager(
         // Ollama was already running before File Manager opened:
         // Only unload models that were loaded during this File Manager session (or weren't in preExistingLoadedModels).
         const running = await listRunningModelsPs(ctx);
+        const batchByModel = new Map<string, { name: string; sizeBytes: number }>();
         for (const m of running.models) {
           const wasPreExisting = st.preExistingLoadedModels.has(m.name);
           const loadedBySession = st.sessionLoadedModels.has(m.name);
@@ -1923,18 +1939,17 @@ export async function shutdownOllamaForFileManager(
             keptPreExistingModels.push(m.name);
             continue;
           }
-          const r = await unloadModelsFromRam(ctx, m.name);
-          unloaded.push(...r.unloaded);
-          freedBytes += r.freedBytes;
+          batchByModel.set(m.name, { name: m.name, sizeBytes: m.sizeBytes });
         }
         for (const sessionModel of st.sessionLoadedModels) {
-          if (!unloaded.includes(sessionModel)) {
-            const r = await unloadModelsFromRam(ctx, sessionModel);
-            unloaded.push(...r.unloaded);
-            freedBytes += r.freedBytes;
+          if (!batchByModel.has(sessionModel)) {
+            batchByModel.set(sessionModel, { name: sessionModel, sizeBytes: 0 });
           }
         }
-        freedGb = Math.round((freedBytes / 1024 ** 3) * 100) / 100;
+        const r = await unloadModelListFromRam(ctx, [...batchByModel.values()]);
+        unloaded = r.unloaded;
+        freedBytes = r.freedBytes;
+        freedGb = r.freedGb;
       } else {
         // Either File Manager started Ollama, or user selected "unload_all" / "stop_all": unload all models in RAM.
         const r = await unloadModelsFromRam(ctx);
@@ -2527,6 +2542,7 @@ export async function runOllamaAutoInstall(
 
         const totalBytes = Number(dlRes.headers.get("content-length") || 0);
         const chunks: Uint8Array[] = [];
+        const MAX_INSTALL_ARCHIVE_BYTES = 2 * 1024 ** 3;
         let received = 0;
         if (dlRes.body) {
           const reader = dlRes.body.getReader();
@@ -2534,8 +2550,11 @@ export async function runOllamaAutoInstall(
             const { value, done } = await reader.read();
             if (done) break;
             if (value) {
-              chunks.push(value);
               received += value.byteLength;
+              if (received > MAX_INSTALL_ARCHIVE_BYTES) {
+                throw new FmError("OLLAMA_LINUX_INSTALL_FAILED", "Downloaded archive exceeded maximum allowed size (2 GB).");
+              }
+              chunks.push(value);
               const dlPct = totalBytes > 0 ? Math.min(42, 18 + Math.round((received / totalBytes) * 24)) : 30;
               updateOllamaLongTask({
                 step: `Downloading ollama-linux-${archSlug}.tar.zst (${(received / 1024 ** 2).toFixed(1)} MB)...`,
@@ -2546,19 +2565,14 @@ export async function runOllamaAutoInstall(
             }
           }
         }
-        const compressed = new Uint8Array(received);
-        let offset = 0;
-        for (const c of chunks) {
-          compressed.set(c, offset);
-          offset += c.byteLength;
-        }
+        const compressed = new Uint8Array(Buffer.concat(chunks, received));
 
         updateOllamaLongTask({
           step: `Decompressing ollama-linux-${archSlug}.tar.zst with Bun.zstdDecompressSync...`,
           percent: 45,
         });
         const tarBytes = Bun.zstdDecompressSync(compressed);
-        const tmpTarPath = joinPath([tempDirPath("linux"), `ollama-linux-${Date.now()}.tar`], "linux");
+        const tmpTarPath = joinPath([localDir, `.ollama-linux-${process.pid}-${Date.now()}.tar`], "linux");
         await Bun.write(tmpTarPath, tarBytes);
 
         updateOllamaLongTask({
@@ -2574,7 +2588,7 @@ export async function runOllamaAutoInstall(
           throw new FmError("OLLAMA_LINUX_INSTALL_FAILED", `Failed to extract Linux archive: ${tarRes.stderr.toString()}`);
         }
         const candidateBin = joinPath([localBinDir, "ollama"], "linux");
-        Bun.spawnSync(["chmod", "0755", candidateBin], { stdout: "ignore", stderr: "ignore" });
+        Bun.spawnSync(["chmod", "0755", "--", candidateBin], { stdout: "ignore", stderr: "ignore" });
         binPath = candidateBin;
       } else if (hw.platform === "win32") {
         // Pure-Bun Windows user-space install (supports both native Windows 11 ARM64 in Parallels and Windows x64)
@@ -2597,6 +2611,7 @@ export async function runOllamaAutoInstall(
             signal: AbortSignal.timeout(300_000),
           });
           if (dlRes.ok) {
+            const MAX_INSTALL_ARCHIVE_BYTES = 2 * 1024 ** 3;
             const totalBytes = Number(dlRes.headers.get("content-length") || 0);
             const chunks: Uint8Array[] = [];
             let received = 0;
@@ -2606,8 +2621,11 @@ export async function runOllamaAutoInstall(
                 const { value, done } = await reader.read();
                 if (done) break;
                 if (value) {
-                  chunks.push(value);
                   received += value.byteLength;
+                  if (received > MAX_INSTALL_ARCHIVE_BYTES) {
+                    throw new FmError("OLLAMA_WINDOWS_INSTALL_FAILED", "Downloaded archive exceeded maximum allowed size (2 GB).");
+                  }
+                  chunks.push(value);
                   const dlPct = totalBytes > 0 ? Math.min(42, 16 + Math.round((received / totalBytes) * 26)) : 30;
                   updateOllamaLongTask({
                     step: `Downloading ollama-windows-${archSlug}.zip (${(received / 1024 ** 2).toFixed(1)} MB)...`,
@@ -2618,13 +2636,8 @@ export async function runOllamaAutoInstall(
                 }
               }
             }
-            const zipBytes = new Uint8Array(received);
-            let offset = 0;
-            for (const c of chunks) {
-              zipBytes.set(c, offset);
-              offset += c.byteLength;
-            }
-            const tmpZipPath = joinPath([tempDirPath("win32"), `ollama-windows-${archSlug}-${Date.now()}.zip`], "win32");
+            const zipBytes = new Uint8Array(Buffer.concat(chunks, received));
+            const tmpZipPath = joinPath([installDir, `.ollama-windows-${archSlug}-${process.pid}-${Date.now()}.zip`], "win32");
             await Bun.write(tmpZipPath, zipBytes);
 
             updateOllamaLongTask({
@@ -2657,11 +2670,21 @@ export async function runOllamaAutoInstall(
               );
             }
             try {
-              Bun.spawnSync(["cmd", "/c", "del", "/f", "/q", tmpZipPath], {
-                stdout: "ignore",
-                stderr: "ignore",
-                windowsHide: true,
-              });
+              Bun.spawnSync(
+                [
+                  "powershell",
+                  "-NoProfile",
+                  "-NonInteractive",
+                  "-Command",
+                  "Remove-Item -LiteralPath $env:FM_TMP_FILE -Force -ErrorAction SilentlyContinue",
+                ],
+                {
+                  stdout: "ignore",
+                  stderr: "ignore",
+                  windowsHide: true,
+                  env: { ...process.env, FM_TMP_FILE: tmpZipPath },
+                },
+              );
             } catch {}
           }
         } catch {}
@@ -2689,17 +2712,37 @@ export async function runOllamaAutoInstall(
           try {
             const dlRes = await fetch(setupUrl, { redirect: "follow", signal: AbortSignal.timeout(300_000) });
             if (dlRes.ok) {
-              const tmpExe = joinPath([tempDirPath("win32"), `OllamaSetup-${Date.now()}.exe`], "win32");
-              await Bun.write(tmpExe, new Uint8Array(await dlRes.arrayBuffer()));
-              updateOllamaLongTask({
-                step: "Running silent Windows Ollama installer (/VERYSILENT /SUPPRESSMSGBOXES /NORESTART)...",
-                percent: 52,
-              });
-              Bun.spawnSync([tmpExe, "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART"], {
-                stdout: "ignore",
-                stderr: "ignore",
-                windowsHide: true,
-              });
+              const tmpExe = joinPath([installDir, `OllamaSetup-${process.pid}-${Date.now()}.exe`], "win32");
+              try {
+                await Bun.write(tmpExe, new Uint8Array(await dlRes.arrayBuffer()));
+                updateOllamaLongTask({
+                  step: "Running silent Windows Ollama installer (/VERYSILENT /SUPPRESSMSGBOXES /NORESTART)...",
+                  percent: 52,
+                });
+                Bun.spawnSync([tmpExe, "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART"], {
+                  stdout: "ignore",
+                  stderr: "ignore",
+                  windowsHide: true,
+                });
+              } finally {
+                try {
+                  Bun.spawnSync(
+                    [
+                      "powershell",
+                      "-NoProfile",
+                      "-NonInteractive",
+                      "-Command",
+                      "Remove-Item -LiteralPath $env:FM_TMP_FILE -Force -ErrorAction SilentlyContinue",
+                    ],
+                    {
+                      stdout: "ignore",
+                      stderr: "ignore",
+                      windowsHide: true,
+                      env: { ...process.env, FM_TMP_FILE: tmpExe },
+                    },
+                  );
+                } catch {}
+              }
             }
           } catch {}
         }

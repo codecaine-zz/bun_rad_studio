@@ -131,15 +131,10 @@ if (!ollamaBin) {
     }
     process.stdout.write("\\n");
   }
-  const compressed = new Uint8Array(received);
-  let offset = 0;
-  for (const c of chunks) {
-    compressed.set(c, offset);
-    offset += c.byteLength;
-  }
+  const compressed = new Uint8Array(Buffer.concat(chunks, received));
   console.log("==> Decompressing ollama-linux-" + arch + ".tar.zst with built-in Zstandard decoder...");
   const tarBytes = Bun.zstdDecompressSync(compressed);
-  const tmpTar = join(localDir, "ollama-linux-" + process.pid + ".tar");
+  const tmpTar = join(localDir, ".ollama-linux-" + process.pid + ".tar");
   await Bun.write(tmpTar, tarBytes);
   console.log("==> Extracting Ollama into " + localDir + "...");
   const tarRes = Bun.spawnSync(["tar", "-xf", tmpTar, "-C", localDir], { stdout: "inherit", stderr: "inherit" });

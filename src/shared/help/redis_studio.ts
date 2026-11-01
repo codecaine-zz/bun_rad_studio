@@ -70,9 +70,11 @@ export const redisStudioTips: HelpTips = {
   "text:Subscribe Live": "Starts listening to the channel, so new messages appear in the live feed. It stays subscribed until you connect to another server.",
 
   // ---- Add Key window ----
-  "#newKeyType": "The kind of value to create. String holds text. For Hash the form creates nothing, and List, Set and Sorted Set store the whole text as one item; use the CLI tab for those.",
+  "#newKeyType": "The kind of value to create: String, Hash, List, Set or Sorted Set. Choosing Hash or Sorted Set shows extra fields for the initial hash field name or rank score.",
   "#newKeyName": "The name of the key. Colons group keys into folders by convention, such as cache:user:101.",
-  "#newKeyValue": "The value to store. For a String, any text or JSON. For List, Set and Sorted Set the whole text is stored as a single item; commas do not split it.",
+  "#newKeyField": "Optional initial field name when creating a Hash key. Leave empty to parse JSON or field:value pairs from the payload box below.",
+  "#newKeyScore": "Initial numeric rank score for the member when creating a Sorted Set (ZSet) key.",
+  "#newKeyValue": "The value to store. For a String, any text or JSON. For a Hash, a field value, JSON object, or field:value lines. For List, Set and Sorted Set, the initial item.",
   "#newKeyTtl": "Optional lifetime in seconds. The key is deleted automatically after that time. Leave empty to keep it until you delete it.",
   "text:Create Key": "Creates the key with the name, value and expiry you entered, then opens it in the editor.",
 

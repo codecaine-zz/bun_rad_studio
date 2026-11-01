@@ -14,11 +14,13 @@
  * files; no real file, setting or password is shown or changed.
  */
 import "./lib/tts_edge_default";
+process.env.TTS_ENGINE = "phonon";
+process.env.PHONON_VOICE = "Zoey";
 import { mkdirSync, rmSync, truncateSync, writeFileSync } from "fs";
 import { join } from "path";
 import { Cdp, sleep } from "./lib/cdp_recorder";
 import { seedDemoWorkspace } from "./lib/demo_workspace";
-import { EDGE_VOICE, FFMPEG, fmtTime, sh } from "./lib/video_pipeline";
+import { FFMPEG, PHONON_VOICE, fmtTime, sh } from "./lib/video_pipeline";
 import { runTutorial, type Suite, type Do } from "./lib/step_video";
 import { FM_HOME, chapters, type Chapter, type World } from "./lib/fm_tutorial_script";
 import {
@@ -33,13 +35,14 @@ const ROOT = process.cwd();
 const RATE = "+3%";
 const GAP = 0.45;
 const VIEW_H = 972;
-const ROOT_DIR = "/tmp/fmv";
+const WORKER_ID = Number(process.env.FM_TUTORIAL_WORKER || 0);
+const ROOT_DIR = WORKER_ID > 0 ? `/tmp/fmv_w${WORKER_ID}` : "/tmp/fmv";
 const HOME = FM_HOME;
 const DATA = `${ROOT_DIR}/data`;
 const GRAVE = `${ROOT_DIR}/grave`;
 const ZDOT = `${ROOT_DIR}/zdot`;
-const FM_PORT = 51666;
-const CDP_PORT = 9344;
+const FM_PORT = 51666 + WORKER_ID * 20;
+const CDP_PORT = 9344 + WORKER_ID * 20;
 
 function seedWorld(): World {
   rmSync(ROOT_DIR, { recursive: true, force: true });
@@ -96,6 +99,8 @@ function seedWorld(): World {
     palette: "holiday_halloween_jack_o_lantern",
     preferredLightPalette: "orbital_ice",
     preferredDarkPalette: "holiday_halloween_jack_o_lantern",
+    folderFxOnly: true,
+    atmosphere: "none",
     atmosphereTier: "ultra",
     themeIconAnimation: "folder_3d_spin_turntable",
     favoriteThemes: [
@@ -152,7 +157,9 @@ const CHAPTER_ULTRA_THEME_MAP: Record<string, { palette: string; anim: string }>
   "21d_media_studio":                       { palette: "custom_00000012",                     anim: "fire_ember_flicker" },
   "21e_presets_bulk":                       { palette: "ef5_debris_tornado",                  anim: "gyro_3d_cube_matrix" },
   "21f_recent":                             { palette: "custom_00000013",                     anim: "liquid_jelly_morph" },
-  "21g_player_paint_games":                 { palette: "custom_00000014",                     anim: "godmode_pantheon_ascend" },
+  "21g_player_paint_games":                 { palette: "holiday_halloween_jack_o_lantern",    anim: "folder_3d_spin_turntable" },
+  "21h_phonon_voice_studio":                { palette: "holiday_halloween_jack_o_lantern",    anim: "folder_3d_spin_turntable" },
+  "21i_ollama_ai_assistant":                { palette: "custom_0000000d",                     anim: "folder_3d_spin_turntable" },
   "22_themes":                              { palette: "holiday_halloween_jack_o_lantern",    anim: "folder_3d_spin_turntable" },
   "23_databases":                           { palette: "custom_0000000d",                     anim: "folder_3d_spin_turntable" },
 };
@@ -161,7 +168,7 @@ class Env {
   c!: Cdp;
   fm: ReturnType<typeof Bun.spawn> | null = null;
 
-  async start() { this.c = await Cdp.launch(CDP_PORT, "/tmp/fmv_chrome", 1920, VIEW_H); }
+  async start() { this.c = await Cdp.launch(CDP_PORT, `${ROOT_DIR}_chrome`, 1920, VIEW_H); }
   stopServer() { try { this.fm?.kill(9); } catch {} this.fm = null; }
   stop() { this.stopServer(); this.c.close(); }
 
@@ -170,13 +177,16 @@ class Env {
     this.stopServer();
     await sleep(500);
     const themeSpec = CHAPTER_ULTRA_THEME_MAP[ch.id] ?? { palette: "holiday_halloween_jack_o_lantern", anim: "folder_3d_spin_turntable" };
+    void themeSpec;
     writeFileSync(join(DATA, "file_manager.json"), JSON.stringify({
       theme: "dark",
-      palette: themeSpec.palette,
+      palette: "holiday_halloween_jack_o_lantern",
       preferredLightPalette: "orbital_ice",
       preferredDarkPalette: "holiday_halloween_jack_o_lantern",
+      folderFxOnly: true,
+      atmosphere: "none",
       atmosphereTier: "ultra",
-      themeIconAnimation: themeSpec.anim,
+      themeIconAnimation: "folder_3d_spin_turntable",
       favoriteThemes: [
         "holiday_halloween_jack_o_lantern",
         "polar_night",
@@ -231,29 +241,29 @@ The complete, step-by-step MacAcademy-style guide to the Codecaine File Manager 
 HIGHLIGHTS
 • 🎃 Unobstructed Icons View (#list.view-icons) showcase: Halloween Ultra intro, Polar Night & Cryo-Glacier, all 18 US Holiday Celebration Ultra themes (⌥H), 120Hz 3D spinning folders (⌥9), 20 Master Custom Themes across Low/Medium/High/Ultra tiers, Single & Bulk Folder Import (📁 Load Current Folder Themes), and 🤖 Google Gemini AI Theme Customizer
 • 📁 8 Views (⌥1–⌥8), Tabs, Folder Tree, Color Tags, Quick-Filter Bar (⌘⌥F), Command Palette (⌘⇧P), 12 Starter Templates (⌘⌥K), Archive Extract (⌘⇧E), Recycle Bin, Undo, Quick Look, Disguised-File Sniffing, Open With & AES-256-GCM Encryption
-• ⌨️ Two-way synced Terminal + Code Editor IDE (70+ conversions, Outline, Git, History, TODOs, Split & Live Preview), Folder & Data Compare, Find & Bulk Rename, Image/Media/Paint Studios, AmpDeck (10-band EQ & 108 visualizers), 24 Arcade Games, and SQLite, MySQL, PostgreSQL & Redis Studios
+• ⌨️ Two-way synced Terminal + Code Editor IDE (70+ conversions, Outline, Git, History, TODOs, Split & Live Preview), Folder & Data Compare, Find & Bulk Rename, Image/Media/Paint Studios, AmpDeck (10-band EQ & 108 visualizers), 60 Arcade Games, Ollama Phonon TTS Studio (--voice Zoey, 5s Voice Cloning & 242-Chunk EPUB-to-MP4 Read-Along Video), Local Ollama AI Assistant, and SQLite, MySQL, PostgreSQL & Redis Studios
 
 CHAPTERS
 ${chaptersText}
 
-#FileManager #MacStudio #M4Ultra #OpenSource #Tutorial #Themes #GoogleGemini #SQLite #MySQL #PostgreSQL #Redis #BunJS
+#FileManager #MacStudio #M4Ultra #Ollama #PhononTTS #LocalAI #OpenSource #Tutorial #Themes #SQLite #MySQL #PostgreSQL #Redis #BunJS
 \`\`\`
 
 ## YouTube tags (copy and paste — comma-separated, under 500 chars)
 
 \`\`\`text
-Codecaine File Manager, File Manager Tutorial, MacAcademy Tutorial, Mac Studio M4 Ultra, Pro Display XDR 6K 120Hz, Open Source File Manager, Dual Pane File Manager, File Manager Themes, Unobstructed Icons View, Halloween Theme, Polar Night Theme, US Holiday Themes, Custom Themes GitHub, Google Gemini AI Theme, 3D Folder Icons, SQLite Studio, MySQL Studio, PostgreSQL Studio, Redis Studio, Bun RAD Studio
+Codecaine File Manager, File Manager Tutorial, MacAcademy Tutorial, Mac Studio M4 Ultra, Pro Display XDR 6K 120Hz, Ollama Phonon TTS Zoey, Local AI Assistant, Voice Cloning F5-TTS-MLX, EPUB to MP4 Read Along, Open Source File Manager, Dual Pane File Manager, File Manager Themes, SQLite Studio, MySQL Studio, PostgreSQL Studio, Redis Studio, Bun RAD Studio
 \`\`\`
 
 ## Notes
 
 - Recorded from the real program in headless Chrome with a visible cursor; nothing is faked. Each chapter starts from a fresh throwaway world in /tmp, so no real file or setting appears. The terminal uses a throwaway shell profile.
-- Every chapter card and caption strip is marked with \`🍎 Mac Studio M4 Ultra · 32c CPU · 80c GPU · 192GB Unified · Pro Display XDR 6K 120Hz\`.
+- Every chapter card and caption strip is marked with \`🍎 Mac Studio M4 Ultra · 32c CPU · 80c GPU · 192GB Unified · Pro Display XDR 6K 120Hz · 🔊 Zoey (ollama run phonon)\`.
 - The Databases Masterclass, SQLite, and MySQL chapters are the recorded chapters of \`databases_masterclass_tutorial\`, \`sqlite_studio_tutorial\`, and \`mysql_studio_tutorial\`, joined in without their own intro and outro.
 - The desktop-only keys (Right Option + ] / [ / /, Command+Q) are shown on screen; the theme change is the real one.
 - The picture is 1920x972 above its own caption strip, so the captions never cover the program.
-- Narration: Edge neural voice (${EDGE_VOICE}, female) at ${RATE} speed with ${GAP}s between sentences, cleaned up with a gentle compressor and loudness normalized to -16 LUFS.
-- Rebuild: \`bun scripts/tutorial_file_manager.ts all\` (needs Google Chrome, ffmpeg-full from Homebrew and the internet for the voice). Re-record one chapter: \`... record 18_terminal\` then \`... build\`.
+- Narration: Local Apple Silicon MLX Neural TTS (\`ollama run phonon --voice ${PHONON_VOICE}\`) with ${GAP}s between sentences, cleaned up with a gentle compressor and loudness normalized to -16 LUFS.
+- Rebuild: \`bun scripts/tutorial_file_manager.ts all\` (needs Google Chrome, ffmpeg-full from Homebrew and local \`ollama run phonon\`). Re-record one chapter: \`... record 18_terminal\` then \`... build\`.
 `;
 }
 
@@ -270,7 +280,7 @@ const suite: Suite = {
   rate: RATE,
   gap: GAP,
   viewHeight: VIEW_H,
-  rigMark: "🍎 Mac Studio M4 Ultra · 32c CPU · 80c GPU · 192GB Unified · Pro Display XDR 6K 120Hz",
+  rigMark: "🍎 Mac Studio M4 Ultra · 32c CPU · 80c GPU · 192GB Unified · 6K XDR 120Hz · 🔊 Zoey",
 };
 
 await runTutorial(suite, process.argv.slice(2));

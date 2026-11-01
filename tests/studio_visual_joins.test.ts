@@ -390,4 +390,18 @@ describe("📐 Visual Joins & Multi-Table Relationships Suite", () => {
       expect(html).toContain('◀▶ Sidebar');
     }
   });
+
+  it("10. QBE Matrix Show row keeps table-cell layout so each checkbox renders under its column", () => {
+    const sqliteHtml = generateSqliteStudioHtml();
+    const mysqlHtml = generateMysqlStudioHtml();
+    const postgresHtml = generatePostgresStudioHtml();
+
+    for (const [, html] of [["SQLite Studio", sqliteHtml], ["MySQL Studio", mysqlHtml], ["Postgres Studio", postgresHtml]] as const) {
+      const match = html.match(/\.qbe-show-checkbox\s*\{([^}]*)\}/);
+      expect(match).not.toBeNull();
+      const ruleBody = match![1]!;
+      expect(ruleBody).not.toMatch(/display\s*:\s*flex/i);
+      expect(ruleBody).toMatch(/text-align\s*:\s*center/i);
+    }
+  });
 });

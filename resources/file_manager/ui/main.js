@@ -10,10 +10,10 @@ import { isRenaming, renderList, wireList } from "./list.js";
 import { menuIsOpen } from "./menus.js";
 import { goTo, loadPlaces, refresh } from "./nav.js";
 import { renderSidebar, wireSidebar } from "./sidebar.js";
-import { on, state } from "./state.js";
+import { emit, on, state } from "./state.js";
 import { openPower, setPowerExpanded, wirePower } from "./power.js";
 import { wireChrome } from "./chrome.js";
-import { applyPalette, applyUiImmersionProfiles, effectiveAutoPalette } from "./themes.js";
+import { applyPalette, applyUiImmersionProfiles, currentThemePayload, effectiveAutoPalette } from "./themes.js";
 import { wireTypeCheck } from "./typecheck.js";
 import { wireWindowState } from "./windowState.js";
 import { startCopySections } from "./copysection.js";
@@ -52,6 +52,7 @@ import "./tasks.js";
 import "./sysinfo.js";
 import "./phonon.js";
 import "./ollama.js";
+import "./bionic.js";
 import "./games.js";
 import "./themeEditor.js";
 import { applyAtmosphere } from "./atmosphereFx.js";
@@ -78,9 +79,13 @@ function applySettings() {
     else applyUiImmersionProfiles();
   } else if (root.dataset.palette) applyPalette("");
   else {
+    const prevTheme = root.dataset.theme || "";
     if (s.theme === "auto") delete root.dataset.theme;
     else root.dataset.theme = s.theme;
     applyUiImmersionProfiles();
+    if ((root.dataset.theme || "") !== prevTheme) {
+      emit("theme-changed", currentThemePayload());
+    }
   }
   root.style.setProperty("--fm-scale", String(s.textSize / 100));
   root.dataset.density = s.rowDensity || "comfortable";

@@ -505,7 +505,8 @@ function reducedMotion() {
 
 /** Resolves the active atmosphere effect or multi-effect combo from settings or the current theme's `data-fx-atmosphere`. */
 export function effectiveAtmosphere() {
-  if (state.settings?.themeFxOff) return "none";
+  if (state.settings?.themeFxOff || state.settings?.folderFxOnly) return "none";
+  if (typeof document !== "undefined" && document.documentElement?.dataset?.folderFxOnly === "true") return "none";
   const fromSettings = normalizeAtmosphereSpec(state.settings?.atmosphere);
   if (fromSettings && fromSettings !== "none") return fromSettings;
   const fromTheme = normalizeAtmosphereSpec(document.documentElement.getAttribute("data-fx-atmosphere"));
@@ -2914,9 +2915,13 @@ function startLoop() {
 
 /** Applies the chosen atmospheric effect (or `+`-combined multi-effect mix), graphics hardware tier, reactive physics mode, and per-layer modifiers. */
 export function applyAtmosphere(overrideEffect, overrideIntensity, overrideTier, overrideReactive, overrideLayerMods) {
-  const effect = overrideEffect !== undefined
-    ? normalizeAtmosphereSpec(overrideEffect)
-    : effectiveAtmosphere();
+  const folderOnly = Boolean(state.settings?.folderFxOnly)
+    || (typeof document !== "undefined" && document.documentElement?.dataset?.folderFxOnly === "true");
+  const effect = folderOnly
+    ? "none"
+    : (overrideEffect !== undefined
+      ? normalizeAtmosphereSpec(overrideEffect)
+      : effectiveAtmosphere());
   const layerIds = parseAtmosphereIds(effect);
   const intensity = overrideIntensity !== undefined
     ? Math.min(100, Math.max(10, Math.round(Number(overrideIntensity) || 60)))

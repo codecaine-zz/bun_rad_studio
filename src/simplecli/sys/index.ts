@@ -11,6 +11,18 @@ import * as dns from 'node:dns';
 import * as zlib from 'node:zlib';
 import { spawnSync, spawn } from 'node:child_process';
 
+export interface MemoryBreakdown {
+  total: number;
+  used: number;
+  free: number;
+  rawFree: number;
+  active: number;
+  wired: number;
+  compressed: number;
+  cached: number;
+  percent: number;
+}
+
 export class Sys {
   // ===========================================================================
   // 1. Process Execution & Subprocess Control
@@ -181,22 +193,204 @@ export class Sys {
     return [load[0] ?? 0, load[1] ?? 0, load[2] ?? 0];
   }
 
+  private static _memCache: { ts: number; data: MemoryBreakdown } | null = null;
+
+  /**
+   * Parse macOS `vm_stat` output to calculate true Memory Used (App + Wired + Compressor)
+   * matching macOS Activity Monitor instead of counting reclaimable file-backed cache as used.
+   */
+  public static parseMacVmStat(raw: string, totalBytes: number, fallbackFreeBytes: number = 0): MemoryBreakdown | null {
+    if (!raw || !raw.includes('Pages free')) return null;
+    const pageSizeMatch = raw.match(/page size of\s+(\d+)\s+bytes/i);
+    const pageSize = pageSizeMatch ? Number(pageSizeMatch[1]) : (os.arch() === 'arm64' ? 16384 : 4096);
+    const pages: Record<string, number> = {};
+    for (const line of raw.split(/\r?\n/)) {
+      const m = line.match(/^"?([^":]+)"?:\s+(\d+)/);
+      if (m && m[1] && m[2]) {
+        pages[m[1].trim().toLowerCase()] = Number(m[2]);
+      }
+    }
+
+    const freePages = pages['pages free'] ?? 0;
+    const activePages = pages['pages active'] ?? 0;
+    const inactivePages = pages['pages inactive'] ?? 0;
+    const speculativePages = pages['pages speculative'] ?? 0;
+    const wiredPages = pages['pages wired down'] ?? 0;
+    const purgeablePages = pages['pages purgeable'] ?? 0;
+    const anonymousPages = pages['anonymous pages'] ?? pages['pages anonymous'] ?? 0;
+    const fileBackedPages = pages['file-backed pages'] ?? 0;
+    const compressorPages = pages['pages occupied by compressor'] ?? 0;
+
+    // Activity Monitor formula:
+    // App Memory = Anonymous pages - Pages purgeable (fallback: Pages active - Pages purgeable)
+    // Memory Used = App Memory + Wired Memory + Compressor Occupied
+    const appPages = anonymousPages > 0
+      ? Math.max(0, anonymousPages - purgeablePages)
+      : Math.max(0, activePages - purgeablePages);
+    const usedPages = appPages + wiredPages + compressorPages;
+
+    const rawFree = freePages > 0 ? freePages * pageSize : fallbackFreeBytes;
+    const active = appPages * pageSize;
+    const wired = wiredPages * pageSize;
+    const compressed = compressorPages * pageSize;
+    const cached = fileBackedPages > 0
+      ? (fileBackedPages + purgeablePages) * pageSize
+      : (inactivePages + speculativePages + purgeablePages) * pageSize;
+
+    const used = Math.min(totalBytes, Math.max(0, usedPages * pageSize));
+    const free = Math.max(0, totalBytes - used);
+    const percent = totalBytes > 0 ? Number(((used / totalBytes) * 100).toFixed(1)) : 0;
+
+    return {
+      total: totalBytes,
+      used,
+      free,
+      rawFree,
+      active,
+      wired,
+      compressed,
+      cached,
+      percent,
+    };
+  }
+
+  /**
+   * Parse Linux `/proc/meminfo` using `MemAvailable` so page cache and reclaimable buffers
+   * are not misreported as used memory.
+   */
+  public static parseLinuxMeminfo(raw: string, totalBytes: number, fallbackFreeBytes: number = 0): MemoryBreakdown | null {
+    if (!raw || !raw.includes('MemTotal:')) return null;
+    const kb: Record<string, number> = {};
+    for (const line of raw.split(/\r?\n/)) {
+      const m = line.match(/^([A-Za-z_()]+):\s+(\d+)/);
+      if (m && m[1] && m[2]) {
+        kb[m[1]] = Number(m[2]);
+      }
+    }
+    const total = kb['MemTotal'] ? kb['MemTotal'] * 1024 : totalBytes;
+    const rawFree = kb['MemFree'] !== undefined ? kb['MemFree'] * 1024 : fallbackFreeBytes;
+    const cached = ((kb['Buffers'] ?? 0) + (kb['Cached'] ?? 0) + (kb['SReclaimable'] ?? 0)) * 1024;
+    const available = kb['MemAvailable'] !== undefined
+      ? kb['MemAvailable'] * 1024
+      : Math.min(total, rawFree + cached);
+    const used = Math.max(0, total - available);
+    const active = kb['Active'] !== undefined ? kb['Active'] * 1024 : used;
+    const percent = total > 0 ? Number(((used / total) * 100).toFixed(1)) : 0;
+
+    return {
+      total,
+      used,
+      free: available,
+      rawFree,
+      active,
+      wired: kb['KernelStack'] ? kb['KernelStack'] * 1024 : 0,
+      compressed: kb['Zswap'] ? kb['Zswap'] * 1024 : 0,
+      cached,
+      percent,
+    };
+  }
+
+  /**
+   * Parse Windows `wmic OS get FreePhysicalMemory,TotalVisibleMemorySize /Value` (values in KB)
+   * or PowerShell CIM JSON output into a `MemoryBreakdown`.
+   */
+  public static parseWindowsMeminfo(raw: string, totalBytes: number, fallbackFreeBytes: number = 0): MemoryBreakdown | null {
+    if (!raw) return null;
+    const kb: Record<string, number> = {};
+    for (const line of raw.split(/\r?\n/)) {
+      const m = line.trim().match(/^([A-Za-z0-9_]+)\s*[:=]\s*(\d+)/);
+      if (m && m[1] && m[2]) {
+        kb[m[1].toLowerCase()] = Number(m[2]);
+      }
+    }
+    const totalKb = kb['totalvisiblememorysize'];
+    const freeKb = kb['freephysicalmemory'];
+    if (totalKb === undefined && freeKb === undefined) return null;
+
+    const total = totalKb ? totalKb * 1024 : totalBytes;
+    const free = freeKb !== undefined ? freeKb * 1024 : fallbackFreeBytes;
+    const used = Math.max(0, total - free);
+    const cached = kb['freestandbylist'] ? kb['freestandbylist'] * 1024 : 0;
+    const percent = total > 0 ? Number(((used / total) * 100).toFixed(1)) : 0;
+
+    return {
+      total,
+      used,
+      free,
+      rawFree: free,
+      active: used,
+      wired: 0,
+      compressed: 0,
+      cached,
+      percent,
+    };
+  }
+
+  public static memoryInfo(forceRefresh: boolean = false): MemoryBreakdown {
+    const now = Date.now();
+    if (!forceRefresh && Sys._memCache && now - Sys._memCache.ts < 500) {
+      return Sys._memCache.data;
+    }
+
+    const total = os.totalmem();
+    const rawFree = os.freemem();
+
+    if (process.platform === 'darwin') {
+      try {
+        const res = spawnSync('vm_stat', [], { encoding: 'utf8', timeout: 1500 });
+        if (res.status === 0 && res.stdout) {
+          const parsed = Sys.parseMacVmStat(res.stdout, total, rawFree);
+          if (parsed) {
+            Sys._memCache = { ts: now, data: parsed };
+            return parsed;
+          }
+        }
+      } catch {}
+    } else if (process.platform === 'linux') {
+      try {
+        if (fs.existsSync('/proc/meminfo')) {
+          const raw = fs.readFileSync('/proc/meminfo', 'utf8');
+          const parsed = Sys.parseLinuxMeminfo(raw, total, rawFree);
+          if (parsed) {
+            Sys._memCache = { ts: now, data: parsed };
+            return parsed;
+          }
+        }
+      } catch {}
+    }
+
+    // On Windows (win32), os.freemem() queries Win32 GlobalMemoryStatusEx.ullAvailPhys,
+    // which natively includes reclaimable Standby cache and matches Windows Task Manager.
+    const used = Math.max(0, total - rawFree);
+    const fallback: MemoryBreakdown = {
+      total,
+      used,
+      free: rawFree,
+      rawFree,
+      active: used,
+      wired: 0,
+      compressed: 0,
+      cached: 0,
+      percent: total > 0 ? Number(((used / total) * 100).toFixed(1)) : 0,
+    };
+    Sys._memCache = { ts: now, data: fallback };
+    return fallback;
+  }
+
   public static ramTotal(): number {
-    return os.totalmem();
+    return Sys.memoryInfo().total;
   }
 
   public static ramFree(): number {
-    return os.freemem();
+    return Sys.memoryInfo().free;
   }
 
   public static ramUsed(): number {
-    return os.totalmem() - os.freemem();
+    return Sys.memoryInfo().used;
   }
 
   public static ramPercent(): number {
-    const total = os.totalmem();
-    if (total === 0) return 0;
-    return Number(((Sys.ramUsed() / total) * 100).toFixed(1));
+    return Sys.memoryInfo().percent;
   }
 
   public static osPlatform(): string {
@@ -236,12 +430,23 @@ export class Sys {
       const match = out.match(/(\d+)%/);
       if (match?.[1]) return parseInt(match[1], 10);
     } else if (p === 'linux') {
-      try {
-        const cap = fs.readFileSync('/sys/class/power_supply/BAT0/capacity', 'utf8');
-        return parseInt(cap.trim(), 10);
-      } catch {
-        // fallback
+      for (const bat of ['BAT0', 'BAT1', 'CMB0']) {
+        try {
+          const cap = fs.readFileSync(`/sys/class/power_supply/${bat}/capacity`, 'utf8');
+          const parsed = parseInt(cap.trim(), 10);
+          if (!Number.isNaN(parsed)) return parsed;
+        } catch {}
       }
+    } else if (p === 'win32') {
+      try {
+        const res = spawnSync(
+          'powershell.exe',
+          ['-NoProfile', '-NonInteractive', '-Command', '(Get-CimInstance -ClassName Win32_Battery -ErrorAction SilentlyContinue | Select-Object -First 1).EstimatedChargeRemaining'],
+          { encoding: 'utf8', timeout: 1500 },
+        );
+        const parsed = parseInt((res.stdout || '').trim(), 10);
+        if (!Number.isNaN(parsed) && parsed >= 0 && parsed <= 100) return parsed;
+      } catch {}
     }
     return 100;
   }
@@ -252,12 +457,23 @@ export class Sys {
       const out = Sys.execOr('pmset -g batt', '');
       return out.includes('charging') || out.includes('AC Power');
     } else if (p === 'linux') {
-      try {
-        const status = fs.readFileSync('/sys/class/power_supply/BAT0/status', 'utf8');
-        return status.trim().toLowerCase() === 'charging';
-      } catch {
-        // fallback
+      for (const bat of ['BAT0', 'BAT1', 'CMB0']) {
+        try {
+          const status = fs.readFileSync(`/sys/class/power_supply/${bat}/status`, 'utf8').trim().toLowerCase();
+          if (status) return status === 'charging' || status === 'full';
+        } catch {}
       }
+    } else if (p === 'win32') {
+      try {
+        const res = spawnSync(
+          'powershell.exe',
+          ['-NoProfile', '-NonInteractive', '-Command', '(Get-CimInstance -ClassName Win32_Battery -ErrorAction SilentlyContinue | Select-Object -First 1).BatteryStatus'],
+          { encoding: 'utf8', timeout: 1500 },
+        );
+        const code = parseInt((res.stdout || '').trim(), 10);
+        // Win32_Battery BatteryStatus: 1 = Discharging, 2 = AC Power, 3 = Fully Charged, 6..9 = Charging
+        if (!Number.isNaN(code)) return code !== 1;
+      } catch {}
     }
     return true;
   }
@@ -274,27 +490,52 @@ export class Sys {
   }
 
   public static diskStats(targetPath: string = '/'): DiskStats {
-    try {
-      const res = spawnSync('df', ['-k', '--', targetPath], { encoding: 'utf8' });
-      const out = res.stdout || '';
-      const code = res.status ?? 1;
-      if (code === 0) {
-        const lines = out.trim().split('\n');
-        const lastLine = lines[lines.length - 1];
-        if (lines.length >= 2 && lastLine) {
-          const parts = lastLine.split(/\s+/);
-          if (parts.length >= 5) {
-            const totalBytes = (parseInt(parts[1] || '0', 10) || 0) * 1024;
-            const usedBytes = (parseInt(parts[2] || '0', 10) || 0) * 1024;
-            const freeBytes = (parseInt(parts[3] || '0', 10) || 0) * 1024;
-            const pctStr = (parts[4] || '0').replace('%', '');
-            const percent = parseFloat(pctStr) || (totalBytes > 0 ? (usedBytes / totalBytes) * 100 : 0);
-            return { totalBytes, usedBytes, freeBytes, percent: Number(percent.toFixed(1)) };
+    const p = os.platform();
+    const resolvedTarget =
+      p === 'win32' && (targetPath === '/' || !targetPath)
+        ? (process.env.SystemDrive ? `${process.env.SystemDrive}\\` : (path.parse(process.cwd()).root || 'C:\\'))
+        : targetPath;
+
+    // 1. Cross-platform native statfsSync (accurate on Windows, Linux, and macOS APFS containers)
+    if (typeof (fs as any).statfsSync === 'function') {
+      try {
+        const st = (fs as any).statfsSync(resolvedTarget);
+        const bsize = Number(st.frsize || st.bsize || 4096);
+        const totalBytes = Number(st.blocks || 0) * bsize;
+        const freeBytes = Number(st.bavail ?? st.bfree ?? 0) * bsize;
+        if (totalBytes > 0) {
+          const usedBytes = Math.max(0, totalBytes - freeBytes);
+          const percent = Number(((usedBytes / totalBytes) * 100).toFixed(1));
+          return { totalBytes, usedBytes, freeBytes, percent };
+        }
+      } catch {}
+    }
+
+    // 2. POSIX df fallback (darwin / linux)
+    if (p !== 'win32') {
+      try {
+        const dfTarget = p === 'darwin' && resolvedTarget === '/' && fs.existsSync('/System/Volumes/Data')
+          ? '/System/Volumes/Data'
+          : resolvedTarget;
+        const res = spawnSync('df', ['-k', '--', dfTarget], { encoding: 'utf8' });
+        const out = res.stdout || '';
+        const code = res.status ?? 1;
+        if (code === 0) {
+          const lines = out.trim().split('\n');
+          const lastLine = lines[lines.length - 1];
+          if (lines.length >= 2 && lastLine) {
+            const parts = lastLine.split(/\s+/);
+            if (parts.length >= 5) {
+              const totalBytes = (parseInt(parts[1] || '0', 10) || 0) * 1024;
+              const reportedUsed = (parseInt(parts[2] || '0', 10) || 0) * 1024;
+              const freeBytes = (parseInt(parts[3] || '0', 10) || 0) * 1024;
+              const usedBytes = totalBytes > freeBytes ? Math.max(reportedUsed, totalBytes - freeBytes) : reportedUsed;
+              const percent = totalBytes > 0 ? (usedBytes / totalBytes) * 100 : 0;
+              return { totalBytes, usedBytes, freeBytes, percent: Number(percent.toFixed(1)) };
+            }
           }
         }
-      }
-    } catch {
-      // fallback
+      } catch {}
     }
 
     const totalBytes = 100 * 1024 * 1024 * 1024;
@@ -451,7 +692,16 @@ export class Sys {
       const match2 = out2.match(/Current Wi-Fi Network:\s*(.+)/);
       if (match2?.[1]) return match2[1].trim();
     } else if (p === 'linux') {
-      return Sys.execOr('iwgetid -r', 'Unknown Wi-Fi');
+      const iwget = Sys.execOr('iwgetid -r', '');
+      if (iwget) return iwget;
+      const nmcli = Sys.execOr('nmcli -t -f active,ssid dev wifi', '');
+      const activeLine = nmcli.split(/\r?\n/).find((l) => l.startsWith('yes:'));
+      if (activeLine) return activeLine.slice(4).trim();
+      return 'Unknown Wi-Fi';
+    } else if (p === 'win32') {
+      const out = Sys.execOr('netsh wlan show interfaces', '');
+      const match = out.match(/^\s*SSID\s*:\s*(.+)$/m);
+      if (match?.[1]) return match[1].trim();
     }
     return 'Wi-Fi Connected';
   }
@@ -575,6 +825,11 @@ export class Sys {
         const res = spawnSync('xclip', ['-selection', 'clipboard'], { input: text, stdio: ['pipe', 'ignore', 'ignore'] });
         return res.status === 0;
       } catch { return false; }
+    } else if (p === 'win32') {
+      try {
+        const res = spawnSync('clip', { input: text, encoding: 'utf8', stdio: ['pipe', 'ignore', 'ignore'] });
+        return res.status === 0;
+      } catch { return false; }
     }
     return false;
   }
@@ -585,6 +840,11 @@ export class Sys {
       return Sys.execOr('pbpaste', '');
     } else if (p === 'linux') {
       return Sys.execOr('xclip -selection clipboard -o', '');
+    } else if (p === 'win32') {
+      try {
+        const res = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', 'Get-Clipboard -Raw'], { encoding: 'utf8', timeout: 1500 });
+        return res.status === 0 ? (res.stdout || '').replace(/\r?\n$/, '') : '';
+      } catch { return ''; }
     }
     return '';
   }

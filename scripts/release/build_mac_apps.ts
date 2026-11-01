@@ -229,7 +229,11 @@ async function main() {
   }
   log("📦", `Building ${apps.length} apps for macOS ${opts.arch}`);
 
-  const bundles = await bundleApps(apps.map((a) => a.source), undefined, opts.jobs);
+  const extraSources = apps.some((a) => a.id === "file-manager-studio")
+    ? listSourceApps().filter((s) => s.kind === "cli" || ["sqlite-studio", "mysql-studio", "postgres-studio", "redis-studio"].includes(s.name))
+    : [];
+  const uniqueSources = [...new Map([...apps.map((a) => a.source), ...extraSources].map((s) => [s.name, s])).values()];
+  const bundles = await bundleApps(uniqueSources, undefined, opts.jobs);
   logBundleFailures(bundles);
   const built = new Set(bundles.built.map((a) => a.name));
   apps = apps.filter((a) => built.has(a.id));

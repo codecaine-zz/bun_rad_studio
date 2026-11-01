@@ -351,11 +351,50 @@ export function attachWindowShortcuts(wv: Webview, options?: WindowShortcutOptio
             const sel_scb = libobjc.symbols.sel_registerName(Buffer.from("setCollectionBehavior:\0"));
             const cb = BigInt(libobjc.symbols.objc_msgSend(wv.unsafeWindowHandle, sel_cb, 0n));
             libobjc.symbols.objc_msgSend(wv.unsafeWindowHandle, sel_scb, cb | 128n);
+            try {
+                const objcPtr = dlopen("libobjc.dylib", {
+                    objc_msgSend: { args: [FFIType.pointer, FFIType.pointer, FFIType.pointer], returns: FFIType.pointer },
+                });
+                const objcBool = dlopen("libobjc.dylib", {
+                    objc_msgSend: { args: [FFIType.pointer, FFIType.pointer, FFIType.bool], returns: FFIType.void },
+                });
+                const s = (name: string) => libobjc.symbols.sel_registerName(Buffer.from(name + "\0"));
+                const responds = (obj: any, selPtr: any) => Boolean(objcPtr.symbols.objc_msgSend(obj, s("respondsToSelector:"), selPtr));
+                const contentView = objcPtr.symbols.objc_msgSend(wv.unsafeWindowHandle, s("contentView"), null);
+                let wkView = contentView;
+                if (wkView && !responds(wkView, s("configuration"))) {
+                    const subs = objcPtr.symbols.objc_msgSend(wkView, s("subviews"), null);
+                    if (subs) wkView = objcPtr.symbols.objc_msgSend(subs, s("firstObject"), null);
+                }
+                if (wkView && responds(wkView, s("configuration"))) {
+                    const cfg = objcPtr.symbols.objc_msgSend(wkView, s("configuration"), null);
+                    if (cfg) {
+                        if (responds(cfg, s("setAllowsAirPlayForMediaPlayback:"))) {
+                            objcBool.symbols.objc_msgSend(cfg, s("setAllowsAirPlayForMediaPlayback:"), true);
+                        }
+                        const prefs = objcPtr.symbols.objc_msgSend(cfg, s("preferences"), null);
+                        if (prefs) {
+                            for (const name of [
+                                "_setAllowsPictureInPictureMediaPlayback:",
+                                "_setAllowsInlineMediaPlayback:",
+                            ]) {
+                                const selP = s(name);
+                                if (responds(prefs, selP)) objcBool.symbols.objc_msgSend(prefs, selP, true);
+                            }
+                        }
+                    }
+                }
+            } catch {}
             const nsObject = libobjc.symbols.objc_getClass(Buffer.from("NSObject\0"));
             const nsResponder = libobjc.symbols.objc_getClass(Buffer.from("NSResponder\0"));
+            const nsWindow = libobjc.symbols.objc_getClass(Buffer.from("NSWindow\0"));
             const noopImp = nsObject ? libobjc.symbols.class_getMethodImplementation(nsObject, libobjc.symbols.sel_registerName(Buffer.from("self\0"))) : null;
             if (noopImp && nsResponder) {
                 libobjc.symbols.class_replaceMethod(nsResponder, libobjc.symbols.sel_registerName(Buffer.from("noResponderFor:\0")), noopImp, Buffer.from("v@::\0"));
+            }
+            if (noopImp && nsWindow) {
+                libobjc.symbols.class_replaceMethod(nsWindow, libobjc.symbols.sel_registerName(Buffer.from("cancelOperation:\0")), noopImp, Buffer.from("v@:@\0"));
+                libobjc.symbols.class_replaceMethod(nsWindow, libobjc.symbols.sel_registerName(Buffer.from("_cancelKey:\0")), noopImp, Buffer.from("v@:@\0"));
             }
             const cg = dlopen("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics", {
                 CGSSetSymbolicHotKeyEnabled: { args: [FFIType.i32, FFIType.bool], returns: FFIType.i32 },
@@ -634,11 +673,31 @@ ${DESKTOP_SHORTCUTS_SCRIPT}
         if (typeof window.quitApp === "function") {
             try { window.quitApp(); return; } catch(e) {}
         }
+        if (typeof window.closeApp === "function") {
+            try { window.closeApp(); return; } catch(e) {}
+        }
         if (typeof window.closeWindow === "function") {
             try { window.closeWindow(); return; } catch(e) {}
         }
         if (typeof window.handleWindowCloseIPC === "function") {
             try { window.handleWindowCloseIPC(); return; } catch(e) {}
+        }
+        if (window.parent && window.parent !== window) {
+            try {
+                if (window.top && window.top !== window) {
+                    const topQuit = window.top.quitApp || window.top.closeApp || window.top.closeWindow || window.top.doCloseOrQuit;
+                    if (typeof topQuit === "function") { topQuit.call(window.top); return; }
+                }
+            } catch(e) {}
+            try {
+                const parentQuit = window.parent.quitApp || window.parent.closeApp || window.parent.closeWindow || window.parent.doCloseOrQuit;
+                if (typeof parentQuit === "function") { parentQuit.call(window.parent); return; }
+            } catch(e) {}
+            try { window.top.postMessage({ fmCloseApp: true }, "*"); } catch(e) {}
+            if (window.parent !== window.top) {
+                try { window.parent.postMessage({ fmCloseApp: true }, "*"); } catch(e) {}
+            }
+            return;
         }
         try { window.close(); } catch(e) {}
         try { fetch("/api/shutdown", { method: "POST" }); } catch(e) {}
@@ -653,6 +712,7 @@ ${DESKTOP_SHORTCUTS_SCRIPT}
             }
         } catch(e) {}
     }
+    window.doCloseOrQuit = doCloseOrQuit;
 
     let lastFullscreenTime = 0;
     function doToggleFullscreen() {
@@ -4560,15 +4620,36 @@ ${controls}
       if (window.quitApp) {
         try { window.quitApp(); return; } catch(e) {}
       }
+      if (window.closeApp) {
+        try { window.closeApp(); return; } catch(e) {}
+      }
       if (window.closeWindow) {
         try { window.closeWindow(); return; } catch(e) {}
       }
       if (window.handleWindowCloseIPC) {
         try { window.handleWindowCloseIPC(); return; } catch(e) {}
       }
+      if (window.parent && window.parent !== window) {
+        try {
+          if (window.top && window.top !== window) {
+            const topQuit = window.top.quitApp || window.top.closeApp || window.top.closeWindow || window.top.doCloseOrQuit;
+            if (typeof topQuit === "function") { topQuit.call(window.top); return; }
+          }
+        } catch(e) {}
+        try {
+          const parentQuit = window.parent.quitApp || window.parent.closeApp || window.parent.closeWindow || window.parent.doCloseOrQuit;
+          if (typeof parentQuit === "function") { parentQuit.call(window.parent); return; }
+        } catch(e) {}
+        try { window.top.postMessage({ fmCloseApp: true }, "*"); } catch(e) {}
+        if (window.parent !== window.top) {
+          try { window.parent.postMessage({ fmCloseApp: true }, "*"); } catch(e) {}
+        }
+        return;
+      }
       try { window.close(); } catch(e) {}
       try { fetch("/api/shutdown", { method: "POST" }); } catch(e) {}
     }
+    window.doCloseOrQuit = doCloseOrQuit;
 
     let isFnPressed = false;
     window.addEventListener("keyup", (e) => {
