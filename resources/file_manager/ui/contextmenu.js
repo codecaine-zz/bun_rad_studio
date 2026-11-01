@@ -5,7 +5,7 @@ import { canReadWithPhonon } from "./phonon.js";
 import { isPlayableOrPlaylist } from "./mediacore.js";
 import { openInMediaDeck } from "./playerDeck.js";
 import { showMenu } from "./menus.js";
-import { calculateFolderSizes, clearSearch, refresh, saveSettings } from "./nav.js";
+import { calculateFolderSizes, clearSearch, goToIn, refresh, saveSettings } from "./nav.js";
 import * as ops from "./ops.js";
 import { canCompareData, showCompareData } from "./datacompare.js";
 import { showProperties } from "./extras.js";
@@ -24,7 +24,7 @@ import { importFileMenuItems } from "./dbStaging.js";
 import { showOpenWith } from "./openwith.js";
 import { folderServeItems, serveMenuItems } from "./serveActions.js";
 import { showToolsDialog } from "./tools.js";
-import { extensionOf, extractableEntries, parentOf } from "./util.js";
+import { extensionOf, extractableEntries, isDocumentPackageEntry, parentOf } from "./util.js";
 import { labelOf } from "./keymap.js";
 import { openQuickLook } from "./quicklook.js";
 import { canCopyImage, canCopyText, copyImageFile, copyTextFile } from "./clipfile.js";
@@ -142,21 +142,22 @@ function entryItems(entries) {
   const clip = !!state.clipboard;
   const convertible = entries.length > 0;
   return [
-    one ? { label: "Open", icon: e.isDir ? "📂" : "📄", shortcut: "Enter", action: () => ops.openEntry(e) } : null,
+    one ? { label: "Open", icon: e.isDir && !isDocumentPackageEntry(e) ? "📂" : "📕", shortcut: "Enter", action: () => ops.openEntry(e) } : null,
+    one && isDocumentPackageEntry(e) ? { label: "Show Package Contents", icon: "📂", tip: "Browse the internal files (OPF manifest, XHTML chapters, and images) inside this document bundle.", action: () => goToIn(activePane(), e.path) } : null,
     one && e.isDir ? { label: "Open in new tab", icon: "🗂️", tip: "Open this folder in a new folder tab at the top of the file list.", action: () => openNewTab(e.path) } : null,
     one && e.program ? { label: e.isDir ? "Open application" : "Run program", icon: "🚀", shortcut: labelOf("file.openApp"), tip: "Start this application or program (you are asked to confirm first). Press Enter on a Mac .app to browse inside it instead.", action: () => ops.openApplication(e) } : null,
     one ? { label: "Quick Look", icon: "👁️", shortcut: "Space", tip: "Look at a picture, play a sound or video, read a text file or see a document here, without opening another program.", action: () => openQuickLook(e) } : null,
     one && searching ? { label: "Open containing folder", icon: "📁", action: () => ops.goToContaining(e) } : null,
     ...studioMenuItems(entries),
     one && !e.isDir && e.kind === "image" ? { label: "Read QR code", icon: "🔳", tip: "Look for a QR code in this picture and show what it says.", action: () => openPower("qr", { read: e.path, name: e.name }) } : null,
-    { label: "Ask Ollama AI Assistant…", icon: "🤖", tip: "Inspect, summarize, classify with SystemOne, read out loud with Text-to-Audio LLMs, or run structured JSON actions on the selected items.", action: () => openPower("ollama", { subTab: "assistant" }) },
-    { label: "Ask LM Studio Bionic…", icon: "🧬", tip: "Inspect, summarize, inject @skills, run MLX/oMLX/Splash models, read aloud with Bionic Phonon 40M TTS, or transcribe audio with ExecuTorch Whisper ASR.", action: () => openPower("bionic", { subTab: "assistant" }) },
-    { label: "SystemOne Decision Check (/v1/systemone)", icon: "⚖️", tip: "Run ultra-fast noul (yes/no probability), choice (2-26 labels), or score (rubric) checks on the selected items.", action: () => openPower("ollama", { subTab: "decision" }) },
-    one && !e.isDir && looksLikeText(e.name) ? { label: "Read out loud with Ollama AI (Text-to-Audio)", icon: "🔊", tip: "Read this file out loud or save as 24kHz WAV using Ollama Speech (Phonon on Apple Silicon or cross-platform Text-to-Audio LLMs on Linux & Windows).", action: () => openPower("ollama", { subTab: "speech" }) } : null,
-    one && !e.isDir && looksLikeText(e.name) ? { label: "Read out loud with Bionic Phonon 40M TTS", icon: "🧬", tip: "Synthesize 24kHz speech using LM Studio Bionic's native Apple Metal Phonon 40M Multilingual engine (xn-ptts).", action: () => openPower("bionic", { subTab: "speech_asr" }) } : null,
-    one && !e.isDir && (e.kind === "audio" || e.kind === "video") ? { label: "Transcribe Audio with Bionic Whisper ASR", icon: "🎙️", tip: "Transcribe this audio or video file to Markdown, TXT, SRT, or JSON using Bionic's ExecuTorch Whisper Metal ASR engine.", action: () => openPower("bionic", { subTab: "speech_asr" }) } : null,
-    one && !e.isDir && canReadWithPhonon(e) ? { label: "Read out loud in Voice Reader", icon: "🗣️", tip: "Convert this file to plain text, follow along word-by-word with your default Ollama Phonon voice, or save it as an audio/video file.", action: () => openPower("phonon", { path: e.path, autoPlay: true }) } : null,
-    one && !e.isDir && canReadWithPhonon(e) ? { label: "Convert to Read-Along Video (Phonon)", icon: "🎬", tip: "Convert this file into a synchronized Read-Along MP4 Video where you can listen and follow along with the highlighted text.", action: () => openPower("phonon", { path: e.path, autoExportVideo: true }) } : null,
+    { label: "Ask Ollama AI Assistant…", icon: "🤖", tip: "Inspect, summarize, classify with SystemOne, read out loud with Text-to-Audio LLMs, or run structured JSON actions on the selected items.", action: () => openPower("ollama", { subTab: "assistant", paths: entries.map((x) => x.path) }) },
+    { label: "Ask LM Studio Bionic…", icon: "🧬", tip: "Inspect, summarize, inject @skills, run MLX/oMLX/Splash models, read aloud with Bionic Phonon 40M TTS, or transcribe audio with ExecuTorch Whisper ASR.", action: () => openPower("bionic", { subTab: "assistant", paths: entries.map((x) => x.path) }) },
+    { label: "SystemOne Decision Check (/v1/systemone)", icon: "⚖️", tip: "Run ultra-fast noul (yes/no probability), choice (2-26 labels), or score (rubric) checks on the selected items.", action: () => openPower("ollama", { subTab: "decision", paths: entries.map((x) => x.path) }) },
+    one && ((!e.isDir && looksLikeText(e.name)) || isDocumentPackageEntry(e)) ? { label: "Read out loud with Ollama AI (Text-to-Audio)", icon: "🔊", tip: "Read this file out loud or save as 24kHz WAV using Ollama Speech (Phonon on Apple Silicon or cross-platform Text-to-Audio LLMs on Linux & Windows).", action: () => openPower("ollama", { subTab: "speech", paths: [e.path] }) } : null,
+    one && ((!e.isDir && looksLikeText(e.name)) || isDocumentPackageEntry(e)) ? { label: "Read out loud with Bionic Phonon 40M TTS", icon: "🧬", tip: "Synthesize 24kHz speech using LM Studio Bionic's native Apple Metal Phonon 40M Multilingual engine (xn-ptts).", action: () => openPower("bionic", { subTab: "speech_asr", paths: [e.path] }) } : null,
+    one && !e.isDir && (e.kind === "audio" || e.kind === "video") ? { label: "Transcribe Audio with Bionic Whisper ASR", icon: "🎙️", tip: "Transcribe this audio or video file to Markdown, TXT, SRT, or JSON using Bionic's ExecuTorch Whisper Metal ASR engine.", action: () => openPower("bionic", { subTab: "speech_asr", paths: [e.path] }) } : null,
+    one && canReadWithPhonon(e) ? { label: "Read out loud in Voice Reader", icon: "🗣️", tip: "Convert this file to plain text, follow along word-by-word with your default Ollama Phonon voice, or save it as an audio/video file.", action: () => openPower("phonon", { path: e.path, autoPlay: true }) } : null,
+    one && canReadWithPhonon(e) ? { label: "Convert to Read-Along Video (Phonon)", icon: "🎬", tip: "Convert this file into a synchronized Read-Along MP4 Video where you can listen and follow along with the highlighted text.", action: () => openPower("phonon", { path: e.path, autoExportVideo: true }) } : null,
     one && !e.isDir && looksLikeText(e.name) && e.size <= 20000 ? { label: "Make a QR code from this text", icon: "🔳", tip: "Put the text of this file in a QR code (up to a few thousand characters).", action: () => openPower("qr", { makeFromFile: e.path }) } : null,
     one && !e.isDir && looksLikeText(e.name) ? { label: "Edit in Code editor", icon: "📝", shortcut: labelOf("file.editInCode"), action: () => openInCode(e.path) } : null,
     one && !e.isDir && looksLikeText(e.name) ? { label: "Open in your editor", icon: "🧑‍💻", tip: "Open this file in the code editor chosen in Settings (VS Code, Sublime Text, WebStorm or IntelliJ IDEA).", action: () => openInEditor(e) } : null,

@@ -1050,11 +1050,15 @@ export function classifyFolderTopic(name) {
   return topic;
 }
 
+function isDocBundleName(name) {
+  return /\.(?:epub|rtfd)$/i.test(String(name || "").trim());
+}
+
 /** Resolves the rich semantic metadata entry from `SYSTEM_ICON_CATALOG` (260+ system icons) for any file or folder name. */
 export function resolveSystemIcon(name, isDir = false) {
   const raw = String(name || "").trim();
   const lower = raw.toLowerCase();
-  if (isDir) {
+  if (isDir && !isDocBundleName(lower)) {
     const topic = classifyFolderTopic(lower);
     return FOLDER_SYSTEM_ICON_BY_TOPIC.get(topic) || FOLDER_SYSTEM_ICON_BY_TOPIC.get("general");
   }
@@ -1071,8 +1075,8 @@ export function resolveSystemIcon(name, isDir = false) {
 }
 
 export function classifyIconKind(name, isDir) {
-  if (isDir) return "folder";
   const lower = String(name || "").trim().toLowerCase();
+  if (isDir && !isDocBundleName(lower)) return "folder";
   const cached = ICON_KIND_CACHE.get(lower);
   if (cached !== undefined) return cached;
   const exact = EXACT_SYSTEM_ICON_BY_NAME.get(lower);
@@ -1100,24 +1104,25 @@ export function activeIconPackStyle() {
 
 /** A picture-word for a file name, for places (like the Recycle Bin) where the server didn't classify it, or when a custom Icon Pack is active. */
 export function iconFor(name, isDir, packOverride, kindHint) {
+  const effectiveIsDir = Boolean(isDir) && !isDocBundleName(name);
   const pack = packOverride && ICON_PACK_GLYPHS[packOverride] ? packOverride : activeIconPackStyle();
-  const sysEntry = resolveSystemIcon(name, isDir);
+  const sysEntry = resolveSystemIcon(name, effectiveIsDir);
   if (pack !== "default") {
     const def = ICON_PACK_GLYPHS[pack];
-    if (isDir && def?.topics) {
+    if (effectiveIsDir && def?.topics) {
       const topic = sysEntry?.topic && sysEntry.topic !== "general" ? sysEntry.topic : classifyFolderTopic(name);
       if (topic !== "general" && def.topics[topic]) return def.topics[topic];
     }
-    if (!isDir && (pack === "google_material_3d" || def?.useGoogle3d) && sysEntry?.google3d) {
+    if (!effectiveIsDir && (pack === "google_material_3d" || def?.useGoogle3d) && sysEntry?.google3d) {
       return sysEntry.google3d;
     }
-    if (!isDir && sysEntry?.category === "exact" && def?.useExact) {
+    if (!effectiveIsDir && sysEntry?.category === "exact" && def?.useExact) {
       return sysEntry.icon;
     }
-    const kind = isDir ? "folder" : (kindHint && def?.[kindHint] ? kindHint : classifyIconKind(name, false));
+    const kind = effectiveIsDir ? "folder" : (kindHint && def?.[kindHint] ? kindHint : classifyIconKind(name, false));
     return def?.[kind] ?? def?.file ?? "📁";
   }
-  if (isDir) {
+  if (effectiveIsDir) {
     return sysEntry && sysEntry.topic !== "general" ? sysEntry.icon : "📁";
   }
   if (sysEntry?.icon) return sysEntry.icon;
@@ -1155,16 +1160,17 @@ export function placeIconFor(placeId, label, packOverride, fallbackIcon) {
 
 /** Resolves the display icon for a File Manager entry, respecting custom Icon Pack styles when active. */
 export function iconForEntry(entry, packOverride) {
-  const isDir = Boolean(entry?.isDir || entry?.isDirectory);
+  const name = entry?.name || "";
+  const isDir = Boolean(entry?.isDir || entry?.isDirectory) && !isDocBundleName(name);
   const folderFxOnly = typeof document !== "undefined" && document.documentElement?.dataset?.folderFxOnly === "true";
   if (folderFxOnly && !isDir) {
-    return entry?.icon || iconFor(entry?.name || "", false, "default", entry?.kind);
+    return entry?.icon || iconFor(name, false, "default", entry?.kind);
   }
   const pack = packOverride && ICON_PACK_GLYPHS[packOverride] ? packOverride : activeIconPackStyle();
   if (pack !== "default") {
-    return iconFor(entry?.name || "", isDir, pack, entry?.kind);
+    return iconFor(name, isDir, pack, entry?.kind);
   }
-  return entry?.icon || iconFor(entry?.name || "", isDir, "default", entry?.kind);
+  return entry?.icon || iconFor(name, isDir, "default", entry?.kind);
 }
 export const entryIcon = iconForEntry;
 
@@ -1181,8 +1187,8 @@ export function syncVisibleIcons(root = typeof document !== "undefined" ? docume
     const ico = row.querySelector(".c-icon");
     if (!ico) return;
     const nameEl = row.querySelector(".name-text");
-    const isDir = row.classList.contains("is-folder") || row.dataset.isDir === "1";
     const name = row.dataset.entryName || nameEl?.textContent || "";
+    const isDir = (row.classList.contains("is-folder") || row.dataset.isDir === "1") && !isDocBundleName(name);
     const holidayBadge = folderFxOnly ? "" : (holidaySpec?.badge || "");
     const rowPack = (!isDir && folderFxOnly) ? "default" : pack;
     if (isDir) {

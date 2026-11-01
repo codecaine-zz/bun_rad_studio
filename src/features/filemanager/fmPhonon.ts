@@ -35,7 +35,7 @@ function uniqueOutputFilePath(dir: string, desiredName: string): string {
   const chosen = uniqueName(desiredName, (candidate) => existsSync(nodePath.join(dir, candidate)));
   return nodePath.join(dir, chosen);
 }
-import { inspectRichPreview, type DocBlock, type RichPreview } from "./fmPreview";
+import { extractFullEpubRich, inspectPackageDirectoryRich, inspectRichPreview, type DocBlock, type RichPreview } from "./fmPreview";
 import { loadSettings, PHONON_AUDIO_FORMATS, updateSettings, type PhononAudioFormat } from "./fmSettings";
 import { detectManagers, explainFailure, resolveTool } from "./fmToolDetect";
 import { findExecutable, installPlan, searchDirs, TOOLS } from "./fmTools";
@@ -1571,8 +1571,7 @@ export async function extractPlainTextFromFile(
 ): Promise<ExtractedPlainText> {
   const filePath = absolutePath(ctx, inputPath);
   const st = await fsp.stat(filePath).catch(() => null);
-  if (!st || st.isDirectory()) throw new FmError("NOT_A_FILE", "Choose a file (not a folder) to read or convert to plain text.");
-  if (st.size === 0) throw new FmError("EMPTY_FILE", "This file is empty.");
+  if (!st) throw new FmError("NOT_A_FILE", "Choose a file (not a folder) to read or convert to plain text.");
 
   const name = nodePath.basename(filePath);
   const ext = extensionOf(name);
@@ -1582,6 +1581,39 @@ export async function extractPlainTextFromFile(
   let formatLabel = lastExt ? `${lastExt.toUpperCase()} File` : "Text File";
   let method = "Built-in Text Decoder";
   let title: string | undefined;
+
+  if (st.isDirectory()) {
+    const pkgRich = await inspectPackageDirectoryRich(filePath, false, {
+      maxChapters: 2000,
+      maxBlocksPerChapter: 10_000,
+      maxTotalBlocks: 200_000,
+      maxPartBytes: 4 * 1024 * 1024,
+    }).catch(() => null);
+    const extracted = pkgRich ? richPreviewToPlainText(pkgRich) : null;
+    if (!extracted || !extracted.text.trim()) {
+      throw new FmError("NOT_A_FILE", "Choose a file (not a folder) to read or convert to plain text.");
+    }
+    rawText = extracted.text;
+    formatLabel = extracted.formatLabel;
+    method = "Built-in EPUB Package Extractor";
+    title = extracted.title;
+  } else {
+    if (st.size === 0) throw new FmError("EMPTY_FILE", "This file is empty.");
+
+    // 0. Full-Book EPUB Extractor (reads all spine chapters without preview limits)
+    if (lastExt === "epub") {
+      const fullEpub = await extractFullEpubRich(filePath, false).catch(() => null);
+      if (fullEpub) {
+        const extracted = richPreviewToPlainText(fullEpub);
+        if (extracted && extracted.text.trim()) {
+          rawText = extracted.text;
+          formatLabel = extracted.formatLabel;
+          method = "Built-in EPUB Full-Book Extractor";
+          title = extracted.title;
+        }
+      }
+    }
+  }
 
   // 1. Spreadsheets (.xlsx, .xlsm, .ods, .csv, .tsv) via full built-in reader
   if (["xlsx", "xlsm", "ods", "csv", "tsv"].includes(lastExt) && st.size <= 50 * 1024 * 1024) {

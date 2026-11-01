@@ -41,6 +41,7 @@ function collect(): Array<{ path: string; name: string; bytes: number }> {
     for (const f of readdirSync(dir).sort()) if (re.test(f)) out.push({ path: join(dir, f), name: f, bytes: statSync(join(dir, f)).size });
   };
   take(FM, new RegExp(`^Codecaine-File-Manager-v${VERSION.replace(/\./g, "\\.")}-.*\\.zip$`));
+  take(FM, new RegExp(`^codecaine-file-manager_${VERSION.replace(/\./g, "\\.")}_(?:amd64|arm64)\\.deb$`));
   take(RELEASE, new RegExp(`^bun-rad-studio-v${VERSION.replace(/\./g, "\\.")}-(?!free-music-).*\\.(tar\\.gz|zip)$`));
   take(RELEASE, new RegExp(`^bun-rad-studio-v${VERSION.replace(/\./g, "\\.")}-free-music-(?:lyrics-videos|mp3)(?:-\\d+of\\d+)?\\.zip$`));
   const macApps = new RegExp(`^bun-rad-studio-v${VERSION.replace(/\./g, "\\.")}-macos-(?:arm64|x64)-apps(-\\d+of\\d+)?\\.zip$`);
@@ -50,8 +51,12 @@ function collect(): Array<{ path: string; name: string; bytes: number }> {
   return out.filter((f) => (seen.has(f.name) ? false : (seen.add(f.name), true)));
 }
 
-const KIND = (n: string) => (n.startsWith("Codecaine-File-Manager") ? "fm" : /-free-music-/.test(n) ? "music" : /-apps(-\d+of\d+)?\.zip$/.test(n) ? "apps" : "suite");
-const platformOf = (n: string) => /-(macos|windows|linux)-(arm64|x64)(-baseline|-musl)?/.exec(n)?.[0].slice(1) ?? n;
+const KIND = (n: string) => (n.startsWith("Codecaine-File-Manager") || n.startsWith("codecaine-file-manager_") ? "fm" : /-free-music-/.test(n) ? "music" : /-apps(-\d+of\d+)?\.zip$/.test(n) ? "apps" : "suite");
+const platformOf = (n: string) => {
+  const deb = /_(amd64|arm64)\.deb$/.exec(n);
+  if (deb) return `linux-.deb (${deb[1]})`;
+  return /-(macos|windows|linux)-(arm64|x64)(-baseline|-musl)?/.exec(n)?.[0].slice(1) ?? n;
+};
 
 /** The headline of each entry in the newest section of the changelog (the bold words that start the line), for the release notes. */
 export function changelogHighlights(changelog: string, limit = 25): string[] {
@@ -75,14 +80,14 @@ export function notes(files: Array<{ name: string; bytes: number }>, repo: strin
   if (whatsNew.length) L.push(`## ✨ What's new in v${VERSION}`, "", ...whatsNew.map((w) => `- ${w}`), "", "The full list is in the [changelog](https://github.com/" + repo + "/blob/main/CHANGELOG.md).", "");
   L.push("## ⭐ Codecaine File Manager", "", "A fast, private file manager for developers: two folders side by side, a code editor, database studios (SQLite, MySQL, PostgreSQL, Redis), a cross-platform Process & Task Manager, a System Information dashboard, an encrypted password vault, a live web server, **a download manager that splits files over several connections and resumes them**, an API client, a project bundler, an `.env` editor, and more.", "");
   L.push("| Your computer | Download |", "|---|---|");
-  for (const r of [row("🍎 **Mac**", (n) => n.includes("-macos-")), row("🪟 **Windows**", (n) => n.includes("-windows-")), row("🐧 **Linux**", (n) => n.includes("-linux-"))]) if (r) L.push(r);
+  for (const r of [row("🍎 **Mac**", (n) => n.includes("-macos-")), row("🪟 **Windows**", (n) => n.includes("-windows-")), row("🐧 **Linux**", (n) => n.includes("-linux-") || n.endsWith(".deb"))]) if (r) L.push(r);
   const hasFileManagerMac = files.some((f) => KIND(f.name) === "fm" && f.name.includes("-macos-"));
   const macInstructions = hasFileManagerMac
     ? "- **Mac:** `arm64` = Apple silicon (M1 and newer); `x64` = Intel. Unzip and drag the app to Applications. It is ad-hoc signed, not Developer ID signed or notarized; right-click Open may not work. Only after trusting the source and verifying the checksum, run `xattr -dr com.apple.quarantine \"/Applications/Codecaine File Manager.app\"` in Terminal, then open the app. Do not disable Gatekeeper globally."
     : "- **Mac:** Standalone `.app` downloads are being built on macOS. For now, download a macOS full-suite archive below and start `bin/file-manager-studio` (see the included `README.txt` for first-launch guidance).";
   L.push("", macInstructions,
     "- **Windows:** `x64` for most PCs; `arm64` for Windows 11 on ARM (baseline x64 emulation, no AVX2 required); `baseline` for processors from before 2013. Unzip the whole folder, double-click **install.cmd**, then **Codecaine File Manager.exe**. Setup checks WebView2 and the [Visual C++ 2015-2022 x64 Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe), including on ARM, and offers to install missing prerequisites from Microsoft. No Bun or compiler is needed. If it fails, open **troubleshoot.cmd**.",
-    "- **Linux:** `x64` (Intel/AMD) or `arm64` (Raspberry Pi 4/5 64-bit, servers); run `sh install.sh` for a menu entry and executable permissions. Needs GTK 4 and WebKitGTK 6.0 (`sudo apt install libgtk-4-1 libwebkitgtk-6.0-4` on Ubuntu 24.04+/Debian). Run `sh troubleshoot.sh` to see startup errors. On Ubuntu 24.04+, if startup fails with a bwrap / dbus-proxy permission error, run `sh install.sh --apparmor` (sudo required). This adds an executable-specific AppArmor user-namespace permission without disabling AppArmor or WebKit's sandbox. Rerun after moving the extracted folder; remove with `sh install.sh --uninstall --apparmor`.",
+    "- **Linux:** Double-click the `.deb` (`amd64` or `arm64`) in GNOME Software, Ubuntu App Center, KDE Discover, or GDebi for a 1-click GUI install (automatically installs `libgtk-4-1`, `libwebkitgtk-6.0-4`, desktop icon, AppStream metadata, and the Ubuntu 24.04+ AppArmor profile). For the portable `.zip` (`x64` or `arm64`), run `sh install.sh` for a menu entry and executable permissions (needs GTK 4 and WebKitGTK 6.0: `sudo apt install libgtk-4-1 libwebkitgtk-6.0-4` on Ubuntu 24.04+/Debian; `sudo dnf install gtk4 webkitgtk6.0` on Fedora). Run `sh troubleshoot.sh` to see startup errors. On Ubuntu 24.04+ with the portable `.zip`, if startup fails with a bwrap / dbus-proxy permission error, run `sh install.sh --apparmor` (sudo required). This adds an executable-specific AppArmor user-namespace permission without disabling AppArmor or WebKit's sandbox. Rerun after moving the extracted folder; remove with `sh install.sh --uninstall --apparmor`.",
     "- **File Manager startup:** opens in its native desktop window by default on macOS, Windows, and Linux (pass `--browser` or `-b` only if you want to open in your web browser instead). Standalone Windows/Linux downloads record startup errors in `~/.bun_rad_studio/file-manager-startup.log` (Windows: `%USERPROFILE%\\.bun_rad_studio\\file-manager-startup.log`).", "");
   const apps = files.filter((f) => KIND(f.name) === "apps");
   const suite = files.filter((f) => KIND(f.name) === "suite");

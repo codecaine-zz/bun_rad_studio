@@ -370,4 +370,136 @@ describe("Codecaine File Manager — Built-In LM Studio Bionic AI Studio & Agent
     expect(codeAiChatJs).toContain('Insert at Cursor');
     expect(codeAiChatJs).toContain('Replace Selection');
   });
+
+  test("8. unpacked macOS .epub directory bundles work in Bionic LLM context and convert to HTML, Markdown, TXT, RTF, FB2, DOCX, ODT, and PDF", async () => {
+    const { mkdirSync, writeFileSync, existsSync, readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const { readTextFileSnippet } = await import("../src/features/filemanager/fmOllama");
+    const { overview, startConvert } = await import("../src/features/filemanager/fmBatch");
+    const { createContext } = await import("../src/features/filemanager/fmCore");
+
+    const homeRoot = `${tempRoot}/home`;
+    const epubBundleDir = join(homeRoot, "docs", "Deadlocked 3.epub");
+    mkdirSync(join(epubBundleDir, "META-INF"), { recursive: true });
+    mkdirSync(join(epubBundleDir, "OPS", "xhtml"), { recursive: true });
+    writeFileSync(join(epubBundleDir, "mimetype"), "application/epub+zip");
+    writeFileSync(
+      join(epubBundleDir, "META-INF", "container.xml"),
+      `<?xml version="1.0" encoding="UTF-8"?>
+<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles>
+    <rootfile full-path="OPS/package.opf" media-type="application/oebps-package+xml"/>
+  </rootfiles>
+</container>`,
+    );
+    writeFileSync(
+      join(epubBundleDir, "OPS", "package.opf"),
+      `<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" version="3.0">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:title>Deadlocked 3</dc:title>
+    <dc:creator>A. R. Breck</dc:creator>
+    <dc:language>en</dc:language>
+  </metadata>
+  <manifest>
+    <item id="ch1" href="xhtml/chapter-001.xhtml" media-type="application/xhtml+xml"/>
+  </manifest>
+  <spine>
+    <itemref idref="ch1"/>
+  </spine>
+</package>`,
+    );
+    writeFileSync(
+      join(epubBundleDir, "OPS", "xhtml", "chapter-001.xhtml"),
+      `<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head><title>Chapter One</title></head>
+<body>
+  <h1>Chapter 1: Into the Storm</h1>
+  <p>The waves crashed against the cliff as the lighthouse beam swept across the bay.</p>
+</body>
+</html>`,
+    );
+
+    // 1. Verify readTextFileSnippet extracts book text without FILE_NOT_FOUND
+    const snippet = await readTextFileSnippet(epubBundleDir, 12000);
+    expect(snippet).toContain("Title: Deadlocked 3");
+    expect(snippet).toContain("Author: A. R. Breck");
+    expect(snippet).toContain("The waves crashed against the cliff");
+
+    const realBookPath = "/Users/codecaine/Downloads/books/Deadlocked 3.epub";
+    if (existsSync(realBookPath)) {
+      const realSnippet = await readTextFileSnippet(realBookPath, 12000);
+      expect(realSnippet).toContain("Deadlocked 3");
+      expect(realSnippet.length).toBeGreaterThan(200);
+    }
+
+    // 2. Verify Bionic chat and router accept the unpacked .epub bundle path without FILE_NOT_FOUND
+    const chatRes = await apiCall("bionic/chat", {
+      model: "openai/gpt-oss-20b",
+      prompt: "Summarize this book.",
+      paths: ["docs/Deadlocked 3.epub"],
+      dirPath: "docs",
+    });
+    expect(chatRes.status).toBe(200);
+    expect(chatRes.json.ok).toBe(true);
+    expect(chatRes.json.inspectedFiles).toContain("docs/Deadlocked 3.epub");
+
+    // 3. Verify Convert & Process classifies .epub directory bundle as an e-book file and converts it
+    const convCtx = createContext({
+      platform: "darwin",
+      home: homeRoot,
+      dataDir: join(homeRoot, ".conv-data"),
+      toolDirs: [join(homeRoot, "no-tools")],
+    });
+    const ov = await overview(convCtx, [epubBundleDir]);
+    expect(ov.selected).toBe(1);
+    expect(ov.folders).toBe(0);
+    const actionIds = ov.actions.map((a) => a.id);
+    expect(actionIds).toContain("doc-html");
+    expect(actionIds).toContain("doc-md");
+    expect(actionIds).toContain("doc-txt");
+    expect(actionIds).toContain("doc-rtf");
+    expect(actionIds).toContain("doc-fb2");
+    expect(actionIds).toContain("doc-docx");
+    expect(actionIds).toContain("doc-odt");
+    expect(actionIds).toContain("doc-pdf");
+
+    for (const [actId, ext, marker] of [
+      ["doc-html", "html", "<!DOCTYPE html>"],
+      ["doc-md", "md", "# Deadlocked 3"],
+      ["doc-txt", "txt", "Deadlocked 3"],
+      ["doc-rtf", "rtf", "{\\rtf1"],
+      ["doc-fb2", "fb2", "<FictionBook"],
+    ] as const) {
+      const job = await startConvert(convCtx, { action: actId, paths: [epubBundleDir] });
+      const done = await convCtx.jobs.whenDone(job.id);
+      expect(done.state, actId).toBe("done");
+      const outPath = join(homeRoot, "docs", `Deadlocked 3.${ext}`);
+      expect(existsSync(outPath), outPath).toBe(true);
+      expect(readFileSync(outPath, "utf8")).toContain(marker);
+    }
+
+    // 4. When pandoc (and LibreOffice) are installed on the host, verify .epub directory bundle converts to DOCX & PDF
+    const hostCtx = createContext({
+      platform: "darwin",
+      home: homeRoot,
+      dataDir: join(homeRoot, ".conv-host-data"),
+    });
+    const hostOv = await overview(hostCtx, [epubBundleDir]);
+    const docxAct = hostOv.actions.find((a) => a.id === "doc-docx");
+    if (docxAct?.available) {
+      const docxJob = await startConvert(hostCtx, { action: "doc-docx", paths: [epubBundleDir] });
+      const docxDone = await hostCtx.jobs.whenDone(docxJob.id);
+      expect(docxDone.state).toBe("done");
+      expect(existsSync(join(homeRoot, "docs", "Deadlocked 3.docx"))).toBe(true);
+    }
+    const pdfAct = hostOv.actions.find((a) => a.id === "doc-pdf");
+    if (pdfAct?.available) {
+      const pdfJob = await startConvert(hostCtx, { action: "doc-pdf", paths: [epubBundleDir] });
+      const pdfDone = await hostCtx.jobs.whenDone(pdfJob.id);
+      expect(pdfDone.state).toBe("done");
+      expect(existsSync(join(homeRoot, "docs", "Deadlocked 3.pdf"))).toBe(true);
+    }
+  });
 });

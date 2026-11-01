@@ -14,7 +14,7 @@ import { inTrash, on, state } from "./state.js";
 import { quickMediaBlock } from "./mediaQuick.js";
 import { renderRichInfoSummary } from "./quicklookFormat.js";
 import { verdictBlock } from "./typecheck.js";
-import { baseName, formatDate, formatSize, plural } from "./util.js";
+import { baseName, formatDate, formatSize, isDocumentPackageEntry, plural } from "./util.js";
 
 let sequence = 0;
 
@@ -23,7 +23,7 @@ function fact(label, value) {
 }
 
 async function previewFor(entry) {
-  if (entry.isDir || inTrash()) return null;
+  if ((entry.isDir && !isDocumentPackageEntry(entry)) || inTrash()) return null;
   try {
     const { preview } = await call("preview", { path: entry.path });
     if (preview.type === "image") {
@@ -102,7 +102,7 @@ export async function renderInfo() {
     }, iconForEntry(e)),
     h("h2", { class: "info-name" }, e.name),
     h("dl", { class: "info-facts" },
-      ...fact("Type", e.label), ...fact("Size", e.isDir ? "" : formatSize(e.size)), ...fact(inTrash() ? "Deleted" : "Modified", formatDate(e.mtimeMs)),
+      ...fact("Type", e.label), ...fact("Size", e.isDir && !isDocumentPackageEntry(e) ? "" : formatSize(e.size)), ...fact(inTrash() ? "Deleted" : "Modified", formatDate(e.mtimeMs)),
       ...fact("Permissions", !inTrash() && typeof e.mode === "number" ? `${symbolicOf(e.mode)} (${octalOf(e.mode)})` : ""),
       ...fact(inTrash() ? "Was in" : "Where", inTrash() ? e.where : state.search ? e.folder : baseName(state.location.path, state.sep))),
     inTrash() || e.isDir ? null : verdictBlock(e.path, e.name),

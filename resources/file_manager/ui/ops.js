@@ -20,7 +20,7 @@ import { AUDIO_EXTS, VIDEO_EXTS } from "./mediacore.js";
 import { emit, on, state } from "./state.js";
 import { looksLikeThemeImportPayload, pasteImportThemesFromText } from "./themes.js";
 import { announceVerdict, askOpenAnyway, skipMismatchGuard } from "./typecheck.js";
-import { baseName, detectSnippetInfo, extractableEntries, joinPath, parentOf, plural } from "./util.js";
+import { baseName, detectSnippetInfo, extractableEntries, isDocumentPackageEntry, joinPath, parentOf, plural } from "./util.js";
 import { isLocked, unlockEntries } from "./vault.js";
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -152,6 +152,13 @@ export function isThemeFileEntry(entry) {
 /** `viewer: false` (Quick Look's own Open) always hands pictures, sound and video to the computer's program. */
 export async function openEntry(entry, { viewer = true } = {}) {
   if (inTrash()) return toast("Items in the Recycle Bin can't be opened. Restore one first (right-click, then Restore).");
+  if (entry.isDir && isDocumentPackageEntry(entry)) {
+    if (viewer) {
+      rememberRecent(entry.path);
+      return emit("quicklook-open", entry);
+    }
+    return openFile(entry.path, false);
+  }
   if (entry.isDir) return goToIn(activePane(), entry.path);
   if (isLocked(entry)) return unlockEntries([entry]);
   if (isThemeFileEntry(entry)) {

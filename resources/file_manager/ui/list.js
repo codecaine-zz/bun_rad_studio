@@ -13,7 +13,7 @@ import { clearSelection, selectOnly, selectRangeTo, selectedEntries, toggleKey }
 import { emit, on, state } from "./state.js";
 import { openNewTab } from "./tabs.js";
 import { tagForPath, tagInfo } from "./tags.js";
-import { describeSelection, formatDate, formatSize, isModifier, plural, summarizeCount } from "./util.js";
+import { describeSelection, extensionOf, formatDate, formatSize, isDocumentPackageEntry, isModifier, plural, summarizeCount } from "./util.js";
 
 const PAGE = 500;
 /** pane -> { rows: key -> row element (for quick selection updates), renaming: { key, input } or null }. */
@@ -51,8 +51,9 @@ function whereText(pane, entry) {
 /** Computes the group heading for an entry when Group By is active. */
 export function groupBucketFor(entry, mode = state.settings.groupBy) {
   if (!mode || mode === "none") return "";
+  const isDocPkg = isDocumentPackageEntry(entry);
   if (mode === "kind") {
-    if (entry.isDir) return "Folders";
+    if (entry.isDir && !isDocPkg) return "Folders";
     return entry.label || "Files";
   }
   if (mode === "date") {
@@ -66,7 +67,7 @@ export function groupBucketFor(entry, mode = state.settings.groupBy) {
     return "Older";
   }
   if (mode === "size") {
-    if (entry.isDir) return "Folders";
+    if (entry.isDir && !isDocPkg) return "Folders";
     const sz = Number(entry.size) || 0;
     if (sz === 0) return "Empty (0 B)";
     if (sz < 10 * 1024) return "Tiny (< 10 KB)";
@@ -96,20 +97,22 @@ function makeRow(pane, entry, index) {
   const trash = inTrash(pane);
   const tag = !trash ? tagForPath(entry.path) : null;
   const cols = Array.isArray(state.settings.columns) ? state.settings.columns : [];
-  const extText = entry.isDir ? "—" : (entry.ext ? String(entry.ext).replace(/^\./, "").toUpperCase() : "—");
-  const permsText = entry.mode || (entry.writable === false ? "r--r--r--" : entry.isDir ? "rwxr-xr-x" : "rw-r--r--");
-  const iconKind = classifyIconKind(entry.name, entry.isDir);
-  const folderTopic = entry.isDir ? classifyFolderTopic(entry.name) : "";
-  const sysIcon = resolveSystemIcon(entry.name, entry.isDir);
+  const isDocPkg = isDocumentPackageEntry(entry);
+  const isFolderVisual = entry.isDir && !isDocPkg;
+  const extText = isFolderVisual ? "—" : (entry.ext ? String(entry.ext).replace(/^\./, "").toUpperCase() : (extensionOf(entry.name || "").toUpperCase() || "—"));
+  const permsText = entry.mode || (entry.writable === false ? "r--r--r--" : isFolderVisual ? "rwxr-xr-x" : "rw-r--r--");
+  const iconKind = classifyIconKind(entry.name, isFolderVisual);
+  const folderTopic = isFolderVisual ? classifyFolderTopic(entry.name) : "";
+  const sysIcon = resolveSystemIcon(entry.name, isFolderVisual);
   const row = h("div", {
-    class: `row${entry.isDir ? " is-folder" : ""}${entry.hidden ? " hidden-item" : ""}${cut ? " cut" : ""}${entry.broken ? " broken" : ""}`,
+    class: `row${isFolderVisual ? " is-folder" : ""}${entry.hidden ? " hidden-item" : ""}${cut ? " cut" : ""}${entry.broken ? " broken" : ""}`,
     role: "option", id: `${pane.ids.row}-${index}`, "aria-selected": String(pane.selection.has(entry.path)),
     draggable: trash ? null : "true",
     dataset: {
       key: entry.path,
       index: String(index),
       entryName: entry.name || "",
-      isDir: entry.isDir ? "1" : "0",
+      isDir: isFolderVisual ? "1" : "0",
       iconKind,
       defaultIcon: entry.icon || "",
       ...(folderTopic ? { folderTopic, topic: folderTopic } : {}),
@@ -122,7 +125,7 @@ function makeRow(pane, entry, index) {
       "aria-hidden": "true",
       dataset: {
         iconKind,
-        isFolder: entry.isDir ? "1" : "0",
+        isFolder: isFolderVisual ? "1" : "0",
         ...(folderTopic ? { folderTopic, topic: folderTopic } : {}),
         ...(sysIcon?.id ? { systemIcon: sysIcon.id } : {}),
       },
@@ -134,9 +137,9 @@ function makeRow(pane, entry, index) {
     h("span", { class: "c-date" }, formatDate(entry.mtimeMs)),
     h("span", { class: "c-type" }, entry.label),
     h("span", {
-      class: entry.isDir && entry.folderSizeCalculated ? "c-size folder-size-badge" : "c-size",
-      ...(entry.isDir && entry.folderSizeCalculated ? { title: `${plural(entry.folderFiles ?? 0, "file")}, ${plural(entry.folderFolders ?? 0, "folder")} inside` } : {}),
-    }, entry.isDir ? (entry.folderSizeCalculated ? `${entry.folderSizePartial ? "≥ " : ""}${formatSize(entry.size)}` : "") : formatSize(entry.size)),
+      class: isFolderVisual && entry.folderSizeCalculated ? "c-size folder-size-badge" : "c-size",
+      ...(isFolderVisual && entry.folderSizeCalculated ? { title: `${plural(entry.folderFiles ?? 0, "file")}, ${plural(entry.folderFolders ?? 0, "folder")} inside` } : {}),
+    }, isFolderVisual ? (entry.folderSizeCalculated ? `${entry.folderSizePartial ? "≥ " : ""}${formatSize(entry.size)}` : "") : formatSize(entry.size)),
     h("span", { class: "c-ext", hidden: !cols.includes("ext") }, extText),
     h("span", { class: "c-perms", hidden: !cols.includes("permissions") }, permsText),
   );

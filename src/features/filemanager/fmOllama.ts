@@ -17,7 +17,8 @@
  *     automatically suggests the best model that fits their RAM or the `:cloud` version.
  */
 import { absolutePath, assertCreatable, assertModifiable, type FmContext, type FmHandler } from "./fmCore";
-import { FmError, isSameOrInside } from "./fmPaths";
+import { FmError, isDocumentPackageName, isSameOrInside } from "./fmPaths";
+import { extractReadableDocumentText } from "./fmPreview";
 
 // ---------------------------------------------------------------------------------------------------------------
 // 1. Pure Bun Path & File Helpers (Zero Node `fs`, `path`, `os`, or `child_process` imports)
@@ -467,10 +468,29 @@ export async function readImageAsBase64(absPath: string): Promise<string> {
 }
 
 export async function readTextFileSnippet(absPath: string, maxChars = 24_000): Promise<string> {
+  const ext = extnameLower(absPath);
+  const richExts = new Set(["epub", "rtfd", "docx", "odt", "rtf", "fb2", "pdf", "pptx", "ppsx", "odp", "xlsx", "xlsm", "ods"]);
   const file = Bun.file(absPath);
-  if (!(await file.exists())) {
+  const isRegularFile = await file.exists();
+
+  if (!isRegularFile || richExts.has(ext)) {
+    const richText = await extractReadableDocumentText(absPath, maxChars).catch(() => null);
+    if (richText) return richText;
+  }
+
+  if (!isRegularFile) {
+    const dirEntries = listDirectoryEntriesPure(absPath);
+    if (dirEntries.length > 0) {
+      const listing = dirEntries
+        .slice(0, 120)
+        .map((e) => (e.isDir && !isDocumentPackageName(e.name) ? `${e.name}/` : e.name))
+        .join("\n");
+      const summary = `[Directory: ${basenamePath(absPath)} (${dirEntries.length} items)]\n${listing}`;
+      return summary.length > maxChars ? summary.slice(0, maxChars) : summary;
+    }
     throw new FmError("FILE_NOT_FOUND", `File not found: ${absPath}`);
   }
+
   const text = await file.slice(0, maxChars * 4).text();
   return text.length > maxChars ? text.slice(0, maxChars) : text;
 }
@@ -488,7 +508,11 @@ export function listDirectoryWithBun(
       if (results.length >= maxEntries) break;
       if (entry.name.startsWith(".")) continue;
       if (entry.isDir) {
-        if (options?.recursive) walk(entry.path, depth + 1);
+        if (isDocumentPackageName(entry.name)) {
+          results.push({ name: entry.name, absPath: entry.path, isDir: false });
+        } else if (options?.recursive) {
+          walk(entry.path, depth + 1);
+        }
       } else {
         results.push({ name: entry.name, absPath: entry.path, isDir: false });
       }

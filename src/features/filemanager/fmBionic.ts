@@ -1865,6 +1865,7 @@ export async function runBionicSemanticSearch(
   const entries = listDirectoryWithBun(dirAbs, { recursive: true, maxEntries: 30 });
   const textExts = new Set([
     "ts", "tsx", "js", "jsx", "mjs", "cjs", "json", "md", "txt", "py", "rs", "go", "css", "html", "yml", "yaml", "toml", "sh", "sql", "log",
+    "epub", "rtfd", "pdf", "docx", "odt", "rtf", "fb2",
   ]);
 
   const candidates: Array<{ name: string; absPath: string; relPath: string; snippet: string }> = [];

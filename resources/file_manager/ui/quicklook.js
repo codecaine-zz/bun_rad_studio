@@ -27,7 +27,7 @@ import { openPower } from "./power.js";
 import { isStudioPicture } from "./imageStudio.js";
 import { isStudioMedia } from "./mediaStudio.js";
 import { quickMediaMenuItems } from "./mediaQuick.js";
-import { extensionOf, formatDate, formatSize, plural } from "./util.js";
+import { extensionOf, formatDate, formatSize, isDocumentPackageEntry, plural } from "./util.js";
 
 const DEFAULT_FOOT = "Space or Esc closes  ·  ← → show the next or previous item  ·  Enter opens it in another program";
 const MD_FOOT = "Space or Esc closes  ·  P toggles Preview / Plain text  ·  ← → show the next or previous item  ·  Enter opens it in another program";
@@ -92,7 +92,8 @@ function setSub(text) {
 }
 
 function baseSub(entry) {
-  return [entry.label, entry.isDir ? "" : formatSize(entry.size), entry.mtimeMs ? formatDate(entry.mtimeMs) : ""].filter(Boolean).join("  ·  ");
+  const isFolderOnly = entry.isDir && !isDocumentPackageEntry(entry);
+  return [entry.label, isFolderOnly ? "" : formatSize(entry.size), entry.mtimeMs ? formatDate(entry.mtimeMs) : ""].filter(Boolean).join("  ·  ");
 }
 
 function failed(entry, what) {
@@ -182,7 +183,7 @@ async function openQuickLookMarkdownLink(entry, rawHref) {
 async function renderBody(entry, mine) {
   const open = (node) => { if (ql && mine === ql.seq) ql.body.replaceChildren(node); };
   ql.mdController = null;
-  if (entry.isDir) {
+  if (entry.isDir && !isDocumentPackageEntry(entry)) {
     open(infoCard(entry, "Press Enter to open this folder."));
     try {
       const { properties: p } = await call("props", { paths: [entry.path] });

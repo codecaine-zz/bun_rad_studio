@@ -19,6 +19,7 @@ import {
 } from "./fmConvArchive";
 import { renderMarkdownPage } from "./fmConvMarkdown";
 import { TranspileError, transpileSource, type JsTarget, type JsxStyle } from "./fmJsTranspile";
+import { extractFullEpubRich, inspectPackageDirectoryRich, type RichDocumentPreview } from "./fmPreview";
 import { extractZip } from "./fmZip";
 import { createContext } from "./fmCore";
 import type { Platform } from "./fmPaths";
@@ -283,6 +284,27 @@ async function convert(job: BuiltinJob): Promise<string> {
       await writeNew(job.output, htmlToText(decodeBytes(bytes, "auto", true).text));
       return "";
     }
+    case "epub-doc": {
+      const st = await fsp.stat(input).catch(() => null);
+      if (!st) throw new ConvError("The file could not be found.");
+      const rich = st.isDirectory()
+        ? await inspectPackageDirectoryRich(input, false, {
+            maxChapters: 500,
+            maxBlocksPerChapter: 5000,
+            maxTotalBlocks: 100_000,
+            maxPartBytes: 8 * 1024 * 1024,
+          })
+        : await extractFullEpubRich(input, false);
+      if (!rich || rich.kind !== "document" || (!rich.blocks.length && !rich.plainText?.trim())) {
+        throw new ConvError("No readable chapters or text were found in this e-book.");
+      }
+      const to = String(params.to || "txt");
+      const withToc = bool(o, "toc", false);
+      const fallbackTitle = nodePath.basename(input).replace(/\.[^.]+$/, "");
+      const outText = formatEpubDocumentOutput(rich, fallbackTitle, to, withToc);
+      await writeNew(job.output, outText);
+      return "";
+    }
     case "gzip": await gzipFile(input, job.output, num(o, "level", 6)); return "";
     case "zstd": await zstdFile(input, job.output, num(o, "level", 3)); return "";
     case "unzstd": await unzstdFile(input, job.output, limitsOf(job).maxBytes); return "";
@@ -310,4 +332,237 @@ async function convert(job: BuiltinJob): Promise<string> {
     default:
       throw new ConvError("That conversion isn't known.");
   }
+}
+
+function escapeXmlText(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function escapeRtfText(s: string): string {
+  let out = "";
+  for (let i = 0; i < s.length; i++) {
+    const code = s.charCodeAt(i);
+    if (code === 0x5c || code === 0x7b || code === 0x7d) {
+      out += "\\" + s[i];
+    } else if (code === 0x0a) {
+      out += "\\line ";
+    } else if (code >= 0x20 && code <= 0x7e) {
+      out += s[i];
+    } else {
+      const signed = code > 32767 ? code - 65536 : code;
+      out += `\\u${signed}?`;
+    }
+  }
+  return out;
+}
+
+function formatEpubDocumentOutput(
+  rich: RichDocumentPreview,
+  fallbackTitle: string,
+  to: string,
+  withToc: boolean,
+): string {
+  const title = rich.title?.trim() || fallbackTitle || "Document";
+  const author = rich.author?.trim() || "";
+  const chapters =
+    rich.chapters && rich.chapters.length > 0
+      ? rich.chapters
+      : [{ title, blocks: rich.blocks }];
+
+  if (to === "md") {
+    const lines: string[] = [`# ${title}`];
+    if (author) lines.push(`*by ${author}*`);
+    if (withToc && chapters.length > 1) {
+      lines.push("## Table of Contents");
+      lines.push(chapters.map((ch, idx) => `${idx + 1}. ${ch.title}`).join("\n"));
+    }
+    for (const ch of chapters) {
+      const firstBlock = ch.blocks[0];
+      const hasMatchingHeading =
+        firstBlock &&
+        (firstBlock.type === "h1" || firstBlock.type === "h2" || firstBlock.type === "h3") &&
+        firstBlock.text.trim().toLowerCase() === ch.title.trim().toLowerCase();
+      if (!hasMatchingHeading && ch.title) {
+        lines.push(`## ${ch.title}`);
+      }
+      for (const b of ch.blocks) {
+        if (b.type === "table") {
+          lines.push(b.rows.map((r) => `| ${r.join(" | ")} |`).join("\n"));
+        } else if (b.type === "h1") {
+          lines.push(`# ${b.text}`);
+        } else if (b.type === "h2") {
+          lines.push(`## ${b.text}`);
+        } else if (b.type === "h3") {
+          lines.push(`### ${b.text}`);
+        } else if (b.type === "li") {
+          lines.push(`- ${b.text}`);
+        } else if (b.type === "quote") {
+          lines.push(`> ${b.text}`);
+        } else if (b.type === "code") {
+          lines.push(`\`\`\`\n${b.text}\n\`\`\``);
+        } else {
+          lines.push(b.text);
+        }
+      }
+    }
+    return lines.join("\n\n") + "\n";
+  }
+
+  if (to === "html") {
+    const tocHtml =
+      withToc && chapters.length > 1
+        ? `<nav class="toc"><h2>Table of Contents</h2><ol>${chapters
+            .map((ch, idx) => `<li><a href="#ch-${idx + 1}">${escapeXmlText(ch.title)}</a></li>`)
+            .join("")}</ol></nav>`
+        : "";
+    const sectionsHtml = chapters
+      .map((ch, idx) => {
+        const firstBlock = ch.blocks[0];
+        const hasMatchingHeading =
+          firstBlock &&
+          (firstBlock.type === "h1" || firstBlock.type === "h2" || firstBlock.type === "h3") &&
+          firstBlock.text.trim().toLowerCase() === ch.title.trim().toLowerCase();
+        const headingHtml = !hasMatchingHeading && ch.title ? `<h2>${escapeXmlText(ch.title)}</h2>` : "";
+        const bodyHtml = ch.blocks
+          .map((b) => {
+            if (b.type === "table") {
+              return `<table>${b.rows
+                .map((r) => `<tr>${r.map((c) => `<td>${escapeXmlText(c)}</td>`).join("")}</tr>`)
+                .join("")}</table>`;
+            }
+            const t = escapeXmlText(b.text);
+            if (b.type === "h1") return `<h1>${t}</h1>`;
+            if (b.type === "h2") return `<h2>${t}</h2>`;
+            if (b.type === "h3") return `<h3>${t}</h3>`;
+            if (b.type === "li") return `<ul><li>${t}</li></ul>`;
+            if (b.type === "quote") return `<blockquote>${t}</blockquote>`;
+            if (b.type === "code") return `<pre><code>${t}</code></pre>`;
+            return `<p>${t}</p>`;
+          })
+          .join("\n");
+        return `<section id="ch-${idx + 1}">\n${headingHtml}\n${bodyHtml}\n</section>`;
+      })
+      .join("\n\n");
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>${escapeXmlText(title)}</title>
+<style>
+  body { max-width: 44rem; margin: 2.5rem auto; padding: 0 1.25rem; font: 18px/1.68 Georgia, serif; color: #1b1b1f; background: #faf9f5; }
+  h1, h2, h3 { font-family: system-ui, -apple-system, sans-serif; line-height: 1.25; margin-top: 2rem; }
+  .book-header { border-bottom: 1px solid #ddd8ce; padding-bottom: 1.25rem; margin-bottom: 2rem; }
+  .book-author { color: #5c5852; font-style: italic; margin-top: 0.35rem; }
+  .toc { background: #f2efe9; padding: 1rem 1.5rem; border-radius: 8px; margin-bottom: 2rem; }
+  blockquote { border-left: 3px solid #c5bfb3; margin-left: 0; padding-left: 1rem; color: #4a4742; }
+  pre { background: #efece6; padding: 0.85rem; border-radius: 6px; overflow-x: auto; }
+  section { margin-bottom: 2.5rem; }
+</style>
+</head>
+<body>
+<header class="book-header">
+  <h1>${escapeXmlText(title)}</h1>
+  ${author ? `<div class="book-author">${escapeXmlText(author)}</div>` : ""}
+</header>
+${tocHtml}
+${sectionsHtml}
+</body>
+</html>
+`;
+  }
+
+  if (to === "rtf") {
+    const rtfLines: string[] = [
+      "{\\rtf1\\ansi\\deff0{\\fonttbl{\\f0 Georgia;}{\\f1 Helvetica;}}",
+      "\\f0\\fs24\\sl320\\slmult1",
+      `{\\f1\\b\\fs36 ${escapeRtfText(title)}\\b0\\fs24\\par}`,
+    ];
+    if (author) rtfLines.push(`{\\i ${escapeRtfText(author)}\\i0\\par}`);
+    rtfLines.push("\\par");
+    if (withToc && chapters.length > 1) {
+      rtfLines.push("{\\f1\\b\\fs28 Table of Contents\\b0\\fs24\\par}");
+      for (let i = 0; i < chapters.length; i++) {
+        rtfLines.push(`${escapeRtfText(`${i + 1}. ${chapters[i]!.title}`)}\\par`);
+      }
+      rtfLines.push("\\par");
+    }
+    for (const ch of chapters) {
+      const firstBlock = ch.blocks[0];
+      const hasMatchingHeading =
+        firstBlock &&
+        (firstBlock.type === "h1" || firstBlock.type === "h2" || firstBlock.type === "h3") &&
+        firstBlock.text.trim().toLowerCase() === ch.title.trim().toLowerCase();
+      if (!hasMatchingHeading && ch.title) {
+        rtfLines.push(`{\\f1\\b\\fs28 ${escapeRtfText(ch.title)}\\b0\\fs24\\par}`);
+      }
+      for (const b of ch.blocks) {
+        if (b.type === "table") {
+          for (const r of b.rows) rtfLines.push(`${escapeRtfText(r.join(" \\tab "))}\\par`);
+        } else if (b.type === "h1" || b.type === "h2" || b.type === "h3") {
+          rtfLines.push(`{\\f1\\b\\fs28 ${escapeRtfText(b.text)}\\b0\\fs24\\par}`);
+        } else {
+          rtfLines.push(`${escapeRtfText(b.text)}\\par\\par`);
+        }
+      }
+    }
+    rtfLines.push("}");
+    return rtfLines.join("\n");
+  }
+
+  if (to === "fb2") {
+    const authorParts = author.trim().split(/\s+/).filter(Boolean);
+    const firstName = authorParts[0] || "Unknown";
+    const lastName = authorParts.slice(1).join(" ") || "";
+    const sectionsXml = chapters
+      .map((ch) => {
+        const pXml = ch.blocks
+          .map((b) => {
+            const text = b.type === "table" ? b.rows.map((r) => r.join(" | ")).join("\n") : b.text;
+            return `      <p>${escapeXmlText(text)}</p>`;
+          })
+          .join("\n");
+        return `    <section>\n      <title><p>${escapeXmlText(ch.title)}</p></title>\n${pXml}\n    </section>`;
+      })
+      .join("\n");
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<FictionBook xmlns="http://www.gribuser.ru/xml/fictionbook/2.0">
+  <description>
+    <title-info>
+      <author>
+        <first-name>${escapeXmlText(firstName)}</first-name>
+        ${lastName ? `<last-name>${escapeXmlText(lastName)}</last-name>` : ""}
+      </author>
+      <book-title>${escapeXmlText(title)}</book-title>
+      <lang>en</lang>
+    </title-info>
+  </description>
+  <body>
+${sectionsXml}
+  </body>
+</FictionBook>
+`;
+  }
+
+  // Default: plain text ("txt")
+  const out: string[] = [title];
+  if (author) out.push(`by ${author}`);
+  if (withToc && chapters.length > 1) {
+    out.push(["Table of Contents", ...chapters.map((ch, idx) => `  ${idx + 1}. ${ch.title}`)].join("\n"));
+  }
+  for (const ch of chapters) {
+    const firstBlock = ch.blocks[0];
+    const hasMatchingHeading =
+      firstBlock &&
+      (firstBlock.type === "h1" || firstBlock.type === "h2" || firstBlock.type === "h3") &&
+      firstBlock.text.trim().toLowerCase() === ch.title.trim().toLowerCase();
+    if (!hasMatchingHeading && ch.title) out.push(ch.title);
+    for (const b of ch.blocks) {
+      out.push(b.type === "table" ? b.rows.map((r) => r.join("\t")).join("\n") : b.text);
+    }
+  }
+  return out.join("\n\n") + "\n";
 }

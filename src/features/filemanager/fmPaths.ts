@@ -260,9 +260,16 @@ export function extensionOf(name: string): string {
   return ext.replace(/^\./, "").toLowerCase();
 }
 
+export function isDocumentPackageName(name: string): boolean {
+  return /\.(?:epub|rtfd)$/i.test(name.trim());
+}
+
 export function classify(name: string, isDir: boolean, hasExecBit = false): FileKind {
   if (isDir) {
-    if (name.toLowerCase().endsWith(".app")) return { kind: "program", icon: "⚙️", label: "Application", preview: null, program: true };
+    const lower = name.toLowerCase();
+    if (lower.endsWith(".app")) return { kind: "program", icon: "⚙️", label: "Application", preview: null, program: true };
+    if (lower.endsWith(".epub")) return { kind: "document", icon: "📕", label: "document", preview: null, program: false };
+    if (lower.endsWith(".rtfd")) return { kind: "document", icon: "📄", label: "document", preview: null, program: false };
     return { kind: "folder", icon: "📁", label: "Folder", preview: null, program: false };
   }
   const ext = extensionOf(name);

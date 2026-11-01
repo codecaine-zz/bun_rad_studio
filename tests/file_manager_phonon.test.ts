@@ -372,6 +372,33 @@ describe("Format-to-plain-text conversion and speech cleanup across file formats
     const fb2Res = await extractPlainTextFromFile(ctx, fb2File);
     expect(fb2Res.text).toContain("Chapter One");
     expect(fb2Res.text).toContain("The starship left orbit at dawn.");
+
+    // 7. Unpacked macOS .epub package directory bundle (Apple Books format)
+    const epubPkgDir = join(dir, "SampleNovel.epub");
+    mkdirSync(join(epubPkgDir, "META-INF"), { recursive: true });
+    writeFileSync(
+      join(epubPkgDir, "META-INF", "container.xml"),
+      `<?xml version="1.0"?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>`,
+    );
+    writeFileSync(
+      join(epubPkgDir, "content.opf"),
+      `<?xml version="1.0" encoding="UTF-8"?><package xmlns:dc="http://purl.org/dc/elements/1.1/"><metadata><dc:title>Sample Novel</dc:title><dc:creator>Jane Doe</dc:creator></metadata><manifest><item id="ch1" href="split_000.html" media-type="application/xhtml+xml"/><item id="ch2" href="split_001.html" media-type="application/xhtml+xml"/></manifest><spine><itemref idref="ch1"/><itemref idref="ch2"/></spine></package>`,
+    );
+    writeFileSync(
+      join(epubPkgDir, "split_000.html"),
+      `<html><head><title>Sample Novel</title></head><body><p><span>CHAPTER ONE – THE BEGINNING</span></p><p>It was a bright cold morning in April.</p></body></html>`,
+    );
+    writeFileSync(
+      join(epubPkgDir, "split_001.html"),
+      `<html><head><title>Sample Novel</title></head><body><p><span>CHAPTER TWO – THE JOURNEY</span></p><p>The train pulled out of the station at noon.</p></body></html>`,
+    );
+    const epubPkgRes = await extractPlainTextFromFile(ctx, epubPkgDir);
+    expect(epubPkgRes.title).toBe("Sample Novel");
+    expect(epubPkgRes.formatLabel).toBe("E-Book (EPUB)");
+    expect(epubPkgRes.text).toContain("CHAPTER ONE – THE BEGINNING");
+    expect(epubPkgRes.text).toContain("It was a bright cold morning in April.");
+    expect(epubPkgRes.text).toContain("CHAPTER TWO – THE JOURNEY");
+    expect(epubPkgRes.text).toContain("The train pulled out of the station at noon.");
   });
 });
 

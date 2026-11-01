@@ -49,9 +49,11 @@ export function releaseNotes(rows: Array<{ target: Target; file: string; bytes: 
   const fmRows = [
     ["macOS Apple Silicon (M1 / M2 / M3 / M4)", `Codecaine-File-Manager-v${VERSION}-macos-arm64.zip`, "macOS `.app` bundle + 4 DB Studios"],
     ["macOS Intel (`x64`)", `Codecaine-File-Manager-v${VERSION}-macos-x64.zip`, "macOS `.app` bundle + 4 DB Studios"],
-    ["Linux x86-64 (Ubuntu, Debian, Fedora, Arch)", `Codecaine-File-Manager-v${VERSION}-linux-x64.zip`, "`codecaine-file-manager` binary + `install-ollama.sh` + 4 DB Studios"],
+    ["Linux Ubuntu / Debian / Mint GUI Installer (`amd64` `.deb`)", `codecaine-file-manager_${VERSION}_amd64.deb`, "1-click GUI `.deb` installer (auto-installs GTK 4, WebKitGTK 6.0 & AppArmor profile)"],
+    ["Linux Ubuntu / Debian / Raspberry Pi GUI Installer (`arm64` `.deb`)", `codecaine-file-manager_${VERSION}_arm64.deb`, "1-click ARM64 GUI `.deb` installer + AppStream metadata"],
+    ["Linux x86-64 Portable (Ubuntu, Debian, Fedora, Arch)", `Codecaine-File-Manager-v${VERSION}-linux-x64.zip`, "`codecaine-file-manager` binary + `install-ollama.sh` + 4 DB Studios"],
     ["Linux x86-64 Baseline (older CPUs without AVX2)", `Codecaine-File-Manager-v${VERSION}-linux-x64-baseline.zip`, "`codecaine-file-manager` binary + `install-ollama.sh` + 4 DB Studios"],
-    ["Linux ARM64 (Raspberry Pi, Ampere, Graviton)", `Codecaine-File-Manager-v${VERSION}-linux-arm64.zip`, "`codecaine-file-manager` binary + `install-ollama.sh` + 4 DB Studios"],
+    ["Linux ARM64 Portable (Raspberry Pi, Ampere, Graviton)", `Codecaine-File-Manager-v${VERSION}-linux-arm64.zip`, "`codecaine-file-manager` binary + `install-ollama.sh` + 4 DB Studios"],
     ["Windows 10 / 11 64-bit (`x64`)", `Codecaine-File-Manager-v${VERSION}-windows-x64.zip`, "`Codecaine File Manager.exe` + 4 DB Studios"],
     ["Windows 10 / 11 Baseline (older CPUs)", `Codecaine-File-Manager-v${VERSION}-windows-x64-baseline.zip`, "`Codecaine File Manager.exe` + 4 DB Studios"],
     ["Windows 11 on ARM (`arm64`)", `Codecaine-File-Manager-v${VERSION}-windows-arm64.zip`, "`Codecaine File Manager.exe` + 4 DB Studios"],

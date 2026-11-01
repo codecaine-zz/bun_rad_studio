@@ -42,6 +42,8 @@ export function extensionOfName(name) {
   return dot > 0 && dot < lower.length - 1 ? lower.slice(dot + 1) : "";
 }
 
+const isDocPackageEntry = (e) => !!(e && e.isDir && /\.(epub|rtfd)$/i.test(String(e.name ?? "")));
+
 /**
  * "3 pictures, 1 video and 2 folders" for a list of `{ name, isDir }`.
  * @param {Array<{ name: string, isDir?: boolean }>} entries
@@ -50,7 +52,7 @@ export function describeSelection(entries) {
   /** @type {Map<string, { one: string, many: string, n: number }>} */
   const counts = new Map();
   for (const e of entries) {
-    const [one, many] = e.isDir ? ["folder", "folders"] : KIND_BY_EXT.get(extensionOfName(e.name)) ?? ["other file", "other files"];
+    const [one, many] = e.isDir && !isDocPackageEntry(e) ? ["folder", "folders"] : KIND_BY_EXT.get(extensionOfName(e.name)) ?? ["other file", "other files"];
     const c = counts.get(one) ?? { one, many, n: 0 };
     c.n++;
     counts.set(one, c);
@@ -62,7 +64,7 @@ export function describeSelection(entries) {
 
 /** @param {Array<{ name: string, isDir?: boolean }>} entries */
 export function extensionsOf(entries) {
-  return [...new Set(entries.filter((e) => !e.isDir).map((e) => extensionOfName(e.name)))];
+  return [...new Set(entries.filter((e) => !e.isDir || isDocPackageEntry(e)).map((e) => extensionOfName(e.name)))];
 }
 
 /**

@@ -4,7 +4,7 @@ import { debounce } from "./dom.js";
 import { toast } from "./menus.js";
 import { activePane, hooks, isFolderView, left, right } from "./pane.js";
 import { emit, inTrash, state } from "./state.js";
-import { archiveExtensionOf, extensionOf, formatSize, parentOf, parseByteSizeToken, plural, sortEntries } from "./util.js";
+import { archiveExtensionOf, extensionOf, formatSize, isDocumentPackageEntry, parentOf, parseByteSizeToken, plural, sortEntries } from "./util.js";
 
 function setBusy(on) {
   state.busy = Math.max(0, state.busy + (on ? 1 : -1));
@@ -74,15 +74,16 @@ export async function refreshTrashCount() {
 /** Classifies whether an entry matches a Quick-Chip kind filter ("all" | "folder" | "folders" | "image" | "images" | "media" | "document" | "docs" | "code" | "archive" | "archives" | "data"). */
 export function entryMatchesKindFilter(entry, kind) {
   if (!kind || kind === "all") return true;
-  if (kind === "folder" || kind === "folders") return !!entry.isDir;
-  if (entry.isDir) return false;
+  const isDocPkg = isDocumentPackageEntry(entry);
+  if (kind === "folder" || kind === "folders") return !!entry.isDir && !isDocPkg;
+  if (entry.isDir && !isDocPkg) return false;
   const k = String(entry.kind || entry.category || "").toLowerCase();
   const n = String(entry.name || "").toLowerCase();
   const dot = n.lastIndexOf(".");
   const ext = dot > 0 ? n.slice(dot + 1) : String(entry.ext || "").replace(/^\./, "").toLowerCase();
   if (kind === "image" || kind === "images") return k === "image" || /^(png|jpe?g|gif|webp|svg|bmp|ico|avif|tiff?|heic)$/.test(ext);
   if (kind === "media") return k === "audio" || k === "video" || /^(mp3|wav|ogg|flac|m4a|aac|opus|mp4|mkv|webm|mov|avi|m3u8?)$/.test(ext);
-  if (kind === "document" || kind === "docs") return k === "pdf" || k === "document" || /^(pdf|md|txt|rtf|doc|docx|odt|pages|epub|tex)$/.test(ext);
+  if (kind === "document" || kind === "docs") return isDocPkg || k === "pdf" || k === "document" || /^(pdf|md|txt|rtf|rtfd|doc|docx|odt|pages|epub|tex)$/.test(ext);
   if (kind === "code") return k === "code" || /^(ts|tsx|js|jsx|mjs|cjs|py|rs|go|c|cpp|h|hpp|java|kt|swift|rb|php|sh|zsh|bash|html?|css|scss|less|vue|svelte|astro|sql|lua|zig|toml|ya?ml)$/.test(ext) || /^(dockerfile|makefile|justfile|\.gitignore|\.env.*)$/.test(n);
   if (kind === "archive" || kind === "archives") return k === "archive" || /^(zip|tar|gz|tgz|bz2|xz|7z|rar|zst|radenc)$/.test(ext);
   if (kind === "data") return /^(json|jsonl|csv|tsv|parquet|sqlite|sqlite3|db|ddb|duckdb|xml|ini|conf|env|lock)$/.test(ext);

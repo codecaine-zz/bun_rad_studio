@@ -61,6 +61,7 @@ const uiState = {
   // Model lifecycle state
   hubModelQuery: "",
   loadContextLength: 32768,
+  contextPaths: [],
 };
 
 let rootContainer = null;
@@ -72,7 +73,18 @@ function currentFolderRel() {
 }
 
 function selectedFilePaths() {
-  return selectedEntries().map((e) => e.path);
+  const activeSel = selectedEntries().map((e) => e.path);
+  if (activeSel.length > 0) return activeSel;
+  for (const pane of [state.left, state.right]) {
+    if (pane?.selection?.size > 0) return [...pane.selection];
+  }
+  if (Array.isArray(uiState.contextPaths) && uiState.contextPaths.length > 0) {
+    return uiState.contextPaths;
+  }
+  for (const pane of [state.left, state.right]) {
+    if (pane?.focusKey) return [pane.focusKey];
+  }
+  return [];
 }
 
 function computeTextTelemetry(text) {
@@ -2321,6 +2333,9 @@ export function mountBionicTool(container) {
   return {
     show(opts) {
       if (opts?.subTab) uiState.subTab = opts.subTab;
+      if (Array.isArray(opts?.paths) && opts.paths.length > 0) {
+        uiState.contextPaths = opts.paths;
+      }
       if (opts?.prompt) {
         uiState.promptText = opts.prompt;
         void runBionicSmartRouter(opts.prompt);

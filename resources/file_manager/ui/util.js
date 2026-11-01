@@ -40,7 +40,16 @@ export function plural(n, word, pluralWord = `${word}s`) {
   return `${n} ${n === 1 ? word : pluralWord}`;
 }
 
-const KIND_ORDER = (e) => (e.isDir ? 0 : 1);
+export function isDocumentPackageName(name) {
+  return /\.(?:epub|rtfd)$/i.test(String(name || "").trim());
+}
+
+export function isDocumentPackageEntry(entry) {
+  if (!entry || !entry.isDir) return false;
+  return isDocumentPackageName(entry.name || entry.path || "") || entry.kind === "document";
+}
+
+const KIND_ORDER = (e) => (e.isDir && !isDocumentPackageEntry(e) ? 0 : 1);
 
 /** Sorted copy of `entries`. `by`: name | modified | size | type. Folders can be kept on top. */
 export function sortEntries(entries, { by = "name", dir = "asc", foldersFirst = true } = {}) {
@@ -49,8 +58,8 @@ export function sortEntries(entries, { by = "name", dir = "asc", foldersFirst = 
     switch (by) {
       case "modified": return a.mtimeMs - b.mtimeMs;
       case "size": {
-        const sa = a.isDir && !a.folderSizeCalculated ? -1 : a.size;
-        const sb = b.isDir && !b.folderSizeCalculated ? -1 : b.size;
+        const sa = a.isDir && !a.folderSizeCalculated && !isDocumentPackageEntry(a) ? -1 : a.size;
+        const sb = b.isDir && !b.folderSizeCalculated && !isDocumentPackageEntry(b) ? -1 : b.size;
         return sa - sb;
       }
       case "type": return naturalCompare(a.label, b.label);
@@ -224,11 +233,11 @@ export function extractableEntries(entries) {
 /** One sentence about the selection, for the status bar and screen readers. */
 export function describeSelection(selected) {
   if (selected.length === 0) return "";
-  const files = selected.filter((e) => !e.isDir);
+  const files = selected.filter((e) => !e.isDir || isDocumentPackageEntry(e));
   const folders = selected.length - files.length;
-  const sizedFolders = selected.filter((e) => e.isDir && e.folderSizeCalculated);
-  const bytes = files.reduce((n, e) => n + e.size, 0) + sizedFolders.reduce((n, e) => n + e.size, 0);
-  const showBytes = files.length > 0 || sizedFolders.length > 0;
+  const sizedFolders = selected.filter((e) => e.isDir && !isDocumentPackageEntry(e) && e.folderSizeCalculated);
+  const bytes = files.reduce((n, e) => n + (Number(e.size) || 0), 0) + sizedFolders.reduce((n, e) => n + (Number(e.size) || 0), 0);
+  const showBytes = files.some((e) => !e.isDir || (Number(e.size) || 0) > 0) || sizedFolders.length > 0;
   const parts = [];
   if (folders) parts.push(plural(folders, "folder"));
   if (files.length) parts.push(plural(files.length, "file"));

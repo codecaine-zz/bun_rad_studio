@@ -716,13 +716,13 @@ function parseOdtBlocks(xml: string): { blocks: DocBlock[]; plainText: string } 
   return { blocks, plainText: plainLines.join("\n\n") };
 }
 
-function parseHtmlToBlocks(xhtml: string): DocBlock[] {
+function parseHtmlToBlocks(xhtml: string, maxBlocks = 250): DocBlock[] {
   const blocks: DocBlock[] = [];
   const body = /<body\b[^>]*>([\s\S]*?)<\/body>/i.exec(xhtml)?.[1] ?? xhtml;
   const clean = body.replace(/<(script|style)\b[\s\S]*?<\/\1>/gi, "");
   const re = /<(h[1-6]|p|li|blockquote|pre)\b[^>]*>([\s\S]*?)<\/\1>/gi;
   let m: RegExpExecArray | null;
-  while ((m = re.exec(clean)) !== null && blocks.length < 250) {
+  while ((m = re.exec(clean)) !== null && blocks.length < maxBlocks) {
     const tag = m[1]!.toLowerCase();
     const text = decodeEntities(m[2]!.replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, "")).replace(/\s+/g, " ").trim();
     if (!text) continue;
@@ -736,9 +736,254 @@ function parseHtmlToBlocks(xhtml: string): DocBlock[] {
   }
   if (!blocks.length) {
     const plain = decodeEntities(clean.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
-    if (plain) blocks.push({ type: "p", text: plain.slice(0, 4000) });
+    if (plain) blocks.push({ type: "p", text: plain.slice(0, maxBlocks > 500 ? 100_000 : 4000) });
   }
   return blocks;
+}
+
+export interface EpubInspectLimits {
+  maxChapters?: number;
+  maxBlocksPerChapter?: number;
+  maxTotalBlocks?: number;
+  maxPartBytes?: number;
+}
+
+async function inspectEpubFromReader(
+  readPart: (relPath: string, limit: number) => Promise<string>,
+  listRelPaths: () => Promise<string[]>,
+  baseMeta: Array<[string, string]>,
+  hasThumb: boolean,
+  limits: EpubInspectLimits = {},
+): Promise<RichDocumentPreview | null> {
+  const maxChapters = limits.maxChapters ?? 12;
+  const maxBlocksPerChapter = limits.maxBlocksPerChapter ?? 250;
+  const maxTotalBlocks = limits.maxTotalBlocks ?? 300;
+  const maxPartBytes = limits.maxPartBytes ?? 512 * 1024;
+
+  const containerXml = await readPart("META-INF/container.xml", 64 * 1024);
+  let rootPath = xmlAttr(containerXml, "rootfile", "full-path");
+  if (!rootPath) {
+    const allNames = await listRelPaths();
+    rootPath = allNames.find((n) => /\.opf$/i.test(n)) ?? (allNames.includes("content.opf") ? "content.opf" : "");
+  }
+  const opf = rootPath ? await readPart(rootPath, 512 * 1024) : "";
+  const opfDir = rootPath && rootPath.includes("/") ? rootPath.slice(0, rootPath.lastIndexOf("/") + 1) : "";
+  const manifest = new Map<string, string>();
+  for (const item of opf.matchAll(/<item\b([^>]+)\/?>/g)) {
+    const id = /\bid="([^"]+)"/.exec(item[1]!)?.[1];
+    const href = /\bhref="([^"]+)"/.exec(item[1]!)?.[1];
+    if (id && href) manifest.set(id, decodeEntities(href));
+  }
+  const spineIds = [...opf.matchAll(/<itemref\b[^>]*\bidref="([^"]+)"/g)].map((m) => m[1]!);
+  const chapterPaths: string[] = [];
+  for (const idref of spineIds) {
+    const href = manifest.get(idref);
+    if (!href) continue;
+    const entryPath = nodePath.posix.normalize(opfDir + href.split("#")[0]!);
+    if (!chapterPaths.includes(entryPath)) chapterPaths.push(entryPath);
+  }
+  if (chapterPaths.length === 0) {
+    const allNames = await listRelPaths();
+    const fallback = allNames
+      .filter((n) => /\.(?:xhtml|html|htm)$/i.test(n) && !/^META-INF\//i.test(n))
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }));
+    chapterPaths.push(...fallback);
+  }
+
+  const bookTitle = xmlText(opf, "dc:title") || undefined;
+  const author = xmlText(opf, "dc:creator") || undefined;
+  const language = xmlText(opf, "dc:language") || undefined;
+  const publisher = xmlText(opf, "dc:publisher") || undefined;
+  const pubDate = xmlText(opf, "dc:date") || undefined;
+
+  const chapters: Array<{ title: string; blocks: DocBlock[] }> = [];
+  const allBlocks: DocBlock[] = [];
+  for (const entryPath of chapterPaths.slice(0, maxChapters)) {
+    const xhtml = await readPart(entryPath, maxPartBytes);
+    if (!xhtml) continue;
+    const cBlocks = parseHtmlToBlocks(xhtml, maxBlocksPerChapter);
+    if (!cBlocks.length) continue;
+    let firstHeading = cBlocks.find((b) => b.type === "h1" || b.type === "h2" || b.type === "h3");
+    if (!firstHeading && cBlocks[0] && cBlocks[0].type === "p") {
+      const candidate = cBlocks[0].text.trim();
+      if (
+        candidate.length > 0 &&
+        candidate.length <= 90 &&
+        (/^(?:chapter|prologue|epilogue|part|book|section|act|scene|introduction|foreword|preface|afterword|acknowledg|dedication|contents|table of contents)\b/i.test(candidate) ||
+          (candidate.length <= 70 && candidate === candidate.toUpperCase() && /[A-Z]/.test(candidate)))
+      ) {
+        cBlocks[0] = { type: "h2", text: candidate };
+        firstHeading = cBlocks[0];
+      }
+    }
+    const rawHtmlTitle = xmlText(xhtml, "title").trim();
+    const usableHtmlTitle =
+      rawHtmlTitle && (!bookTitle || rawHtmlTitle.toLowerCase() !== bookTitle.toLowerCase()) && !/^unknown$/i.test(rawHtmlTitle)
+        ? rawHtmlTitle
+        : "";
+    const chTitle =
+      (firstHeading && "text" in firstHeading ? firstHeading.text : "") ||
+      usableHtmlTitle ||
+      `Section ${chapters.length + 1}`;
+    chapters.push({ title: chTitle, blocks: cBlocks });
+    allBlocks.push(...cBlocks);
+  }
+
+  const meta: Array<[string, string]> = [...baseMeta];
+  const hasMetaKey = (k: string) => meta.some(([mk]) => mk.toLowerCase() === k.toLowerCase());
+  if (bookTitle && !hasMetaKey("Title")) meta.unshift(["Title", bookTitle]);
+  if (author && !hasMetaKey("Author")) meta.push(["Author", author]);
+  if (language && !hasMetaKey("Language")) meta.push(["Language", language]);
+  if (publisher && !hasMetaKey("Publisher")) meta.push(["Publisher", publisher]);
+  if (pubDate && !hasMetaKey("Date")) meta.push(["Date", pubDate.slice(0, 10)]);
+  if (chapterPaths.length > 0 && !hasMetaKey("Chapters")) meta.push(["Chapters", String(chapterPaths.length)]);
+
+  const plainText = allBlocks
+    .map((b) => (b.type === "table" ? b.rows.map((r) => r.join("\t")).join("\n") : b.text))
+    .join("\n\n");
+  return {
+    kind: "document",
+    formatLabel: "E-Book (EPUB)",
+    ...(bookTitle ? { title: bookTitle } : {}),
+    ...(author ? { author } : {}),
+    meta,
+    blocks: allBlocks.slice(0, maxTotalBlocks),
+    chapters,
+    plainText,
+    hasThumb,
+  };
+}
+
+/**
+ * Inspects an unpacked macOS `.epub` (or `.rtfd`) package directory on disk.
+ */
+export async function inspectPackageDirectoryRich(
+  dirPath: string,
+  hasThumb = false,
+  limits: EpubInspectLimits = {},
+): Promise<RichPreview | null> {
+  const baseName = nodePath.basename(dirPath).toLowerCase();
+  // 1. Check for macOS .rtfd bundle (contains TXT.rtf)
+  if (baseName.endsWith(".rtfd")) {
+    const rtfCandidate = nodePath.join(dirPath, "TXT.rtf");
+    try {
+      const rtfText = await fsp.readFile(rtfCandidate, "utf8");
+      const { blocks, plainText, meta } = parseRtfDocument(rtfText);
+      return {
+        kind: "document",
+        formatLabel: "Rich Text Bundle (RTFD)",
+        meta: [["Paragraphs", String(blocks.length)], ...meta],
+        blocks,
+        plainText,
+        hasThumb,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  // 2. Check for unpacked .epub package directory (contains META-INF/container.xml or .opf)
+  const resolvedRoot = nodePath.resolve(dirPath);
+  const readPart = async (relPath: string, limit = 512 * 1024): Promise<string> => {
+    const normalizedRel = relPath.replace(/^\/+/, "").split("/").join(nodePath.sep);
+    const full = nodePath.resolve(resolvedRoot, normalizedRel);
+    if (!full.startsWith(resolvedRoot + nodePath.sep) && full !== resolvedRoot) return "";
+    try {
+      const st = await fsp.stat(full);
+      if (!st.isFile() || st.size === 0) return "";
+      if (st.size <= limit) return await fsp.readFile(full, "utf8");
+      const h = await fsp.open(full, "r");
+      try {
+        const buf = Buffer.alloc(limit);
+        const { bytesRead } = await h.read(buf, 0, limit, 0);
+        return buf.subarray(0, bytesRead).toString("utf8");
+      } finally {
+        await h.close();
+      }
+    } catch {
+      return "";
+    }
+  };
+
+  let cachedRelPaths: string[] | null = null;
+  const listRelPaths = async (): Promise<string[]> => {
+    if (cachedRelPaths) return cachedRelPaths;
+    const out: string[] = [];
+    const stack: Array<{ abs: string; rel: string }> = [{ abs: resolvedRoot, rel: "" }];
+    while (stack.length > 0 && out.length < 2000) {
+      const cur = stack.pop()!;
+      let entries: Array<{ name: string; isDirectory(): boolean; isFile(): boolean }>;
+      try {
+        entries = await fsp.readdir(cur.abs, { withFileTypes: true });
+      } catch {
+        continue;
+      }
+      for (const d of entries) {
+        const rel = cur.rel ? `${cur.rel}/${d.name}` : d.name;
+        const abs = nodePath.join(cur.abs, d.name);
+        if (d.isDirectory()) {
+          stack.push({ abs, rel });
+        } else if (d.isFile()) {
+          out.push(rel);
+        }
+      }
+    }
+    cachedRelPaths = out;
+    return out;
+  };
+
+  const hasContainer = await readPart("META-INF/container.xml", 16 * 1024);
+  if (!hasContainer && !baseName.endsWith(".epub")) {
+    const topFiles = await fsp.readdir(resolvedRoot).catch(() => [] as string[]);
+    if (!topFiles.some((f) => /\.opf$/i.test(f))) return null;
+  }
+
+  return await inspectEpubFromReader(
+    readPart,
+    listRelPaths,
+    [["Package format", "macOS EPUB Bundle"]],
+    hasThumb,
+    limits,
+  );
+}
+
+/**
+ * Extracts all chapters and blocks from either an unpacked `.epub` directory bundle or a zipped `.epub` file,
+ * without preview-only chapter caps so Phonon Voice Reader can read entire books from cover to cover.
+ */
+export async function extractFullEpubRich(filePath: string, isDir: boolean): Promise<RichDocumentPreview | null> {
+  const fullLimits: EpubInspectLimits = {
+    maxChapters: 2000,
+    maxBlocksPerChapter: 10_000,
+    maxTotalBlocks: 200_000,
+    maxPartBytes: 4 * 1024 * 1024,
+  };
+  if (isDir) {
+    const res = await inspectPackageDirectoryRich(filePath, false, fullLimits);
+    return res && res.kind === "document" ? res : null;
+  }
+  const st = await fsp.stat(filePath).catch(() => null);
+  if (!st || !st.isFile() || st.size === 0) return null;
+  const handle = await fsp.open(filePath, "r");
+  try {
+    const entries = await readCentralDirectory(handle, st.size);
+    const byName = new Map(entries.map((e) => [e.name, e]));
+    const readPart = async (name: string, limit = 4 * 1024 * 1024): Promise<string> => {
+      const e = byName.get(name);
+      if (!e || e.isDir || (e.flags & 1) !== 0) return "";
+      try {
+        return (await readZipEntry(handle, st.size, e, limit)).toString("utf8");
+      } catch {
+        return "";
+      }
+    };
+    const listRelPaths = async () => entries.filter((e) => !e.isDir).map((e) => e.name);
+    return await inspectEpubFromReader(readPart, listRelPaths, [], false, fullLimits);
+  } catch {
+    return null;
+  } finally {
+    await handle.close();
+  }
 }
 
 async function inspectZipBasedRich(handle: fsp.FileHandle, path: string, size: number, ext: string, hasThumb: boolean): Promise<RichPreview | null> {
@@ -897,46 +1142,13 @@ async function inspectZipBasedRich(handle: fsp.FileHandle, path: string, size: n
 
   // EPUB E-Book (.epub)
   if (mimetype === "application/epub+zip" || byName.has("META-INF/container.xml") || ext === "epub") {
-    const containerXml = await readPart("META-INF/container.xml", 64 * 1024);
-    const rootPath = xmlAttr(containerXml, "rootfile", "full-path");
-    const opf = rootPath ? await readPart(rootPath, 512 * 1024) : "";
-    const opfDir = rootPath && rootPath.includes("/") ? rootPath.slice(0, rootPath.lastIndexOf("/") + 1) : "";
-    const manifest = new Map<string, string>();
-    for (const item of opf.matchAll(/<item\b([^>]+)\/?>/g)) {
-      const id = /\bid="([^"]+)"/.exec(item[1]!)?.[1];
-      const href = /\bhref="([^"]+)"/.exec(item[1]!)?.[1];
-      if (id && href) manifest.set(id, decodeEntities(href));
-    }
-    const spineIds = [...opf.matchAll(/<itemref\b[^>]*\bidref="([^"]+)"/g)].map((m) => m[1]!);
-    const chapters: Array<{ title: string; blocks: DocBlock[] }> = [];
-    const allBlocks: DocBlock[] = [];
-    for (const idref of spineIds.slice(0, 12)) {
-      const href = manifest.get(idref);
-      if (!href) continue;
-      const entryPath = nodePath.posix.normalize(opfDir + href.split("#")[0]!);
-      const xhtml = await readPart(entryPath, 512 * 1024);
-      if (!xhtml) continue;
-      const cBlocks = parseHtmlToBlocks(xhtml);
-      if (!cBlocks.length) continue;
-      const firstHeading = cBlocks.find((b) => b.type === "h1" || b.type === "h2");
-      const chTitle = (firstHeading && "text" in firstHeading ? firstHeading.text : "") || xmlText(xhtml, "title") || `Chapter ${chapters.length + 1}`;
-      chapters.push({ title: chTitle, blocks: cBlocks });
-      allBlocks.push(...cBlocks);
-    }
-    const plainText = allBlocks
-      .map((b) => (b.type === "table" ? b.rows.map((r) => r.join("\t")).join("\n") : b.text))
-      .join("\n\n");
-    return {
-      kind: "document",
-      formatLabel: "E-Book (EPUB)",
-      title: xmlText(opf, "dc:title") || undefined,
-      author: xmlText(opf, "dc:creator") || undefined,
+    const epubRich = await inspectEpubFromReader(
+      readPart,
+      async () => entries.filter((e) => !e.isDir).map((e) => e.name),
       meta,
-      blocks: allBlocks.slice(0, 300),
-      chapters,
-      plainText,
       hasThumb,
-    };
+    );
+    if (epubRich) return epubRich;
   }
 
   // Generic ZIP / JAR / APK / WHL / CBZ archive
@@ -2266,3 +2478,97 @@ export async function inspectRichPreview(
     strings: extractPrintableStrings(head, 4, 120),
   };
 }
+
+/**
+ * Extracts readable document text for AI assistants (Bionic / Ollama) from `.epub` and `.rtfd`
+ * package directory bundles, zipped `.epub` books, and rich binary document files (`.pdf`, `.docx`,
+ * `.odt`, `.rtf`, `.fb2`, `.pptx`, `.odp`, `.xlsx`, `.ods`).
+ */
+export async function extractReadableDocumentText(absPath: string, maxChars = 24_000): Promise<string | null> {
+  const st = await fsp.stat(absPath).catch(() => null);
+  if (!st) return null;
+
+  const formatDocRich = (rich: RichPreview & { kind: "document" }): string => {
+    const header = [
+      rich.title ? `Title: ${rich.title}` : "",
+      rich.author ? `Author: ${rich.author}` : "",
+      rich.chapters?.length
+        ? `Chapters (${rich.chapters.length}): ${rich.chapters.slice(0, 40).map((c) => c.title).join(" · ")}`
+        : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+    const body =
+      rich.plainText?.trim() ||
+      rich.blocks
+        .map((b) => ("rows" in b ? b.rows.map((r) => r.join(" | ")).join("\n") : b.text))
+        .filter(Boolean)
+        .join("\n\n");
+    return [header, body].filter(Boolean).join("\n\n").trim();
+  };
+
+  if (st.isDirectory()) {
+    const pkgRich = await inspectPackageDirectoryRich(absPath, false, {
+      maxChapters: 120,
+      maxBlocksPerChapter: 2000,
+      maxTotalBlocks: 15_000,
+      maxPartBytes: 2 * 1024 * 1024,
+    }).catch(() => null);
+    if (pkgRich && pkgRich.kind === "document") {
+      const full = formatDocRich(pkgRich);
+      if (full) return full.length > maxChars ? full.slice(0, maxChars) : full;
+    }
+    return null;
+  }
+
+  if (!st.isFile() || st.size === 0) return null;
+  const name = nodePath.basename(absPath);
+  const ext = extensionOf(name);
+  const lastExt = ext.includes(".") ? ext.slice(ext.lastIndexOf(".") + 1) : ext;
+
+  if (lastExt === "epub") {
+    const epubRich = await extractFullEpubRich(absPath, false).catch(() => null);
+    if (epubRich && epubRich.kind === "document") {
+      const full = formatDocRich(epubRich);
+      if (full) return full.length > maxChars ? full.slice(0, maxChars) : full;
+    }
+  }
+
+  if (["docx", "odt", "rtf", "fb2", "pdf", "pptx", "ppsx", "odp", "xlsx", "xlsm", "ods"].includes(lastExt)) {
+    const handle = await fsp.open(absPath, "r").catch(() => null);
+    if (handle) {
+      try {
+        const headLen = Math.min(st.size, 256 * 1024);
+        const headBuf = Buffer.alloc(headLen);
+        const { bytesRead } = await handle.read(headBuf, 0, headLen, 0);
+        const head = headBuf.subarray(0, bytesRead);
+        const rich = await inspectRichPreview(handle, absPath, st.size, head, null, false).catch(() => null);
+        if (rich) {
+          let full = "";
+          if (rich.kind === "document") {
+            full = formatDocRich(rich);
+          } else if (rich.kind === "pdf") {
+            full = rich.extractedText?.trim() || "";
+          } else if (rich.kind === "presentation") {
+            full =
+              rich.slides
+                .map((s) => [`Slide ${s.number}${s.title ? `: ${s.title}` : ""}`, ...s.bullets, s.notes ? `Notes: ${s.notes}` : ""].filter(Boolean).join("\n"))
+                .join("\n\n") ||
+              rich.plainText?.trim() ||
+              "";
+          } else if (rich.kind === "spreadsheet") {
+            full = rich.sheets
+              .map((sh) => `Sheet: ${sh.name}\n` + sh.rows.map((r) => r.join(" | ")).join("\n"))
+              .join("\n\n");
+          }
+          if (full) return full.length > maxChars ? full.slice(0, maxChars) : full;
+        }
+      } finally {
+        await handle.close().catch(() => {});
+      }
+    }
+  }
+
+  return null;
+}
+

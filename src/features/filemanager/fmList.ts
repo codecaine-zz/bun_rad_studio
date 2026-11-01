@@ -7,7 +7,7 @@ import { promises as fsp } from "fs";
 import * as nodePath from "path";
 import { absolutePath, assertFolder, pathApi, tick, type FmContext } from "./fmCore";
 import { mediaKindOf, thumbnailsAvailable, wantsThumbnail } from "./fmQuickLook";
-import { FmError, classify, describeFsError, isHiddenName, systemFileManagerName } from "./fmPaths";
+import { FmError, classify, describeFsError, isDocumentPackageName, isHiddenName, systemFileManagerName } from "./fmPaths";
 
 export interface Entry {
   name: string;
@@ -57,13 +57,18 @@ async function toEntry(ctx: FmContext, dir: string, name: string, p: typeof node
   }
   const execBit = ctx.platform !== "win32" && !isDir && (target.mode & 0o111) !== 0;
   const kind = classify(name, isDir, execBit);
+  let size = isDir ? 0 : target.size;
+  if (isDir && isDocumentPackageName(name)) {
+    const pkgStats = await folderStats(full, { maxEntries: 500, timeMs: 120 }).catch(() => null);
+    if (pkgStats) size = pkgStats.bytes;
+  }
   return {
     name,
     path: full,
     isDir,
     isSymlink,
     broken,
-    size: isDir ? 0 : target.size,
+    size,
     mtimeMs: target.mtimeMs,
     kind: kind.kind,
     icon: broken ? "⛓️‍💥" : isSymlink && !isDir ? "🔗" : kind.icon,
@@ -415,7 +420,7 @@ export function listPlaces(ctx: FmContext): { places: Place[]; drives: Place[]; 
 // Preview
 // ---------------------------------------------------------------------------------------------------------------
 
-import { inspectRichPreview, type RichPreview } from "./fmPreview";
+import { inspectPackageDirectoryRich, inspectRichPreview, type RichPreview } from "./fmPreview";
 
 export const PREVIEW_BYTES = 64 * 1024;
 
@@ -432,8 +437,16 @@ export type Preview =
 export async function previewFile(ctx: FmContext, input: unknown): Promise<Preview> {
   const path = absolutePath(ctx, input);
   const st = await fsp.stat(path);
-  if (st.isDirectory()) return { type: "none", size: 0 };
   const base = nodePath.basename(path);
+  if (st.isDirectory()) {
+    const hasPkgThumb = wantsThumbnail(base) && thumbnailsAvailable(ctx);
+    const pkgRich = await inspectPackageDirectoryRich(path, hasPkgThumb).catch(() => null);
+    if (pkgRich) {
+      const pkgStats = await folderStats(path, { maxEntries: 500, timeMs: 200 }).catch(() => ({ bytes: 0 }));
+      return { type: hasPkgThumb ? "thumb" : "binary", size: pkgStats.bytes, rich: pkgRich };
+    }
+    return { type: "none", size: 0 };
+  }
   const kind = classify(base, false);
   if (kind.preview === "image") return { type: "image", size: st.size };
   const media = mediaKindOf(base);

@@ -3,12 +3,12 @@ import { ApiError, call, getToken, isPhononSupported } from "./api.js";
 import { announce, clear, h } from "./dom.js";
 import { toast } from "./menus.js";
 import { goTo, refresh, saveSettings } from "./nav.js";
-import { currentPath } from "./pane.js";
+import { currentPath, left, right } from "./pane.js";
 import { registerPowerTab } from "./power.js";
 import { selectKeys, selectedEntries } from "./selection.js";
 import { emit, on, state } from "./state.js";
 import { showToolsDialog } from "./tools.js";
-import { baseName, extensionOf } from "./util.js";
+import { baseName, extensionOf, isDocumentPackageEntry } from "./util.js";
 
 export { isPhononSupported };
 
@@ -19,13 +19,14 @@ function stemOf(name) {
 
 /**
  * Checks whether a file entry can be read aloud or converted to plain text / read-along video.
- * Supports plain text, source code, markup, documents, PDFs, e-books, spreadsheets, presentations, subtitles, data files, and OCR images.
+ * Supports plain text, source code, markup, documents, PDFs, e-books (including macOS .epub package bundles),
+ * spreadsheets, presentations, subtitles, data files, and OCR images.
  */
 const READABLE_EXTS = new Set([
   "txt", "md", "markdown", "rst", "org", "adoc", "asciidoc", "tex", "textile", "wiki", "mediawiki", "log",
   "html", "htm", "xhtml", "svg", "xml", "json", "jsonl", "ndjson", "yaml", "yml", "toml", "ini", "cfg", "conf", "env", "properties", "plist",
   "csv", "tsv", "xlsx", "xlsm", "ods",
-  "docx", "odt", "rtf", "doc", "pages", "epub", "fb2", "mobi", "azw", "azw3",
+  "docx", "odt", "rtf", "rtfd", "doc", "pages", "epub", "fb2", "mobi", "azw", "azw3",
   "pptx", "ppsx", "odp", "pdf", "ipynb",
   "srt", "vtt", "sbv", "ass", "ssa", "lrc", "ics", "vcs", "vcf", "vcard",
   "js", "mjs", "cjs", "ts", "tsx", "jsx", "py", "rs", "go", "java", "c", "cpp", "h", "hpp", "cs", "rb", "php", "sh", "bash", "zsh", "sql", "css",
@@ -33,11 +34,32 @@ const READABLE_EXTS = new Set([
 
 export function canReadWithPhonon(entry) {
   if (!isPhononSupported()) return false;
-  if (!entry || entry.isDir) return false;
-  const ext = extensionOf(entry.name);
-  if (READABLE_EXTS.has(ext)) return true;
+  if (!entry) return false;
+  if (entry.isDir && !isDocumentPackageEntry(entry)) return false;
+  const ext = extensionOf(entry.name || entry.path || "");
+  if (READABLE_EXTS.has(ext) || isDocumentPackageEntry(entry)) return true;
   if (entry.kind === "text" || entry.kind === "code" || entry.kind === "document" || entry.kind === "data") return true;
   return false;
+}
+
+/**
+ * Finds readable files or document bundles (.epub / .rtfd) selected or focused in any File Manager pane.
+ */
+function getSelectedReadableEntries() {
+  const isCandidate = (e) => Boolean(e && (!e.isDir || isDocumentPackageEntry(e) || canReadWithPhonon(e)));
+  const activeSel = selectedEntries().filter(isCandidate);
+  if (activeSel.length > 0) return activeSel;
+  for (const p of [left, right]) {
+    if (!p) continue;
+    const pSel = selectedEntries(p).filter(isCandidate);
+    if (pSel.length > 0) return pSel;
+  }
+  for (const p of [left, right]) {
+    if (!p?.focusKey || !Array.isArray(p.entries)) continue;
+    const focused = p.entries.find((e) => e.path === p.focusKey);
+    if (focused && isCandidate(focused)) return [focused];
+  }
+  return [];
 }
 
 function formatDuration(totalSec) {
@@ -1216,9 +1238,14 @@ function mountPhononStudio(root, payload) {
   }
 
   function loadSelectedFromFileManager() {
-    const sel = selectedEntries().filter((e) => !e.isDir);
+    const sel = getSelectedReadableEntries();
     if (!sel.length) {
-      toast("Select a file in the File Manager first, or type a path into the box.", { kind: "info" });
+      const typed = filePathInput.value.trim();
+      if (typed) {
+        void loadFileAndExtract(typed);
+        return;
+      }
+      toast("Select a file or e-book in the File Manager first, or type a path into the box.", { kind: "info" });
       return;
     }
     void loadFileAndExtract(sel[0].path);
@@ -1510,9 +1537,9 @@ function mountPhononStudio(root, payload) {
   }
 
   async function batchConvertSelectedFiles(forceVideo = false) {
-    const sel = selectedEntries().filter((e) => !e.isDir);
+    const sel = getSelectedReadableEntries();
     if (!sel.length) {
-      toast("Select one or more files in the File Manager list first.", { kind: "info" });
+      toast("Select one or more files or e-books in the File Manager list first.", { kind: "info" });
       return;
     }
     if (isPlaying || isPaused) {
@@ -2632,7 +2659,7 @@ function mountPhononStudio(root, payload) {
         }
       });
     } else {
-      const sel = selectedEntries().filter((e) => !e.isDir && canReadWithPhonon(e));
+      const sel = getSelectedReadableEntries().filter((e) => canReadWithPhonon(e));
       if (sel.length === 1 && textArea.value === DEFAULT_SAMPLE_TEXT) {
         void loadFileAndExtract(sel[0].path);
       }

@@ -7,6 +7,7 @@ import { extractSymbols, tokenizeText } from "./codeLogic.js";
 import { renderMarkdown } from "./codePreview.js";
 import { openInSqliteStudio } from "./dbFiles.js";
 import { h, iconFor } from "./dom.js";
+import { openPower } from "./power.js";
 import { extensionOf, formatDate, formatSize } from "./util.js";
 
 function metaChips(meta = []) {
@@ -247,7 +248,7 @@ function renderSpreadsheetQuickLook(entry, rich) {
   );
 }
 
-function renderDocumentQuickLook(entry, preview, rich) {
+function renderDocumentQuickLook(entry, preview, rich, helpers = {}) {
   const isTextType = preview.type === "text";
   const plainPre = h(
     "pre",
@@ -307,10 +308,26 @@ function renderDocumentQuickLook(entry, preview, rich) {
     if (thumbHost) thumbHost.hidden = mode !== "thumb";
   });
 
+  const voiceReaderBtn = entry?.path
+    ? h(
+        "button",
+        {
+          type: "button",
+          class: "code-btn code-small",
+          title: "Open this book or document in the Phonon Voice Reader to listen out loud or export audio/video",
+          onclick: () => {
+            helpers.onClose?.();
+            openPower("phonon", { path: entry.path, autoPlay: false });
+          },
+        },
+        "🗣️ Read in Voice Reader",
+      )
+    : null;
+
   return h(
     "div",
     { class: "ql-textwrap ql-fmt-wrap" },
-    h("div", { class: "ql-fmt-head" }, h("span", { class: "ql-fmt-badge" }, rich.formatLabel), chapterSelect, metaChips(rich.meta), h("span", { class: "code-grow" }), switcher),
+    h("div", { class: "ql-fmt-head" }, h("span", { class: "ql-fmt-badge" }, rich.formatLabel), chapterSelect, metaChips(rich.meta), h("span", { class: "code-grow" }), voiceReaderBtn, switcher),
     readerHost,
     plainPre,
     thumbHost,
@@ -1213,7 +1230,7 @@ export function renderRichQuickLook(entry, preview, helpers = {}) {
       case "spreadsheet":
         return renderSpreadsheetQuickLook(entry, rich);
       case "document":
-        return renderDocumentQuickLook(entry, preview, rich);
+        return renderDocumentQuickLook(entry, preview, rich, helpers);
       case "presentation":
         return renderPresentationQuickLook(entry, rich);
       case "pdf":

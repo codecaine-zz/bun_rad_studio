@@ -19,6 +19,13 @@ import {
   readmeFor,
 } from "../scripts/release/build_file_manager";
 import { TARGETS, listSourceApps } from "../scripts/release/common";
+import {
+  APPSTREAM_ID,
+  appStreamMetaInfoXml,
+  buildDebPackage,
+  debFileName,
+  writeLinuxStoreManifests,
+} from "../scripts/release/linuxPackages";
 import { linuxOllamaInstallScript } from "../scripts/release/linuxSandbox";
 import { installScript, readme, unixLauncher } from "../scripts/release/suite";
 
@@ -332,5 +339,89 @@ profile codecaine-file-manager "${realpathSync(f.root)}/codecaine-file-manager" 
     writeFileSync(join(f.root, "install-ollama.sh"), `#!/bin/sh\necho "ran" > "${ollamaMarker}"\n`, { mode: 0o755 });
     expect(f.run(["--ollama"]).exitCode).toBe(0);
     expect(existsSync(ollamaMarker)).toBe(true);
+  });
+
+  test("builds spec-compliant .deb GUI installers and Flathub, Snap, AUR, RPM & AppImage manifests", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "fm-linux-deb-"));
+    dirs.push(dir);
+    const stageDir = join(dir, "stage");
+    mkdirSync(join(stageDir, "app"), { recursive: true });
+    mkdirSync(join(stageDir, "lib"), { recursive: true });
+    mkdirSync(join(stageDir, "resources"), { recursive: true });
+    writeFileSync(join(stageDir, "codecaine-file-manager"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+    writeFileSync(join(stageDir, "app", "file-manager-studio.js"), "console.log('ok');\n");
+    writeFileSync(join(stageDir, "lib", "libwebview-x64.so"), "so", { mode: 0o755 });
+    writeFileSync(join(stageDir, "resources", "sample.txt"), "resource");
+    writeFileSync(join(stageDir, "install-ollama.sh"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+    writeFileSync(join(stageDir, "codecaine-file-manager.png"), "png-bytes");
+
+    const debOut = join(dir, debFileName("amd64", "1.5.3"));
+    await buildDebPackage(stageDir, debOut, { version: "1.5.3", arch: "amd64" });
+    expect(existsSync(debOut)).toBe(true);
+
+    const debBuf = readFileSync(debOut);
+    expect(debBuf.subarray(0, 8).toString("ascii")).toBe("!<arch>\n");
+
+    if (Bun.which("ar") && Bun.which("tar")) {
+      const unpackDir = join(dir, "unpacked");
+      mkdirSync(unpackDir, { recursive: true });
+      const arList = Bun.spawnSync(["ar", "-t", debOut]);
+      expect(arList.exitCode).toBe(0);
+      expect(arList.stdout.toString().trim().split(/\r?\n/)).toEqual([
+        "debian-binary",
+        "control.tar.gz",
+        "data.tar.gz",
+      ]);
+
+      expect(Bun.spawnSync(["ar", "-x", debOut], { cwd: unpackDir }).exitCode).toBe(0);
+      expect(readFileSync(join(unpackDir, "debian-binary"), "utf8")).toBe("2.0\n");
+
+      const ctrlDir = join(unpackDir, "ctrl");
+      const dataDir = join(unpackDir, "data");
+      mkdirSync(ctrlDir);
+      mkdirSync(dataDir);
+      expect(Bun.spawnSync(["tar", "-xzf", join(unpackDir, "control.tar.gz"), "-C", ctrlDir]).exitCode).toBe(0);
+      expect(Bun.spawnSync(["tar", "-xzf", join(unpackDir, "data.tar.gz"), "-C", dataDir]).exitCode).toBe(0);
+
+      const controlText = readFileSync(join(ctrlDir, "control"), "utf8");
+      expect(controlText).toContain("Package: codecaine-file-manager");
+      expect(controlText).toContain("Architecture: amd64");
+      expect(controlText).toContain("Depends: libc6, libgtk-4-1, libwebkitgtk-6.0-4");
+      expect(Bun.spawnSync(["sh", "-n", join(ctrlDir, "postinst")]).exitCode).toBe(0);
+      expect(Bun.spawnSync(["sh", "-n", join(ctrlDir, "prerm")]).exitCode).toBe(0);
+
+      expect(readlinkSync(join(dataDir, "usr/bin/codecaine-file-manager"))).toBe(
+        "/opt/codecaine-file-manager/codecaine-file-manager",
+      );
+      expect(existsSync(join(dataDir, `usr/share/applications/${APPSTREAM_ID}.desktop`))).toBe(true);
+      expect(existsSync(join(dataDir, `usr/share/metainfo/${APPSTREAM_ID}.metainfo.xml`))).toBe(true);
+      expect(existsSync(join(dataDir, `usr/share/icons/hicolor/512x512/apps/${APPSTREAM_ID}.png`))).toBe(true);
+    }
+
+    const storesDir = join(dir, "linux-stores");
+    const shaX64 = "a".repeat(64);
+    const shaArm64 = "b".repeat(64);
+    writeLinuxStoreManifests(storesDir, {
+      version: "1.5.3",
+      sha256X64: shaX64,
+      sha256Arm64: shaArm64,
+    });
+
+    expect(readFileSync(join(storesDir, "flathub", `${APPSTREAM_ID}.yml`), "utf8")).toContain(shaX64);
+    expect(readFileSync(join(storesDir, "flathub", `${APPSTREAM_ID}.metainfo.xml`), "utf8")).toContain(
+      `<launchable type="desktop-id">${APPSTREAM_ID}.desktop</launchable>`,
+    );
+    expect(readFileSync(join(storesDir, "snap", "snapcraft.yaml"), "utf8")).toContain("extensions: [gnome]");
+    expect(readFileSync(join(storesDir, "aur", "PKGBUILD"), "utf8")).toContain(shaArm64);
+    expect(readFileSync(join(storesDir, "aur", ".SRCINFO"), "utf8")).toContain("pkgname = codecaine-file-manager-bin");
+    expect(readFileSync(join(storesDir, "rpm", "codecaine-file-manager.spec"), "utf8")).toContain("Requires:       webkitgtk6.0");
+    expect(Bun.spawnSync(["sh", "-n", join(storesDir, "appimage", "AppRun")]).exitCode).toBe(0);
+    expect(Bun.spawnSync(["sh", "-n", join(storesDir, "appimage", "build-appimage.sh")]).exitCode).toBe(0);
+
+    const pageWithDebs = downloadPage([], "", [
+      { arch: "amd64", label: "Ubuntu / Debian / Mint (.deb · x86-64)", hint: "GUI installer", file: debFileName("amd64", "1.5.3"), bytes: 70_000_000 },
+    ]);
+    expect(pageWithDebs).toContain(debFileName("amd64", "1.5.3"));
+    expect(appStreamMetaInfoXml("1.5.3")).toContain("<mediatype>inode/directory</mediatype>");
   });
 });

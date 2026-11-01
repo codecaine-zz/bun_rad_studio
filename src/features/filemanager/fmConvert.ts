@@ -7,15 +7,17 @@
  * result is put in place only if its name is still free, and a failed step removes what it made.
  */
 import { existsSync, promises as fsp } from "fs";
+import * as nodePath from "path";
 import { CATALOG, CATALOG_BY_ID } from "./fmConvCatalog";
 import type { BuiltinJob } from "./fmConvBuiltin";
 import { EXTRACT_LIMITS, Stage, publishFile, publishFolder, removeQuietly, runCommands, sanitizeExtracted, siblingTemp } from "./fmConvExec";
 import { applyPattern, validateOptions, validatePattern, type OptionDef, type OptionValues } from "./fmConvOptions";
 import { runBuiltinInWorker } from "./fmConvRun";
 import { CONV_GROUPS, defAccepts, extOf, freeName, outExtOf, plannedName, type BuildContext, type ConvDef, type ConvGroup, type Engine } from "./fmConvTypes";
+import { ZipFileWriter } from "./fmConvZip";
 import { absolutePath, assertCreatable, pathApi, type FmContext } from "./fmCore";
 import type { JobStepSpec, JobView, PreparedStep } from "./fmJobs";
-import { FmError, validateName } from "./fmPaths";
+import { FmError, isDocumentPackageName, validateName } from "./fmPaths";
 import { explainFailure, pdfEngineFor, resolveTool, toolStatus, type ToolStatus } from "./fmToolDetect";
 import { TOOLS, childEnv, missingCapability, type ToolId } from "./fmTools";
 
@@ -45,9 +47,40 @@ export async function classifyPaths(ctx: FmContext, paths: unknown): Promise<Sel
     seen.add(p);
     const st = await fsp.stat(p).catch(() => null);
     if (st?.isFile()) sel.files.push(p);
-    else if (st?.isDirectory()) sel.dirs.push(p);
+    else if (st?.isDirectory()) {
+      if (isDocumentPackageName(nodePath.basename(p))) sel.files.push(p);
+      else sel.dirs.push(p);
+    }
   }
   return sel;
+}
+
+async function packDocumentPackageDirToZip(bundleDir: string, targetZipPath: string): Promise<string> {
+  const writer = await ZipFileWriter.create(targetZipPath);
+  const mimetypePath = nodePath.join(bundleDir, "mimetype");
+  const mimeSt = await fsp.stat(mimetypePath).catch(() => null);
+  if (mimeSt?.isFile()) {
+    await writer.add("mimetype", await fsp.readFile(mimetypePath));
+  }
+  const walk = async (absDir: string, relPrefix: string) => {
+    const names = (await fsp.readdir(absDir).catch(() => [])).sort();
+    for (const name of names) {
+      if (name === ".DS_Store") continue;
+      if (!relPrefix && name === "mimetype") continue;
+      const absChild = nodePath.join(absDir, name);
+      const relChild = relPrefix ? `${relPrefix}/${name}` : name;
+      const st = await fsp.lstat(absChild).catch(() => null);
+      if (!st || st.isSymbolicLink()) continue;
+      if (st.isDirectory()) {
+        await walk(absChild, relChild);
+      } else if (st.isFile()) {
+        await writer.add(relChild, await fsp.readFile(absChild));
+      }
+    }
+  };
+  await walk(bundleDir, "");
+  await writer.finish();
+  return targetZipPath;
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -400,9 +433,24 @@ function stepFor(ctx: FmContext, plan: Plan, item: PlanItem, pdfEngine: string |
       if (folder) tmpOut = siblingTemp(item.path);
       else if (viaFile) tmpOut = p.join(stage.dir(), `${staged && engine.stageBase ? engine.stageBase : "out"}${outExt ? `.${outExt}` : ""}`);
       else tmpOut = item.path;
+      const resolvedOriginals: string[] = [];
+      for (let i = 0; i < item.originals.length; i++) {
+        const orig = item.originals[i]!;
+        if (engine.tool !== "builtin" && engine.tool !== "sevenzip" && isDocumentPackageName(p.basename(orig))) {
+          const st = await fsp.stat(orig).catch(() => null);
+          if (st?.isDirectory()) {
+            const safePkgName = `pkg-${i + 1}-${p.basename(orig).replace(/[^A-Za-z0-9_.-]/g, "_")}`;
+            const packedPath = p.join(stage.dir(), safePkgName);
+            await packDocumentPackageDirToZip(orig, packedPath);
+            resolvedOriginals.push(packedPath);
+            continue;
+          }
+        }
+        resolvedOriginals.push(orig);
+      }
       const inputs = staged
-        ? item.originals.map((o, i) => stage.safeInput(o, engine.stageBase && item.originals.length === 1 ? engine.stageBase : `in${String(i + 1).padStart(4, "0")}`, extOf(p.basename(o)).replace(/[^.a-z0-9]/g, "")))
-        : item.originals;
+        ? resolvedOriginals.map((o, i) => stage.safeInput(o, engine.stageBase && resolvedOriginals.length === 1 ? engine.stageBase : `in${String(i + 1).padStart(4, "0")}`, extOf(p.basename(o)).replace(/[^.a-z0-9]/g, "")))
+        : resolvedOriginals;
       const publish = async () => {
         if (folder) {
           if (engine.limitOutput) await sanitizeExtracted(tmpOut, EXTRACT_LIMITS);
