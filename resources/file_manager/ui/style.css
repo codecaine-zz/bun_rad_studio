@@ -724,7 +724,20 @@ body.dragging .row:not(.is-folder) { cursor: no-drop; }
 
 /* The Quick Look player (sound and video) */
 .ql-head { flex-wrap: wrap; }
-.ql-body:has(.mp) { align-items: stretch; justify-content: stretch; overflow: hidden; background: #0b0f17; }
+.ql-body:has(.mp), .ql-body:has(.ql-img-wrap) { align-items: stretch; justify-content: stretch; overflow: hidden; }
+.ql-img-wrap { display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; min-width: 0; overflow: hidden; position: relative; }
+.ql-img-inspector { flex: 0 0 auto; position: relative; z-index: 10; display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; padding: 0.5rem 0.75rem; margin: 0; background: var(--bg); border-bottom: 1px solid var(--border); }
+.ql-image-stage { flex: 1 1 0%; min-height: 0; min-width: 0; width: 100%; height: 100%; display: flex; overflow: auto; position: relative; z-index: 1; clip-path: inset(0); padding: 1rem; box-sizing: border-box; }
+.ql-image-stage[data-backdrop="grid"] {
+  background-image: linear-gradient(45deg, rgba(148,163,184,0.14) 25%, transparent 25%), linear-gradient(-45deg, rgba(148,163,184,0.14) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, rgba(148,163,184,0.14) 75%), linear-gradient(-45deg, transparent 75%, rgba(148,163,184,0.14) 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+}
+.ql-image-stage[data-backdrop="dark"] { background: #090d16; background-image: none; }
+.ql-image-stage[data-backdrop="light"] { background: #f8fafc; background-image: none; }
+.ql-image-canvas { margin: auto; display: flex; align-items: center; justify-content: center; position: relative; flex-shrink: 0; }
+.ql-image-canvas .ql-image { max-width: none; max-height: none; object-fit: contain; transform-origin: center center; display: block; flex-shrink: 0; user-select: none; -webkit-user-drag: none; }
+.ql-body:has(.mp) { background: #0b0f17; }
 .mp { position: relative; flex: 1; min-width: 0; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto auto auto; color: #e5e7eb; overflow: hidden; }
 .mp.has-panel { grid-template-columns: minmax(0, 1fr) 19rem; grid-template-rows: minmax(0, 1fr) auto auto auto; }
 .mp.has-panel > .mp-stage, .mp.has-panel > .mp-info, .mp.has-panel > .mp-seekrow, .mp.has-panel > .mp-buttons { grid-column: 1; }

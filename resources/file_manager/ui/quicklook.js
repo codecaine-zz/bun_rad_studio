@@ -264,9 +264,12 @@ async function renderBody(entry, mine) {
         type: "button",
         class: "btn ql-mini-btn",
         dataset: { qlImgZoomReset: "" },
-        title: "Toggle between Fit (100%) and 200% zoom",
+        title: "Reset zoom & orientation to Fit (100%) — Shortcut: 0",
         onclick: () => {
-          zoom = zoom === 1 ? 2 : 1;
+          zoom = 1;
+          rot = 0;
+          flipX = 1;
+          flipY = 1;
           applyTransform();
         },
       }, "100% (Fit)");
@@ -274,18 +277,25 @@ async function renderBody(entry, mine) {
       const stage = h("div", {
         class: "ql-image-stage ql-bg-grid",
         dataset: { qlImgStage: "", backdrop: backdropMode },
-        style: "display: flex; align-items: center; justify-content: center; overflow: auto; flex: 1; min-height: 260px; padding: 12px; border-radius: 6px; background-image: linear-gradient(45deg, rgba(148,163,184,0.14) 25%, transparent 25%), linear-gradient(-45deg, rgba(148,163,184,0.14) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, rgba(148,163,184,0.14) 75%), linear-gradient(-45deg, transparent 75%, rgba(148,163,184,0.14) 75%); background-size: 16px 16px; background-position: 0 0, 0 8px, 8px -8px, -8px 0;",
+        style: "display: flex; overflow: auto; flex: 1 1 0%; min-height: 0; min-width: 0; width: 100%; height: 100%; position: relative; z-index: 1; clip-path: inset(0); padding: 16px; box-sizing: border-box; background-image: linear-gradient(45deg, rgba(148,163,184,0.14) 25%, transparent 25%), linear-gradient(-45deg, rgba(148,163,184,0.14) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, rgba(148,163,184,0.14) 75%), linear-gradient(-45deg, transparent 75%, rgba(148,163,184,0.14) 75%); background-size: 16px 16px; background-position: 0 0, 0 8px, 8px -8px, -8px 0;",
+      });
+
+      const canvasWrap = h("div", {
+        class: "ql-image-canvas",
+        style: "margin: auto; display: flex; align-items: center; justify-content: center; position: relative; flex-shrink: 0;",
       });
 
       const img = h("img", {
         class: "ql-image",
         src: rawUrl(entry.path),
         alt: `Preview of ${entry.name}`,
-        style: "transition: transform 0.14s ease; transform-origin: center center;",
+        draggable: "false",
+        style: "max-width: none; max-height: none; object-fit: contain; transform-origin: center center; display: block; flex-shrink: 0; user-select: none; -webkit-user-drag: none;",
         onload: () => {
           if (ql && mine === ql.seq) {
             setSub(`${baseSub(entry)}  ·  ${img.naturalWidth} × ${img.naturalHeight}`);
             dimBadge.textContent = `${(extensionOf(entry.name) || "IMG").toUpperCase()} · ${img.naturalWidth} × ${img.naturalHeight}`;
+            requestAnimationFrame(() => applyTransform(true));
           }
         },
         onerror: () => {
@@ -298,43 +308,112 @@ async function renderBody(entry, mine) {
         },
       });
 
-      function applyTransform() {
+      function applyTransform(resetCenter = false) {
         const pct = Math.round(zoom * 100);
         zoomLabelBtn.textContent = zoom === 1 && rot === 0 && flipX === 1 && flipY === 1 ? "100% (Fit)" : `${pct}%`;
-        img.style.transform = `scale(${zoom}) rotate(${rot}deg) scale(${flipX}, ${flipY})`;
+
+        // Record current viewport center ratio before resizing so zooming keeps the image centered
+        const prevScrollW = stage.scrollWidth;
+        const prevScrollH = stage.scrollHeight;
+        const prevClientW = stage.clientWidth;
+        const prevClientH = stage.clientHeight;
+        const centerRatioX = !resetCenter && prevScrollW > prevClientW
+          ? (stage.scrollLeft + prevClientW / 2) / prevScrollW
+          : 0.5;
+        const centerRatioY = !resetCenter && prevScrollH > prevClientH
+          ? (stage.scrollTop + prevClientH / 2) / prevScrollH
+          : 0.5;
+
+        const natW = img.naturalWidth || 640;
+        const natH = img.naturalHeight || 480;
+        const availW = Math.max(120, (stage.clientWidth || 800) - 32);
+        const availH = Math.max(120, (stage.clientHeight || 520) - 32);
+        const isRot90 = Math.abs(rot % 180) === 90;
+
+        // Fit scale so 100% (Fit) fits nicely inside the stage without exceeding 1:1 natural pixels unless zoomed
+        const fitScale = isRot90
+          ? Math.min(availW / natH, availH / natW, 1)
+          : Math.min(availW / natW, availH / natH, 1);
+
+        const targetW = Math.max(24, Math.round(natW * fitScale * zoom));
+        const targetH = Math.max(24, Math.round(natH * fitScale * zoom));
+        const boxW = isRot90 ? targetH : targetW;
+        const boxH = isRot90 ? targetW : targetH;
+
+        canvasWrap.style.width = `${boxW}px`;
+        canvasWrap.style.height = `${boxH}px`;
+        img.style.width = `${targetW}px`;
+        img.style.height = `${targetH}px`;
+        img.style.transform = `rotate(${rot}deg) scale(${flipX}, ${flipY})`;
+
+        const isScrollable = boxW > availW || boxH > availH;
+        stage.style.cursor = isScrollable ? "grab" : "default";
+
+        requestAnimationFrame(() => {
+          const newScrollW = stage.scrollWidth;
+          const newScrollH = stage.scrollHeight;
+          const newClientW = stage.clientWidth;
+          const newClientH = stage.clientHeight;
+          if (newScrollW > newClientW) {
+            stage.scrollLeft = Math.max(0, Math.round(newScrollW * centerRatioX - newClientW / 2));
+          } else {
+            stage.scrollLeft = 0;
+          }
+          if (newScrollH > newClientH) {
+            stage.scrollTop = Math.max(0, Math.round(newScrollH * centerRatioY - newClientH / 2));
+          } else {
+            stage.scrollTop = 0;
+          }
+        });
       }
+
+      // Click-and-drag panning when zoomed in
+      let panState = null;
+      stage.addEventListener("mousedown", (ev) => {
+        if (ev.button !== 0) return;
+        if (stage.scrollWidth <= stage.clientWidth && stage.scrollHeight <= stage.clientHeight) return;
+        ev.preventDefault();
+        panState = {
+          startX: ev.clientX,
+          startY: ev.clientY,
+          scrollLeft: stage.scrollLeft,
+          scrollTop: stage.scrollTop,
+        };
+        stage.style.cursor = "grabbing";
+      });
+      stage.addEventListener("mousemove", (ev) => {
+        if (!panState) return;
+        stage.scrollLeft = panState.scrollLeft - (ev.clientX - panState.startX);
+        stage.scrollTop = panState.scrollTop - (ev.clientY - panState.startY);
+      });
+      const stopPan = () => {
+        if (!panState) return;
+        panState = null;
+        const isScrollable = stage.scrollWidth > stage.clientWidth || stage.scrollHeight > stage.clientHeight;
+        stage.style.cursor = isScrollable ? "grab" : "default";
+      };
+      stage.addEventListener("mouseup", stopPan);
+      stage.addEventListener("mouseleave", stopPan);
 
       function applyBackdrop(mode) {
         backdropMode = mode;
         stage.dataset.backdrop = mode;
-        if (mode === "grid") {
-          stage.style.background = "";
-          stage.style.backgroundImage = "linear-gradient(45deg, rgba(148,163,184,0.14) 25%, transparent 25%), linear-gradient(-45deg, rgba(148,163,184,0.14) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, rgba(148,163,184,0.14) 75%), linear-gradient(-45deg, transparent 75%, rgba(148,163,184,0.14) 75%)";
-          stage.style.backgroundSize = "16px 16px";
-          stage.style.backgroundPosition = "0 0, 0 8px, 8px -8px, -8px 0";
-        } else if (mode === "dark") {
-          stage.style.backgroundImage = "none";
-          stage.style.background = "#090d16";
-        } else {
-          stage.style.backgroundImage = "none";
-          stage.style.background = "#f8fafc";
-        }
       }
 
       const inspectorBar = h("div", {
         class: "ql-fmt-head ql-img-inspector",
         dataset: { qlImgInspector: "" },
-        style: "display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 6px 10px; margin-bottom: 6px;",
+        style: "flex: 0 0 auto; position: relative; z-index: 10; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 8px 12px; margin: 0; background: var(--bg); border-bottom: 1px solid var(--border);",
       },
         dimBadge,
         h("span", { class: "code-grow" }),
-        h("button", { type: "button", class: "btn ql-mini-btn", dataset: { qlImgZoomOut: "" }, title: "Zoom out", onclick: () => { zoom = Math.max(0.25, +(zoom - 0.25).toFixed(2)); applyTransform(); } }, "−"),
+        h("button", { type: "button", class: "btn ql-mini-btn", dataset: { qlImgZoomOut: "" }, title: "Zoom out (−)", onclick: () => { zoom = Math.max(0.25, +(zoom - 0.25).toFixed(2)); applyTransform(); } }, "−"),
         zoomLabelBtn,
-        h("button", { type: "button", class: "btn ql-mini-btn", dataset: { qlImgZoomIn: "" }, title: "Zoom in", onclick: () => { zoom = Math.min(4, +(zoom + 0.25).toFixed(2)); applyTransform(); } }, "+"),
-        h("button", { type: "button", class: "btn ql-mini-btn", dataset: { qlImgRotLeft: "" }, title: "Rotate 90° counter-clockwise", onclick: () => { rot = (rot - 90) % 360; applyTransform(); } }, "↶"),
-        h("button", { type: "button", class: "btn ql-mini-btn", dataset: { qlImgRotRight: "" }, title: "Rotate 90° clockwise", onclick: () => { rot = (rot + 90) % 360; applyTransform(); } }, "↷"),
-        h("button", { type: "button", class: "btn ql-mini-btn", dataset: { qlImgFlipH: "" }, title: "Flip horizontally", onclick: () => { flipX *= -1; applyTransform(); } }, "⇄"),
-        h("button", { type: "button", class: "btn ql-mini-btn", dataset: { qlImgFlipV: "" }, title: "Flip vertically", onclick: () => { flipY *= -1; applyTransform(); } }, "⇅"),
+        h("button", { type: "button", class: "btn ql-mini-btn", dataset: { qlImgZoomIn: "" }, title: "Zoom in (+)", onclick: () => { zoom = Math.min(4, +(zoom + 0.25).toFixed(2)); applyTransform(); } }, "+"),
+        h("button", { type: "button", class: "btn ql-mini-btn", dataset: { qlImgRotLeft: "" }, title: "Rotate 90° counter-clockwise (⇧R)", onclick: () => { rot = (rot - 90) % 360; applyTransform(); } }, "↶"),
+        h("button", { type: "button", class: "btn ql-mini-btn", dataset: { qlImgRotRight: "" }, title: "Rotate 90° clockwise (R)", onclick: () => { rot = (rot + 90) % 360; applyTransform(); } }, "↷"),
+        h("button", { type: "button", class: "btn ql-mini-btn", dataset: { qlImgFlipH: "" }, title: "Flip horizontally (H)", onclick: () => { flipX *= -1; applyTransform(); } }, "⇄"),
+        h("button", { type: "button", class: "btn ql-mini-btn", dataset: { qlImgFlipV: "" }, title: "Flip vertically (V)", onclick: () => { flipY *= -1; applyTransform(); } }, "⇅"),
         h("button", {
           type: "button",
           class: "btn ql-mini-btn",
@@ -354,8 +433,9 @@ async function renderBody(entry, mine) {
         }, "🤖 Ask AI"),
       );
 
-      stage.append(img);
-      return open(h("div", { class: "ql-img-wrap", style: "display: flex; flex-direction: column; width: 100%; height: 100%;" }, inspectorBar, stage));
+      canvasWrap.append(img);
+      stage.append(canvasWrap);
+      return open(h("div", { class: "ql-img-wrap", style: "display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; min-width: 0; overflow: hidden; position: relative;" }, inspectorBar, stage));
     }
     case "thumb": {
       const richNode = renderRichQuickLook(entry, preview, { onClose: closeQuickLook });
@@ -558,6 +638,34 @@ function onKey(e) {
     e.preventDefault();
     ql.mdController.toggleMode();
     return;
+  }
+  const imgInspector = ql.body?.querySelector("[data-ql-img-inspector]");
+  if (imgInspector && !target?.closest("input, textarea, select")) {
+    const keyMap = {
+      "+": "[data-ql-img-zoom-in]",
+      "=": "[data-ql-img-zoom-in]",
+      "-": "[data-ql-img-zoom-out]",
+      "_": "[data-ql-img-zoom-out]",
+      "0": "[data-ql-img-zoom-reset]",
+      "r": "[data-ql-img-rot-right]",
+      "R": e.shiftKey ? "[data-ql-img-rot-left]" : "[data-ql-img-rot-right]",
+      "h": "[data-ql-img-flip-h]",
+      "H": "[data-ql-img-flip-h]",
+      "v": "[data-ql-img-flip-v]",
+      "V": "[data-ql-img-flip-v]",
+      "b": "[data-ql-img-backdrop]",
+      "B": "[data-ql-img-backdrop]",
+    };
+    const btnSel = keyMap[e.key];
+    if (btnSel) {
+      const btn = imgInspector.querySelector(btnSel);
+      if (btn) {
+        e.stopPropagation();
+        e.preventDefault();
+        btn.click();
+        return;
+      }
+    }
   }
   const mine = e.key === " " || isArrow || e.key === "Home" || e.key === "End";
   if (!mine) { e.stopPropagation(); return; }

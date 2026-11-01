@@ -23,6 +23,18 @@ export function h(tag, attrs = {}, ...children) {
     if (key === "class") el.className = value;
     else if (key === "text") el.textContent = value;
     else if (key === "dataset") Object.assign(el.dataset, value);
+    else if (key === "style" && typeof value === "string") {
+      for (const decl of value.split(";")) {
+        const idx = decl.indexOf(":");
+        if (idx <= 0) continue;
+        const prop = decl.slice(0, idx).trim();
+        const rawVal = decl.slice(idx + 1).trim();
+        if (!prop || !rawVal) continue;
+        const important = rawVal.endsWith("!important");
+        const cleanVal = important ? rawVal.slice(0, -10).trim() : rawVal;
+        el.style.setProperty(prop, cleanVal, important ? "important" : "");
+      }
+    }
     else if (key.startsWith("on")) {
       if (typeof value === "function") el.addEventListener(key.slice(2).toLowerCase(), value);
     }
