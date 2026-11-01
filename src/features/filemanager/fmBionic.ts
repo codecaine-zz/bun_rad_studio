@@ -14,8 +14,11 @@ import {
   dirnamePath,
   ensureDirectoryPure,
   evaluateModelHardwareGuard,
+  extractThinkingAndFinalContent,
   extnameLower,
   fileExistsPure,
+  getModelFeatureProfile,
+  getModelThinkingCapabilities,
   inspectOllamaHardware,
   isSupportedVisionImagePath,
   joinPath,
@@ -24,6 +27,7 @@ import {
   readImageAsBase64,
   readTextFileSnippet,
   readTextFileSyncPure,
+  resolveOllamaThinkConfig,
   resolveSandboxPath,
   runOllamaSpeech,
   sha256Hex,
@@ -32,7 +36,11 @@ import {
   tempDirPath,
   toSandboxRelative,
   type HardwareGuardVerdict,
+  type ModelFeatureProfile,
+  type ModelThinkingCapabilities,
+  type ModelThinkingMode,
   type OllamaHardwareSpecs,
+  type ThinkingEffortChoice,
 } from "./fmOllama";
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -74,6 +82,8 @@ export interface BionicModelInfo {
   isMlx: boolean;
   isCloud: boolean;
   badges: string[];
+  thinkingCapabilities: ModelThinkingCapabilities;
+  featureProfile: ModelFeatureProfile;
   hardwareVerdict: HardwareGuardVerdict;
 }
 
@@ -650,7 +660,13 @@ export async function listBionicModelsAndHardwareStatus(ctx: FmContext): Promise
       String(raw.path || "").toLowerCase().includes("mlx") ||
       quant.toLowerCase().includes("mxfp");
 
+    const thinkingCapabilities = getModelThinkingCapabilities({
+      name: id,
+      family: arch,
+      capabilities: Array.isArray(fromApi?.capabilities) ? fromApi.capabilities : [],
+    });
     const reasoningCapable =
+      thinkingCapabilities.supportsThinking ||
       id.includes("gpt-oss") ||
       id.includes("qwen3") ||
       id.includes("nemotron") ||
@@ -704,6 +720,20 @@ export async function listBionicModelsAndHardwareStatus(ctx: FmContext): Promise
       isMlx,
       isCloud: false,
       badges,
+      thinkingCapabilities,
+      featureProfile: getModelFeatureProfile({
+        name: id,
+        family: arch,
+        capabilities: [
+          ...(Array.isArray(fromApi?.capabilities) ? fromApi.capabilities : []),
+          ...(vision ? ["vision"] : []),
+          ...(trainedForToolUse ? ["tools"] : []),
+          ...(isEmbedding ? ["embeddings"] : []),
+          ...(isTts ? ["speech"] : []),
+        ],
+        reasoningCapable,
+        isMlx,
+      }),
       hardwareVerdict: verdict,
     };
   };
@@ -787,6 +817,16 @@ export async function listBionicModelsAndHardwareStatus(ctx: FmContext): Promise
             isMlx: false,
             isCloud: true,
             badges,
+            thinkingCapabilities: getModelThinkingCapabilities({
+              name: id,
+              capabilities: ["thinking"],
+            }),
+            featureProfile: getModelFeatureProfile({
+              name: id,
+              capabilities: ["completion", "tools", "thinking", ...(cm.vision ? ["vision"] : [])],
+              isMlx: false,
+              isCloud: true,
+            }),
             hardwareVerdict: verdict,
           });
         }
@@ -808,7 +848,15 @@ export async function listBionicModelsAndHardwareStatus(ctx: FmContext): Promise
 
 export async function loadBionicModel(
   ctx: FmContext,
-  payload: { model: string; contextLength?: number; ttlSeconds?: number; force?: boolean },
+  payload: {
+    model: string;
+    contextLength?: number;
+    ttlSeconds?: number;
+    gpuOffload?: "max" | "off" | number;
+    flashAttention?: boolean;
+    kvCacheQuant?: "f16" | "q8_0" | "q4_0";
+    force?: boolean;
+  },
 ): Promise<any> {
   const modelKey = String(payload.model || "").trim();
   if (!modelKey) {
@@ -832,6 +880,13 @@ export async function loadBionicModel(
       ok: true,
       model: modelKey,
       status: "loaded",
+      appliedLoadConfig: {
+        contextLength: payload.contextLength ?? 32768,
+        ttlSeconds: payload.ttlSeconds ?? 0,
+        gpuOffload: payload.gpuOffload ?? "max",
+        flashAttention: payload.flashAttention ?? true,
+        kvCacheQuant: payload.kvCacheQuant ?? "f16",
+      },
       hardwareVerdict: verdict,
     };
   }
@@ -842,6 +897,9 @@ export async function loadBionicModel(
   }
   if (typeof payload.ttlSeconds === "number" && payload.ttlSeconds > 0) {
     args.push("--ttl", String(payload.ttlSeconds));
+  }
+  if (payload.gpuOffload !== undefined && String(payload.gpuOffload) !== "") {
+    args.push("--gpu", String(payload.gpuOffload));
   }
 
   const res = Bun.spawnSync([lmsCli, ...args], { stdout: "pipe", stderr: "pipe" });
@@ -857,6 +915,13 @@ export async function loadBionicModel(
     model: modelKey,
     status: "loaded",
     output: out || `Loaded ${modelKey} into Apple Metal memory.`,
+    appliedLoadConfig: {
+      contextLength: payload.contextLength ?? 32768,
+      ttlSeconds: payload.ttlSeconds ?? 0,
+      gpuOffload: payload.gpuOffload ?? "max",
+      flashAttention: payload.flashAttention ?? true,
+      kvCacheQuant: payload.kvCacheQuant ?? "f16",
+    },
     hardwareVerdict: verdict,
   };
 }
@@ -2077,6 +2142,55 @@ export const BIONIC_SCHEMA_PRESETS: Record<string, { name: string; schema: Recor
       required: ["title", "columns", "rows"],
     },
   },
+  code_review_report: {
+    name: "code_review_report",
+    schema: {
+      type: "object",
+      properties: {
+        summary: { type: "string" },
+        overallRisk: { type: "string", enum: ["low", "medium", "high", "critical"] },
+        findings: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              file: { type: "string" },
+              line: { type: "number" },
+              severity: { type: "string", enum: ["info", "warning", "error", "critical"] },
+              issue: { type: "string" },
+              fixSuggestion: { type: "string" },
+            },
+            required: ["file", "severity", "issue", "fixSuggestion"],
+          },
+        },
+      },
+      required: ["summary", "overallRisk", "findings"],
+    },
+  },
+  security_audit_report: {
+    name: "security_audit_report",
+    schema: {
+      type: "object",
+      properties: {
+        summary: { type: "string" },
+        status: { type: "string", enum: ["safe", "attention_needed", "vulnerable"] },
+        vulnerabilities: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              category: { type: "string" },
+              severity: { type: "string", enum: ["low", "medium", "high", "critical"] },
+              description: { type: "string" },
+              remediation: { type: "string" },
+            },
+            required: ["category", "severity", "description", "remediation"],
+          },
+        },
+      },
+      required: ["summary", "status", "vulnerabilities"],
+    },
+  },
 };
 
 export async function selectBestBionicModel(
@@ -2134,18 +2248,36 @@ export async function runBionicChat(
     dirPath?: string;
     skill?: string;
     schemaPreset?: string;
+    customJsonSchema?: Record<string, any>;
     speakReply?: boolean;
     voice?: string;
+    think?: boolean | "low" | "medium" | "high" | "on" | "off" | "auto";
+    thinkingLevel?: ThinkingEffortChoice;
+    thinkingBudget?: number;
     temperature?: number;
+    topP?: number;
+    topK?: number;
+    minP?: number;
+    repeatPenalty?: number;
     maxTokens?: number;
+    seed?: number;
+    stop?: string | string[];
+    contextLength?: number;
+    draftModel?: string;
+    ttlSeconds?: number;
+    systemPrompt?: string;
     enableTools?: boolean;
   },
 ): Promise<{
   model: string;
   hardwareVerdict: HardwareGuardVerdict;
+  thinkingEnabled: boolean;
+  thinkingMode: ModelThinkingMode;
+  thinkingLevel: "off" | "on" | "low" | "medium" | "high";
   content: string;
   reasoningText: string;
   structuredJson: any;
+  appliedOptions: Record<string, any>;
   stats: {
     tokensPerSecond: number;
     timeToFirstToken: number;
@@ -2218,10 +2350,22 @@ export async function runBionicChat(
   const { model, verdict } = await selectBestBionicModel(ctx, payload.model, imageDataUrls.length > 0);
   bionicSessionLoadedModels.add(model);
 
+  const thinkResolution = resolveOllamaThinkConfig(model, {
+    think: payload.think,
+    thinkingLevel: payload.thinkingLevel,
+    thinkingBudget: payload.thinkingBudget,
+    speakReply: Boolean(payload.speakReply),
+  });
+
   const systemParts = [
-    "You are LM Studio Bionic running inside Codecaine File Manager on Apple Silicon Metal.",
-    "Be concise, accurate, and directly helpful with files, code, architecture, and workspace tasks.",
+    String(
+      payload.systemPrompt ||
+        "You are LM Studio Bionic running inside Codecaine File Manager on Apple Silicon Metal.\nBe concise, accurate, and directly helpful with files, code, architecture, and workspace tasks.",
+    ).trim(),
   ];
+  if (thinkResolution.systemReasoningDirective) {
+    systemParts.push(thinkResolution.systemReasoningDirective);
+  }
   if (skillContexts.length > 0) {
     systemParts.push("Active Bionic Agent Skills injected for this turn:\n\n" + skillContexts.join("\n\n"));
   }
@@ -2235,17 +2379,86 @@ export async function runBionicChat(
         ]
       : fullUserText;
 
+  const temperature = typeof payload.temperature === "number" && Number.isFinite(payload.temperature) ? payload.temperature : 0.4;
+  const maxTokens = typeof payload.maxTokens === "number" && Number.isFinite(payload.maxTokens) ? Math.round(payload.maxTokens) : 2048;
+
   const requestBody: Record<string, any> = {
     model,
     messages: [
-      { role: "system", content: systemParts.join("\n") },
+      { role: "system", content: systemParts.join("\n\n") },
       { role: "user", content: userContent },
     ],
-    temperature: typeof payload.temperature === "number" ? payload.temperature : 0.4,
-    max_tokens: typeof payload.maxTokens === "number" ? payload.maxTokens : 2048,
+    temperature,
+    max_tokens: maxTokens,
   };
 
-  if (payload.schemaPreset && BIONIC_SCHEMA_PRESETS[payload.schemaPreset]) {
+  if (typeof payload.topP === "number" && Number.isFinite(payload.topP)) {
+    requestBody.top_p = Math.max(0, Math.min(1, payload.topP));
+  }
+  if (typeof payload.topK === "number" && Number.isFinite(payload.topK) && payload.topK > 0) {
+    requestBody.top_k = Math.round(payload.topK);
+  }
+  if (typeof payload.minP === "number" && Number.isFinite(payload.minP) && payload.minP >= 0) {
+    requestBody.min_p = Math.max(0, Math.min(1, payload.minP));
+  }
+  if (typeof payload.repeatPenalty === "number" && Number.isFinite(payload.repeatPenalty) && payload.repeatPenalty > 0) {
+    requestBody.repeat_penalty = payload.repeatPenalty;
+  }
+  if (typeof payload.seed === "number" && Number.isFinite(payload.seed)) {
+    requestBody.seed = Math.round(payload.seed);
+  }
+  if (payload.stop) {
+    const stops = Array.isArray(payload.stop)
+      ? payload.stop.map((s) => String(s)).filter(Boolean)
+      : String(payload.stop)
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean);
+    if (stops.length > 0) requestBody.stop = stops;
+  }
+  if (typeof payload.contextLength === "number" && payload.contextLength >= 512) {
+    requestBody.context_length = Math.round(payload.contextLength);
+  }
+  if (payload.draftModel && String(payload.draftModel).trim()) {
+    requestBody.draft_model = String(payload.draftModel).trim();
+  }
+  if (typeof payload.ttlSeconds === "number" && payload.ttlSeconds > 0) {
+    requestBody.ttl = Math.round(payload.ttlSeconds);
+  }
+
+  // Pass LM Studio / Bionic thinking & reasoning effort parameters
+  const chatTemplateKwargs: Record<string, any> = {};
+  if (thinkResolution.thinkingMode === "levels") {
+    const effort = thinkResolution.reasoningEffort || "medium";
+    requestBody.reasoning_effort = effort;
+    chatTemplateKwargs.reasoning_effort = effort;
+    chatTemplateKwargs.enable_thinking = true;
+  } else if (thinkResolution.thinkingMode === "toggle" || thinkResolution.thinkingMode === "always_on") {
+    requestBody.enable_thinking = thinkResolution.thinkEnabled;
+    chatTemplateKwargs.enable_thinking = thinkResolution.thinkEnabled;
+    if (thinkResolution.reasoningEffort) {
+      requestBody.reasoning_effort = thinkResolution.reasoningEffort;
+      chatTemplateKwargs.reasoning_effort = thinkResolution.reasoningEffort;
+    }
+  }
+  if (typeof payload.thinkingBudget === "number" && payload.thinkingBudget > 0) {
+    requestBody.thinking_budget = Math.round(payload.thinkingBudget);
+    chatTemplateKwargs.thinking_budget = Math.round(payload.thinkingBudget);
+  }
+  if (Object.keys(chatTemplateKwargs).length > 0) {
+    requestBody.chat_template_kwargs = chatTemplateKwargs;
+  }
+
+  if (payload.customJsonSchema && typeof payload.customJsonSchema === "object") {
+    requestBody.response_format = {
+      type: "json_schema",
+      json_schema: {
+        name: "custom_schema",
+        strict: true,
+        schema: payload.customJsonSchema,
+      },
+    };
+  } else if (payload.schemaPreset && BIONIC_SCHEMA_PRESETS[payload.schemaPreset]) {
     const preset = BIONIC_SCHEMA_PRESETS[payload.schemaPreset]!;
     requestBody.response_format = {
       type: "json_schema",
@@ -2278,18 +2491,15 @@ export async function runBionicChat(
 
   const data = (await res.json()) as any;
   const msg = data?.choices?.[0]?.message || {};
-  let content = String(msg.content || "").trim();
-  let reasoningText = String(msg.reasoning || msg.reasoning_content || "").trim();
-
-  // Also extract `<think>...</think>` blocks if present in content
-  const thinkTagMatch = /^<think>([\s\S]*?)<\/think>\s*([\s\S]*)$/i.exec(content);
-  if (thinkTagMatch) {
-    if (!reasoningText) reasoningText = thinkTagMatch[1]!.trim();
-    content = thinkTagMatch[2]!.trim();
-  }
+  const extracted = extractThinkingAndFinalContent(
+    String(msg.content || ""),
+    String(msg.reasoning || msg.reasoning_content || msg.thinking || ""),
+  );
+  const content = extracted.content;
+  const reasoningText = extracted.thinkingText;
 
   let structuredJson: any = null;
-  if (payload.schemaPreset && content) {
+  if ((payload.schemaPreset || payload.customJsonSchema) && content) {
     try {
       structuredJson = JSON.parse(content);
     } catch {}
@@ -2333,9 +2543,27 @@ export async function runBionicChat(
   return {
     model: data?.model || model,
     hardwareVerdict: verdict,
+    thinkingEnabled: thinkResolution.thinkEnabled,
+    thinkingMode: thinkResolution.thinkingMode,
+    thinkingLevel: thinkResolution.effectiveLevel,
     content,
     reasoningText,
     structuredJson,
+    appliedOptions: {
+      temperature,
+      maxTokens,
+      topP: requestBody.top_p,
+      topK: requestBody.top_k,
+      minP: requestBody.min_p,
+      repeatPenalty: requestBody.repeat_penalty,
+      seed: requestBody.seed,
+      stop: requestBody.stop,
+      contextLength: requestBody.context_length,
+      draftModel: requestBody.draft_model,
+      reasoningEffort: requestBody.reasoning_effort,
+      enableThinking: requestBody.enable_thinking,
+      thinkingBudget: requestBody.thinking_budget,
+    },
     stats: {
       tokensPerSecond: Math.round(Number(data?.stats?.tokens_per_second || 0) * 10) / 10,
       timeToFirstToken: Math.round(Number(data?.stats?.time_to_first_token || 0) * 1000) / 1000,
@@ -2399,6 +2627,21 @@ export async function routeBionicRequest(
     voice?: string;
     language?: string;
     speakReply?: boolean;
+    think?: boolean | "low" | "medium" | "high" | "on" | "off" | "auto";
+    thinkingLevel?: ThinkingEffortChoice;
+    thinkingBudget?: number;
+    temperature?: number;
+    topP?: number;
+    topK?: number;
+    minP?: number;
+    repeatPenalty?: number;
+    maxTokens?: number;
+    seed?: number;
+    stop?: string | string[];
+    contextLength?: number;
+    draftModel?: string;
+    ttlSeconds?: number;
+    systemPrompt?: string;
   },
 ): Promise<{
   routedCapability:
@@ -2541,6 +2784,21 @@ export async function routeBionicRequest(
     enableTools: needsTools,
     speakReply: payload.speakReply,
     voice: payload.voice,
+    think: payload.think,
+    thinkingLevel: payload.thinkingLevel,
+    thinkingBudget: payload.thinkingBudget,
+    temperature: payload.temperature,
+    topP: payload.topP,
+    topK: payload.topK,
+    minP: payload.minP,
+    repeatPenalty: payload.repeatPenalty,
+    maxTokens: payload.maxTokens,
+    seed: payload.seed,
+    stop: payload.stop,
+    contextLength: payload.contextLength,
+    draftModel: payload.draftModel,
+    ttlSeconds: payload.ttlSeconds,
+    systemPrompt: payload.systemPrompt,
   });
 
   const cap = hasSkillMention
@@ -2557,7 +2815,7 @@ export async function routeBionicRequest(
       ? `Routed to Bionic Agent Skill Execution (${result.injectedSkills.map((s) => `@${s}`).join(", ") || "Skill Context"}) via ${result.model}.`
       : hasImages
         ? `Routed to Bionic Multimodal Vision VLM (${result.model}) with attached images.`
-        : `Routed to Bionic Deep Reasoning & Code Chat (POST /api/v0/chat/completions, model: ${result.model}, ${result.stats.tokensPerSecond || "live"} tok/s).`,
+        : `Routed to Bionic Deep Reasoning & Code Chat (POST /api/v0/chat/completions, model: ${result.model}, thinking: ${result.thinkingLevel}, ${result.stats.tokensPerSecond || "live"} tok/s).`,
     result,
   };
 }
@@ -2608,22 +2866,83 @@ export async function handleBionicStreamRequest(ctx: FmContext, req: Request): P
     const { model, verdict } = await selectBestBionicModel(ctx, body.model, false);
     bionicSessionLoadedModels.add(model);
 
+    const thinkResolution = resolveOllamaThinkConfig(model, {
+      think: body.think,
+      thinkingLevel: body.thinkingLevel,
+      thinkingBudget: body.thinkingBudget,
+      speakReply: Boolean(body.speakReply),
+    });
+
+    const sysParts = [
+      String(body.systemPrompt || "You are LM Studio Bionic running inside Codecaine File Manager.").trim(),
+      thinkResolution.systemReasoningDirective,
+    ].filter(Boolean);
+
     const promptText = [String(body.prompt || "Hello"), ...fileSnippets].filter(Boolean).join("\n\n");
+    const streamPayload: Record<string, any> = {
+      model,
+      messages: [
+        {
+          role: "system",
+          content: sysParts.join("\n\n"),
+        },
+        { role: "user", content: promptText },
+      ],
+      stream: true,
+      max_tokens: Number(body.maxTokens || 2048),
+      temperature: typeof body.temperature === "number" ? body.temperature : 0.4,
+    };
+
+    if (typeof body.topP === "number" && Number.isFinite(body.topP)) streamPayload.top_p = body.topP;
+    if (typeof body.topK === "number" && Number.isFinite(body.topK) && body.topK > 0) streamPayload.top_k = Math.round(body.topK);
+    if (typeof body.minP === "number" && Number.isFinite(body.minP) && body.minP >= 0) streamPayload.min_p = body.minP;
+    if (typeof body.repeatPenalty === "number" && Number.isFinite(body.repeatPenalty) && body.repeatPenalty > 0) {
+      streamPayload.repeat_penalty = body.repeatPenalty;
+    }
+    if (typeof body.seed === "number" && Number.isFinite(body.seed)) streamPayload.seed = Math.round(body.seed);
+    if (body.stop) {
+      const stops = Array.isArray(body.stop)
+        ? body.stop.map((s: any) => String(s)).filter(Boolean)
+        : String(body.stop)
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean);
+      if (stops.length > 0) streamPayload.stop = stops;
+    }
+    if (typeof body.contextLength === "number" && body.contextLength >= 512) {
+      streamPayload.context_length = Math.round(body.contextLength);
+    }
+    if (body.draftModel && String(body.draftModel).trim()) {
+      streamPayload.draft_model = String(body.draftModel).trim();
+    }
+
+    const chatTemplateKwargs: Record<string, any> = {};
+    if (thinkResolution.thinkingMode === "levels") {
+      const effort = thinkResolution.reasoningEffort || "medium";
+      streamPayload.reasoning_effort = effort;
+      chatTemplateKwargs.reasoning_effort = effort;
+      chatTemplateKwargs.enable_thinking = true;
+    } else if (thinkResolution.thinkingMode === "toggle" || thinkResolution.thinkingMode === "always_on") {
+      streamPayload.enable_thinking = thinkResolution.thinkEnabled;
+      chatTemplateKwargs.enable_thinking = thinkResolution.thinkEnabled;
+      if (thinkResolution.reasoningEffort) {
+        streamPayload.reasoning_effort = thinkResolution.reasoningEffort;
+        chatTemplateKwargs.reasoning_effort = thinkResolution.reasoningEffort;
+      }
+    }
+    if (typeof body.thinkingBudget === "number" && body.thinkingBudget > 0) {
+      streamPayload.thinking_budget = Math.round(body.thinkingBudget);
+      chatTemplateKwargs.thinking_budget = Math.round(body.thinkingBudget);
+    }
+    if (Object.keys(chatTemplateKwargs).length > 0) {
+      streamPayload.chat_template_kwargs = chatTemplateKwargs;
+    }
+
     const upstream = await fetch(`${server.baseUrl}/v1/chat/completions`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model,
-        messages: [
-          {
-            role: "system",
-            content: "You are LM Studio Bionic running inside Codecaine File Manager.",
-          },
-          { role: "user", content: promptText },
-        ],
-        stream: true,
-        max_tokens: Number(body.maxTokens || 2048),
-      }),
+      signal: req.signal,
+      body: JSON.stringify(streamPayload),
     });
 
     if (!upstream.ok || !upstream.body) {

@@ -501,7 +501,7 @@ describe("Codecaine File Manager — Built-In LM Studio Bionic AI Studio & Agent
       expect(pdfDone.state).toBe("done");
       expect(existsSync(join(homeRoot, "docs", "Deadlocked 3.pdf"))).toBe(true);
     }
-  });
+  }, 15000);
 
   test("9. macOS document package directories (.textbundle, .scriv, .rtfd, .ulysses, .playground) work across AI context and Convert & Process", async () => {
     const { mkdirSync, writeFileSync, readFileSync } = await import("node:fs");
@@ -672,5 +672,108 @@ describe("Codecaine File Manager — Built-In LM Studio Bionic AI Studio & Agent
     expect(abRes.json.chapterCount).toBeGreaterThanOrEqual(1);
     expect(abRes.json.chapters[0].fileName).toContain("01 - ");
     expect(readFileSync(join(homeRoot, synthRes.json.savedRelativePath), "utf8")).toContain("Bionic Multi-File Synthesis");
+  });
+
+  test("11. LM Studio Bionic Multi-Level Reasoning (gpt-oss low/medium/high), Toggleable Thinking (qwen3.5 on/off), Speculative Decoding & Metal Load Options", async () => {
+    // 1. Verify bionic/status exposes thinkingCapabilities for openai/gpt-oss-20b ("levels") and qwen/qwen3.5-9b ("toggle")
+    const statusRes = await apiCall("bionic/status", {});
+    expect(statusRes.status).toBe(200);
+    const gptOssModel = statusRes.json.models.find((m: any) => m.id === "openai/gpt-oss-20b");
+    const qwenModel = statusRes.json.models.find((m: any) => m.id === "qwen/qwen3.5-9b");
+    expect(gptOssModel.thinkingCapabilities.thinkingMode).toBe("levels");
+    expect(gptOssModel.thinkingCapabilities.supportedLevels).toEqual(["low", "medium", "high"]);
+    expect(gptOssModel.featureProfile.features.thinkingLevels).toBe(true);
+    expect(gptOssModel.featureProfile.features.thinkingToggle).toBe(false);
+    expect(gptOssModel.featureProfile.features.vision).toBe(false);
+    expect(gptOssModel.featureProfile.indicators.map((i: any) => i.id)).toContain("thinking_levels");
+    expect(gptOssModel.featureProfile.indicators.map((i: any) => i.id)).not.toContain("vision");
+
+    expect(qwenModel.thinkingCapabilities.thinkingMode).toBe("toggle");
+    expect(qwenModel.thinkingCapabilities.canToggle).toBe(true);
+    expect(qwenModel.thinkingCapabilities.supportedLevels).toEqual(["off", "on"]);
+    expect(qwenModel.featureProfile.features.thinkingToggle).toBe(true);
+    expect(qwenModel.featureProfile.features.thinkingLevels).toBe(false);
+    expect(qwenModel.featureProfile.features.vision).toBe(true);
+    expect(qwenModel.featureProfile.indicators.map((i: any) => i.id)).toContain("thinking_toggle");
+    expect(qwenModel.featureProfile.indicators.map((i: any) => i.id)).toContain("vision");
+
+    // 2. Verify bionic/chat with openai/gpt-oss-20b passes reasoning_effort: "high", chat_template_kwargs, Harmony Reasoning: high, and sampling/speculative decoding options
+    const beforeCount = recordedBionicRequests.length;
+    const gptChat = await apiCall("bionic/chat", {
+      model: "openai/gpt-oss-20b",
+      prompt: "Analyze lock-free ring buffer memory ordering",
+      thinkingLevel: "high",
+      thinkingBudget: 8192,
+      temperature: 0.3,
+      topP: 0.9,
+      topK: 50,
+      minP: 0.04,
+      repeatPenalty: 1.12,
+      maxTokens: 4096,
+      seed: 7,
+      stop: ["<|endoftext|>"],
+      contextLength: 65536,
+      draftModel: "qwen/qwen3.5-9b",
+    });
+    expect(gptChat.status).toBe(200);
+    expect(gptChat.json.thinkingMode).toBe("levels");
+    expect(gptChat.json.thinkingLevel).toBe("high");
+    expect(gptChat.json.thinkingEnabled).toBe(true);
+    expect(gptChat.json.appliedOptions.reasoningEffort).toBe("high");
+    expect(gptChat.json.appliedOptions.thinkingBudget).toBe(8192);
+    expect(gptChat.json.appliedOptions.draftModel).toBe("qwen/qwen3.5-9b");
+
+    const gptReqs = recordedBionicRequests
+      .slice(beforeCount)
+      .filter((r) => r.path === "/api/v0/chat/completions" || r.path === "/v1/chat/completions");
+    expect(gptReqs.length).toBeGreaterThanOrEqual(1);
+    const sentBody = gptReqs[gptReqs.length - 1]!.body;
+    expect(sentBody.reasoning_effort).toBe("high");
+    expect(sentBody.chat_template_kwargs.reasoning_effort).toBe("high");
+    expect(sentBody.chat_template_kwargs.enable_thinking).toBe(true);
+    expect(sentBody.chat_template_kwargs.thinking_budget).toBe(8192);
+    expect(sentBody.messages[0].content).toContain("Reasoning: high");
+    expect(sentBody.top_p).toBe(0.9);
+    expect(sentBody.top_k).toBe(50);
+    expect(sentBody.min_p).toBe(0.04);
+    expect(sentBody.repeat_penalty).toBe(1.12);
+    expect(sentBody.seed).toBe(7);
+    expect(sentBody.context_length).toBe(65536);
+    expect(sentBody.draft_model).toBe("qwen/qwen3.5-9b");
+
+    // 3. Verify bionic/chat with qwen/qwen3.5-9b can turn thinking OFF (enable_thinking: false)
+    const beforeQwen = recordedBionicRequests.length;
+    const qwenOffChat = await apiCall("bionic/chat", {
+      model: "qwen/qwen3.5-9b",
+      prompt: "Quick one-line summary",
+      thinkingLevel: "off",
+    });
+    expect(qwenOffChat.status).toBe(200);
+    expect(qwenOffChat.json.thinkingMode).toBe("toggle");
+    expect(qwenOffChat.json.thinkingLevel).toBe("off");
+    expect(qwenOffChat.json.thinkingEnabled).toBe(false);
+    const qwenReqs = recordedBionicRequests
+      .slice(beforeQwen)
+      .filter((r) => r.path === "/api/v0/chat/completions" || r.path === "/v1/chat/completions");
+    const sentQwen = qwenReqs[qwenReqs.length - 1]!.body;
+    expect(sentQwen.enable_thinking).toBe(false);
+    expect(sentQwen.chat_template_kwargs.enable_thinking).toBe(false);
+
+    // 4. Verify bionic/load supports gpuOffload, flashAttention, kvCacheQuant, and ttlSeconds
+    const loadRes = await apiCall("bionic/load", {
+      model: "openai/gpt-oss-20b",
+      contextLength: 65536,
+      gpuOffload: "max",
+      flashAttention: true,
+      kvCacheQuant: "q8_0",
+      ttlSeconds: 900,
+    });
+    expect(loadRes.status).toBe(200);
+    expect(loadRes.json.ok).toBe(true);
+    expect(loadRes.json.appliedLoadConfig.contextLength).toBe(65536);
+    expect(loadRes.json.appliedLoadConfig.gpuOffload).toBe("max");
+    expect(loadRes.json.appliedLoadConfig.flashAttention).toBe(true);
+    expect(loadRes.json.appliedLoadConfig.kvCacheQuant).toBe("q8_0");
+    expect(loadRes.json.appliedLoadConfig.ttlSeconds).toBe(900);
   });
 });

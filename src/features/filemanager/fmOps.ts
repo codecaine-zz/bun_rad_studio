@@ -198,9 +198,9 @@ export const moveItems = (ctx: FmContext, sources: unknown, dest: unknown, polic
 // ---------------------------------------------------------------------------------------------------------------
 
 export type BulkSpec =
-  | { mode: "replace"; find: string; replace: string; matchCase?: boolean }
+  | { mode: "replace"; find: string; replace: string; matchCase?: boolean; useRegex?: boolean }
   | { mode: "number"; pattern: string; start?: number; padding?: number }
-  | { mode: "case"; style: "lower" | "upper" | "title" | "sentence" }
+  | { mode: "case"; style: "lower" | "upper" | "title" | "sentence" | "snake" | "kebab" | "camel" }
   | { mode: "affix"; prefix?: string; suffix?: string };
 
 export interface BulkRow {
@@ -214,6 +214,43 @@ function titleCase(s: string): string {
   return s.toLowerCase().replace(/(^|[\s_\-.(\[])(\p{L})/gu, (_, a: string, b: string) => a + b.toUpperCase());
 }
 
+function splitIdentifierWords(s: string): string[] {
+  return s
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
+    .split(/[\s_\-.]+/)
+    .map((w) => w.trim())
+    .filter(Boolean);
+}
+
+function toAlphaIndex(index0: number): string {
+  let n = Math.max(0, index0) + 1;
+  let out = "";
+  while (n > 0) {
+    const rem = (n - 1) % 26;
+    out = String.fromCharCode(65 + rem) + out;
+    n = Math.floor((n - 1) / 26);
+  }
+  return out || "A";
+}
+
+function expandRenameTokens(template: string, base: string, ext: string, paddedNum: string, index0: number): string {
+  const now = new Date();
+  const yyyy = String(now.getFullYear());
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  const cleanExt = ext.replace(/^\./, "");
+  return template
+    .split("{n}").join(paddedNum)
+    .split("{name}").join(base)
+    .split("{ext}").join(cleanExt)
+    .split("{date}").join(`${yyyy}-${mm}-${dd}`)
+    .split("{year}").join(yyyy)
+    .split("{month}").join(mm)
+    .split("{day}").join(dd)
+    .split("{alpha}").join(toAlphaIndex(index0));
+}
+
 /**
  * Works out the new names, without touching the disk. The extension (".jpg") is kept as it is in every mode, and
  * `existing` lists names in the folder that are NOT being renamed, so a clash with them is reported.
@@ -222,29 +259,64 @@ export function planBulkRename(names: string[], spec: BulkSpec, existing: Set<st
   const rows: BulkRow[] = names.map((from, index) => {
     const [base, ext] = splitName(from);
     let nextBase = base;
+    let customError: string | null = null;
     switch (spec.mode) {
       case "replace": {
         if (!spec.find) break;
         const flags = spec.matchCase ? "g" : "gi";
-        nextBase = base.replace(new RegExp(spec.find.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), flags), () => spec.replace ?? "");
+        if (spec.useRegex) {
+          try {
+            const re = new RegExp(spec.find, flags);
+            nextBase = base.replace(re, spec.replace ?? "");
+          } catch {
+            customError = "Invalid regular expression.";
+          }
+        } else {
+          nextBase = base.replace(new RegExp(spec.find.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), flags), () => spec.replace ?? "");
+        }
         break;
       }
       case "number": {
         const n = (spec.start ?? 1) + index;
         const padded = String(n).padStart(Math.max(1, Math.min(10, spec.padding ?? 1)), "0");
         const pattern = spec.pattern || "{n}";
-        nextBase = pattern.includes("{n}") ? pattern.split("{n}").join(padded) : `${pattern} ${padded}`;
-        nextBase = nextBase.split("{name}").join(base);
+        const hasCounterToken = pattern.includes("{n}") || pattern.includes("{alpha}");
+        const raw = hasCounterToken ? pattern : `${pattern} {n}`;
+        nextBase = expandRenameTokens(raw, base, ext, padded, index);
         break;
       }
-      case "case":
-        nextBase = spec.style === "lower" ? base.toLowerCase() : spec.style === "upper" ? base.toUpperCase() : spec.style === "title" ? titleCase(base) : base.charAt(0).toUpperCase() + base.slice(1).toLowerCase();
+      case "case": {
+        if (spec.style === "lower") nextBase = base.toLowerCase();
+        else if (spec.style === "upper") nextBase = base.toUpperCase();
+        else if (spec.style === "title") nextBase = titleCase(base);
+        else if (spec.style === "snake") {
+          const words = splitIdentifierWords(base).map((w) => w.toLowerCase());
+          if (words.length) nextBase = words.join("_");
+        } else if (spec.style === "kebab") {
+          const words = splitIdentifierWords(base).map((w) => w.toLowerCase());
+          if (words.length) nextBase = words.join("-");
+        } else if (spec.style === "camel") {
+          const words = splitIdentifierWords(base).map((w) => w.toLowerCase());
+          if (words.length) nextBase = words[0]! + words.slice(1).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join("");
+        } else {
+          nextBase = base.charAt(0).toUpperCase() + base.slice(1).toLowerCase();
+        }
         break;
-      case "affix":
-        nextBase = `${spec.prefix ?? ""}${base}${spec.suffix ?? ""}`;
+      }
+      case "affix": {
+        const padded = String(index + 1).padStart(2, "0");
+        const pre = expandRenameTokens(spec.prefix ?? "", base, ext, padded, index);
+        const suf = expandRenameTokens(spec.suffix ?? "", base, ext, padded, index);
+        nextBase = `${pre}${base}${suf}`;
         break;
+      }
     }
-    return { from, to: nextBase + ext, changed: nextBase + ext !== from, error: nextBase.trim() === "" ? "The new name would be empty." : null };
+    return {
+      from,
+      to: nextBase + ext,
+      changed: nextBase + ext !== from,
+      error: customError ?? (nextBase.trim() === "" ? "The new name would be empty." : null),
+    };
   });
   const finalNames = new Map<string, number>();
   for (const r of rows) finalNames.set(platform === "win32" || platform === "darwin" ? r.to.toLowerCase() : r.to, (finalNames.get(platform === "win32" || platform === "darwin" ? r.to.toLowerCase() : r.to) ?? 0) + 1);

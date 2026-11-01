@@ -17,6 +17,22 @@ const uiState = {
   selectedModel: "",
   selectedVoice: "Zoey",
   selectedLanguage: "en",
+  thinkEnabled: true,
+  thinkingLevel: "auto", // "auto" | "off" | "on" | "low" | "medium" | "high"
+  thinkingBudget: 0,
+  showAdvancedSampling: false,
+  contextLength: 32768,
+  temperature: 0.4,
+  topP: 0.95,
+  topK: 40,
+  minP: 0.05,
+  repeatPenalty: 1.1,
+  maxTokens: 2048,
+  seed: "",
+  stopSequences: "",
+  draftModel: "",
+  ttlSeconds: 0,
+  customSystemPrompt: "",
   speakReply: false,
   schemaPreset: "",
   selectedSkill: "",
@@ -28,6 +44,9 @@ const uiState = {
   lastStats: null,
   lastRuntime: null,
   outputExpanded: false,
+  outputFullscreen: false,
+  compactControls: false,
+  abortController: null,
   markdownView: true,
   showOutline: true,
   codeWrap: true,
@@ -61,6 +80,10 @@ const uiState = {
   // Model lifecycle state
   hubModelQuery: "",
   loadContextLength: 32768,
+  loadGpuOffload: "max",
+  loadFlashAttention: true,
+  loadKvCacheQuant: "f16",
+  loadTtlSeconds: 0,
   contextPaths: [],
 };
 
@@ -95,6 +118,342 @@ function computeTextTelemetry(text) {
     words: s.trim().split(/\s+/).filter(Boolean).length,
     lines: s.split(/\r?\n/).length,
   };
+}
+
+function resolveEffectiveBionicModelId(modelName) {
+  const clean = String(modelName ?? uiState.selectedModel ?? "").trim();
+  if (clean) return clean;
+  const models = uiState.statusData?.models || [];
+  const loadedChat = models.find((m) => m.loaded && (m.type === "llm" || m.type === "vlm"));
+  if (loadedChat?.id) return loadedChat.id;
+  const anyChat = models.find((m) => m.type === "llm" || m.type === "vlm");
+  if (anyChat?.id) return anyChat.id;
+  return "openai/gpt-oss-20b";
+}
+
+function getBionicModelThinkingCapabilities(modelName) {
+  const clean = resolveEffectiveBionicModelId(modelName);
+  const models = [...(uiState.statusData?.models || []), ...(uiState.statusData?.cloudModels || [])];
+  const found = models.find((m) => (m.id || m.modelKey || "").toLowerCase() === clean.toLowerCase());
+  if (found?.thinkingCapabilities) {
+    return found.thinkingCapabilities;
+  }
+  const lower = clean.toLowerCase();
+  if (lower.includes("phonon") || lower.includes("embed") || lower.includes("bge-")) {
+    return {
+      supportsThinking: false,
+      thinkingMode: "none",
+      canToggle: false,
+      supportedLevels: [],
+      defaultLevel: "off",
+      supportsThinkingBudget: false,
+      badgeLabel: "Direct Output (No Thinking)",
+      description: "Direct output model without chain-of-thought reasoning.",
+    };
+  }
+  if (lower.includes("gpt-oss") || lower.includes("gpt_oss") || /^o[134](?:[-:_]|$)/.test(lower)) {
+    return {
+      supportsThinking: true,
+      thinkingMode: "levels",
+      canToggle: false,
+      supportedLevels: ["low", "medium", "high"],
+      defaultLevel: "medium",
+      supportsThinkingBudget: false,
+      badgeLabel: "Reasoning Effort: Low / Med / High",
+      description:
+        "Multi-level reasoning model (gpt-oss): select Low, Medium, or High reasoning effort (passes reasoning_effort + Harmony Reasoning: <level>).",
+    };
+  }
+  if (lower.includes("deepseek-r1") || lower.includes("qwq") || lower.includes("phi4-reasoning")) {
+    return {
+      supportsThinking: true,
+      thinkingMode: "always_on",
+      canToggle: false,
+      supportedLevels: ["on"],
+      defaultLevel: "on",
+      supportsThinkingBudget: true,
+      badgeLabel: "Always-On Chain-of-Thought (<think>)",
+      description:
+        "Native reasoning model with <think>...</think> traces always active by default.",
+    };
+  }
+  if (
+    lower.includes("qwen3") ||
+    lower.includes("lfm3") ||
+    lower.includes("glm-4.5") ||
+    lower.includes("glm-z1") ||
+    lower.includes("cogito") ||
+    lower.includes("granite3") ||
+    lower.includes("smollm3") ||
+    lower.includes("deepseek-v3") ||
+    lower.includes("nemotron") ||
+    lower.includes("seed-oss") ||
+    lower.includes("hunyuan") ||
+    lower.includes("mimo") ||
+    lower.includes("gemma4") ||
+    lower.includes("muse")
+  ) {
+    return {
+      supportsThinking: true,
+      thinkingMode: "toggle",
+      canToggle: true,
+      supportedLevels: ["off", "on"],
+      defaultLevel: "on",
+      supportsThinkingBudget: true,
+      badgeLabel: "Thinking Toggle: On / Off",
+      description:
+        "Hybrid thinking model (qwen3.5, glm-4.5, cogito, etc.): toggle thinking On or Off (enable_thinking).",
+    };
+  }
+  return {
+    supportsThinking: false,
+    thinkingMode: "none",
+    canToggle: false,
+    supportedLevels: [],
+    defaultLevel: "off",
+    supportsThinkingBudget: false,
+    badgeLabel: "Standard Direct Output (No Thinking)",
+    description: "Standard direct output model without chain-of-thought reasoning latency.",
+  };
+}
+
+function getBionicModelFeatureProfile(modelName) {
+  const clean = resolveEffectiveBionicModelId(modelName);
+  const models = [...(uiState.statusData?.models || []), ...(uiState.statusData?.cloudModels || [])];
+  const found = models.find((m) => (m.id || m.modelKey || "").toLowerCase() === clean.toLowerCase());
+  if (found?.featureProfile) {
+    return found.featureProfile;
+  }
+  const lower = clean.toLowerCase();
+  const thinkingCaps = getBionicModelThinkingCapabilities(clean);
+  const isEmbedding = found?.type === "embedding" || lower.includes("embed") || lower.includes("bge-");
+  const isTts = found?.type === "tts" || lower.includes("phonon");
+  const isChat = !isEmbedding && !isTts;
+  const isVision =
+    Boolean(found?.vision) ||
+    found?.type === "vlm" ||
+    lower.includes("-vl") ||
+    lower.includes("_vl") ||
+    lower.includes("omni") ||
+    lower.includes("qwen3.5") ||
+    lower.includes("gemma3") ||
+    lower.includes("gemma4") ||
+    lower.includes("llava") ||
+    lower.includes("pixtral") ||
+    lower.includes("minicpm-v");
+  const isTools =
+    isChat &&
+    (Boolean(found?.trainedForToolUse) ||
+      (!lower.includes("deepseek-r1") &&
+        !lower.includes("qwq") &&
+        (lower.includes("gpt-oss") ||
+          lower.includes("qwen") ||
+          lower.includes("cogito") ||
+          lower.includes("lfm3") ||
+          lower.includes("gemma4") ||
+          lower.includes("llama") ||
+          lower.includes("mistral") ||
+          lower.includes("glm"))));
+
+  const indicators = [];
+  const useCases = [];
+
+  if (isTts) {
+    indicators.push({
+      id: "tts",
+      icon: "🔊",
+      label: "Phonon 40M Multilingual TTS",
+      description: "24kHz native Metal text-to-speech synthesis across 5 languages.",
+    });
+    useCases.push("Read files aloud at 24kHz with Zoey, Anton, Marlowe & Maeve");
+  } else if (isEmbedding) {
+    indicators.push({
+      id: "embedding",
+      icon: "🔍",
+      label: "768-Dim Semantic Embeddings",
+      description: "Generates dense vector embeddings for folder search by meaning.",
+    });
+    useCases.push("Search workspace files by concept & meaning (/v1/embeddings)");
+  } else if (thinkingCaps.thinkingMode === "levels") {
+    indicators.push({
+      id: "thinking_levels",
+      icon: "🧠",
+      label: "Reasoning Levels (Low / Med / High)",
+      description: "Choose Low, Medium, or High reasoning effort (gpt-oss Harmony format).",
+    });
+    useCases.push("Choose Low, Medium, or High reasoning effort per prompt");
+  } else if (thinkingCaps.thinkingMode === "toggle") {
+    indicators.push({
+      id: "thinking_toggle",
+      icon: "🔀",
+      label: "Thinking Toggle (On / Off)",
+      description: "Turn Deep Thinking On for step-by-step reasoning or Off for instant replies.",
+    });
+    useCases.push("Toggle Thinking On for deep reflection or Off for fast answers");
+  } else if (thinkingCaps.thinkingMode === "always_on") {
+    indicators.push({
+      id: "thinking_always_on",
+      icon: "🧠",
+      label: "Always-On Reasoning (<think>)",
+      description: "Always performs multi-step chain-of-thought verification.",
+    });
+    useCases.push("Step-by-step math, logic proofs & root-cause debugging");
+  } else {
+    indicators.push({
+      id: "direct_fast",
+      icon: "⚡",
+      label: "Fast Direct Output (No Thinking Overhead)",
+      description: "Responds immediately without chain-of-thought latency.",
+    });
+    useCases.push("Instant low-latency code generation & file summarization");
+  }
+
+  if (isVision) {
+    indicators.push({
+      id: "vision",
+      icon: "👁",
+      label: "Vision VLM (Images & Screenshots)",
+      description: "Inspects images, screenshots, diagrams, and documents.",
+    });
+    useCases.push("Inspect images, receipts, and UI screenshots");
+  }
+
+  if (isChat) {
+    indicators.push({
+      id: "code",
+      icon: "💻",
+      label: "Chat, Code & Document Synthesis",
+      description: "Summarizes files, writes/refactors code, and synthesizes multi-file reports.",
+    });
+    useCases.push("Summarize files, refactor code, and synthesize multi-file reports");
+  }
+
+  if (isTools) {
+    indicators.push({
+      id: "tools",
+      icon: "🛠",
+      label: "Tool Use & @Skill Injection",
+      description: "Supports Bionic @skill triggers and safe file tool actions.",
+    });
+    useCases.push("Run @skill agents and safe file organization tools");
+  }
+
+  if (isChat) {
+    indicators.push({
+      id: "structured_json",
+      icon: "📐",
+      label: "Grammar-Constrained JSON",
+      description: "Outputs schema-validated JSON for batch renames, code reviews, and tables.",
+    });
+  }
+
+  return {
+    modelName: clean,
+    summary: `Best for: ${useCases.slice(0, 3).join(" • ")}.`,
+    useCases,
+    indicators,
+    features: {
+      chat: isChat,
+      code: isChat,
+      thinking: thinkingCaps.supportsThinking,
+      thinkingMode: thinkingCaps.thinkingMode,
+      thinkingLevels: thinkingCaps.thinkingMode === "levels",
+      thinkingToggle: thinkingCaps.thinkingMode === "toggle",
+      thinkingAlwaysOn: thinkingCaps.thinkingMode === "always_on",
+      thinkingBudget: thinkingCaps.supportsThinkingBudget,
+      vision: isVision,
+      tools: isTools,
+      structuredJson: isChat,
+      embeddings: isEmbedding,
+      tts: isTts,
+    },
+    thinkingCapabilities: thinkingCaps,
+  };
+}
+
+function syncBionicSelectedModelState() {
+  const caps = getBionicModelThinkingCapabilities(uiState.selectedModel);
+  const profile = getBionicModelFeatureProfile(uiState.selectedModel);
+  const feat = profile.features || {};
+  if (caps.thinkingMode === "levels") {
+    if (uiState.thinkingLevel !== "low" && uiState.thinkingLevel !== "medium" && uiState.thinkingLevel !== "high") {
+      uiState.thinkingLevel = caps.defaultLevel || "medium";
+    }
+    uiState.thinkEnabled = true;
+  } else if (caps.thinkingMode === "always_on") {
+    uiState.thinkingLevel = "on";
+    uiState.thinkEnabled = true;
+  } else if (caps.thinkingMode === "none") {
+    uiState.thinkingLevel = "off";
+    uiState.thinkEnabled = false;
+  } else if (caps.thinkingMode === "toggle") {
+    if (uiState.thinkingLevel !== "on" && uiState.thinkingLevel !== "off") {
+      uiState.thinkingLevel = caps.defaultLevel === "on" ? "on" : "off";
+    }
+    uiState.thinkEnabled = uiState.thinkingLevel === "on";
+  }
+  if (!feat.tools) {
+    uiState.selectedSkill = "";
+  }
+  if (!feat.structuredJson) {
+    uiState.schemaPreset = "";
+  }
+  if (!feat.thinkingBudget) {
+    uiState.thinkingBudget = 0;
+  }
+}
+
+function resolveBionicThinkPayload() {
+  const caps = getBionicModelThinkingCapabilities(uiState.selectedModel);
+  if (caps.thinkingMode === "none" || !caps.supportsThinking) {
+    return { think: false, thinkingLevel: "off" };
+  }
+  let level = uiState.thinkingLevel || "auto";
+  if (caps.thinkingMode === "levels") {
+    if (level !== "low" && level !== "medium" && level !== "high") {
+      level = caps.defaultLevel || "medium";
+    }
+    return { think: level, thinkingLevel: level };
+  }
+  if (caps.thinkingMode === "always_on") {
+    return { think: true, thinkingLevel: "on" };
+  }
+  if (level === "auto") {
+    return {
+      think: uiState.thinkEnabled,
+      thinkingLevel: uiState.thinkEnabled ? "on" : "off",
+    };
+  }
+  if (level === "off") return { think: false, thinkingLevel: "off" };
+  return { think: true, thinkingLevel: "on" };
+}
+
+function buildBionicSamplingPayload() {
+  const out = {
+    contextLength: Number(uiState.contextLength) || 32768,
+    temperature: Number(uiState.temperature),
+    topP: Number(uiState.topP),
+    topK: Number(uiState.topK),
+    minP: Number(uiState.minP),
+    repeatPenalty: Number(uiState.repeatPenalty),
+    maxTokens: Number(uiState.maxTokens) || 2048,
+    draftModel: String(uiState.draftModel || "").trim() || undefined,
+    ttlSeconds: Number(uiState.ttlSeconds) > 0 ? Number(uiState.ttlSeconds) : undefined,
+    systemPrompt: String(uiState.customSystemPrompt || "").trim() || undefined,
+  };
+  if (uiState.seed !== "" && Number.isFinite(Number(uiState.seed))) {
+    out.seed = Number(uiState.seed);
+  }
+  if (String(uiState.stopSequences || "").trim()) {
+    out.stop = String(uiState.stopSequences)
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  if (Number(uiState.thinkingBudget) > 0) {
+    out.thinkingBudget = Number(uiState.thinkingBudget);
+  }
+  return out;
 }
 
 async function copyBionicText(text, label = "Bionic output", btnEl = null) {
@@ -611,6 +970,34 @@ export function buildBionicMarkdownDom(rawSource, clearScope = "assistant") {
   return { fmEl, renderedBlocks, headings };
 }
 
+function scrollBionicConsoleOutput(btnEl, direction = "top") {
+  const consoleEl =
+    btnEl?.closest?.(".ollama-output-console") ||
+    rootContainer?.querySelector?.(".ollama-output-console");
+  if (!consoleEl) return;
+  for (const box of consoleEl.querySelectorAll(".bionic-md-viewer, .ollama-output-box, .ollama-thinking-box")) {
+    box.scrollTo({
+      top: direction === "bottom" ? box.scrollHeight : 0,
+      behavior: "smooth",
+    });
+  }
+}
+
+export function stopBionicGeneration() {
+  if (uiState.abortController) {
+    try {
+      uiState.abortController.abort();
+    } catch {
+      // ignore
+    }
+    uiState.abortController = null;
+  }
+  uiState.loading = false;
+  uiState.routeBanner = "⏹ Bionic generation stopped by user.";
+  toast("Stopped LM Studio Bionic generation.");
+  renderBionicPanel();
+}
+
 function renderBionicOutputConsole({
   title = "LM Studio Bionic Output Console",
   badge = "",
@@ -620,7 +1007,7 @@ function renderBionicOutputConsole({
   clearScope = "assistant",
   saveName = "bionic-output",
   showWhenEmpty = false,
-  emptyHint = "Output will appear here in rich Markdown view — use Markdown / Raw toggle, Section Outline, Copy Output, Read Aloud (Phonon 40M), Save to Folder, or Clear Output anytime.",
+  emptyHint = "Output will appear here in rich Markdown view — use ⤢ Expand Output or ⛶ Fullscreen anytime for full-viewport reading, or use Copy Output, Read Aloud (Phonon 40M), Save to Folder, or Clear Output.",
 }) {
   const hasContent = Boolean(String(content || "").trim());
   const hasReasoning = Boolean(String(reasoning || "").trim());
@@ -636,18 +1023,25 @@ function renderBionicOutputConsole({
 
   const mdBuilt = hasContent && uiState.markdownView ? buildBionicMarkdownDom(content, clearScope) : null;
   const headingList = mdBuilt?.headings || [];
+  const consoleClasses = [
+    "ollama-output-console",
+    uiState.outputExpanded ? "is-expanded" : "",
+    uiState.outputFullscreen ? "is-fullscreen" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return h(
     "div",
     {
-      class: `ollama-output-console${uiState.outputExpanded ? " is-expanded" : ""}`,
+      class: consoleClasses,
       "data-bionic-output-console": clearScope,
       style: `--bionic-md-font-size: ${uiState.mdFontScale}px;`,
     },
     [
       h("div", { class: "ollama-output-header" }, [
         h("div", { class: "ollama-output-title-group" }, [
-          h("span", { class: "ollama-status-pulse" }),
+          uiState.loading ? h("span", { class: "ollama-spinner" }) : h("span", { class: "ollama-status-pulse" }),
           h("strong", { class: "ollama-output-title" }, title),
           badge ? h("span", { class: "ollama-pill is-mlx" }, badge) : null,
           hasContent || hasReasoning
@@ -656,9 +1050,58 @@ function renderBionicOutputConsole({
                 { class: "ollama-pill is-ram" },
                 `${stats.words.toLocaleString()} words • ${stats.chars.toLocaleString()} chars • ${stats.lines} lines`,
               )
-            : h("span", { class: "ollama-pill" }, "Ready"),
+            : h("span", { class: "ollama-pill" }, uiState.loading ? "Generating..." : "Ready"),
         ]),
         h("div", { class: "ollama-output-toolbar" }, [
+          uiState.loading
+            ? h(
+                "button",
+                {
+                  type: "button",
+                  class: "ollama-btn is-danger is-mini",
+                  "data-bionic-action": "stop-generation",
+                  title: "Stop LLM generation immediately",
+                  onclick: () => stopBionicGeneration(),
+                },
+                "⏹ Stop",
+              )
+            : null,
+          h(
+            "button",
+            {
+              type: "button",
+              class: `ollama-btn is-mini${uiState.outputExpanded ? " is-primary" : ""}`,
+              "data-bionic-action": "toggle-expand-output",
+              "aria-pressed": String(Boolean(uiState.outputExpanded)),
+              title: "Expand Output Console and collapse prompt banners above so the LLM response fills the panel",
+              onclick: (e) => {
+                uiState.outputExpanded = !uiState.outputExpanded;
+                if (!uiState.outputExpanded) uiState.outputFullscreen = false;
+                renderBionicPanel();
+                const consoleEl =
+                  e.currentTarget?.closest?.(".ollama-output-console") ||
+                  rootContainer?.querySelector?.(".ollama-output-console");
+                consoleEl?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+              },
+            },
+            uiState.outputExpanded ? "⤡ Compact View" : "⤢ Expand Output",
+          ),
+          h(
+            "button",
+            {
+              type: "button",
+              class: `ollama-btn is-mini${uiState.outputFullscreen ? " is-primary" : ""}`,
+              "data-bionic-action": "toggle-fullscreen-output",
+              "aria-pressed": String(Boolean(uiState.outputFullscreen)),
+              title: "Toggle Fullscreen Reader Mode across the entire window",
+              onclick: () => {
+                uiState.outputFullscreen = !uiState.outputFullscreen;
+                if (uiState.outputFullscreen) uiState.outputExpanded = true;
+                renderBionicPanel();
+              },
+            },
+            uiState.outputFullscreen ? "✕ Exit Fullscreen" : "⛶ Fullscreen",
+          ),
           h(
             "button",
             {
@@ -712,7 +1155,7 @@ function renderBionicOutputConsole({
                   class: "ollama-btn is-mini",
                   title: "Increase Markdown reader font size",
                   onclick: () => {
-                    uiState.mdFontScale = Math.min(18, uiState.mdFontScale + 1);
+                    uiState.mdFontScale = Math.min(20, uiState.mdFontScale + 1);
                     renderBionicPanel();
                   },
                 },
@@ -725,13 +1168,22 @@ function renderBionicOutputConsole({
                 {
                   type: "button",
                   class: "ollama-btn is-mini",
-                  title: "Expand or compact output reader height",
-                  onclick: () => {
-                    uiState.outputExpanded = !uiState.outputExpanded;
-                    renderBionicPanel();
-                  },
+                  title: "Scroll to top of output",
+                  onclick: (e) => scrollBionicConsoleOutput(e.currentTarget, "top"),
                 },
-                uiState.outputExpanded ? "↕ Compact" : "↕ Expand",
+                "⬆ Top",
+              )
+            : null,
+          hasContent || hasReasoning
+            ? h(
+                "button",
+                {
+                  type: "button",
+                  class: "ollama-btn is-mini",
+                  title: "Scroll to bottom of output",
+                  onclick: (e) => scrollBionicConsoleOutput(e.currentTarget, "bottom"),
+                },
+                "⬇ Bottom",
               )
             : null,
           h(
@@ -916,6 +1368,7 @@ export async function refreshBionicStatus(silent = false) {
       if (loadedChat) uiState.selectedModel = loadedChat.id;
       else if (anyChat) uiState.selectedModel = anyChat.id;
     }
+    syncBionicSelectedModelState();
     if (res.tts?.selection?.voiceName) {
       uiState.selectedVoice = res.tts.selection.voiceName;
     }
@@ -948,6 +1401,15 @@ async function runBionicSmartRouter(customPrompt) {
     return;
   }
 
+  if (uiState.abortController) {
+    try {
+      uiState.abortController.abort();
+    } catch {
+      // ignore
+    }
+  }
+  const abortController = new AbortController();
+  uiState.abortController = abortController;
   uiState.loading = true;
   uiState.refusalBanner = null;
   uiState.lastAudioUrl = "";
@@ -955,19 +1417,28 @@ async function runBionicSmartRouter(customPrompt) {
   renderBionicPanel();
 
   try {
+    const thinkArgs = resolveBionicThinkPayload();
+    const samplingArgs = buildBionicSamplingPayload();
     if (livePrompt && uiState.schemaPreset) {
-      const chatRes = await call("bionic/chat", {
-        model: uiState.selectedModel || undefined,
-        prompt: livePrompt,
-        paths,
-        dirPath: currentFolderRel(),
-        skill: uiState.selectedSkill || undefined,
-        schemaPreset: uiState.schemaPreset,
-        speakReply: uiState.speakReply,
-        voice: uiState.selectedVoice,
-        enableTools: true,
-      });
-      uiState.routeBanner = `Executed Grammar-Constrained JSON (${uiState.schemaPreset}) via ${chatRes.model}`;
+      const chatRes = await call(
+        "bionic/chat",
+        {
+          model: uiState.selectedModel || undefined,
+          prompt: livePrompt,
+          paths,
+          dirPath: currentFolderRel(),
+          skill: uiState.selectedSkill || undefined,
+          schemaPreset: uiState.schemaPreset,
+          speakReply: uiState.speakReply,
+          voice: uiState.selectedVoice,
+          enableTools: true,
+          think: thinkArgs.think,
+          thinkingLevel: thinkArgs.thinkingLevel,
+          ...samplingArgs,
+        },
+        { signal: abortController.signal },
+      );
+      uiState.routeBanner = `Executed Grammar-Constrained JSON (${uiState.schemaPreset}) via ${chatRes.model} (thinking=${chatRes.thinkingLevel || thinkArgs.thinkingLevel})`;
       uiState.reasoningOutput = chatRes.reasoningText || "";
       uiState.answerOutput = chatRes.content || "";
       uiState.structuredOutput = chatRes.structuredJson || null;
@@ -977,15 +1448,22 @@ async function runBionicSmartRouter(customPrompt) {
         uiState.lastAudioUrl = `${chatRes.speechResult.audioUrl}&token=${encodeURIComponent(getToken())}`;
       }
     } else {
-      const routed = await call("bionic/route", {
-        prompt: livePrompt,
-        paths,
-        dirPath: currentFolderRel(),
-        model: uiState.selectedModel || undefined,
-        voice: uiState.selectedVoice,
-        language: uiState.selectedLanguage,
-        speakReply: uiState.speakReply,
-      });
+      const routed = await call(
+        "bionic/route",
+        {
+          prompt: livePrompt,
+          paths,
+          dirPath: currentFolderRel(),
+          model: uiState.selectedModel || undefined,
+          voice: uiState.selectedVoice,
+          language: uiState.selectedLanguage,
+          speakReply: uiState.speakReply,
+          think: thinkArgs.think,
+          thinkingLevel: thinkArgs.thinkingLevel,
+          ...samplingArgs,
+        },
+        { signal: abortController.signal },
+      );
       uiState.routeBanner = routed.routeExplanation || `Routed to ${routed.routedCapability}`;
       const r = routed.result || {};
       if (routed.routedCapability === "speech") {
@@ -1018,13 +1496,21 @@ async function runBionicSmartRouter(customPrompt) {
       }
     }
   } catch (err) {
-    if (err.code === "HARDWARE_RAM_REFUSAL" || err.code === "HARDWARE_MLX_EXCLUSIVITY") {
+    if (err?.name === "AbortError" || err?.code === "ABORTED" || abortController.signal.aborted) {
+      uiState.routeBanner = "⏹ Bionic generation stopped by user.";
+      if (!uiState.answerOutput) {
+        uiState.answerOutput = "[Generation stopped by user]";
+      }
+    } else if (err.code === "HARDWARE_RAM_REFUSAL" || err.code === "HARDWARE_MLX_EXCLUSIVITY") {
       uiState.refusalBanner = { code: err.code, message: err.message };
     } else {
       toast(err.message || "Bionic request failed", { kind: "error" });
       uiState.answerOutput = `Error (${err.code || "ERR"}): ${err.message}`;
     }
   } finally {
+    if (uiState.abortController === abortController) {
+      uiState.abortController = null;
+    }
     uiState.loading = false;
     renderBionicPanel();
   }
@@ -1042,6 +1528,15 @@ async function runBionicStreamChat() {
     return;
   }
 
+  if (uiState.abortController) {
+    try {
+      uiState.abortController.abort();
+    } catch {
+      // ignore
+    }
+  }
+  const abortController = new AbortController();
+  uiState.abortController = abortController;
   uiState.loading = true;
   uiState.reasoningOutput = "";
   uiState.answerOutput = "";
@@ -1049,8 +1544,11 @@ async function runBionicStreamChat() {
   renderBionicPanel();
 
   try {
+    const thinkArgs = resolveBionicThinkPayload();
+    const samplingArgs = buildBionicSamplingPayload();
     const res = await fetch("/api/bionic/stream", {
       method: "POST",
+      signal: abortController.signal,
       headers: {
         "Content-Type": "application/json",
         "x-fm-token": getToken(),
@@ -1059,6 +1557,9 @@ async function runBionicStreamChat() {
         model: uiState.selectedModel || undefined,
         prompt,
         paths: selectedFilePaths(),
+        think: thinkArgs.think,
+        thinkingLevel: thinkArgs.thinkingLevel,
+        ...samplingArgs,
       }),
     });
 
@@ -1104,8 +1605,18 @@ async function runBionicStreamChat() {
       renderBionicPanel();
     }
   } catch (err) {
-    uiState.answerOutput = `Stream failed: ${err.message}`;
+    if (err?.name === "AbortError" || err?.code === "ABORTED" || abortController.signal.aborted) {
+      uiState.routeBanner = "⏹ Bionic live stream stopped by user (partial output preserved).";
+      if (!uiState.answerOutput && !uiState.reasoningOutput) {
+        uiState.answerOutput = "[Live stream stopped by user]";
+      }
+    } else {
+      uiState.answerOutput = `Stream failed: ${err.message}`;
+    }
   } finally {
+    if (uiState.abortController === abortController) {
+      uiState.abortController = null;
+    }
     uiState.loading = false;
     renderBionicPanel();
   }
@@ -1117,19 +1628,32 @@ async function runBionicSynthesisFlow(pathsOverride = null, mode = "compare", sa
     toast("Select 1 or more files or document packages in the file list first to synthesize.");
     return;
   }
+  if (uiState.abortController) {
+    try {
+      uiState.abortController.abort();
+    } catch {
+      // ignore
+    }
+  }
+  const abortController = new AbortController();
+  uiState.abortController = abortController;
   uiState.subTab = "assistant";
   uiState.loading = true;
   uiState.markdownView = true;
   uiState.routeBanner = `🧬 Synthesizing ${paths.length} ${paths.length === 1 ? "file" : "files"} (${mode})...`;
   renderBionicPanel();
   try {
-    const res = await call("bionic/synthesize", {
-      paths,
-      mode,
-      model: uiState.selectedModel || undefined,
-      saveToFile,
-      dirPath: currentFolderRel(),
-    });
+    const res = await call(
+      "bionic/synthesize",
+      {
+        paths,
+        mode,
+        model: uiState.selectedModel || undefined,
+        saveToFile,
+        dirPath: currentFolderRel(),
+      },
+      { signal: abortController.signal },
+    );
     uiState.answerOutput = res.reportMarkdown || "";
     uiState.reasoningOutput = "";
     uiState.routeBanner = `📑 Synthesized ${res.fileCount} ${res.fileCount === 1 ? "document" : "documents"} (${res.mode} via ${res.engine})${
@@ -1142,9 +1666,16 @@ async function runBionicSynthesisFlow(pathsOverride = null, mode = "compare", sa
       toast(`Synthesized ${res.fileCount} ${res.fileCount === 1 ? "document" : "documents"} in Bionic Markdown Reader`);
     }
   } catch (err) {
-    uiState.answerOutput = `Synthesis failed: ${err.message || err}`;
-    toast(err.message || "Synthesis failed", { kind: "error" });
+    if (err?.name === "AbortError" || err?.code === "ABORTED" || abortController.signal.aborted) {
+      uiState.routeBanner = "⏹ Synthesis stopped by user.";
+    } else {
+      uiState.answerOutput = `Synthesis failed: ${err.message || err}`;
+      toast(err.message || "Synthesis failed", { kind: "error" });
+    }
   } finally {
+    if (uiState.abortController === abortController) {
+      uiState.abortController = null;
+    }
     uiState.loading = false;
     renderBionicPanel();
   }
@@ -1379,28 +1910,444 @@ function renderSelectedFilesStrip() {
   ]);
 }
 
+function renderBionicSelectedModelCapabilitiesCard(profile) {
+  if (!profile) return null;
+  const f = profile.features || {};
+  return h(
+    "div",
+    {
+      class: "bionic-model-capabilities-card",
+      role: "region",
+      "aria-label": `Selected Model Capabilities (${profile.modelName || "Auto"})`,
+      "data-bionic-model-capabilities-card": profile.modelName,
+      "data-thinking-mode": f.thinkingMode || "none",
+    },
+    [
+      h("div", { class: "ollama-row", style: "flex-wrap:wrap;gap:6px;align-items:center;" }, [
+        h(
+          "strong",
+          { style: "font-size:12px;" },
+          `Selected Model Capabilities (${profile.modelName || "Auto"}):`,
+        ),
+        ...(profile.indicators || []).map((ind) =>
+          h(
+            "span",
+            {
+              class: "ollama-pill is-mlx",
+              "data-bionic-model-indicator": ind.id,
+              title: ind.description,
+              style: "font-size:11px;padding:2px 8px;",
+            },
+            `${ind.icon} ${ind.label}`,
+          ),
+        ),
+      ]),
+      h(
+        "div",
+        { class: "ollama-model-use-cases" },
+        `What you can use this model for: ${(profile.useCases || []).join(" • ")}`,
+      ),
+    ],
+  );
+}
+
+function renderBionicThinkingControlBar() {
+  const caps = getBionicModelThinkingCapabilities(uiState.selectedModel);
+  const thinkArgs = resolveBionicThinkPayload();
+  const activeLevel = thinkArgs.thinkingLevel;
+
+  const samplingBtn = h(
+    "button",
+    {
+      type: "button",
+      class: `ollama-btn${uiState.showAdvancedSampling ? " is-primary" : ""}`,
+      "data-bionic-action": "toggle-sampling",
+      "aria-expanded": String(Boolean(uiState.showAdvancedSampling)),
+      "aria-pressed": String(Boolean(uiState.showAdvancedSampling)),
+      style: "margin-left:auto;padding:3px 10px;font-size:12px;",
+      onclick: () => {
+        uiState.showAdvancedSampling = !uiState.showAdvancedSampling;
+        renderBionicPanel();
+      },
+    },
+    uiState.showAdvancedSampling
+      ? "⚙️ Hide LM Studio Sampling & Speculative Decoding"
+      : "⚙️ Sampling, Context & Speculative Decoding",
+  );
+
+  if (!caps.supportsThinking || caps.thinkingMode === "none") {
+    return h(
+      "div",
+      {
+        class: "bionic-thinking-control-bar",
+        role: "toolbar",
+        "aria-label": "Bionic Reasoning and Sampling Controls",
+        "data-thinking-mode": "none",
+      },
+      [
+        h(
+          "span",
+          { class: "ollama-pill", title: caps.description },
+          "⚡ Direct Output Model (Thinking Controls Hidden — Not Used by This Model)",
+        ),
+        samplingBtn,
+      ],
+    );
+  }
+
+  const pillDefs =
+    caps.thinkingMode === "levels"
+      ? [
+          { id: "low", label: "Low Effort", hint: "reasoning_effort: \"low\" + Harmony Reasoning: low (gpt-oss)" },
+          { id: "medium", label: "Medium Effort", hint: "reasoning_effort: \"medium\" + Harmony Reasoning: medium (gpt-oss)" },
+          { id: "high", label: "High Effort", hint: "reasoning_effort: \"high\" + Harmony Reasoning: high (gpt-oss)" },
+        ]
+      : caps.thinkingMode === "toggle"
+        ? [
+            { id: "off", label: "Off (Fast)", hint: "enable_thinking: false — Skip chain-of-thought for instant reply" },
+            { id: "on", label: "On (Think)", hint: "enable_thinking: true — Enable chain-of-thought reasoning" },
+          ]
+        : [];
+
+  const showBudgetControl =
+    caps.supportsThinkingBudget &&
+    (caps.thinkingMode === "always_on" || (caps.thinkingMode === "toggle" && activeLevel !== "off"));
+
+  return h(
+    "div",
+    {
+      class: "bionic-thinking-control-bar",
+      role: "toolbar",
+      "aria-label": "Bionic Reasoning and Sampling Controls",
+      "data-thinking-mode": caps.thinkingMode,
+    },
+    [
+      h(
+        "span",
+        {
+          class: "ollama-pill is-mlx",
+          title: caps.description,
+        },
+        `🧠 ${caps.badgeLabel}`,
+      ),
+      pillDefs.length > 0
+        ? h(
+            "div",
+            { class: "ollama-row", style: "gap:4px;" },
+            pillDefs.map((p) => {
+              const isSelected = activeLevel === p.id;
+              return h(
+                "button",
+                {
+                  type: "button",
+                  class: `ollama-btn${isSelected ? " is-primary" : ""}`,
+                  "data-bionic-thinking-level": p.id,
+                  "aria-pressed": String(isSelected),
+                  title: p.hint,
+                  style: "padding:3px 9px;font-size:12px;",
+                  onclick: () => {
+                    uiState.thinkingLevel = p.id;
+                    uiState.thinkEnabled = p.id !== "off";
+                    renderBionicPanel();
+                  },
+                },
+                p.label,
+              );
+            }),
+          )
+        : null,
+      showBudgetControl
+        ? h("label", { class: "ollama-row", style: "font-size:12px;gap:4px;" }, [
+            h("span", {}, "Thinking Budget:"),
+            h(
+              "select",
+              {
+                class: "ollama-select",
+                "data-bionic-select": "thinking-budget",
+                style: "padding:2px 6px;font-size:12px;",
+                onchange: (e) => {
+                  uiState.thinkingBudget = Number(e.target.value) || 0;
+                },
+              },
+              [
+                { val: 0, label: "Auto (Unlimited)" },
+                { val: 1024, label: "1,024 tokens" },
+                { val: 4096, label: "4,096 tokens" },
+                { val: 8192, label: "8,192 tokens" },
+                { val: 16384, label: "16,384 tokens" },
+                { val: 32768, label: "32,768 tokens" },
+              ].map((opt) =>
+                h(
+                  "option",
+                  {
+                    value: String(opt.val),
+                    selected: Number(uiState.thinkingBudget) === opt.val ? "selected" : null,
+                  },
+                  opt.label,
+                ),
+              ),
+            ),
+          ])
+        : null,
+      samplingBtn,
+    ],
+  );
+}
+
+function renderBionicAdvancedSamplingPanel() {
+  if (!uiState.showAdvancedSampling) return null;
+  const models = (uiState.statusData?.models || []).filter((m) => m.type === "llm" || m.type === "vlm");
+  return h(
+    "div",
+    {
+      class: "bionic-advanced-sampling-panel",
+      role: "region",
+      "aria-label": "LM Studio Bionic Sampling and Speculative Decoding Parameters",
+    },
+    [
+      h("div", { class: "ollama-row", style: "justify-content:space-between;" }, [
+        h("strong", { style: "font-size:12px;" }, "⚙️ LM Studio Bionic Sampling, Context & Speculative Decoding Parameters"),
+        h(
+          "button",
+          {
+            type: "button",
+            class: "ollama-btn",
+            style: "padding:2px 8px;font-size:11px;",
+            onclick: () => {
+              uiState.contextLength = 32768;
+              uiState.temperature = 0.4;
+              uiState.topP = 0.95;
+              uiState.topK = 40;
+              uiState.minP = 0.05;
+              uiState.repeatPenalty = 1.1;
+              uiState.maxTokens = 2048;
+              uiState.seed = "";
+              uiState.stopSequences = "";
+              uiState.draftModel = "";
+              uiState.ttlSeconds = 0;
+              uiState.customSystemPrompt = "";
+              renderBionicPanel();
+            },
+          },
+          "Reset Defaults",
+        ),
+      ]),
+      h("div", { class: "ollama-row", style: "flex-wrap:wrap;gap:10px;font-size:12px;" }, [
+        h("label", { class: "ollama-row", style: "gap:4px;" }, [
+          h("span", {}, "Context Length:"),
+          h(
+            "select",
+            {
+              class: "ollama-select",
+              onchange: (e) => {
+                uiState.contextLength = Number(e.target.value) || 32768;
+              },
+            },
+            [4096, 8192, 16384, 32768, 65536, 131072].map((ctxVal) =>
+              h(
+                "option",
+                {
+                  value: String(ctxVal),
+                  selected: Number(uiState.contextLength) === ctxVal ? "selected" : null,
+                },
+                `${ctxVal.toLocaleString()} tokens`,
+              ),
+            ),
+          ),
+        ]),
+        h("label", { class: "ollama-row", style: "gap:4px;" }, [
+          h("span", {}, "Temperature:"),
+          h("input", {
+            type: "number",
+            class: "ollama-input",
+            style: "width:68px;",
+            step: "0.05",
+            min: "0",
+            max: "2",
+            value: String(uiState.temperature),
+            oninput: (e) => {
+              uiState.temperature = Number(e.target.value);
+            },
+          }),
+        ]),
+        h("label", { class: "ollama-row", style: "gap:4px;" }, [
+          h("span", {}, "Top-P:"),
+          h("input", {
+            type: "number",
+            class: "ollama-input",
+            style: "width:68px;",
+            step: "0.05",
+            min: "0",
+            max: "1",
+            value: String(uiState.topP),
+            oninput: (e) => {
+              uiState.topP = Number(e.target.value);
+            },
+          }),
+        ]),
+        h("label", { class: "ollama-row", style: "gap:4px;" }, [
+          h("span", {}, "Top-K:"),
+          h("input", {
+            type: "number",
+            class: "ollama-input",
+            style: "width:68px;",
+            step: "1",
+            min: "1",
+            max: "200",
+            value: String(uiState.topK),
+            oninput: (e) => {
+              uiState.topK = Number(e.target.value);
+            },
+          }),
+        ]),
+        h("label", { class: "ollama-row", style: "gap:4px;" }, [
+          h("span", {}, "Min-P:"),
+          h("input", {
+            type: "number",
+            class: "ollama-input",
+            style: "width:68px;",
+            step: "0.01",
+            min: "0",
+            max: "1",
+            value: String(uiState.minP),
+            oninput: (e) => {
+              uiState.minP = Number(e.target.value);
+            },
+          }),
+        ]),
+        h("label", { class: "ollama-row", style: "gap:4px;" }, [
+          h("span", {}, "Repeat Penalty:"),
+          h("input", {
+            type: "number",
+            class: "ollama-input",
+            style: "width:68px;",
+            step: "0.05",
+            min: "0.5",
+            max: "2.0",
+            value: String(uiState.repeatPenalty),
+            oninput: (e) => {
+              uiState.repeatPenalty = Number(e.target.value);
+            },
+          }),
+        ]),
+        h("label", { class: "ollama-row", style: "gap:4px;" }, [
+          h("span", {}, "Max Tokens:"),
+          h("input", {
+            type: "number",
+            class: "ollama-input",
+            style: "width:82px;",
+            step: "256",
+            min: "64",
+            max: "65536",
+            value: String(uiState.maxTokens),
+            oninput: (e) => {
+              uiState.maxTokens = Number(e.target.value);
+            },
+          }),
+        ]),
+        h("label", { class: "ollama-row", style: "gap:4px;" }, [
+          h("span", {}, "Seed:"),
+          h("input", {
+            type: "text",
+            class: "ollama-input",
+            style: "width:76px;",
+            placeholder: "Random",
+            value: String(uiState.seed),
+            oninput: (e) => {
+              uiState.seed = e.target.value;
+            },
+          }),
+        ]),
+        h("label", { class: "ollama-row", style: "gap:4px;" }, [
+          h("span", {}, "Draft Model (Speculative Decoding):"),
+          h(
+            "select",
+            {
+              class: "ollama-select",
+              onchange: (e) => {
+                uiState.draftModel = e.target.value;
+              },
+            },
+            [
+              h("option", { value: "" }, "None (Standard Decoding)"),
+              ...models.map((m) =>
+                h(
+                  "option",
+                  { value: m.id, selected: uiState.draftModel === m.id ? "selected" : null },
+                  `${m.displayName} (${m.paramsString})`,
+                ),
+              ),
+            ],
+          ),
+        ]),
+        h("label", { class: "ollama-row", style: "gap:4px;" }, [
+          h("span", {}, "Stop Sequences:"),
+          h("input", {
+            type: "text",
+            class: "ollama-input",
+            style: "width:130px;",
+            placeholder: "e.g. <|eot_id|>, STOP",
+            value: String(uiState.stopSequences),
+            oninput: (e) => {
+              uiState.stopSequences = e.target.value;
+            },
+          }),
+        ]),
+      ]),
+      h("input", {
+        type: "text",
+        class: "ollama-input",
+        placeholder: "Optional Custom System Prompt override...",
+        value: uiState.customSystemPrompt,
+        oninput: (e) => {
+          uiState.customSystemPrompt = e.target.value;
+        },
+      }),
+    ],
+  );
+}
+
 function renderAssistantTab() {
   const models = (uiState.statusData?.models || []).filter((m) => m.type === "llm" || m.type === "vlm");
+  const modelIds = new Set(models.map((m) => m.id));
   const skills = uiState.statusData?.skills || [];
   const voices = uiState.statusData?.tts?.voices || [];
+  const selectedProfile = getBionicModelFeatureProfile(uiState.selectedModel);
+  const feat = selectedProfile.features || {};
 
   const quickPrompts = [
-    { label: "Summarize Selected File", text: "Summarize the selected file and highlight key architecture points." },
+    feat.chat
+      ? { label: "Summarize Selected File", text: "Summarize the selected file and highlight key architecture points." }
+      : null,
+    feat.vision
+      ? { label: "👁 Inspect Selected Image / Screenshot", text: "Inspect the selected image or screenshot and describe its contents, text, and layout." }
+      : null,
+    feat.thinkingLevels
+      ? { label: "🧠 Multi-Level Architecture Audit (gpt-oss)", text: "Perform a deep architectural and security audit of the selected code." }
+      : null,
+    feat.thinking
+      ? { label: "🧠 Step-by-Step Code Debug", text: "Debug this code step-by-step and explain how to fix any edge cases." }
+      : null,
     { label: "🔊 Read Aloud (Phonon 40M)", text: "Read this out loud with Bionic Phonon 40M Multilingual TTS." },
     { label: "🎙️ Transcribe Audio (ASR)", text: "Transcribe this audio file to Markdown and summarize key points." },
-    { label: "📄 @documents Skill", text: "@documents-presentations-spreadsheets-and-graphics Review this document and suggest improvements." },
-    { label: "🕒 @file-history Skill", text: "@file-history Explain how Bionic tracks file history and changes." },
+    feat.tools
+      ? { label: "📄 @documents Skill", text: "@documents-presentations-spreadsheets-and-graphics Review this document and suggest improvements." }
+      : null,
+    feat.tools
+      ? { label: "🕒 @file-history Skill", text: "@file-history Explain how Bionic tracks file history and changes." }
+      : null,
     { label: "🔍 Find File by Meaning", text: "Find the file where authentication or login verification is implemented." },
-    { label: "📋 Batch Rename JSON Plan", text: "Create a batch-rename JSON plan for the selected files." },
-  ];
+    feat.structuredJson
+      ? { label: "📋 Batch Rename JSON Plan", text: "Create a batch-rename JSON plan for the selected files." }
+      : null,
+  ].filter(Boolean);
 
   promptTextareaEl = h(
     "textarea",
     {
       class: "ollama-textarea",
       "aria-label": "Ask LM Studio Bionic or trigger a @skill",
-      placeholder:
-        "Ask LM Studio Bionic anything in plain English, type @skill-name to inject a Bionic Agent Skill (e.g. @documents-presentations-spreadsheets-and-graphics, @browser-control, @file-history), or leave blank with a selected file to read it aloud / transcribe it...",
+      placeholder: `Ask LM Studio Bionic anything supported by ${selectedProfile.modelName} (${selectedProfile.summary})...`,
       oninput: (e) => {
         uiState.promptText = e.target.value;
       },
@@ -1412,7 +2359,23 @@ function renderAssistantTab() {
     h("div", { class: "ollama-card-title" }, [
       h("span", {}, "Conversational Bionic AI Assistant, @Skill Injector & Metal Capability Router"),
       h("span", { class: "ollama-pill is-mlx" }, "Apple Silicon MLX / oMLX / Splash + Phonon 40M"),
+      h(
+        "button",
+        {
+          type: "button",
+          class: `ollama-btn is-mini${uiState.compactControls ? " is-primary" : ""}`,
+          "data-bionic-action": "toggle-compact-controls",
+          "aria-pressed": String(Boolean(uiState.compactControls)),
+          title: "Collapse or restore prompt banners and model cards so the Bionic Output Console gets maximum vertical space",
+          onclick: () => {
+            uiState.compactControls = !uiState.compactControls;
+            renderBionicPanel();
+          },
+        },
+        uiState.compactControls ? "🔽 Show Prompt Controls" : "🔼 Compact Controls",
+      ),
     ]),
+    renderBionicSelectedModelCapabilitiesCard(selectedProfile),
     h(
       "div",
       { class: "ollama-quick-prompts" },
@@ -1429,18 +2392,51 @@ function renderAssistantTab() {
       ),
     ),
     promptTextareaEl,
-    h("div", { class: "ollama-row" }, [
+    renderBionicThinkingControlBar(),
+    renderBionicAdvancedSamplingPanel(),
+    h("div", { class: "ollama-row ollama-assistant-options-row" }, [
       h(
         "select",
         {
           class: "ollama-select",
           "aria-label": "Select LM Studio Bionic Model",
+          "data-bionic-select": "assistant-model",
           onchange: (e) => {
             uiState.selectedModel = e.target.value;
+            syncBionicSelectedModelState();
+            renderBionicPanel();
           },
         },
         [
           h("option", { value: "", selected: !uiState.selectedModel ? "selected" : null }, "Auto-Select Best Loaded MLX Model"),
+          !modelIds.has("openai/gpt-oss-20b")
+            ? h(
+                "option",
+                { value: "openai/gpt-oss-20b", selected: uiState.selectedModel === "openai/gpt-oss-20b" ? "selected" : null },
+                "OpenAI gpt-oss 20B (openai/gpt-oss-20b) — Multi-Level Reasoning: Low / Medium / High [MXFP4]",
+              )
+            : null,
+          !modelIds.has("qwen/qwen3.5-9b")
+            ? h(
+                "option",
+                { value: "qwen/qwen3.5-9b", selected: uiState.selectedModel === "qwen/qwen3.5-9b" ? "selected" : null },
+                "Qwen 3.5 9B MLX (qwen/qwen3.5-9b) — Hybrid Thinking Toggle: On / Off + Vision",
+              )
+            : null,
+          !modelIds.has("deepseek/deepseek-r1-0528-qwen3-8b")
+            ? h(
+                "option",
+                { value: "deepseek/deepseek-r1-0528-qwen3-8b", selected: uiState.selectedModel === "deepseek/deepseek-r1-0528-qwen3-8b" ? "selected" : null },
+                "DeepSeek-R1 8B (deepseek/deepseek-r1-0528-qwen3-8b) — Always-On Chain-of-Thought Reasoning",
+              )
+            : null,
+          !modelIds.has("qwen/qwen2.5-coder-7b-instruct")
+            ? h(
+                "option",
+                { value: "qwen/qwen2.5-coder-7b-instruct", selected: uiState.selectedModel === "qwen/qwen2.5-coder-7b-instruct" ? "selected" : null },
+                "Qwen 2.5 Coder 7B (qwen/qwen2.5-coder-7b-instruct) — Fast Direct Output (No Thinking Overhead)",
+              )
+            : null,
           ...models.map((m) =>
             h(
               "option",
@@ -1448,44 +2444,50 @@ function renderAssistantTab() {
               `${m.loaded ? "✓ LOADED: " : ""}${m.displayName} (${m.id}) — ${m.paramsString}, ~${m.estimatedRamGb} GB [${m.quantization}]`,
             ),
           ),
-        ],
+        ].filter(Boolean),
       ),
-      h(
-        "select",
-        {
-          class: "ollama-select",
-          "aria-label": "Inject Bionic Agent Skill",
-          onchange: (e) => {
-            uiState.selectedSkill = e.target.value;
-          },
-        },
-        [
-          h("option", { value: "" }, "No @Skill Override (Auto-Detect @mentions)"),
-          ...skills.map((s) =>
-            h(
-              "option",
-              { value: s.name, selected: uiState.selectedSkill === s.name ? "selected" : null },
-              `@${s.name} — ${s.displayName} (${s.scope})`,
-            ),
-          ),
-        ],
-      ),
-      h(
-        "select",
-        {
-          class: "ollama-select",
-          "aria-label": "Structured JSON Schema Output",
-          onchange: (e) => {
-            uiState.schemaPreset = e.target.value;
-          },
-        },
-        [
-          h("option", { value: "" }, "Freeform Markdown / Code Output"),
-          h("option", { value: "batch_rename_plan" }, "JSON Schema: Batch Rename Plan"),
-          h("option", { value: "folder_organization_plan" }, "JSON Schema: Folder Organization Plan"),
-          h("option", { value: "table_extraction" }, "JSON Schema: Structured Table Extraction"),
-        ],
-      ),
+      feat.tools
+        ? h(
+            "select",
+            {
+              class: "ollama-select",
+              "aria-label": "Inject Bionic Agent Skill",
+              onchange: (e) => {
+                uiState.selectedSkill = e.target.value;
+              },
+            },
+            [
+              h("option", { value: "" }, "No @Skill Override (Auto-Detect @mentions)"),
+              ...skills.map((s) =>
+                h(
+                  "option",
+                  { value: s.name, selected: uiState.selectedSkill === s.name ? "selected" : null },
+                  `@${s.name} — ${s.displayName} (${s.scope})`,
+                ),
+              ),
+            ],
+          )
+        : null,
+      feat.structuredJson
+        ? h(
+            "select",
+            {
+              class: "ollama-select",
+              "aria-label": "Structured JSON Schema Output",
+              onchange: (e) => {
+                uiState.schemaPreset = e.target.value;
+              },
+            },
+            [
+              h("option", { value: "", selected: !uiState.schemaPreset ? "selected" : null }, "Freeform Markdown / Code Output"),
+              h("option", { value: "batch_rename_plan", selected: uiState.schemaPreset === "batch_rename_plan" ? "selected" : null }, "JSON Schema: Batch Rename Plan"),
+              h("option", { value: "folder_organization_plan", selected: uiState.schemaPreset === "folder_organization_plan" ? "selected" : null }, "JSON Schema: Folder Organization Plan"),
+              h("option", { value: "table_extraction", selected: uiState.schemaPreset === "table_extraction" ? "selected" : null }, "JSON Schema: Structured Table Extraction"),
+              h("option", { value: "code_review_report", selected: uiState.schemaPreset === "code_review_report" ? "selected" : null }, "JSON Schema: Code Review Report"),
+              h("option", { value: "security_audit_report", selected: uiState.schemaPreset === "security_audit_report" ? "selected" : null }, "JSON Schema: Security Audit Report"),
+            ],
+          )
+        : null,
       h("label", { class: "ollama-row" }, [
         h("input", {
           type: "checkbox",
@@ -1514,12 +2516,13 @@ function renderAssistantTab() {
         ),
       ),
     ]),
-    h("div", { class: "ollama-row" }, [
+    h("div", { class: "ollama-row ollama-assistant-actions-row" }, [
       h(
         "button",
         {
           type: "button",
           class: "ollama-btn is-primary",
+          "data-bionic-action": "ask-smart-router",
           disabled: uiState.loading ? "disabled" : null,
           onclick: () => void runBionicSmartRouter(),
         },
@@ -1530,11 +2533,25 @@ function renderAssistantTab() {
         {
           type: "button",
           class: "ollama-btn",
+          "data-bionic-action": "stream-live-tokens",
           disabled: uiState.loading ? "disabled" : null,
           onclick: () => void runBionicStreamChat(),
         },
         "⚡ Stream Live Tokens (/api/bionic/stream)",
       ),
+      uiState.loading
+        ? h(
+            "button",
+            {
+              type: "button",
+              class: "ollama-btn is-danger",
+              "data-bionic-action": "stop-generation",
+              title: "Stop LLM generation immediately (preserves tokens generated so far)",
+              onclick: () => stopBionicGeneration(),
+            },
+            "⏹ Stop Generation",
+          )
+        : null,
       h(
         "button",
         {
@@ -1545,6 +2562,38 @@ function renderAssistantTab() {
           onclick: () => void runBionicSynthesisFlow(null, "compare", false),
         },
         "📑 Synthesize Selected",
+      ),
+      h(
+        "button",
+        {
+          type: "button",
+          class: `ollama-btn${uiState.outputExpanded ? " is-primary" : ""}`,
+          "data-bionic-action": "toggle-expand-output",
+          "aria-pressed": String(Boolean(uiState.outputExpanded)),
+          title: "Expand Output Console and collapse prompt banners above so the LLM response fills the viewport",
+          onclick: () => {
+            uiState.outputExpanded = !uiState.outputExpanded;
+            if (!uiState.outputExpanded) uiState.outputFullscreen = false;
+            renderBionicPanel();
+          },
+        },
+        uiState.outputExpanded ? "⤡ Collapse Output" : "⤢ Expand Output",
+      ),
+      h(
+        "button",
+        {
+          type: "button",
+          class: `ollama-btn${uiState.outputFullscreen ? " is-primary" : ""}`,
+          "data-bionic-action": "toggle-fullscreen-output",
+          "aria-pressed": String(Boolean(uiState.outputFullscreen)),
+          title: "Toggle Fullscreen Reader Mode across the entire window",
+          onclick: () => {
+            uiState.outputFullscreen = !uiState.outputFullscreen;
+            if (uiState.outputFullscreen) uiState.outputExpanded = true;
+            renderBionicPanel();
+          },
+        },
+        uiState.outputFullscreen ? "✕ Exit Fullscreen" : "⛶ Fullscreen",
       ),
       h(
         "button",
@@ -2211,11 +3260,118 @@ function renderModelsAndEnginesTab() {
         "⬇ Hardware-Checked Download (`lms get --mlx`)",
       ),
     ]),
+    h("div", { class: "ollama-row", style: "flex-wrap:wrap;gap:10px;font-size:12px;margin:4px 0;" }, [
+      h("strong", {}, "Load Settings (lms load):"),
+      h("label", { class: "ollama-row", style: "gap:4px;" }, [
+        h("span", {}, "Context:"),
+        h(
+          "select",
+          {
+            class: "ollama-select",
+            onchange: (e) => {
+              uiState.loadContextLength = Number(e.target.value) || 32768;
+            },
+          },
+          [4096, 8192, 16384, 32768, 65536, 131072].map((ctxVal) =>
+            h(
+              "option",
+              {
+                value: String(ctxVal),
+                selected: Number(uiState.loadContextLength) === ctxVal ? "selected" : null,
+              },
+              `${ctxVal.toLocaleString()} tokens`,
+            ),
+          ),
+        ),
+      ]),
+      h("label", { class: "ollama-row", style: "gap:4px;" }, [
+        h("span", {}, "GPU Offload:"),
+        h(
+          "select",
+          {
+            class: "ollama-select",
+            onchange: (e) => {
+              uiState.loadGpuOffload = e.target.value;
+            },
+          },
+          [
+            { val: "max", label: "Max (100% Apple Metal)" },
+            { val: "0.75", label: "75% GPU Layers" },
+            { val: "0.5", label: "50% GPU Layers" },
+            { val: "off", label: "CPU Only" },
+          ].map((g) =>
+            h(
+              "option",
+              { value: g.val, selected: String(uiState.loadGpuOffload) === g.val ? "selected" : null },
+              g.label,
+            ),
+          ),
+        ),
+      ]),
+      h("label", { class: "ollama-row", style: "gap:4px;" }, [
+        h("span", {}, "KV Cache Quant:"),
+        h(
+          "select",
+          {
+            class: "ollama-select",
+            onchange: (e) => {
+              uiState.loadKvCacheQuant = e.target.value;
+            },
+          },
+          [
+            { val: "f16", label: "FP16 (Full Precision)" },
+            { val: "q8_0", label: "Q8_0 (8-bit Compressed KV)" },
+            { val: "q4_0", label: "Q4_0 (4-bit Ultra-Compact KV)" },
+          ].map((kv) =>
+            h(
+              "option",
+              { value: kv.val, selected: uiState.loadKvCacheQuant === kv.val ? "selected" : null },
+              kv.label,
+            ),
+          ),
+        ),
+      ]),
+      h("label", { class: "ollama-row", style: "gap:4px;" }, [
+        h("input", {
+          type: "checkbox",
+          checked: uiState.loadFlashAttention ? "checked" : null,
+          onchange: (e) => {
+            uiState.loadFlashAttention = e.target.checked;
+          },
+        }),
+        h("span", {}, "Flash Attention"),
+      ]),
+      h("label", { class: "ollama-row", style: "gap:4px;" }, [
+        h("span", {}, "Idle Auto-Evict (TTL):"),
+        h(
+          "select",
+          {
+            class: "ollama-select",
+            onchange: (e) => {
+              uiState.loadTtlSeconds = Number(e.target.value) || 0;
+            },
+          },
+          [
+            { val: 0, label: "Keep Loaded" },
+            { val: 300, label: "5 min (300s)" },
+            { val: 900, label: "15 min (900s)" },
+            { val: 1800, label: "30 min (1800s)" },
+          ].map((t) =>
+            h(
+              "option",
+              { value: String(t.val), selected: Number(uiState.loadTtlSeconds) === t.val ? "selected" : null },
+              t.label,
+            ),
+          ),
+        ),
+      ]),
+    ]),
     h(
       "div",
       { class: "ollama-model-grid" },
-      models.map((m) =>
-        h("div", { class: "ollama-model-card" }, [
+      models.map((m) => {
+        const profile = m.featureProfile || getBionicModelFeatureProfile(m.id);
+        return h("div", { class: "ollama-model-card" }, [
           h("div", { class: "ollama-row" }, [
             h("strong", {}, m.displayName),
             h(
@@ -2227,10 +3383,48 @@ function renderModelsAndEnginesTab() {
           h("div", { class: "ollama-badge-row" }, (m.badges || []).map(createBadgeEl)),
           h(
             "div",
+            { class: "ollama-row", style: "flex-wrap:wrap;gap:4px;margin:2px 0;" },
+            (profile.indicators || []).map((ind) =>
+              h(
+                "span",
+                {
+                  class: "ollama-pill is-mlx",
+                  "data-bionic-model-indicator": ind.id,
+                  title: ind.description,
+                  style: "font-size:10.5px;padding:1px 6px;",
+                },
+                `${ind.icon} ${ind.label}`,
+              ),
+            ),
+          ),
+          h(
+            "div",
+            { class: "ollama-model-use-cases" },
+            `What you can use it for: ${(profile.useCases || []).join(" • ")}`,
+          ),
+          h(
+            "div",
             {},
             `ID: ${m.id} | Arch: ${m.architecture} | Quant: ${m.quantization} | Max Ctx: ${m.maxContextLength.toLocaleString()}`,
           ),
           h("div", { class: "ollama-row" }, [
+            m.type !== "tts"
+              ? h(
+                  "button",
+                  {
+                    type: "button",
+                    class: "ollama-btn is-mini",
+                    onclick: () => {
+                      uiState.selectedModel = m.id;
+                      uiState.subTab = "assistant";
+                      syncBionicSelectedModelState();
+                      toast(`Selected ${m.displayName} in Bionic AI Studio`);
+                      renderBionicPanel();
+                    },
+                  },
+                  "✓ Select Model in Studio",
+                )
+              : null,
             !m.loaded && m.type !== "tts"
               ? h(
                   "button",
@@ -2241,7 +3435,14 @@ function renderModelsAndEnginesTab() {
                       uiState.loading = true;
                       renderBionicPanel();
                       try {
-                        await call("bionic/load", { model: m.id, contextLength: uiState.loadContextLength });
+                        await call("bionic/load", {
+                          model: m.id,
+                          contextLength: uiState.loadContextLength,
+                          gpuOffload: uiState.loadGpuOffload,
+                          flashAttention: uiState.loadFlashAttention,
+                          kvCacheQuant: uiState.loadKvCacheQuant,
+                          ttlSeconds: uiState.loadTtlSeconds > 0 ? uiState.loadTtlSeconds : undefined,
+                        });
                         toast(`Loaded ${m.displayName} into Metal RAM`);
                         void refreshBionicStatus(true);
                       } catch (err) {
@@ -2284,8 +3485,8 @@ function renderModelsAndEnginesTab() {
               "📋 Copy CLI",
             ),
           ]),
-        ]),
-      ),
+        ]);
+      }),
     ),
     h("div", { class: "ollama-card-title" }, [
       h("span", {}, `Installed LM Studio Bionic Metal Engine Backends (${backends.length})`),
@@ -2331,17 +3532,39 @@ function renderModelsAndEnginesTab() {
 export function renderBionicPanel() {
   if (!rootContainer) return;
   const prevScroll = rootContainer.scrollTop || 0;
+  const savedBoxScrolls = new Map();
+  if (rootContainer.querySelectorAll) {
+    for (const consoleEl of rootContainer.querySelectorAll("[data-bionic-output-console]")) {
+      const scope = consoleEl.getAttribute("data-bionic-output-console") || "default";
+      const outBox = consoleEl.querySelector(".bionic-md-viewer, .ollama-output-box");
+      const thinkBox = consoleEl.querySelector(".ollama-thinking-box");
+      savedBoxScrolls.set(scope, {
+        outTop: outBox ? outBox.scrollTop || 0 : 0,
+        outLeft: outBox ? outBox.scrollLeft || 0 : 0,
+        thinkTop: thinkBox ? thinkBox.scrollTop || 0 : 0,
+      });
+    }
+  }
   clear(rootContainer);
 
   const rootDataset =
     typeof document !== "undefined" && document.documentElement?.dataset
       ? document.documentElement.dataset
       : {};
+  const suiteClasses = [
+    "ollama-suite",
+    "bionic-suite",
+    uiState.outputExpanded ? "is-output-expanded" : "",
+    uiState.outputFullscreen ? "is-output-fullscreen" : "",
+    uiState.compactControls ? "is-compact-controls" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   const suite = h(
     "div",
     {
-      class: "ollama-suite bionic-suite",
+      class: suiteClasses,
       "data-theme-scheme": rootDataset.theme || "auto",
       "data-theme-palette": rootDataset.palette || "standard",
     },
@@ -2369,10 +3592,43 @@ export function renderBionicPanel() {
 
   rootContainer.appendChild(suite);
   if (prevScroll > 0) rootContainer.scrollTop = prevScroll;
+  if (savedBoxScrolls.size > 0 && rootContainer.querySelectorAll) {
+    for (const consoleEl of rootContainer.querySelectorAll("[data-bionic-output-console]")) {
+      const scope = consoleEl.getAttribute("data-bionic-output-console") || "default";
+      const saved = savedBoxScrolls.get(scope);
+      if (!saved) continue;
+      const outBox = consoleEl.querySelector(".bionic-md-viewer, .ollama-output-box");
+      const thinkBox = consoleEl.querySelector(".ollama-thinking-box");
+      if (outBox) {
+        if (saved.outTop > 0) outBox.scrollTop = saved.outTop;
+        if (saved.outLeft > 0) outBox.scrollLeft = saved.outLeft;
+      }
+      if (thinkBox && saved.thinkTop > 0) {
+        thinkBox.scrollTop = saved.thinkTop;
+      }
+    }
+  }
 }
 
 export function mountBionicTool(container) {
   rootContainer = container;
+  if (typeof window !== "undefined" && window.location?.search) {
+    const params = new URLSearchParams(window.location.search);
+    const sub = params.get("subTab");
+    if (sub) uiState.subTab = sub;
+    const modelParam = params.get("model");
+    if (modelParam) {
+      uiState.selectedModel = modelParam;
+      syncBionicSelectedModelState();
+    }
+    if (params.get("adv") === "1") uiState.showAdvancedSampling = true;
+    if (params.get("expand") === "1") uiState.outputExpanded = true;
+    if (params.get("fullscreen") === "1") {
+      uiState.outputFullscreen = true;
+      uiState.outputExpanded = true;
+    }
+    if (params.get("compact") === "1") uiState.compactControls = true;
+  }
   renderBionicPanel();
   if (!uiState.statusData && !uiState.loading) {
     void refreshBionicStatus(false);

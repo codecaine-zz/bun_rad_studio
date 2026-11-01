@@ -446,8 +446,8 @@
   font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
   font-size: 12.5px;
   line-height: 1.62;
-  min-block-size: 160px;
-  max-block-size: min(400px, 46vh);
+  min-block-size: 220px;
+  max-block-size: min(620px, 68vh);
   overflow-y: auto;
   overflow-x: auto;
   overscroll-behavior: contain;
@@ -468,12 +468,109 @@
 }
 
 .ollama-output-console.is-expanded .ollama-output-box {
-  min-block-size: 380px;
-  max-block-size: 78vh;
+  min-block-size: calc(100vh - 180px);
+  max-block-size: none;
+  flex: 1 1 auto;
 }
 
 .ollama-output-console.is-expanded .ollama-thinking-box {
   max-block-size: 46vh;
+}
+
+.ollama-output-console.is-expanded .ollama-code-pre,
+.ollama-output-console.is-fullscreen .ollama-code-pre {
+  max-block-size: none;
+}
+
+.ollama-output-console.is-fullscreen {
+  position: fixed;
+  inset: 10px;
+  z-index: 2200;
+  display: flex;
+  flex-direction: column;
+  background: var(--ollama-panel);
+  border: 2px solid var(--ollama-accent);
+  border-radius: 12px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.65);
+  overflow: hidden;
+}
+
+.ollama-output-console.is-fullscreen .ollama-output-box,
+.ollama-output-console.is-fullscreen .bionic-md-viewer {
+  flex: 1 1 auto;
+  min-block-size: 0;
+  max-block-size: none;
+}
+
+/* Collapse bulky banners & prompt chrome when Output Console is expanded so LLM output fills the viewport */
+.ollama-suite.is-output-expanded .ollama-hero-banner,
+.ollama-suite.is-output-expanded .ollama-autoinstall-card,
+.ollama-suite.is-output-expanded .ollama-context-strip,
+.ollama-suite.is-output-expanded .ollama-model-capabilities-card,
+.ollama-suite.is-output-expanded .bionic-model-capabilities-card,
+.ollama-suite.is-output-expanded .ollama-quick-prompts,
+.ollama-suite.is-output-expanded .ollama-thinking-control-bar,
+.ollama-suite.is-output-expanded .bionic-thinking-control-bar,
+.ollama-suite.is-output-expanded .ollama-advanced-sampling-panel,
+.ollama-suite.is-output-expanded .bionic-advanced-sampling-panel,
+.ollama-suite.is-output-expanded .ollama-assistant-options-row,
+.ollama-suite.is-output-expanded .ollama-textarea {
+  display: none !important;
+}
+
+/* Compact Controls mode: hides banners & quick chips while keeping textarea + buttons + output console */
+.ollama-suite.is-compact-controls .ollama-hero-banner,
+.ollama-suite.is-compact-controls .ollama-autoinstall-card,
+.ollama-suite.is-compact-controls .ollama-model-capabilities-card,
+.ollama-suite.is-compact-controls .bionic-model-capabilities-card,
+.ollama-suite.is-compact-controls .ollama-quick-prompts {
+  display: none !important;
+}
+
+.ollama-model-capabilities-card,
+.bionic-model-capabilities-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--ollama-border);
+  background: var(--ollama-elevated);
+  color: var(--ollama-text);
+  margin: 4px 0;
+}
+
+.ollama-model-use-cases {
+  font-size: 11.5px;
+  color: var(--ollama-muted);
+  line-height: 1.45;
+}
+
+.ollama-thinking-control-bar,
+.bionic-thinking-control-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--ollama-border);
+  background: var(--ollama-elevated);
+  color: var(--ollama-text);
+  margin: 4px 0;
+}
+
+.ollama-advanced-sampling-panel,
+.bionic-advanced-sampling-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--ollama-border);
+  background: var(--ollama-elevated);
+  color: var(--ollama-text);
+  margin: 4px 0;
 }
 
 .ollama-prose-segment + .ollama-code-block,

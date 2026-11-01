@@ -1,8 +1,11 @@
-// Color tags (labels) for files and folders: Red, Orange, Yellow, Green, Blue, Purple, Gray.
-// Tags are stored in `state.settings.tags` (path -> color id) so they persist across restarts.
+// Color tags (labels) and sticky notes for files and folders.
+// Tags are stored in `state.settings.tags` (path -> color id) and notes in `state.settings.notes` (path -> text)
+// so they persist across restarts.
 import { state, emit } from "./state.js";
 import { saveSettings } from "./nav.js";
 import { h, say } from "./dom.js";
+import { openDialog } from "./dialogs.js";
+import { baseName } from "./util.js";
 
 export const TAG_DEFS = [
   { id: "red", label: "Red", hex: "#ef4444" },
@@ -86,4 +89,69 @@ export function tagsSection() {
     }),
   );
   return h("section", { class: "side-section", dataset: { tagsSection: "" } }, head, pills);
+}
+
+export function noteForPath(path) {
+  if (!path || typeof path !== "string") return "";
+  const val = state.settings?.notes?.[path];
+  return typeof val === "string" ? val : "";
+}
+
+export async function setNoteForPath(path, text) {
+  if (!path || typeof path !== "string") return;
+  const clean = typeof text === "string" ? text.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, "").trim().slice(0, 500) : "";
+  const next = { ...(state.settings.notes ?? {}) };
+  if (clean) next[path] = clean;
+  else delete next[path];
+  await saveSettings({ notes: next });
+  emit("view");
+  emit("selection");
+  say(clean ? `Saved note for ${baseName(path, state.sep)}.` : `Removed note from ${baseName(path, state.sep)}.`);
+}
+
+export async function editNoteDialog(entryOrPath) {
+  const path = typeof entryOrPath === "string" ? entryOrPath : entryOrPath?.path;
+  if (!path) return;
+  const name = (typeof entryOrPath === "object" && entryOrPath?.name) || baseName(path, state.sep);
+  const current = noteForPath(path);
+  const textarea = h("textarea", {
+    class: "text-input note-textarea",
+    rows: "4",
+    maxlength: "500",
+    placeholder: "Write a sticky note, reminder, TODO, or context for this item…",
+    "aria-label": `Sticky note for ${name}`,
+    dataset: { noteInput: "" },
+    style: "width: 100%; resize: vertical; min-height: 84px; font-family: inherit;",
+  }, current);
+  const countEl = h("span", { class: "hint", dataset: { noteCount: "" } }, `${current.length} / 500`);
+  textarea.addEventListener("input", () => {
+    countEl.textContent = `${textarea.value.length} / 500`;
+  });
+
+  const buttons = [
+    { label: "Cancel", value: null },
+    ...(current ? [{ label: "Clear note", value: "clear", danger: true }] : []),
+    { label: "Save note", value: "save", primary: true },
+  ];
+  const dlg = openDialog({
+    title: `${current ? "Edit" : "Add"} Note — ${name}`,
+    body: [
+      h("label", { class: "field" },
+        h("span", { class: "field-label" }, "Sticky note (searchable via Filter & note:query)"),
+        textarea,
+      ),
+      h("div", { style: "display: flex; justify-content: space-between; align-items: center; margin-top: 4px;" },
+        h("span", { class: "hint" }, "Tip: Filter noted items anytime with is:noted or note:todo"),
+        countEl,
+      ),
+    ],
+    buttons,
+    initialFocus: textarea,
+  });
+  const choice = await dlg.result;
+  if (choice === "save") {
+    await setNoteForPath(path, textarea.value);
+  } else if (choice === "clear") {
+    await setNoteForPath(path, "");
+  }
 }

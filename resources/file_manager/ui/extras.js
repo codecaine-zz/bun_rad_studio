@@ -70,14 +70,14 @@ export async function showProperties(paths, options = {}) {
 
 /** Resolves the rows that were renamed, or null when cancelled. */
 export function bulkRenameDialog(folder, names) {
-  const spec = { mode: "replace", find: "", replace: "", matchCase: false, pattern: "Photo {n}", start: 1, padding: 2, style: "lower", prefix: "", suffix: "" };
+  const spec = { mode: "replace", find: "", replace: "", matchCase: false, useRegex: false, pattern: "Photo {n}", start: 1, padding: 2, style: "lower", prefix: "", suffix: "" };
   const preview = h("div", { class: "bulk-preview", "aria-live": "polite" });
   const fields = h("div", { class: "bulk-fields" });
   const modeSelect = h("select", { class: "select", "aria-label": "How to rename" },
-    h("option", { value: "replace" }, "Replace text"),
-    h("option", { value: "number" }, "Number them (Photo 01, Photo 02 …)"),
-    h("option", { value: "case" }, "Change capital letters"),
-    h("option", { value: "affix" }, "Add text at the start or end"),
+    h("option", { value: "replace" }, "Replace text (or Regex)"),
+    h("option", { value: "number" }, "Number & template tokens ({n}, {name}, {date} …)"),
+    h("option", { value: "case" }, "Change case / developer naming style"),
+    h("option", { value: "affix" }, "Add prefix or suffix (supports {date}, {n} …)"),
   );
   const text = (key, label, extra = {}) => {
     const input = h("input", { type: "text", class: "text-input", value: String(spec[key]), spellcheck: "false", autocomplete: "off", ...extra, oninput: () => { spec[key] = input.type === "number" ? Number(input.value) : input.value; update(); } });
@@ -89,13 +89,37 @@ export function bulkRenameDialog(folder, names) {
   };
   function drawFields() {
     fields.replaceChildren();
-    if (spec.mode === "replace") fields.append(text("find", "Find"), text("replace", "Replace with"), check("matchCase", "Match capital letters exactly"));
-    else if (spec.mode === "number") fields.append(text("pattern", "Name pattern (use {n} for the number)"), text("start", "Start at", { type: "number", min: "0" }), text("padding", "Digits (2 gives 01, 02 …)", { type: "number", min: "1", max: "10" }));
-    else if (spec.mode === "case") {
+    if (spec.mode === "replace") {
+      fields.append(
+        text("find", "Find (text or regular expression)"),
+        text("replace", "Replace with (use $1, $2 with regex)"),
+        check("matchCase", "Match capital letters exactly"),
+        check("useRegex", "Use regular expression (regex)"),
+      );
+    } else if (spec.mode === "number") {
+      fields.append(
+        text("pattern", "Name pattern (tokens: {n}, {alpha}, {name}, {ext}, {date}, {year}, {month}, {day})"),
+        text("start", "Start at", { type: "number", min: "0" }),
+        text("padding", "Digits (2 gives 01, 02 …)", { type: "number", min: "1", max: "10" }),
+      );
+    } else if (spec.mode === "case") {
       const select = h("select", { class: "select", "aria-label": "Capital letters", onchange: () => { spec.style = select.value; update(); } },
-        ...[["lower", "all lower case"], ["upper", "ALL UPPER CASE"], ["title", "Each Word Capitalised"], ["sentence", "First word only"]].map(([v, l]) => h("option", { value: v, selected: spec.style === v }, l)));
+        ...[
+          ["lower", "all lower case"],
+          ["upper", "ALL UPPER CASE"],
+          ["title", "Each Word Capitalised"],
+          ["sentence", "First word only"],
+          ["snake", "snake_case (developer)"],
+          ["kebab", "kebab-case (URL / slug)"],
+          ["camel", "camelCase (code)"],
+        ].map(([v, l]) => h("option", { value: v, selected: spec.style === v }, l)));
       fields.append(h("label", { class: "field" }, h("span", { class: "field-label" }, "Style"), select));
-    } else fields.append(text("prefix", "Add at the start"), text("suffix", "Add at the end (before .ext)"));
+    } else {
+      fields.append(
+        text("prefix", "Add at the start (supports {date}, {year}, {n}, {alpha})"),
+        text("suffix", "Add at the end before .ext (supports {date}, {n}, {ext})"),
+      );
+    }
   }
   modeSelect.addEventListener("change", () => { spec.mode = modeSelect.value; drawFields(); update(); });
 
@@ -154,7 +178,7 @@ export function bulkRenameDialog(folder, names) {
 }
 
 function cleanSpec(s) {
-  if (s.mode === "replace") return { mode: "replace", find: s.find, replace: s.replace, matchCase: s.matchCase };
+  if (s.mode === "replace") return { mode: "replace", find: s.find, replace: s.replace, matchCase: s.matchCase, useRegex: Boolean(s.useRegex) };
   if (s.mode === "number") return { mode: "number", pattern: s.pattern, start: Number.isFinite(s.start) ? s.start : 1, padding: Number.isFinite(s.padding) ? s.padding : 1 };
   if (s.mode === "case") return { mode: "case", style: s.style };
   return { mode: "affix", prefix: s.prefix, suffix: s.suffix };

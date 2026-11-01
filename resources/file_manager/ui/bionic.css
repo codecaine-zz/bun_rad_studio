@@ -152,8 +152,9 @@
   word-break: normal;
   color: var(--ollama-text);
   background: var(--ollama-sunken);
-  min-block-size: 150px;
-  max-block-size: min(480px, 56vh);
+  min-block-size: 220px;
+  max-block-size: min(620px, 68vh);
+  resize: vertical;
   overflow-y: auto;
   overflow-x: auto;
   overscroll-behavior: contain;
@@ -194,8 +195,16 @@
 }
 
 .ollama-output-console.is-expanded .bionic-md-viewer {
-  min-block-size: 440px;
-  max-block-size: 82vh;
+  min-block-size: calc(100vh - 180px);
+  max-block-size: none;
+  flex: 1 1 auto;
+}
+
+.ollama-output-console.is-expanded .bionic-md-code-body,
+.ollama-output-console.is-fullscreen .bionic-md-code-body,
+.ollama-output-console.is-expanded .bionic-md-table-wrap,
+.ollama-output-console.is-fullscreen .bionic-md-table-wrap {
+  max-block-size: none;
 }
 
 .bionic-md-viewer:focus-visible {

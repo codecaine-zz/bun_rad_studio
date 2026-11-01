@@ -20,7 +20,7 @@ export const state = {
     terminalOpen: false, terminalHeight: 300, terminalPath: "",
     workspace: "files", startWith: "files", splitSide: "right", splitSize: 50, sidebarCollapsed: false, focusMode: false,
     activeTool: "", splitTool: "", dualPath: "", typeWarnings: true, backspaceDeletes: true, shortcutsCantClose: false, serveOptions: { kind: "auto", liveReload: true, openBrowser: true }, deleteTo: "bin", dbShortcut: "window", mediaOpensIn: "manager",
-    columns: [], groupBy: "none", rowDensity: "comfortable", tags: {}, treeExpanded: false,
+    columns: [], groupBy: "none", rowDensity: "comfortable", tags: {}, notes: {}, treeExpanded: false,
   },
   /** Ids of queued jobs that came from a reviewed plan (planDialog.js reports on those itself). */
   planJobs: new Set(),

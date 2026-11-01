@@ -614,6 +614,664 @@ export function isVisionDecisionModel(model: string, capabilities: string[] = []
 export const canJudgeImagesInDecision = isVisionDecisionModel;
 
 /**
+ * Thinking / Reasoning Capability Classification across Ollama & LM Studio / Bionic models:
+ * - `"levels"`: Multi-level reasoning effort models (e.g. `gpt-oss`, `gpt-oss:20b`, `gpt-oss:120b`, `openai/gpt-oss-*`, `o1`, `o3`, `o4-mini`)
+ *   where users choose discrete thinking levels (`"low"`, `"medium"`, `"high"`).
+ * - `"toggle"`: Hybrid thinking models (e.g. `qwen3`, `qwen3.5`, `lfm3`, `glm-4.5`, `glm-z1`, `cogito`, `granite3.2`, `granite3.3`,
+ *   `smollm3`, `deepseek-v3.1`, `nemotron`, `seed-oss`, `hunyuan`, `mimo`, `gemma4`) where users can toggle thinking On (`true`) or Off (`false`),
+ *   plus optionally pick a reasoning effort / token budget (`"low"`, `"medium"`, `"high"`).
+ * - `"always_on"`: Dedicated chain-of-thought reasoning models (e.g. `deepseek-r1`, `qwq`, `phi4-reasoning`, `magistral`, `openthinker`)
+ *   where reasoning is native by default (and can be suppressed or budgeted).
+ * - `"none"`: Standard non-thinking chat, vision, speech, embedding, or decision models.
+ */
+export type ModelThinkingMode = "levels" | "toggle" | "always_on" | "none";
+export type ThinkingEffortChoice = "auto" | "off" | "on" | "low" | "medium" | "high";
+
+export interface ModelThinkingCapabilities {
+  thinkingMode: ModelThinkingMode;
+  supportsThinking: boolean;
+  supportsThinkingLevels: boolean;
+  canToggleOff: boolean;
+  canToggle: boolean;
+  supportedThinkingLevels: Array<"off" | "on" | "low" | "medium" | "high">;
+  supportedLevels: Array<"off" | "on" | "low" | "medium" | "high">;
+  defaultThinkingLevel: "off" | "on" | "low" | "medium" | "high";
+  defaultLevel: "off" | "on" | "low" | "medium" | "high";
+  supportsThinkingBudget: boolean;
+  usesHarmonyFormat: boolean;
+  badgeLabel: string;
+  summaryLabel: string;
+}
+
+export function getModelThinkingCapabilities(modelInput: {
+  name?: string;
+  id?: string;
+  family?: string;
+  capabilities?: string[];
+  reasoningCapable?: boolean;
+}): ModelThinkingCapabilities {
+  const rawName = String(modelInput.name || modelInput.id || "").trim().toLowerCase();
+  const base = baseModelName(rawName);
+  const family = String(modelInput.family || "").trim().toLowerCase();
+  const caps = new Set((modelInput.capabilities || []).map((c) => String(c).toLowerCase()));
+
+  if (
+    isSpeechModelName(rawName) ||
+    isDecisionModelName(rawName, modelInput.capabilities) ||
+    caps.has("embedding") ||
+    caps.has("embeddings") ||
+    rawName.includes("embed")
+  ) {
+    return {
+      thinkingMode: "none",
+      supportsThinking: false,
+      supportsThinkingLevels: false,
+      canToggleOff: true,
+      canToggle: false,
+      supportedThinkingLevels: [],
+      supportedLevels: [],
+      defaultThinkingLevel: "off",
+      defaultLevel: "off",
+      supportsThinkingBudget: false,
+      usesHarmonyFormat: false,
+      badgeLabel: "No Thinking (Direct Output)",
+      summaryLabel: "No Thinking (Direct Output)",
+    };
+  }
+
+  // 1. Multi-level reasoning effort models (`gpt-oss`, OpenAI o-series) — ONLY low / medium / high levels
+  const isGptOss =
+    rawName.includes("gpt-oss") ||
+    rawName.includes("gpt_oss") ||
+    family.includes("gpt-oss") ||
+    family.includes("gpt_oss");
+  const isOpenAiReasoningLevelModel =
+    isGptOss ||
+    /^o[134](?:[-:]|$)/.test(base) ||
+    rawName.includes("/o1") ||
+    rawName.includes("/o3") ||
+    rawName.includes("/o4-mini");
+
+  if (isOpenAiReasoningLevelModel) {
+    return {
+      thinkingMode: "levels",
+      supportsThinking: true,
+      supportsThinkingLevels: true,
+      canToggleOff: false,
+      canToggle: false,
+      supportedThinkingLevels: ["low", "medium", "high"],
+      supportedLevels: ["low", "medium", "high"],
+      defaultThinkingLevel: "medium",
+      defaultLevel: "medium",
+      supportsThinkingBudget: false,
+      usesHarmonyFormat: isGptOss,
+      badgeLabel: "Thinking Levels: Low / Med / High",
+      summaryLabel: "Multi-Level Thinking (Low / Medium / High)",
+    };
+  }
+
+  // 2. Always-on dedicated reasoning models (`deepseek-r1`, `qwq`, `phi4-reasoning`, `magistral`, `openthinker`)
+  const isAlwaysOnReasoning =
+    rawName.includes("deepseek-r1") ||
+    rawName.includes("deepseek_r1") ||
+    base === "qwq" ||
+    rawName.includes("qwq-") ||
+    rawName.includes("phi4-reasoning") ||
+    rawName.includes("phi-4-reasoning") ||
+    rawName.includes("phi4-mini-reasoning") ||
+    rawName.includes("magistral") ||
+    rawName.includes("openthinker") ||
+    rawName.includes("marco-o1") ||
+    rawName.includes("skywork-o1");
+
+  if (isAlwaysOnReasoning) {
+    return {
+      thinkingMode: "always_on",
+      supportsThinking: true,
+      supportsThinkingLevels: false,
+      canToggleOff: false,
+      canToggle: false,
+      supportedThinkingLevels: ["on"],
+      supportedLevels: ["on"],
+      defaultThinkingLevel: "on",
+      defaultLevel: "on",
+      supportsThinkingBudget: true,
+      usesHarmonyFormat: false,
+      badgeLabel: "Always-On Chain-of-Thought",
+      summaryLabel: "Always-On Chain-of-Thought Reasoning (<think>)",
+    };
+  }
+
+  // 3. Hybrid On/Off toggleable thinking models (`qwen3`, `qwen3.5`, `lfm3`, `glm-4.5`, `glm-z1`, `cogito`, `granite3.2`, `granite3.3`, `smollm3`, `deepseek-v3.1`, `nemotron`, `seed-oss`, `hunyuan`, `mimo`, `gemma4`)
+  const isToggleableThinking =
+    caps.has("thinking") ||
+    Boolean(modelInput.reasoningCapable) ||
+    rawName.includes("qwen3") ||
+    rawName.includes("lfm3") ||
+    rawName.includes("glm-4.5") ||
+    rawName.includes("glm-z1") ||
+    rawName.includes("glm4") ||
+    rawName.includes("cogito") ||
+    rawName.includes("granite3.2") ||
+    rawName.includes("granite3.3") ||
+    rawName.includes("smollm3") ||
+    rawName.includes("deepseek-v3") ||
+    rawName.includes("nemotron") ||
+    rawName.includes("seed-oss") ||
+    rawName.includes("hunyuan") ||
+    rawName.includes("mimo") ||
+    rawName.includes("gemma4") ||
+    rawName.includes("muse");
+
+  if (isToggleableThinking) {
+    return {
+      thinkingMode: "toggle",
+      supportsThinking: true,
+      supportsThinkingLevels: false,
+      canToggleOff: true,
+      canToggle: true,
+      supportedThinkingLevels: ["off", "on"],
+      supportedLevels: ["off", "on"],
+      defaultThinkingLevel: "off",
+      defaultLevel: "off",
+      supportsThinkingBudget: true,
+      usesHarmonyFormat: false,
+      badgeLabel: "Thinking Toggle: On / Off",
+      summaryLabel: "Toggleable Thinking (Turn On or Off)",
+    };
+  }
+
+  return {
+    thinkingMode: "none",
+    supportsThinking: false,
+    supportsThinkingLevels: false,
+    canToggleOff: true,
+    canToggle: false,
+    supportedThinkingLevels: [],
+    supportedLevels: [],
+    defaultThinkingLevel: "off",
+    defaultLevel: "off",
+    supportsThinkingBudget: false,
+    usesHarmonyFormat: false,
+    badgeLabel: "Standard Direct Response (No Thinking)",
+    summaryLabel: "Standard Direct Response (No Thinking)",
+  };
+}
+
+export interface ModelFeatureIndicator {
+  id: string;
+  icon: string;
+  label: string;
+  description: string;
+}
+
+export interface ModelFeatureProfile {
+  modelName: string;
+  summary: string;
+  useCases: string[];
+  indicators: ModelFeatureIndicator[];
+  features: {
+    chat: boolean;
+    code: boolean;
+    thinking: boolean;
+    thinkingMode: ModelThinkingMode;
+    thinkingLevels: boolean;
+    thinkingToggle: boolean;
+    thinkingAlwaysOn: boolean;
+    thinkingBudget: boolean;
+    vision: boolean;
+    tools: boolean;
+    structuredJson: boolean;
+    decisionSystemOne: boolean;
+    audioSpeech: boolean;
+    embeddings: boolean;
+    webSearch: boolean;
+    cloud: boolean;
+    mlx: boolean;
+  };
+  thinkingCapabilities: ModelThinkingCapabilities;
+}
+
+/**
+ * Returns the exact per-model feature matrix, visual capability indicators, and recommended use cases
+ * so the UI only displays controls supported by the selected model and clearly explains what it can do.
+ */
+export function getModelFeatureProfile(modelInput: {
+  name?: string;
+  id?: string;
+  family?: string;
+  capabilities?: string[];
+  reasoningCapable?: boolean;
+  isMlx?: boolean;
+  isCloud?: boolean;
+}): ModelFeatureProfile {
+  const rawName = String(modelInput.name || modelInput.id || "qwen3.5:latest").trim();
+  const lower = rawName.toLowerCase();
+  const base = baseModelName(lower);
+  const caps = new Set((modelInput.capabilities || []).map((c) => String(c).toLowerCase()));
+  const thinkingCaps = getModelThinkingCapabilities(modelInput);
+
+  const isPhonon = isPhononModelName(lower);
+  const isAudioSpeech = isSpeechModelName(lower) || caps.has("speech") || caps.has("tts") || caps.has("audio") || lower.includes("omni");
+  const isDecision = isDecisionModelName(lower, modelInput.capabilities);
+  const isEmbedding = caps.has("embedding") || caps.has("embeddings") || lower.includes("embed") || lower.includes("bge-");
+  const isChat = !isPhonon && !isEmbedding && (!isDecision || caps.has("chat") || caps.has("completion"));
+  const isVision =
+    caps.has("vision") ||
+    lower.includes("-vl") ||
+    lower.includes("_vl") ||
+    lower.includes("omni") ||
+    lower.includes("qwen3.5") ||
+    lower.includes("gemma3") ||
+    lower.includes("gemma4") ||
+    lower.includes("llava") ||
+    lower.includes("pixtral") ||
+    lower.includes("minicpm-v") ||
+    base === "clef" ||
+    base === "clef-flash";
+  const isTools =
+    caps.has("tools") ||
+    (isChat &&
+      !lower.includes("deepseek-r1") &&
+      !lower.includes("deepseek_r1") &&
+      !lower.includes("qwq") &&
+      !lower.includes("-vl:") &&
+      (lower.includes("qwen") ||
+        lower.includes("gpt-oss") ||
+        lower.includes("lfm3") ||
+        lower.includes("cogito") ||
+        lower.includes("llama3") ||
+        lower.includes("mistral") ||
+        lower.includes("gemma4") ||
+        lower.includes("glm")));
+  const isCode = isChat;
+  const isStructuredJson = isChat;
+  const isWebSearch = isChat;
+  const isCloud = Boolean(modelInput.isCloud) || isCloudModelName(lower);
+  const isMlx = Boolean(modelInput.isMlx) || lower.includes("mlx") || lower.includes("mxfp");
+
+  const indicators: ModelFeatureIndicator[] = [];
+  const useCases: string[] = [];
+
+  if (thinkingCaps.thinkingMode === "levels") {
+    indicators.push({
+      id: "thinking_levels",
+      icon: "🧠",
+      label: "Thinking Levels (Low / Med / High)",
+      description: "Choose Low, Medium, or High reasoning effort before generating.",
+    });
+    useCases.push("Select Low, Medium, or High reasoning effort for complex tasks");
+  } else if (thinkingCaps.thinkingMode === "toggle") {
+    indicators.push({
+      id: "thinking_toggle",
+      icon: "🔀",
+      label: "Thinking Toggle (On / Off)",
+      description: "Turn Deep Thinking On for step-by-step reasoning or Off for instant direct replies.",
+    });
+    useCases.push("Toggle Thinking On for deep analysis or Off for fast replies");
+  } else if (thinkingCaps.thinkingMode === "always_on") {
+    indicators.push({
+      id: "thinking_always_on",
+      icon: "🧠",
+      label: "Always-On Reasoning (<think>)",
+      description: "Always performs multi-step chain-of-thought verification before answering.",
+    });
+    useCases.push("Step-by-step math proofs, logic verification & root-cause bug hunting");
+  } else if (isChat) {
+    indicators.push({
+      id: "direct_fast",
+      icon: "⚡",
+      label: "Fast Direct Output (No Thinking Overhead)",
+      description: "Answers immediately without chain-of-thought latency.",
+    });
+    useCases.push("Instant low-latency answers, summarization & code drafting");
+  }
+
+  if (isVision) {
+    indicators.push({
+      id: "vision",
+      icon: "👁",
+      label: "Vision (Images & Screenshots)",
+      description: "Inspects PNG/JPG/WebP images, receipts, diagrams, and UI screenshots.",
+    });
+    useCases.push("Inspect images, receipts, diagrams, and UI screenshots");
+  }
+
+  if (isAudioSpeech) {
+    indicators.push({
+      id: "speech",
+      icon: "🔊",
+      label: "Speech & Audio Synthesis",
+      description: "Reads files and answers aloud with natural voice synthesis.",
+    });
+    useCases.push("Read documents aloud and export spoken WAV/PCM audio");
+  }
+
+  if (isDecision) {
+    indicators.push({
+      id: "decision",
+      icon: "⚖️",
+      label: "SystemOne Decision (noul / choice / score)",
+      description: "Scores Yes/No probabilities, multi-choice buckets (A-Z), and 1-10 ratings.",
+    });
+    useCases.push("Triage files with Yes/No (noul), A-Z categories, and 1-10 urgency scores");
+  }
+
+  if (isEmbedding) {
+    indicators.push({
+      id: "embeddings",
+      icon: "🧭",
+      label: "Semantic Embeddings (/api/embed)",
+      description: "Generates dense vector embeddings for meaning-based file search.",
+    });
+    useCases.push("Search files by meaning and cluster related documents");
+  }
+
+  if (isCode) {
+    indicators.push({
+      id: "code",
+      icon: "💻",
+      label: "Chat & Code Analysis",
+      description: "Summarizes files, writes/refactors code, and explains logs.",
+    });
+    useCases.push("Summarize files, refactor code, and explain logs in plain English");
+  }
+
+  if (isTools) {
+    indicators.push({
+      id: "tools",
+      icon: "🛠",
+      label: "Tool Calling",
+      description: "Can propose safe file creation/rename actions with visual confirmation.",
+    });
+    useCases.push("Run safe file creation & organization tools with confirmation");
+  }
+
+  if (isStructuredJson) {
+    indicators.push({
+      id: "structured_json",
+      icon: "📐",
+      label: "Structured JSON",
+      description: "Outputs schema-validated JSON for batch renames, audits, and tables.",
+    });
+    useCases.push("Generate schema-validated JSON plans (batch rename, code review, tables)");
+  }
+
+  if (isCloud) {
+    indicators.push({
+      id: "cloud",
+      icon: "☁️",
+      label: "Zero-RAM Cloud Host",
+      description: "Runs on remote cloud GPUs using 0 GB of local system RAM.",
+    });
+  } else if (isMlx) {
+    indicators.push({
+      id: "mlx",
+      icon: "🍎",
+      label: "Apple Silicon MLX",
+      description: "Accelerated with native Apple Silicon unified memory.",
+    });
+  }
+
+  const summary =
+    useCases.length > 0
+      ? `Best for: ${useCases.slice(0, 3).join(" • ")}.`
+      : "General-purpose local AI model.";
+
+  return {
+    modelName: rawName,
+    summary,
+    useCases,
+    indicators,
+    features: {
+      chat: isChat,
+      code: isCode,
+      thinking: thinkingCaps.supportsThinking,
+      thinkingMode: thinkingCaps.thinkingMode,
+      thinkingLevels: thinkingCaps.thinkingMode === "levels",
+      thinkingToggle: thinkingCaps.thinkingMode === "toggle",
+      thinkingAlwaysOn: thinkingCaps.thinkingMode === "always_on",
+      thinkingBudget: thinkingCaps.supportsThinkingBudget,
+      vision: isVision,
+      tools: isTools,
+      structuredJson: isStructuredJson,
+      decisionSystemOne: isDecision,
+      audioSpeech: isAudioSpeech,
+      embeddings: isEmbedding,
+      webSearch: isWebSearch,
+      cloud: isCloud,
+      mlx: isMlx,
+    },
+    thinkingCapabilities: thinkingCaps,
+  };
+}
+
+/**
+ * Resolves the exact `think` parameter (`boolean | "low" | "medium" | "high"`), normalized `thinkingLevel`,
+ * and optional system/budget hints for Ollama `/api/chat` and `/api/generate` as well as LM Studio Bionic.
+ */
+export function resolveOllamaThinkConfig(
+  modelName: string,
+  input: {
+    think?: boolean | "low" | "medium" | "high" | "on" | "off" | "auto";
+    thinkingLevel?: ThinkingEffortChoice | string;
+    thinkingBudget?: number;
+    speakReply?: boolean;
+    capabilities?: string[];
+  },
+): {
+  thinkParam: boolean | "low" | "medium" | "high";
+  thinkEnabled: boolean;
+  effectiveThinkingLevel: "off" | "on" | "low" | "medium" | "high";
+  effectiveLevel: "off" | "on" | "low" | "medium" | "high";
+  reasoningEffort: "low" | "medium" | "high" | undefined;
+  thinkingMode: ModelThinkingMode;
+  thinkingBudget: number | null;
+  effortSystemHint: string | null;
+  systemReasoningDirective: string;
+} {
+  const caps = getModelThinkingCapabilities({ name: modelName, capabilities: input.capabilities });
+  const rawLevel = String(input.thinkingLevel ?? "").trim().toLowerCase();
+  const rawThink = input.think;
+
+  // Rule B: When reading a reply out loud with Phonon/Speech, minimize or disable thinking
+  if (input.speakReply) {
+    if (caps.thinkingMode === "levels") {
+      return {
+        thinkParam: "low",
+        thinkEnabled: true,
+        effectiveThinkingLevel: "low",
+        effectiveLevel: "low",
+        reasoningEffort: "low",
+        thinkingMode: caps.thinkingMode,
+        thinkingBudget: 512,
+        effortSystemHint: "Reasoning: low",
+        systemReasoningDirective: "Reasoning: low",
+      };
+    }
+    return {
+      thinkParam: false,
+      thinkEnabled: false,
+      effectiveThinkingLevel: "off",
+      effectiveLevel: "off",
+      reasoningEffort: undefined,
+      thinkingMode: caps.thinkingMode,
+      thinkingBudget: null,
+      effortSystemHint: null,
+      systemReasoningDirective: "",
+    };
+  }
+
+  let requestedLevel: "auto" | "off" | "on" | "low" | "medium" | "high" = "auto";
+  if (rawLevel === "low" || rawLevel === "medium" || rawLevel === "high" || rawLevel === "on" || rawLevel === "off") {
+    requestedLevel = rawLevel;
+  } else if (rawThink === "low" || rawThink === "medium" || rawThink === "high") {
+    requestedLevel = rawThink;
+  } else if (rawThink === "on" || rawThink === true) {
+    requestedLevel = "on";
+  } else if (rawThink === "off" || rawThink === false) {
+    requestedLevel = "off";
+  }
+
+  const explicitBudget =
+    typeof input.thinkingBudget === "number" && Number.isFinite(input.thinkingBudget) && input.thinkingBudget > 0
+      ? Math.round(input.thinkingBudget)
+      : null;
+
+  // Case 1: `gpt-oss` and multi-level models where Ollama's `think` parameter accepts `"low" | "medium" | "high"`
+  if (caps.thinkingMode === "levels") {
+    const level: "low" | "medium" | "high" =
+      requestedLevel === "low" || requestedLevel === "medium" || requestedLevel === "high"
+        ? requestedLevel
+        : requestedLevel === "off"
+          ? "low"
+          : "medium";
+    const defaultBudget = level === "low" ? 1024 : level === "medium" ? 4096 : 16384;
+    const finalBudget = explicitBudget ?? defaultBudget;
+    const directive = explicitBudget
+      ? `Reasoning: ${level}\nKeep internal thinking within approximately ${explicitBudget} tokens.`
+      : `Reasoning: ${level}`;
+    return {
+      thinkParam: level,
+      thinkEnabled: true,
+      effectiveThinkingLevel: level,
+      effectiveLevel: level,
+      reasoningEffort: level,
+      thinkingMode: "levels",
+      thinkingBudget: finalBudget,
+      effortSystemHint: directive,
+      systemReasoningDirective: directive,
+    };
+  }
+
+  // Case 2: Toggleable (`qwen3.5`, `lfm3`, `glm-4.5`, `cogito`, etc.) or Always-On (`deepseek-r1`, `qwq`) models
+  const isTurnedOn =
+    requestedLevel === "on" ||
+    requestedLevel === "low" ||
+    requestedLevel === "medium" ||
+    requestedLevel === "high" ||
+    (requestedLevel === "auto" && caps.thinkingMode === "always_on");
+
+  if (!isTurnedOn) {
+    return {
+      thinkParam: false,
+      thinkEnabled: false,
+      effectiveThinkingLevel: "off",
+      effectiveLevel: "off",
+      reasoningEffort: undefined,
+      thinkingMode: caps.thinkingMode,
+      thinkingBudget: null,
+      effortSystemHint: null,
+      systemReasoningDirective: "",
+    };
+  }
+
+  const effectiveLevel: "on" | "low" | "medium" | "high" =
+    requestedLevel === "low" || requestedLevel === "medium" || requestedLevel === "high" ? requestedLevel : "on";
+  const reasoningEffort: "low" | "medium" | "high" | undefined =
+    effectiveLevel === "low" || effectiveLevel === "medium" || effectiveLevel === "high" ? effectiveLevel : undefined;
+
+  const budgetForLevel =
+    explicitBudget ??
+    (effectiveLevel === "low"
+      ? 1024
+      : effectiveLevel === "medium"
+        ? 4096
+        : effectiveLevel === "high"
+          ? 16384
+          : null);
+
+  const hintParts: string[] = [];
+  if (effectiveLevel === "low") {
+    hintParts.push("Keep internal step-by-step thinking concise and brief (low reasoning effort).");
+  } else if (effectiveLevel === "medium") {
+    hintParts.push("Use balanced step-by-step thinking (medium reasoning effort).");
+  } else if (effectiveLevel === "high") {
+    hintParts.push("Perform thorough, exhaustive step-by-step reasoning and verification (high reasoning effort).");
+  }
+  if (budgetForLevel) {
+    hintParts.push(`Target thinking token budget: ~${budgetForLevel} tokens.`);
+  }
+  const directive = hintParts.join(" ");
+
+  return {
+    thinkParam: true,
+    thinkEnabled: true,
+    effectiveThinkingLevel: effectiveLevel,
+    effectiveLevel,
+    reasoningEffort,
+    thinkingMode: caps.thinkingMode,
+    thinkingBudget: budgetForLevel,
+    effortSystemHint: directive || null,
+    systemReasoningDirective: directive,
+  };
+}
+
+/**
+ * Extracts reasoning traces and clean final content from:
+ * - Explicit `thinking` / `reasoning` / `reasoning_content` fields
+ * - OpenAI `gpt-oss` Harmony channels (`<|channel|>analysis<|message|>...<|end|><|start|>assistant<|channel|>final<|message|>...`)
+ * - `<think>...</think>` and `<reasoning>...</reasoning>` tags
+ */
+export function extractThinkingAndFinalContent(
+  rawContent: string,
+  explicitThinking = "",
+): { thinkingText: string; content: string } {
+  let content = String(rawContent || "");
+  const reasoningParts: string[] = [];
+  if (explicitThinking && String(explicitThinking).trim()) {
+    reasoningParts.push(String(explicitThinking).trim());
+  }
+
+  // 1. Parse gpt-oss Harmony format channels if present
+  if (content.includes("<|channel|>")) {
+    const analysisRegex = /<\|channel\|>(?:analysis|commentary)<\|message\|>([\s\S]*?)(?:<\|end\|>|(?=<\|start\|>|<\|channel\|>final)|$)/gi;
+    let match: RegExpExecArray | null;
+    while ((match = analysisRegex.exec(content)) !== null) {
+      const chunk = (match[1] || "").trim();
+      if (chunk && !reasoningParts.includes(chunk)) {
+        reasoningParts.push(chunk);
+      }
+    }
+    const finalMatch = /<\|channel\|>final<\|message\|>([\s\S]*?)(?:<\|end\|>|<\|return\|>|$)/i.exec(content);
+    if (finalMatch) {
+      content = finalMatch[1]!.trim();
+    } else {
+      content = content
+        .replace(/<\|start\|>assistant/gi, "")
+        .replace(/<\|channel\|>(?:analysis|commentary)<\|message\|>[\s\S]*?(?:<\|end\|>|$)/gi, "")
+        .replace(/<\|channel\|>final<\|message\|>/gi, "")
+        .replace(/<\|(?:end|return)\|>/gi, "")
+        .trim();
+    }
+  }
+
+  // 2. Parse <think>...</think> and <reasoning>...</reasoning> blocks
+  content = content.replace(/<(?:think|reasoning)>([\s\S]*?)<\/(?:think|reasoning)>/gi, (_m, inner) => {
+    const trimmed = String(inner || "").trim();
+    if (trimmed && !reasoningParts.includes(trimmed)) {
+      reasoningParts.push(trimmed);
+    }
+    return "";
+  });
+
+  // Handle unclosed <think> tag if truncated
+  const openThinkIdx = content.indexOf("<think>");
+  if (openThinkIdx !== -1) {
+    const partial = content.slice(openThinkIdx + 7).trim();
+    if (partial && !reasoningParts.includes(partial)) {
+      reasoningParts.push(partial);
+    }
+    content = content.slice(0, openThinkIdx).trim();
+  }
+
+  return {
+    thinkingText: reasoningParts.join("\n\n").trim(),
+    content: content.trim(),
+  };
+}
+
+/**
  * Checks whether a model is MLX-optimized (Apple Silicon native runner/safetensors/mlx tag)
  * or a specialized utility model (`phonon`, `nimble`, `tev1`, `clef`, `clef-flash`).
  */
@@ -638,13 +1296,24 @@ export function isMlxOptimizedModel(model: {
     nameLower.includes("nvfp4") ||
     nameLower.startsWith("lfm3") ||
     nameLower.startsWith("d3:") ||
-    nameLower.startsWith("qwen3.5")
+    nameLower.startsWith("qwen3.5") ||
+    nameLower.startsWith("gpt-oss") ||
+    nameLower.includes("openai/gpt-oss")
   ) {
     return true;
   }
   if (quantLower.includes("mxfp") || quantLower.includes("nvfp")) return true;
   if (formatLower === "safetensors") return true;
-  if (familyLower.includes("phonon") || familyLower.includes("lfm3") || familyLower.includes("qwen35") || familyLower.includes("qwen3.5")) return true;
+  if (
+    familyLower.includes("phonon") ||
+    familyLower.includes("lfm3") ||
+    familyLower.includes("qwen35") ||
+    familyLower.includes("qwen3.5") ||
+    familyLower.includes("gpt-oss") ||
+    familyLower.includes("gpt_oss")
+  ) {
+    return true;
+  }
   if (isUtilityModelName(nameLower)) return true;
   return false;
 }
@@ -812,6 +1481,46 @@ export const CURATED_MODEL_CATALOG: CatalogModelSpec[] = [
     runner: "mlx",
     capabilities: ["completion", "vision", "tools", "thinking", "mlx"],
     description: "Official Qwen 3.5 4B (`qwen3.5:4b`) multimodal Chat, Vision, Deep Thinking & Tool-Calling model tailored for smaller memory computers on macOS, Windows, and Linux.",
+  },
+  {
+    name: "gpt-oss:20b",
+    label: "OpenAI gpt-oss 20B (Multi-Level Reasoning: Low / Medium / High + Tools — MXFP4)",
+    parameterSize: "20B",
+    parameterBillions: 20.0,
+    estimatedRamGb: 13.8,
+    runner: "mlx",
+    capabilities: ["completion", "tools", "thinking", "mlx"],
+    description: "OpenAI gpt-oss 20B open-weight reasoning model with selectable Low, Medium, and High thinking effort levels (`think: \"low\" | \"medium\" | \"high\"`).",
+  },
+  {
+    name: "gpt-oss:120b",
+    label: "OpenAI gpt-oss 120B (Pro Multi-Level Reasoning: Low / Medium / High + Tools — MXFP4)",
+    parameterSize: "120B",
+    parameterBillions: 120.0,
+    estimatedRamGb: 65.0,
+    runner: "mlx",
+    capabilities: ["completion", "tools", "thinking", "mlx"],
+    description: "OpenAI gpt-oss 120B frontier open-weight reasoning model with selectable Low, Medium, and High thinking effort levels (`think: \"low\" | \"medium\" | \"high\"`).",
+  },
+  {
+    name: "deepseek-r1:8b",
+    label: "DeepSeek-R1 8B (Native Chain-of-Thought Reasoning & Code)",
+    parameterSize: "8B",
+    parameterBillions: 8.0,
+    estimatedRamGb: 5.2,
+    runner: "mlx",
+    capabilities: ["completion", "thinking", "mlx"],
+    description: "DeepSeek-R1 8B reasoning model with `<think>...</think>` chain-of-thought traces and configurable thinking budget.",
+  },
+  {
+    name: "cogito:8b",
+    label: "Cogito v1 8B (Hybrid Toggleable On/Off Deep Thinking & Tool Calling)",
+    parameterSize: "8B",
+    parameterBillions: 8.0,
+    estimatedRamGb: 5.1,
+    runner: "mlx",
+    capabilities: ["completion", "tools", "thinking", "mlx"],
+    description: "Hybrid reasoning model that lets you toggle thinking On (`think: true`) or Off (`think: false`) per message.",
   },
   {
     name: "lfm3:latest",
@@ -1401,6 +2110,8 @@ export interface BadgedOllamaModel {
   fitsRam: boolean;
   estimatedRamGb: number;
   hardwareVerdict: HardwareGuardVerdict;
+  thinkingCapabilities: ModelThinkingCapabilities;
+  featureProfile: ModelFeatureProfile;
   modifiedAt: string;
 }
 
@@ -1446,7 +2157,13 @@ export function computeModelBadges(model: {
   if (caps.has("vision") || nameLower.includes("-vl") || nameLower.includes("omni") || baseModelName(nameLower) === "clef" || baseModelName(nameLower) === "clef-flash") {
     badges.push("Vision");
   }
-  if (caps.has("thinking") || nameLower.includes("lfm3") || nameLower.includes("r1") || nameLower.includes("qwq")) {
+  if (
+    caps.has("thinking") ||
+    nameLower.includes("lfm3") ||
+    nameLower.includes("r1") ||
+    nameLower.includes("qwq") ||
+    getModelThinkingCapabilities({ name: model.name, capabilities: model.capabilities }).supportsThinking
+  ) {
     badges.push("Thinking");
   }
   if (caps.has("tools")) {
@@ -1478,7 +2195,14 @@ export async function listModelsWithBadgesAndHardwareFilter(
   models: BadgedOllamaModel[];
   hiddenNonMlxModels: BadgedOllamaModel[];
   blockedByRamModels: BadgedOllamaModel[];
-  recommendedCatalog: Array<CatalogModelSpec & { hardwareVerdict: HardwareGuardVerdict; installed: boolean }>;
+  recommendedCatalog: Array<
+    CatalogModelSpec & {
+      hardwareVerdict: HardwareGuardVerdict;
+      thinkingCapabilities: ModelThinkingCapabilities;
+      featureProfile: ModelFeatureProfile;
+      installed: boolean;
+    }
+  >;
 }> {
   const hardware = inspectOllamaHardware(ctx);
   const tagsRes = await ollamaFetchJson(ctx, "/api/tags", { method: "GET", timeoutMs: 6000 });
@@ -1597,6 +2321,18 @@ export async function listModelsWithBadgesAndHardwareFilter(
       fitsRam: verdict.code !== "HARDWARE_RAM_REFUSAL",
       estimatedRamGb: verdict.estimatedRamGb,
       hardwareVerdict: verdict,
+      thinkingCapabilities: getModelThinkingCapabilities({
+        name: item.name,
+        family: item.family,
+        capabilities: item.capabilities,
+      }),
+      featureProfile: getModelFeatureProfile({
+        name: item.name,
+        family: item.family,
+        capabilities: item.capabilities,
+        isMlx: item.isMlx,
+        isCloud: item.isCloud,
+      }),
       modifiedAt: item.modifiedAt,
     };
   });
@@ -1635,7 +2371,23 @@ export async function listModelsWithBadgesAndHardwareFilter(
     const installed = installedSet.has(cat.name.toLowerCase()) || installedBaseSet.has(baseModelName(cat.name));
     return {
       ...cat,
+      badges: computeModelBadges({
+        name: cat.name,
+        capabilities: cat.capabilities,
+        isMlx: cat.runner === "mlx",
+        isCloud: cat.runner === "cloud",
+      }),
       hardwareVerdict: verdict,
+      thinkingCapabilities: getModelThinkingCapabilities({
+        name: cat.name,
+        capabilities: cat.capabilities,
+      }),
+      featureProfile: getModelFeatureProfile({
+        name: cat.name,
+        capabilities: cat.capabilities,
+        isMlx: cat.runner === "mlx",
+        isCloud: cat.runner === "cloud",
+      }),
       installed,
     };
   }).filter((c) => {
@@ -3336,8 +4088,13 @@ export function convertNumericDatesToWords(input: string): string {
  */
 export function cleanTextForPhononSpeech(rawText: string): string {
   let text = String(rawText || "");
-  // Remove <think>...</think> blocks if any
+  // Remove Harmony <|channel|>analysis<|message|>...<|end|> blocks (e.g. gpt-oss)
+  text = text.replace(/<\|(?:start\|>assistant<\|)?channel\|>(?:analysis|thinking|thought)<\|message\|>[\s\S]*?(?:<\|end\|>|<\|return\|>)/gi, " ");
+  text = text.replace(/<\|(?:start\|>assistant<\|)?channel\|>final<\|message\|>/gi, " ");
+  text = text.replace(/<\|(?:end|return|start|channel|message)\|>/gi, " ");
+  // Remove <think>...</think> and <reasoning>...</reasoning> blocks if any
   text = text.replace(/<think>[\s\S]*?<\/think>/gi, " ");
+  text = text.replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, " ");
   // Convert markdown links [label](url) to label
   text = text.replace(/\[([^\]]+)\]\((?:[^)]+)\)/g, "$1");
   // Convert numeric dates into natural words
@@ -4471,6 +5228,49 @@ export const STRUCTURED_SCHEMAS: Record<string, any> = {
     },
     required: ["title", "columns", "rows"],
   },
+  code_review_report: {
+    type: "object",
+    properties: {
+      summary: { type: "string" },
+      overallRisk: { type: "string", enum: ["low", "medium", "high", "critical"] },
+      findings: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            file: { type: "string" },
+            line: { type: "number" },
+            severity: { type: "string", enum: ["info", "warning", "error", "critical"] },
+            issue: { type: "string" },
+            fixSuggestion: { type: "string" },
+          },
+          required: ["file", "severity", "issue", "fixSuggestion"],
+        },
+      },
+    },
+    required: ["summary", "overallRisk", "findings"],
+  },
+  security_audit_report: {
+    type: "object",
+    properties: {
+      summary: { type: "string" },
+      status: { type: "string", enum: ["safe", "attention_needed", "vulnerable"] },
+      vulnerabilities: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            category: { type: "string" },
+            severity: { type: "string", enum: ["low", "medium", "high", "critical"] },
+            description: { type: "string" },
+            remediation: { type: "string" },
+          },
+          required: ["category", "severity", "description", "remediation"],
+        },
+      },
+    },
+    required: ["summary", "status", "vulnerabilities"],
+  },
 };
 
 export async function selectBestChatOrVisionModel(
@@ -4551,26 +5351,48 @@ export async function runOllamaChatOrGenerate(
     messages?: Array<{ role: string; content: string; images?: string[] }>;
     paths?: string[];
     images?: string[];
-    think?: boolean;
+    think?: boolean | "low" | "medium" | "high" | "on" | "off" | "auto";
+    thinkingLevel?: ThinkingEffortChoice;
+    thinkingBudget?: number;
     speakReply?: boolean;
     voice?: string;
     format?: "json" | Record<string, any> | string;
-    schemaPreset?: "batch_rename_plan" | "folder_organization_plan" | "table_extraction";
+    schemaPreset?:
+      | "batch_rename_plan"
+      | "folder_organization_plan"
+      | "table_extraction"
+      | "code_review_report"
+      | "security_audit_report";
     enableTools?: boolean;
     useWebSearch?: boolean;
     webSearchQuery?: string;
     webFetchUrl?: string;
     numCtx?: number;
+    temperature?: number;
+    topP?: number;
+    topK?: number;
+    minP?: number;
+    repeatPenalty?: number;
+    numPredict?: number;
+    seed?: number;
+    stop?: string | string[];
+    keepAlive?: string | number;
+    systemPrompt?: string;
+    suffix?: string;
   },
 ): Promise<{
   model: string;
   endpoint: "chat" | "generate";
   hardwareVerdict: HardwareGuardVerdict;
   thinkEnabled: boolean;
+  thinkingMode: ModelThinkingMode;
+  thinkingLevel: "off" | "on" | "low" | "medium" | "high";
+  thinkParam: boolean | "low" | "medium" | "high" | undefined;
   thinkingText: string;
   content: string;
   structuredJson: any | null;
   enforcedNumCtx: number;
+  appliedOptions: Record<string, any>;
   inspectedFiles: string[];
   webContextUsed: boolean;
   webSources: Array<{ title: string; url: string }>;
@@ -4602,9 +5424,16 @@ export async function runOllamaChatOrGenerate(
     imagesBase64.length > 0,
   );
 
-  // Rule B (Speech cleanup): When reading a chat model's reply out loud, disable thinking output (think: false)
+  // Resolve model-aware thinking configuration (boolean toggle vs "low"|"medium"|"high" levels for gpt-oss)
   const speakReply = Boolean(payload.speakReply);
-  const thinkEnabled = speakReply ? false : Boolean(payload.think);
+  const thinkResolution = resolveOllamaThinkConfig(model, {
+    think: payload.think,
+    thinkingLevel: payload.thinkingLevel,
+    thinkingBudget: payload.thinkingBudget,
+    speakReply,
+  });
+  const thinkEnabled = thinkResolution.thinkEnabled;
+  const thinkParam = thinkResolution.thinkParam;
 
   // Rule H (Web Search & Web Fetch): Automatically set num_ctx to at least 32,000 tokens when running search-assisted tasks
   let webContextUsed = false;
@@ -4651,6 +5480,42 @@ export async function runOllamaChatOrGenerate(
   const optionsObj: Record<string, any> = {
     num_ctx: enforcedNumCtx,
   };
+  if (typeof payload.temperature === "number" && Number.isFinite(payload.temperature)) {
+    optionsObj.temperature = Math.max(0, Math.min(2, payload.temperature));
+  }
+  if (typeof payload.topP === "number" && Number.isFinite(payload.topP)) {
+    optionsObj.top_p = Math.max(0, Math.min(1, payload.topP));
+  }
+  if (typeof payload.topK === "number" && Number.isFinite(payload.topK) && payload.topK > 0) {
+    optionsObj.top_k = Math.round(payload.topK);
+  }
+  if (typeof payload.minP === "number" && Number.isFinite(payload.minP) && payload.minP >= 0) {
+    optionsObj.min_p = Math.max(0, Math.min(1, payload.minP));
+  }
+  if (typeof payload.repeatPenalty === "number" && Number.isFinite(payload.repeatPenalty) && payload.repeatPenalty > 0) {
+    optionsObj.repeat_penalty = payload.repeatPenalty;
+  }
+  if (typeof payload.numPredict === "number" && Number.isFinite(payload.numPredict) && payload.numPredict > 0) {
+    optionsObj.num_predict = Math.round(payload.numPredict);
+  }
+  if (typeof payload.seed === "number" && Number.isFinite(payload.seed)) {
+    optionsObj.seed = Math.round(payload.seed);
+  }
+  if (payload.stop) {
+    const stops = Array.isArray(payload.stop)
+      ? payload.stop.map((s) => String(s)).filter(Boolean)
+      : String(payload.stop)
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean);
+    if (stops.length > 0) optionsObj.stop = stops;
+  }
+
+  const baseSystemText = String(
+    payload.systemPrompt ||
+      "You are the Codecaine File Manager AI Assistant powered by Ollama. Be concise, helpful, and accurate.",
+  ).trim();
+  const fullSystemContent = [baseSystemText, thinkResolution.systemReasoningDirective].filter(Boolean).join("\n\n");
 
   let content = "";
   let thinkingText = "";
@@ -4660,10 +5525,13 @@ export async function runOllamaChatOrGenerate(
     const genReq: Record<string, any> = {
       model,
       prompt: fullUserContent,
+      system: fullSystemContent,
       stream: false,
-      think: thinkEnabled,
+      ...(thinkParam !== undefined ? { think: thinkParam } : {}),
       options: optionsObj,
     };
+    if (payload.suffix) genReq.suffix = String(payload.suffix);
+    if (payload.keepAlive !== undefined && payload.keepAlive !== "") genReq.keep_alive = payload.keepAlive;
     if (imagesBase64.length > 0) genReq.images = imagesBase64;
     if (resolvedFormat) genReq.format = resolvedFormat;
 
@@ -4676,8 +5544,12 @@ export async function runOllamaChatOrGenerate(
     if (!res.ok) {
       throw new FmError("OLLAMA_GENERATE_ERROR", res.data?.error || `Ollama /api/generate failed (HTTP ${res.status}).`);
     }
-    content = String(res.data?.response || "");
-    thinkingText = String(res.data?.thinking || "");
+    const extracted = extractThinkingAndFinalContent(
+      String(res.data?.response || ""),
+      String(res.data?.thinking || res.data?.reasoning || ""),
+    );
+    content = extracted.content;
+    thinkingText = extracted.thinkingText;
   } else {
     const messages = Array.isArray(payload.messages) && payload.messages.length > 0
       ? payload.messages.map((m, idx, arr) => {
@@ -4693,8 +5565,7 @@ export async function runOllamaChatOrGenerate(
       : [
           {
             role: "system",
-            content:
-              "You are the Codecaine File Manager AI Assistant powered by Ollama. Be concise, helpful, and accurate.",
+            content: fullSystemContent,
           },
           {
             role: "user",
@@ -4707,9 +5578,10 @@ export async function runOllamaChatOrGenerate(
       model,
       messages,
       stream: false,
-      think: thinkEnabled,
+      ...(thinkParam !== undefined ? { think: thinkParam } : {}),
       options: optionsObj,
     };
+    if (payload.keepAlive !== undefined && payload.keepAlive !== "") chatReq.keep_alive = payload.keepAlive;
     if (resolvedFormat) chatReq.format = resolvedFormat;
     if (payload.enableTools) {
       chatReq.tools = FILE_MANAGER_OLLAMA_TOOLS;
@@ -4725,8 +5597,12 @@ export async function runOllamaChatOrGenerate(
       throw new FmError("OLLAMA_CHAT_ERROR", res.data?.error || `Ollama /api/chat failed (HTTP ${res.status}).`);
     }
     const msg = res.data?.message || {};
-    content = String(msg.content || "");
-    thinkingText = String(msg.thinking || "");
+    const extracted = extractThinkingAndFinalContent(
+      String(msg.content || ""),
+      String(msg.thinking || msg.reasoning_content || msg.reasoning || ""),
+    );
+    content = extracted.content;
+    thinkingText = extracted.thinkingText;
 
     const toolCalls: any[] = Array.isArray(msg.tool_calls) ? msg.tool_calls : [];
     for (const tc of toolCalls) {
@@ -4785,10 +5661,14 @@ export async function runOllamaChatOrGenerate(
     endpoint,
     hardwareVerdict: verdict,
     thinkEnabled,
+    thinkingMode: thinkResolution.thinkingMode,
+    thinkingLevel: thinkResolution.effectiveLevel,
+    thinkParam,
     thinkingText,
     content,
     structuredJson,
     enforcedNumCtx,
+    appliedOptions: optionsObj,
     inspectedFiles,
     webContextUsed,
     webSources,
@@ -4822,6 +5702,20 @@ export async function routePlainEnglishRequest(
     speechModel?: string;
     voice?: string;
     speakReply?: boolean;
+    think?: boolean | "low" | "medium" | "high" | "on" | "off" | "auto";
+    thinkingLevel?: ThinkingEffortChoice;
+    thinkingBudget?: number;
+    numCtx?: number;
+    temperature?: number;
+    topP?: number;
+    topK?: number;
+    minP?: number;
+    repeatPenalty?: number;
+    numPredict?: number;
+    seed?: number;
+    stop?: string | string[];
+    keepAlive?: string | number;
+    systemPrompt?: string;
   },
 ): Promise<{
   routedCapability: RoutedCapabilityKind;
@@ -5009,11 +5903,15 @@ export async function routePlainEnglishRequest(
   }
 
   // 8. Thinking / Deep Reasoning vs Fast Chat
+  const explicitThinkRequested =
+    payload.thinkingLevel && payload.thinkingLevel !== "auto" && payload.thinkingLevel !== "off";
   const needsDeepThinking =
     !payload.speakReply &&
-    /\b(debug|complex|step[\s-]by[\s-]step|architecture|refactor|prove|why\s+is\s+this\s+failing|reorganize|deep\s+think)\b/i.test(
-      pLower,
-    );
+    (Boolean(explicitThinkRequested) ||
+      Boolean(payload.think && payload.think !== "off" && payload.think !== "auto") ||
+      /\b(debug|complex|step[\s-]by[\s-]step|architecture|refactor|prove|why\s+is\s+this\s+failing|reorganize|deep\s+think)\b/i.test(
+        pLower,
+      ));
 
   const needsTools = /\b(create\s+a\s+file|move\s+file|archive|compress)\b/i.test(pLower);
 
@@ -5021,16 +5919,29 @@ export async function routePlainEnglishRequest(
     model: requestedModel,
     prompt,
     paths,
-    think: needsDeepThinking,
+    think: payload.think !== undefined ? payload.think : needsDeepThinking,
+    thinkingLevel: payload.thinkingLevel,
+    thinkingBudget: payload.thinkingBudget,
     enableTools: needsTools,
     speakReply: payload.speakReply,
     voice: payload.voice,
+    numCtx: payload.numCtx,
+    temperature: payload.temperature,
+    topP: payload.topP,
+    topK: payload.topK,
+    minP: payload.minP,
+    repeatPenalty: payload.repeatPenalty,
+    numPredict: payload.numPredict,
+    seed: payload.seed,
+    stop: payload.stop,
+    keepAlive: payload.keepAlive,
+    systemPrompt: payload.systemPrompt,
   });
 
   return {
-    routedCapability: needsTools ? "tool_action" : needsDeepThinking ? "thinking_chat" : "chat",
-    routeExplanation: needsDeepThinking
-      ? `Routed to Deep Reasoning Chat (POST /api/chat, think: true, model: ${result.model}).`
+    routedCapability: needsTools ? "tool_action" : result.thinkEnabled ? "thinking_chat" : "chat",
+    routeExplanation: result.thinkEnabled
+      ? `Routed to Deep Reasoning Chat (POST /api/chat, think: ${JSON.stringify(result.thinkParam)}, level: ${result.thinkingLevel}, model: ${result.model}).`
       : `Routed to Live Chat & Code Assistant (POST /api/chat, think: false, model: ${result.model}).`,
     result,
   };
@@ -5100,16 +6011,57 @@ export async function handleOllamaStreamRequest(ctx: FmContext, req: Request): P
     recordSessionLoadedModel(ctx, model);
 
     const speakReply = Boolean(body.speakReply);
-    const think = speakReply ? false : Boolean(body.think);
+    const thinkResolution = resolveOllamaThinkConfig(model, {
+      think: body.think,
+      thinkingLevel: body.thinkingLevel,
+      thinkingBudget: body.thinkingBudget,
+      speakReply,
+    });
     const useWebSearch = Boolean(body.useWebSearch);
     const enforcedNumCtx = useWebSearch
       ? Math.max(Number(body.numCtx || 8192), MIN_WEB_SEARCH_NUM_CTX)
       : Number(body.numCtx || 8192);
 
+    const streamOptions: Record<string, any> = { num_ctx: enforcedNumCtx };
+    if (typeof body.temperature === "number" && Number.isFinite(body.temperature)) {
+      streamOptions.temperature = Math.max(0, Math.min(2, body.temperature));
+    }
+    if (typeof body.topP === "number" && Number.isFinite(body.topP)) {
+      streamOptions.top_p = Math.max(0, Math.min(1, body.topP));
+    }
+    if (typeof body.topK === "number" && Number.isFinite(body.topK) && body.topK > 0) {
+      streamOptions.top_k = Math.round(body.topK);
+    }
+    if (typeof body.minP === "number" && Number.isFinite(body.minP) && body.minP >= 0) {
+      streamOptions.min_p = Math.max(0, Math.min(1, body.minP));
+    }
+    if (typeof body.repeatPenalty === "number" && Number.isFinite(body.repeatPenalty) && body.repeatPenalty > 0) {
+      streamOptions.repeat_penalty = body.repeatPenalty;
+    }
+    if (typeof body.numPredict === "number" && Number.isFinite(body.numPredict) && body.numPredict > 0) {
+      streamOptions.num_predict = Math.round(body.numPredict);
+    }
+    if (typeof body.seed === "number" && Number.isFinite(body.seed)) {
+      streamOptions.seed = Math.round(body.seed);
+    }
+    if (body.stop) {
+      const stops = Array.isArray(body.stop)
+        ? body.stop.map((s: any) => String(s)).filter(Boolean)
+        : String(body.stop)
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean);
+      if (stops.length > 0) streamOptions.stop = stops;
+    }
+
     const promptText = [String(body.prompt || "Hello"), ...fileSnippets].filter(Boolean).join("\n\n");
+    const sysText = [String(body.systemPrompt || "").trim(), thinkResolution.systemReasoningDirective]
+      .filter(Boolean)
+      .join("\n\n");
     const messages = Array.isArray(body.messages) && body.messages.length > 0
       ? body.messages
       : [
+          ...(sysText ? [{ role: "system", content: sysText }] : []),
           {
             role: "user",
             content: promptText,
@@ -5127,12 +6079,14 @@ export async function handleOllamaStreamRequest(ctx: FmContext, req: Request): P
     const upstream = await fetch(`${baseUrl}/api/chat`, {
       method: "POST",
       headers,
+      signal: req.signal,
       body: JSON.stringify({
         model,
         messages,
         stream: true,
-        think,
-        options: { num_ctx: enforcedNumCtx },
+        ...(thinkResolution.thinkParam !== undefined ? { think: thinkResolution.thinkParam } : {}),
+        options: streamOptions,
+        ...(body.keepAlive !== undefined && body.keepAlive !== "" ? { keep_alive: body.keepAlive } : {}),
         ...(body.format ? { format: body.format } : {}),
       }),
     });

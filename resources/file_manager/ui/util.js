@@ -89,7 +89,7 @@ export function joinPath(dir, name, sep) {
   return dir.endsWith(sep) ? dir + name : dir + sep + name;
 }
 
-export function baseName(path, sep) {
+export function baseName(path, sep = isWindowsPath(String(path || "")) ? "\\" : "/") {
   const trimmed = path.length > 1 && path.endsWith(sep) && !/^[A-Za-z]:\\$/.test(path) ? path.slice(0, -1) : path;
   const i = trimmed.lastIndexOf(sep);
   return i < 0 ? trimmed : trimmed.slice(i + 1) || trimmed;

@@ -7,10 +7,14 @@ import {
   convertNumericDatesToWords,
   detectNativeHostArch,
   evaluateModelHardwareGuard,
+  extractThinkingAndFinalContent,
   formatSystemOneQuestions,
+  getModelFeatureProfile,
+  getModelThinkingCapabilities,
   getOllamaInstallStatus,
   getSpeechCapabilitiesForHost,
   inspectOllamaHardware,
+  resolveOllamaThinkConfig,
   resolveSpeechModelRegistryFallback,
   runOllamaAutoInstall,
   runOllamaSpeech,
@@ -1090,5 +1094,184 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
     expect(themeEffectsCss).toContain("html[data-sub-studio-sync=\"active\"] .ollama-suite");
     expect(themeEffectsCss).toContain(".ollama-hero-banner");
     expect(themeEffectsCss).toContain(".ollama-output-console");
+  });
+
+  test("13. Multi-Level Thinking (gpt-oss low/medium/high), Toggleable On/Off Thinking (qwen3.5/cogito), Harmony Channel Parsing & Advanced Sampling", async () => {
+    // 1. Multi-level thinking capabilities for gpt-oss:20b, gpt-oss:120b, openai/gpt-oss-20b, o3-mini
+    const gptOssCaps = getModelThinkingCapabilities({ name: "gpt-oss:20b" });
+    expect(gptOssCaps.supportsThinking).toBe(true);
+    expect(gptOssCaps.thinkingMode).toBe("levels");
+    expect(gptOssCaps.canToggle).toBe(false);
+    expect(gptOssCaps.supportedLevels).toEqual(["low", "medium", "high"]);
+    expect(gptOssCaps.defaultLevel).toBe("medium");
+
+    const gptOssLow = resolveOllamaThinkConfig("gpt-oss:20b", { thinkingLevel: "low" });
+    expect(gptOssLow.thinkParam).toBe("low");
+    expect(gptOssLow.effectiveLevel).toBe("low");
+    expect(gptOssLow.reasoningEffort).toBe("low");
+    expect(gptOssLow.systemReasoningDirective).toContain("Reasoning: low");
+
+    const gptOssHigh = resolveOllamaThinkConfig("gpt-oss:120b", { think: "high" });
+    expect(gptOssHigh.thinkParam).toBe("high");
+    expect(gptOssHigh.effectiveLevel).toBe("high");
+    expect(gptOssHigh.reasoningEffort).toBe("high");
+    expect(gptOssHigh.systemReasoningDirective).toContain("Reasoning: high");
+
+    // Even if a caller passes think: false to gpt-oss, it safely maps to "low" effort (gpt-oss requires a level string)
+    const gptOssFallback = resolveOllamaThinkConfig("gpt-oss:20b", { think: false });
+    expect(gptOssFallback.thinkParam).toBe("low");
+    expect(gptOssFallback.effectiveLevel).toBe("low");
+
+    // 2. Toggleable On/Off thinking capabilities for qwen3.5, cogito, lfm3, glm-4.5, gemma4
+    const qwenCaps = getModelThinkingCapabilities({ name: "qwen3.5:latest" });
+    expect(qwenCaps.supportsThinking).toBe(true);
+    expect(qwenCaps.thinkingMode).toBe("toggle");
+    expect(qwenCaps.canToggle).toBe(true);
+    expect(qwenCaps.supportedLevels).toEqual(["off", "on"]);
+
+    const qwenOff = resolveOllamaThinkConfig("qwen3.5:latest", { thinkingLevel: "off" });
+    expect(qwenOff.thinkParam).toBe(false);
+    expect(qwenOff.thinkEnabled).toBe(false);
+
+    const qwenOn = resolveOllamaThinkConfig("qwen3.5:latest", { thinkingLevel: "on", thinkingBudget: 4096 });
+    expect(qwenOn.thinkParam).toBe(true);
+    expect(qwenOn.thinkEnabled).toBe(true);
+    expect(qwenOn.systemReasoningDirective).toContain("4096");
+
+    const qwenHigh = resolveOllamaThinkConfig("cogito:8b", { thinkingLevel: "high" });
+    expect(qwenHigh.thinkParam).toBe(true);
+    expect(qwenHigh.effectiveLevel).toBe("high");
+    expect(qwenHigh.reasoningEffort).toBe("high");
+
+    // 3. Always-on reasoning models (deepseek-r1, qwq, phi4-reasoning)
+    const r1Caps = getModelThinkingCapabilities({ name: "deepseek-r1:8b" });
+    expect(r1Caps.thinkingMode).toBe("always_on");
+    expect(r1Caps.defaultLevel).toBe("on");
+    expect(r1Caps.supportedLevels).toEqual(["on"]);
+
+    // 3b. Non-thinking direct output models (qwen2.5-coder:7b, d3, phonon) have zero thinking levels and hide thinking UI
+    const coderCaps = getModelThinkingCapabilities({ name: "qwen2.5-coder:7b" });
+    expect(coderCaps.supportsThinking).toBe(false);
+    expect(coderCaps.thinkingMode).toBe("none");
+    expect(coderCaps.supportedLevels).toEqual([]);
+
+    // 3c. Per-model capability indicators & feature gating (getModelFeatureProfile)
+    const gptOssProfile = getModelFeatureProfile({ name: "gpt-oss:20b" });
+    expect(gptOssProfile.features.thinkingLevels).toBe(true);
+    expect(gptOssProfile.features.thinkingToggle).toBe(false);
+    expect(gptOssProfile.features.vision).toBe(false);
+    expect(gptOssProfile.features.tools).toBe(true);
+    expect(gptOssProfile.indicators.map((i) => i.id)).toContain("thinking_levels");
+    expect(gptOssProfile.indicators.map((i) => i.id)).not.toContain("vision");
+    expect(gptOssProfile.indicators.map((i) => i.id)).not.toContain("thinking_toggle");
+
+    const qwenProfile = getModelFeatureProfile({ name: "qwen3.5:latest" });
+    expect(qwenProfile.features.thinkingToggle).toBe(true);
+    expect(qwenProfile.features.thinkingLevels).toBe(false);
+    expect(qwenProfile.features.vision).toBe(true);
+    expect(qwenProfile.indicators.map((i) => i.id)).toContain("thinking_toggle");
+    expect(qwenProfile.indicators.map((i) => i.id)).toContain("vision");
+    expect(qwenProfile.indicators.map((i) => i.id)).not.toContain("thinking_levels");
+
+    const coderProfile = getModelFeatureProfile({ name: "qwen2.5-coder:7b" });
+    expect(coderProfile.features.thinking).toBe(false);
+    expect(coderProfile.features.vision).toBe(false);
+    expect(coderProfile.indicators.map((i) => i.id)).toContain("direct_fast");
+    expect(coderProfile.indicators.map((i) => i.id)).not.toContain("thinking_levels");
+    expect(coderProfile.indicators.map((i) => i.id)).not.toContain("thinking_toggle");
+
+    // 4. Harmony channel & <think> extraction + speech stripping
+    const harmonyRaw =
+      "<|channel|>analysis<|message|>Checking edge cases in B+tree split.<|end|><|start|>assistant<|channel|>final<|message|>The B+tree split is balanced.<|return|>";
+    const extracted = extractThinkingAndFinalContent(harmonyRaw);
+    expect(extracted.thinkingText).toBe("Checking edge cases in B+tree split.");
+    expect(extracted.content).toBe("The B+tree split is balanced.");
+    expect(cleanTextForPhononSpeech(harmonyRaw)).toBe("The B+tree split is balanced.");
+
+    // 5. Verify /api/chat receives think config and advanced sampling options
+    const beforeLen = recordedOllamaRequests.length;
+    const chatRes = await apiCall("ollama/chat", {
+      model: "lfm3:latest",
+      prompt: "Refactor this module",
+      thinkingLevel: "high",
+      thinkingBudget: 2048,
+      temperature: 0.25,
+      topP: 0.85,
+      topK: 30,
+      minP: 0.05,
+      repeatPenalty: 1.15,
+      numPredict: 1024,
+      seed: 42,
+      stop: ["STOP_HERE"],
+      keepAlive: "15m",
+    });
+    expect(chatRes.status).toBe(200);
+    const chatJson = chatRes.data;
+    expect(chatJson.thinkEnabled).toBe(true);
+    expect(chatJson.thinkingLevel).toBe("high");
+    expect(chatJson.appliedOptions.temperature).toBe(0.25);
+    expect(chatJson.appliedOptions.top_p).toBe(0.85);
+    expect(chatJson.appliedOptions.top_k).toBe(30);
+    expect(chatJson.appliedOptions.min_p).toBe(0.05);
+    expect(chatJson.appliedOptions.repeat_penalty).toBe(1.15);
+    expect(chatJson.appliedOptions.num_predict).toBe(1024);
+    expect(chatJson.appliedOptions.seed).toBe(42);
+    expect(chatJson.appliedOptions.stop).toEqual(["STOP_HERE"]);
+
+    const chatCalls = recordedOllamaRequests.slice(beforeLen).filter((r) => r.path === "/api/chat");
+    expect(chatCalls.length).toBeGreaterThanOrEqual(1);
+    const lastChatBody = chatCalls[chatCalls.length - 1]!.body;
+    expect(lastChatBody.think).toBe(true);
+    expect(lastChatBody.keep_alive).toBe("15m");
+    expect(lastChatBody.options.temperature).toBe(0.25);
+    expect(lastChatBody.options.top_k).toBe(30);
+  });
+
+  test("14. Expand Output, Fullscreen Reader Mode, Compact Controls, and Stop LLM Generation across Ollama, Bionic, and Code AI Chat", async () => {
+    const uiDir = `${import.meta.dir}/../resources/file_manager/ui`;
+    const [ollamaJs, bionicJs, codeAiJs, apiJs, ollamaCss, bionicCss, codeCss] = await Promise.all([
+      Bun.file(`${uiDir}/ollama.js`).text(),
+      Bun.file(`${uiDir}/bionic.js`).text(),
+      Bun.file(`${uiDir}/codeAiChat.js`).text(),
+      Bun.file(`${uiDir}/api.js`).text(),
+      Bun.file(`${uiDir}/ollama.css`).text(),
+      Bun.file(`${uiDir}/bionic.css`).text(),
+      Bun.file(`${uiDir}/code.css`).text(),
+    ]);
+
+    // 1. Expand Output, Fullscreen Reader Mode, and Compact Controls in Ollama & Bionic
+    expect(ollamaJs).toContain('"data-ollama-action": "toggle-expand-output"');
+    expect(ollamaJs).toContain('"data-ollama-action": "toggle-fullscreen-output"');
+    expect(ollamaJs).toContain('"data-ollama-action": "toggle-compact-controls"');
+    expect(ollamaJs).toContain("is-output-expanded");
+    expect(ollamaJs).toContain("is-fullscreen");
+
+    expect(bionicJs).toContain('"data-bionic-action": "toggle-expand-output"');
+    expect(bionicJs).toContain('"data-bionic-action": "toggle-fullscreen-output"');
+    expect(bionicJs).toContain('"data-bionic-action": "toggle-compact-controls"');
+    expect(bionicJs).toContain("is-output-expanded");
+    expect(bionicJs).toContain("is-fullscreen");
+
+    expect(codeAiJs).toContain('"data-code-ai-action": "toggle-expand"');
+    expect(codeAiJs).toContain('"data-code-ai-action": "toggle-fullscreen"');
+
+    // 2. CSS rules collapse bulky chrome when expanded and pin fullscreen reader mode
+    expect(ollamaCss).toContain(".ollama-suite.is-output-expanded .ollama-hero-banner");
+    expect(ollamaCss).toContain(".ollama-suite.is-compact-controls .ollama-hero-banner");
+    expect(ollamaCss).toContain(".ollama-output-console.is-fullscreen");
+    expect(bionicCss).toContain(".ollama-output-console.is-expanded .bionic-md-viewer");
+    expect(codeCss).toContain(".code-ai-pane.is-expanded");
+    expect(codeCss).toContain(".code-ai-pane.is-fullscreen");
+
+    // 3. Stop LLM Generation anytime (Ask / Smart Router & Live Stream) with AbortController
+    expect(apiJs).toContain("fetchInit.signal = opts.signal");
+    expect(apiJs).toContain("Generation stopped by user.");
+    expect(ollamaJs).toContain("export function stopOllamaGeneration()");
+    expect(ollamaJs).toContain('"data-ollama-action": "stop-generation"');
+    expect(ollamaJs).toContain("new AbortController()");
+    expect(bionicJs).toContain("export function stopBionicGeneration()");
+    expect(bionicJs).toContain('"data-bionic-action": "stop-generation"');
+    expect(bionicJs).toContain("new AbortController()");
+    expect(codeAiJs).toContain('"data-code-ai-action": "stop-generation"');
   });
 });

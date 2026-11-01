@@ -26,6 +26,11 @@ export async function startQuietDetect() {
   if (typeof document === "undefined") return;
   try {
     const r = await refreshDetect({ quiet: true });
+    const urlTool =
+      typeof window !== "undefined" && window.location?.search
+        ? new URLSearchParams(window.location.search).get("tool") || ""
+        : "";
+    if (urlTool && urlTool !== "databases") return;
     if (r.autoSaved?.length) {
       await loadOverview();
       const onlyLocal = r.autoSaved.every((x) => x.local);

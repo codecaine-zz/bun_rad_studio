@@ -38,18 +38,31 @@ export function terminalUrl(path, cols, rows) {
  * Calls one operation. Resolves with the answer, or throws an ApiError whose message is already in plain words.
  * @param {string} op
  * @param {Record<string, any>} [body]
+ * @param {{ signal?: AbortSignal }} [opts]
  */
-export async function call(op, body = {}) {
+export async function call(op, body = {}, opts = {}) {
   let res;
   try {
-    res = await fetch(`/api/${op}`, { method: "POST", headers: { "Content-Type": "application/json", "x-fm-token": getToken() }, body: JSON.stringify(body) });
-  } catch {
+    const fetchInit = {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-fm-token": getToken() },
+      body: JSON.stringify(body),
+    };
+    if (opts?.signal) fetchInit.signal = opts.signal;
+    res = await fetch(`/api/${op}`, fetchInit);
+  } catch (err) {
+    if (err?.name === "AbortError" || opts?.signal?.aborted) {
+      throw new ApiError("Generation stopped by user.", "ABORTED", 499);
+    }
     throw new ApiError("Can't reach the File Manager. Close this window and open it again.", "OFFLINE", 0);
   }
   let data = null;
   try {
     data = await res.json();
   } catch {
+    if (opts?.signal?.aborted) {
+      throw new ApiError("Generation stopped by user.", "ABORTED", 499);
+    }
     // not JSON: fall through to the generic message
   }
   if (!res.ok || !data || data.ok === false) {

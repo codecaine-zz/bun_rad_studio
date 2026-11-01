@@ -13,6 +13,7 @@ import { selectedEntries } from "./selection.js";
 import { inTrash, on, state } from "./state.js";
 import { quickMediaBlock } from "./mediaQuick.js";
 import { renderRichInfoSummary } from "./quicklookFormat.js";
+import { editNoteDialog, noteForPath, setNoteForPath } from "./tags.js";
 import { verdictBlock } from "./typecheck.js";
 import { baseName, formatDate, formatSize, isDocumentPackageEntry, plural } from "./util.js";
 
@@ -20,6 +21,42 @@ let sequence = 0;
 
 function fact(label, value) {
   return value ? [h("dt", {}, label), h("dd", {}, value)] : [];
+}
+
+function noteBlock(entry) {
+  if (!entry?.path || inTrash()) return null;
+  const note = noteForPath(entry.path);
+  if (!note) {
+    return h("button", {
+      type: "button",
+      class: "btn info-note-btn",
+      dataset: { infoAddNote: "" },
+      title: "Attach a persistent sticky note or reminder to this item",
+      onclick: () => editNoteDialog(entry),
+    }, "📝 Add sticky note…");
+  }
+  return h("div", { class: "info-note-card", dataset: { infoNoteCard: "" } },
+    h("div", { class: "info-note-head" },
+      h("span", { class: "info-note-title" }, "📝 Sticky Note"),
+      h("div", { class: "info-note-actions" },
+        h("button", {
+          type: "button",
+          class: "btn-link",
+          dataset: { infoEditNote: "" },
+          title: "Edit sticky note",
+          onclick: () => editNoteDialog(entry),
+        }, "Edit"),
+        h("button", {
+          type: "button",
+          class: "btn-link",
+          dataset: { infoClearNote: "" },
+          title: "Remove sticky note",
+          onclick: () => setNoteForPath(entry.path, ""),
+        }, "Clear"),
+      ),
+    ),
+    h("p", { class: "info-note-body" }, note),
+  );
 }
 
 async function previewFor(entry) {
@@ -105,6 +142,7 @@ export async function renderInfo() {
       ...fact("Type", e.label), ...fact("Size", e.isDir && !isDocumentPackageEntry(e) ? "" : formatSize(e.size)), ...fact(inTrash() ? "Deleted" : "Modified", formatDate(e.mtimeMs)),
       ...fact("Permissions", !inTrash() && typeof e.mode === "number" ? `${symbolicOf(e.mode)} (${octalOf(e.mode)})` : ""),
       ...fact(inTrash() ? "Was in" : "Where", inTrash() ? e.where : state.search ? e.folder : baseName(state.location.path, state.sep))),
+    noteBlock(e),
     inTrash() || e.isDir ? null : verdictBlock(e.path, e.name),
     inTrash() ? null : h("button", { type: "button", class: "btn", onclick: () => showProperties([e.path]) }, "Properties…"),
     inTrash() ? null : h("button", { type: "button", class: "btn fi-more", title: "Everything about this item, including hidden details such as camera, location and checksums (Alt+Shift+Enter)", onclick: () => showMoreInfo([e.path]) }, "More info…"),

@@ -3,6 +3,7 @@
 // all Power Tools & Studios, RAD File Templates, Color Tag filters, and View/Theme settings.
 import { openCalendarDialog } from "./chrome.js";
 import { openFolderInCode } from "./code.js";
+import { canCompareText, showCompareTextFiles } from "./datacompare.js";
 import { openDialog } from "./dialogs.js";
 import { $, clear, h, iconForEntry } from "./dom.js";
 import { swapDualPanes } from "./dual.js";
@@ -15,11 +16,11 @@ import { activePane, currentPath, left } from "./pane.js";
 import { isPhononSupported } from "./phonon.js";
 import { listPowerTabs, openPower } from "./power.js";
 import { KIND_CHIP_DEFS, RAD_FILE_TEMPLATES, focusQuickFilter, newFromTemplate, setKindFilter, showNewTemplateDialog, showSelectByPatternDialog } from "./quickbar.js";
-import { invertSelection, selectAll, selectOnly, selectSameKindOrExt } from "./selection.js";
+import { invertSelection, selectAll, selectOnly, selectSameKindOrExt, selectedEntries } from "./selection.js";
 import { showShortcutsDialog } from "./shortcutsDialog.js";
 import { emit, on, state } from "./state.js";
 import { closeTab, duplicateTab, openNewTab, reopenClosedTab, switchTab } from "./tabs.js";
-import { TAG_DEFS } from "./tags.js";
+import { TAG_DEFS, editNoteDialog } from "./tags.js";
 import { showToolsDialog } from "./tools.js";
 import { baseName } from "./util.js";
 import { lockSelection } from "./vault.js";
@@ -56,6 +57,13 @@ export function buildPaletteCatalog() {
   add({ id: "act.newFolderWithSelection", category: "actions", icon: "📁", title: "New folder with selection", subtitle: "Group the selected files and folders into a newly created folder", shortcut: labelOf("file.newFolderWithSelection"), keywords: "group folderize new folder selection move", run: () => inFiles(() => ops.newFolderWithSelection()) });
   add({ id: "act.newFile", category: "actions", icon: "📄", title: "New empty file", subtitle: "Create a blank text file in the current location", shortcut: labelOf("file.newFile"), keywords: "touch create file empty", run: () => inFiles(() => ops.newFile()) });
   add({ id: "act.pasteTextAsFile", category: "actions", icon: "📋", title: "Paste clipboard text as new file", subtitle: "Create a new file from clipboard text (auto-detects JSON, Markdown, SQL, HTML, TypeScript, CSV, or text)", shortcut: labelOf("file.pasteTextAsFile"), keywords: "paste clipboard text snippet file create", run: () => inFiles(() => ops.pasteTextAsFile()) });
+  add({ id: "act.pasteImageAsFile", category: "actions", icon: "🖼️", title: "Paste clipboard image as PNG file", subtitle: "Save a screenshot or picture on your clipboard as a new PNG file in this folder", keywords: "paste clipboard image picture screenshot png file create", run: () => inFiles(() => ops.pasteClipboardImageAsFile()) });
+  add({ id: "act.tidyFolder", category: "actions", icon: "🧹", title: "Tidy & organize current folder…", subtitle: "Organize loose files and document packages into category subfolders with 1-click Undo", keywords: "tidy organize clean sort folder categories", run: () => inFiles(() => ops.tidyFolderHere()) });
+  add({ id: "act.folderInventory", category: "actions", icon: "🌳", title: "Export folder inventory / directory tree…", subtitle: "Export ASCII Directory Tree, Markdown Table, CSV, or JSON inventory of the current folder", keywords: "export folder inventory tree ascii markdown csv json directory list", run: () => inFiles(() => ops.showFolderInventoryDialog()) });
+  add({ id: "act.checksumGen", category: "actions", icon: "🛡️", title: "Generate SHA-256 checksum manifest (.sha256 / SHA256SUMS)", subtitle: "Compute SHA-256 digests for selected files and save a manifest file", keywords: "checksum sha256 hash manifest generate integrity", run: () => inFiles(() => ops.generateChecksumManifest()) });
+  add({ id: "act.checksumVerify", category: "actions", icon: "✅", title: "Verify checksum manifest or file hash…", subtitle: "Verify a .sha256 / .md5 / SHA256SUMS manifest or check a file against an expected hash", keywords: "checksum verify sha256 md5 sha1 hash integrity", run: () => inFiles(() => ops.verifyChecksumFile()) });
+  add({ id: "act.stickyNote", category: "actions", icon: "📝", title: "Add or edit sticky note on selected item…", subtitle: "Attach a persistent searchable note or reminder to a file or folder", keywords: "sticky note annotation comment reminder memo", run: () => inFiles(() => { const sel = selectedEntries(activePane()); if (sel[0]) void editNoteDialog(sel[0]); }) });
+  add({ id: "act.diffTextFiles", category: "actions", icon: "🔀", title: "Compare / Diff 2 selected text, code, or document files…", subtitle: "Line-by-line Unified & Side-by-Side Split diff viewer with .patch export", keywords: "diff compare text code document patch lines", run: () => inFiles(() => { const sel = selectedEntries(activePane()); if (canCompareText(sel)) void showCompareTextFiles(sel); }) });
   add({ id: "act.newSqlite", category: "actions", icon: "🪶", title: "New SQLite database", subtitle: "Create a new SQLite database file and open in SQLite Studio", shortcut: labelOf("file.newSqlite"), keywords: "sqlite db database create", run: () => inFiles(() => ops.newSqlite()) });
   add({ id: "act.newDatedFolder", category: "actions", icon: "📅", title: `New dated folder (${ops.localDateStamp()})`, subtitle: "Create a folder named with today's YYYY-MM-DD date", shortcut: labelOf("file.newDatedFolder"), keywords: "date today folder daily", run: () => inFiles(() => ops.newDatedFolder()) });
   add({ id: "act.newDatedNote", category: "actions", icon: "📝", title: `New dated note (${ops.localDateStamp()}.md)`, subtitle: "Create a Markdown note named with today's YYYY-MM-DD date", shortcut: labelOf("file.newDatedNote"), keywords: "note markdown journal daily today", run: () => inFiles(() => ops.newDatedNote()) });

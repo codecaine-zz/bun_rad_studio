@@ -7,7 +7,7 @@ import { openInMediaDeck } from "./playerDeck.js";
 import { showMenu } from "./menus.js";
 import { calculateFolderSizes, clearSearch, goToIn, refresh, saveSettings } from "./nav.js";
 import * as ops from "./ops.js";
-import { canCompareData, showCompareData } from "./datacompare.js";
+import { canCompareData, canCompareText, showCompareData, showCompareTextFiles } from "./datacompare.js";
 import { showProperties } from "./extras.js";
 import { copyFileUrls, copyTerminalPaths, openInEditor } from "./fileurl.js";
 import { showMoreInfo } from "./fileinfo.js";
@@ -33,7 +33,7 @@ import { permissionItems } from "./permsQuick.js";
 import { quickMediaMenuItems } from "./mediaQuick.js";
 import { databaseStudioItems, moreToolsItem } from "./toolLauncher.js";
 import { openNewTab } from "./tabs.js";
-import { TAG_DEFS, setTagForPaths, tagForPath } from "./tags.js";
+import { TAG_DEFS, editNoteDialog, noteForPath, setTagForPaths, tagForPath } from "./tags.js";
 
 const mod = () => (state.platform === "darwin" ? "⌘" : "Ctrl+");
 const del = () => (state.platform === "darwin" ? "⌘⌫" : "Del");
@@ -163,6 +163,8 @@ function entryItems(entries) {
     one && !e.isDir && looksLikeText(e.name) ? { label: "Edit in Code editor", icon: "📝", shortcut: labelOf("file.editInCode"), action: () => openInCode(e.path) } : null,
     one && !e.isDir && looksLikeText(e.name) ? { label: "Open in your editor", icon: "🧑‍💻", tip: "Open this file in the code editor chosen in Settings (VS Code, Sublime Text, WebStorm or IntelliJ IDEA).", action: () => openInEditor(e) } : null,
     canCompareData(entries) ? { label: "Compare data files…", icon: "⚖️", tip: "Compare these two JSON, YAML or TOML files by what they say, ignoring key order and formatting, and list what differs.", action: () => showCompareData(entries) } : null,
+    canCompareText(entries) ? { label: "Compare / Diff text & code…", icon: "🔀", tip: "Compare these two files or document packages line-by-line in Unified or Side-by-Side Split view, and copy or save a .patch file.", action: () => showCompareTextFiles(entries) } : null,
+    one ? { label: noteForPath(e.path) ? "Edit sticky note…" : "Add sticky note…", icon: "📝", tip: "Attach or edit a persistent sticky note or reminder on this item (searchable via note:query or is:noted).", action: () => editNoteDialog(e) } : null,
     one ? { label: e.isDir ? "Open terminal here" : "Open terminal in this folder", icon: "⌨️", shortcut: labelOf("terminal.here"), tip: "Show the terminal and move it to this folder.", action: () => emit("terminal-here", e.isDir ? e.path : parentOf(e.path, state.sep)) } : null,
     one && !e.isDir && (e.program || (state.cliUtilsDir && parentOf(e.path, state.sep) === state.cliUtilsDir) || (state.cliAppsDir && parentOf(e.path, state.sep) === state.cliAppsDir)) && /^[A-Za-z0-9._-]+$/.test(e.name) ? { label: `Put ${state.platform === "win32" ? ".\\" : "./"}${e.name} in Terminal`, icon: "⌨️", tip: "Open the terminal in this file's folder and type ./filename so you can add arguments or press Enter.", action: () => emit("terminal-run-in", { folder: parentOf(e.path, state.sep), command: `${state.platform === "win32" ? ".\\" : "./"}${e.name} `, submit: false }) } : null,
     one && !e.isDir && (e.program || (state.cliUtilsDir && parentOf(e.path, state.sep) === state.cliUtilsDir) || (state.cliAppsDir && parentOf(e.path, state.sep) === state.cliAppsDir)) && /^[A-Za-z0-9._-]+$/.test(e.name) ? { label: `Run ${state.platform === "win32" ? ".\\" : "./"}${e.name} in Terminal`, icon: "▶️", tip: "Open the terminal in this file's folder and run ./filename right away.", action: () => emit("terminal-run-in", { folder: parentOf(e.path, state.sep), command: `${state.platform === "win32" ? ".\\" : "./"}${e.name}`, submit: true }) } : null,
@@ -198,6 +200,9 @@ function entryItems(entries) {
     { label: one ? "Rename" : `Rename ${entries.length} items…`, icon: "✏️", shortcut: one ? labelOf("file.rename") : "", action: ops.renameSelection },
     !searching ? { label: one ? "New folder with this item" : `New folder with ${entries.length} items`, icon: "📁", shortcut: labelOf("file.newFolderWithSelection"), tip: "Create a new folder right here and move the selected items into it in one undoable step.", action: () => ops.newFolderWithSelection(entries) } : null,
     one && e.isDir && !isDocumentPackageEntry(e) && !searching ? { label: "Tidy & organize this folder…", icon: "🧹", tip: "Automatically organize loose files and document packages in this folder into clean category subfolders with 1-click Undo.", action: () => ops.tidyFolderHere(e.path) } : null,
+    one && e.isDir && !isDocumentPackageEntry(e) ? { label: "Export folder inventory / tree…", icon: "🌳", tip: "Export this folder's directory tree or file inventory as ASCII Tree, Markdown Table, CSV, or JSON.", action: () => ops.showFolderInventoryDialog(e.path) } : null,
+    entries.some((x) => !x.isDir) ? { label: entries.length === 1 ? "Generate SHA-256 checksum (.sha256)" : `Generate SHA256SUMS manifest (${entries.length} items)`, icon: "🛡️", tip: "Compute SHA-256 cryptographic hashes and save a standard checksum manifest file in this folder with 1-click Undo.", action: () => ops.generateChecksumManifest(entries, "sha256") } : null,
+    one && !e.isDir ? { label: ops.isChecksumManifestName(e.name) ? "Verify checksum manifest…" : "Verify file checksum…", icon: "✅", tip: "Verify a .sha256 / .md5 / SHA256SUMS manifest or check a file against an expected SHA-256 / MD5 hash.", action: () => ops.verifyChecksumFile(e) } : null,
     entries.some((x) => x.isDir) ? { label: entries.filter((x) => x.isDir).length === 1 ? "Calculate folder size" : "Calculate folder sizes", icon: "📐", shortcut: labelOf("view.folderSizes"), tip: "Measure total size and file/subfolder counts for the selected folder(s) and show them in the Size column.", action: () => calculateFolderSizes(activePane(), entries.filter((x) => x.isDir).map((x) => x.path)) } : null,
     { label: one ? "Run CLI utility on this item…" : `Run CLI utility on ${entries.length} items…`, icon: "🛠️", tip: "Open the Built-in RAD CLI Utilities studio with the selected path(s) pre-filled as arguments.", action: () => openPower("cliutils", { paths: entries.map((x) => x.path) }) },
     { label: "Compress to zip", icon: "🗜️", shortcut: labelOf("file.zip"), disabled: searching, action: ops.zipSelection },
@@ -261,6 +266,7 @@ export function backgroundItems() {
     { label: "Select by pattern…", icon: "🎯", shortcut: labelOf("file.selectByPattern"), tip: "Select or deselect items matching a wildcard (*.ts), extension (ext:json), size (size:>1mb), or modification date (date:today).", action: () => emit("select-pattern-dialog") },
     { label: "Invert selection", shortcut: labelOf("file.invertSelection"), action: () => invertSelection() },
     { label: "Tidy & organize folder…", icon: "🧹", tip: "Automatically organize loose files and document packages in this folder into clean category subfolders (Books & Documents, Images & Screenshots, Audio & Music, Videos, Archives & Installers, Code & Data) with 1-click Undo.", action: () => ops.tidyFolderHere() },
+    { label: "Export folder inventory / tree…", icon: "🌳", tip: "Export this folder's directory tree or file inventory as ASCII Tree, Markdown Table, CSV, or JSON.", action: () => ops.showFolderInventoryDialog(here) },
     { label: "Calculate folder sizes", icon: "📐", shortcut: labelOf("view.folderSizes"), tip: "Calculate total byte sizes for all folders in this view.", action: () => calculateFolderSizes(activePane()) },
     { label: "Refresh", shortcut: labelOf("nav.refresh"), action: () => refresh() },
     { separator: true },

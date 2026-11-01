@@ -12,7 +12,7 @@ import { inTrash, isFolderView, left, setActivePane } from "./pane.js";
 import { clearSelection, selectOnly, selectRangeTo, selectedEntries, toggleKey } from "./selection.js";
 import { emit, on, state } from "./state.js";
 import { openNewTab } from "./tabs.js";
-import { tagForPath, tagInfo } from "./tags.js";
+import { tagForPath, tagInfo, noteForPath, editNoteDialog } from "./tags.js";
 import { describeSelection, extensionOf, formatDate, formatSize, isDocumentPackageEntry, isModifier, plural, summarizeCount } from "./util.js";
 
 const PAGE = 500;
@@ -96,6 +96,7 @@ function makeRow(pane, entry, index) {
   const cut = state.clipboard?.mode === "cut" && state.clipboard.paths.includes(entry.path);
   const trash = inTrash(pane);
   const tag = !trash ? tagForPath(entry.path) : null;
+  const note = !trash ? noteForPath(entry.path) : "";
   const cols = Array.isArray(state.settings.columns) ? state.settings.columns : [];
   const isDocPkg = isDocumentPackageEntry(entry);
   const isFolderVisual = entry.isDir && !isDocPkg;
@@ -117,8 +118,9 @@ function makeRow(pane, entry, index) {
       defaultIcon: entry.icon || "",
       ...(folderTopic ? { folderTopic, topic: folderTopic } : {}),
       ...(tag ? { tag: tag.id } : {}),
+      ...(note ? { hasNote: "1" } : {}),
     },
-    title: entry.path && !trash ? entry.path : entry.name,
+    title: entry.path && !trash ? (note ? `${entry.path}\n📝 Note: ${note}` : entry.path) : entry.name,
   },
     h("span", {
       class: "c-icon",
@@ -132,7 +134,17 @@ function makeRow(pane, entry, index) {
     }, iconForEntry(entry)),
     h("span", { class: "c-name" },
       tag ? h("span", { class: `tag-dot tag-${tag.id}`, title: `Tagged ${tag.label}`, "aria-label": `Tagged ${tag.label}` }) : null,
-      h("span", { class: "name-text" }, entry.name)),
+      h("span", { class: "name-text" }, entry.name),
+      note ? h("span", {
+        class: "note-badge",
+        dataset: { noteBadge: "" },
+        title: `📝 Note: ${note} (Click to edit)`,
+        "aria-label": `Note: ${note}`,
+        onclick: (e) => {
+          e.stopPropagation();
+          editNoteDialog(entry);
+        },
+      }, "📝") : null),
     h("span", { class: "c-where" }, whereText(pane, entry)),
     h("span", { class: "c-date" }, formatDate(entry.mtimeMs)),
     h("span", { class: "c-type" }, entry.label),

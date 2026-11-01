@@ -392,7 +392,12 @@ kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; bac
 .code-hist-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* AI Code Chat Pane (LM Studio Bionic & Ollama) */
-.code-ai-pane { flex: 0 0 40%; min-width: 300px; max-width: 75%; display: flex; flex-direction: column; min-height: 0; background: var(--bg); color: var(--text); border-left: 1px solid var(--border); }
+.code-ai-pane { flex: 0 0 40%; min-width: 300px; max-width: 75%; display: flex; flex-direction: column; min-height: 0; background: var(--bg); color: var(--text); border-left: 1px solid var(--border); transition: flex-basis 0.16s ease; }
+.code-ai-pane.is-expanded { flex: 0 0 72%; max-width: 88%; }
+.code-ai-pane.is-fullscreen { position: fixed; inset: 10px; z-index: 2200; max-width: none; width: auto; height: auto; border: 2px solid var(--accent); border-radius: 12px; box-shadow: 0 24px 64px rgba(0, 0, 0, 0.65); }
+.code-ai-pane.is-expanded .bionic-md-code-body,
+.code-ai-pane.is-fullscreen .bionic-md-code-body { max-block-size: none; }
+.code-ai-model-caps-bar { padding: 4px 8px; gap: 4px; font-size: 11px; border-bottom: 1px solid var(--border); }
 .code-ai-pane[hidden] { display: none; }
 .code-ai-head { gap: 6px; padding: 6px 10px; }
 .code-ai-engine-switch { display: inline-flex; border: 1px solid var(--border); border-radius: 7px; overflow: hidden; background: var(--bg); }

@@ -253,11 +253,41 @@ async function renderBody(entry, mine) {
     case "image": {
       if (extensionOf(entry.name) === "gif") return mountGif(entry, mine, open);
       setCopy({ label: "Copy picture", tip: "Put the picture on the clipboard, to paste into a document or chat", run: () => copyImageFile(entry) });
+      let zoom = 1;
+      let rot = 0;
+      let flipX = 1;
+      let flipY = 1;
+      let backdropMode = "grid"; // "grid" | "dark" | "light"
+
+      const dimBadge = h("span", { class: "ql-fmt-badge", dataset: { qlImgDims: "" } }, (extensionOf(entry.name) || "IMG").toUpperCase());
+      const zoomLabelBtn = h("button", {
+        type: "button",
+        class: "btn ql-mini-btn",
+        dataset: { qlImgZoomReset: "" },
+        title: "Toggle between Fit (100%) and 200% zoom",
+        onclick: () => {
+          zoom = zoom === 1 ? 2 : 1;
+          applyTransform();
+        },
+      }, "100% (Fit)");
+
+      const stage = h("div", {
+        class: "ql-image-stage ql-bg-grid",
+        dataset: { qlImgStage: "", backdrop: backdropMode },
+        style: "display: flex; align-items: center; justify-content: center; overflow: auto; flex: 1; min-height: 260px; padding: 12px; border-radius: 6px; background-image: linear-gradient(45deg, rgba(148,163,184,0.14) 25%, transparent 25%), linear-gradient(-45deg, rgba(148,163,184,0.14) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, rgba(148,163,184,0.14) 75%), linear-gradient(-45deg, transparent 75%, rgba(148,163,184,0.14) 75%); background-size: 16px 16px; background-position: 0 0, 0 8px, 8px -8px, -8px 0;",
+      });
+
       const img = h("img", {
         class: "ql-image",
         src: rawUrl(entry.path),
         alt: `Preview of ${entry.name}`,
-        onload: () => ql && mine === ql.seq && setSub(`${baseSub(entry)}  ·  ${img.naturalWidth} × ${img.naturalHeight}`),
+        style: "transition: transform 0.14s ease; transform-origin: center center;",
+        onload: () => {
+          if (ql && mine === ql.seq) {
+            setSub(`${baseSub(entry)}  ·  ${img.naturalWidth} × ${img.naturalHeight}`);
+            dimBadge.textContent = `${(extensionOf(entry.name) || "IMG").toUpperCase()} · ${img.naturalWidth} × ${img.naturalHeight}`;
+          }
+        },
         onerror: () => {
           if (!img.dataset.retried) {
             img.dataset.retried = "1";
@@ -267,7 +297,65 @@ async function renderBody(entry, mine) {
           open(failed(entry, "This picture can't be shown here."));
         },
       });
-      return open(img);
+
+      function applyTransform() {
+        const pct = Math.round(zoom * 100);
+        zoomLabelBtn.textContent = zoom === 1 && rot === 0 && flipX === 1 && flipY === 1 ? "100% (Fit)" : `${pct}%`;
+        img.style.transform = `scale(${zoom}) rotate(${rot}deg) scale(${flipX}, ${flipY})`;
+      }
+
+      function applyBackdrop(mode) {
+        backdropMode = mode;
+        stage.dataset.backdrop = mode;
+        if (mode === "grid") {
+          stage.style.background = "";
+          stage.style.backgroundImage = "linear-gradient(45deg, rgba(148,163,184,0.14) 25%, transparent 25%), linear-gradient(-45deg, rgba(148,163,184,0.14) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, rgba(148,163,184,0.14) 75%), linear-gradient(-45deg, transparent 75%, rgba(148,163,184,0.14) 75%)";
+          stage.style.backgroundSize = "16px 16px";
+          stage.style.backgroundPosition = "0 0, 0 8px, 8px -8px, -8px 0";
+        } else if (mode === "dark") {
+          stage.style.backgroundImage = "none";
+          stage.style.background = "#090d16";
+        } else {
+          stage.style.backgroundImage = "none";
+          stage.style.background = "#f8fafc";
+        }
+      }
+
+      const inspectorBar = h("div", {
+        class: "ql-fmt-head ql-img-inspector",
+        dataset: { qlImgInspector: "" },
+        style: "display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 6px 10px; margin-bottom: 6px;",
+      },
+        dimBadge,
+        h("span", { class: "code-grow" }),
+        h("button", { type: "button", class: "btn ql-mini-btn", dataset: { qlImgZoomOut: "" }, title: "Zoom out", onclick: () => { zoom = Math.max(0.25, +(zoom - 0.25).toFixed(2)); applyTransform(); } }, "−"),
+        zoomLabelBtn,
+        h("button", { type: "button", class: "btn ql-mini-btn", dataset: { qlImgZoomIn: "" }, title: "Zoom in", onclick: () => { zoom = Math.min(4, +(zoom + 0.25).toFixed(2)); applyTransform(); } }, "+"),
+        h("button", { type: "button", class: "btn ql-mini-btn", dataset: { qlImgRotLeft: "" }, title: "Rotate 90° counter-clockwise", onclick: () => { rot = (rot - 90) % 360; applyTransform(); } }, "↶"),
+        h("button", { type: "button", class: "btn ql-mini-btn", dataset: { qlImgRotRight: "" }, title: "Rotate 90° clockwise", onclick: () => { rot = (rot + 90) % 360; applyTransform(); } }, "↷"),
+        h("button", { type: "button", class: "btn ql-mini-btn", dataset: { qlImgFlipH: "" }, title: "Flip horizontally", onclick: () => { flipX *= -1; applyTransform(); } }, "⇄"),
+        h("button", { type: "button", class: "btn ql-mini-btn", dataset: { qlImgFlipV: "" }, title: "Flip vertically", onclick: () => { flipY *= -1; applyTransform(); } }, "⇅"),
+        h("button", {
+          type: "button",
+          class: "btn ql-mini-btn",
+          dataset: { qlImgBackdrop: "" },
+          title: "Cycle transparency backdrop (Checkerboard Grid / Dark / Light)",
+          onclick: () => applyBackdrop(backdropMode === "grid" ? "dark" : backdropMode === "dark" ? "light" : "grid"),
+        }, "🏁 Backdrop"),
+        h("button", {
+          type: "button",
+          class: "btn ql-mini-btn",
+          dataset: { qlImgAskAi: "" },
+          title: "Analyze this image with AI Vision (Ollama / LM Studio Bionic)",
+          onclick: () => {
+            closeQuickLook();
+            openPower("ollama", { subTab: "assistant", paths: [entry.path] });
+          },
+        }, "🤖 Ask AI"),
+      );
+
+      stage.append(img);
+      return open(h("div", { class: "ql-img-wrap", style: "display: flex; flex-direction: column; width: 100%; height: 100%;" }, inspectorBar, stage));
     }
     case "thumb": {
       const richNode = renderRichQuickLook(entry, preview, { onClose: closeQuickLook });

@@ -3,7 +3,7 @@
 import { ApiError, call } from "./api.js";
 import { openFolderInCode, openInCode } from "./code.js";
 import { looksLikeText } from "./codeLang.js";
-import { canCompareData, showCompareData } from "./datacompare.js";
+import { canCompareData, canCompareText, showCompareData, showCompareTextFiles } from "./datacompare.js";
 import { openDialog } from "./dialogs.js";
 import { $, announce, buttonIconFor, clear, h } from "./dom.js";
 import { isStudioPicture } from "./imageStudio.js";
@@ -19,7 +19,7 @@ import { openPower } from "./power.js";
 import { openQuickLook } from "./quicklook.js";
 import { clearSelection, focusIndex, matchEntriesByPattern, selectByPattern, selectKeys, selectSameKindOrExt, selectedEntries } from "./selection.js";
 import { on, state } from "./state.js";
-import { TAG_DEFS, setTagForPaths, tagForPath } from "./tags.js";
+import { TAG_DEFS, editNoteDialog, noteForPath, setTagForPaths, tagForPath } from "./tags.js";
 import { describeSelection, extensionOf, extractableEntries, formatSize, plural } from "./util.js";
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -357,6 +357,7 @@ export const SELECT_PATTERN_PRESETS = [
   { label: "📦 Large (> 1 MB)", query: "size:>1mb", tip: "Files (or measured folders) larger than 1 MB" },
   { label: "🪶 Empty (0 B)", query: "is:empty", tip: "Empty 0-byte files" },
   { label: "🏷️ Tagged items", query: "tag:any", tip: "Items with any color tag assigned" },
+  { label: "📝 Noted items", query: "is:noted", tip: "Items with a sticky note attached" },
 ];
 
 /**
@@ -688,6 +689,9 @@ export function renderSelectionBar() {
   }
   if (canCompareData(items)) {
     addAct("compare-data", "⚖️", "Compare Data", "Compare these two JSON, YAML, or TOML files semantically", () => showCompareData(items), { primary: true });
+  }
+  if (canCompareText(items)) {
+    addAct("diff-text", "🔀", "Diff Text", "Compare these two files or document packages line-by-line (Unified or Side-by-Side Split)", () => showCompareTextFiles(items), { primary: !canCompareData(items) });
   } else if (items.length === 2 && items[0].isDir && items[1].isDir) {
     addAct("compare-dirs", "🆚", "Compare Folders", "Compare these two folders side by side in the Compare tool", () => {
       openPower("compare");
@@ -700,6 +704,19 @@ export function renderSelectionBar() {
         }
       }, 60);
     }, { primary: true });
+  }
+
+  if (one) {
+    addAct("note", "📝", noteForPath(one.path) ? "Edit Note" : "Add Note", "Attach or edit a sticky note for this item", () => editNoteDialog(one));
+  }
+  if (one && !one.isDir && ops.isChecksumManifestName(one.name)) {
+    addAct("verify-sum", "✅", "Verify Checksums", "Verify the files listed in this checksum manifest", () => ops.verifyChecksumFile(one), { primary: true });
+  }
+  if (items.some((x) => !x.isDir) && !left.search) {
+    addAct("checksum", "🛡️", "SHA-256", "Generate a .sha256 / SHA256SUMS manifest file in this folder", () => ops.generateChecksumManifest(items, "sha256"));
+  }
+  if (one && one.isDir) {
+    addAct("inventory", "🌳", "Export Tree", "Export folder tree or inventory (ASCII, Markdown, CSV, JSON)", () => ops.showFolderInventoryDialog(one.path));
   }
 
   addAct("rename", "✏️", items.length > 1 ? `Bulk Rename (${items.length})` : "Rename", items.length > 1 ? "Batch rename all selected items with a live preview" : "Rename this item (F2)", () => ops.renameSelection());

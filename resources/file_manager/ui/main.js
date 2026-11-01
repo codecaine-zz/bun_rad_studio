@@ -167,7 +167,7 @@ async function start() {
     if (!(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) e.preventDefault();
   });
   $("#list").focus();
-  if (!state.settings.seenWelcome) showWelcome();
+  if (!state.settings.seenWelcome && !startTool) showWelcome();
 
   // Pick up changes made by other programs when you come back to this window.
   let last = Date.now();

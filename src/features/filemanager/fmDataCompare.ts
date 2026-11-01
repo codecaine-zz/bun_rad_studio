@@ -6,6 +6,7 @@
 import { promises as fsp } from "fs";
 import { absolutePath, pathApi, type FmContext, type FmHandler } from "./fmCore";
 import { FmError, describeFsError, extensionOf } from "./fmPaths";
+import { extractReadableDocumentText } from "./fmPreview";
 
 export const COMPARE_MAX_BYTES = 5 * 1024 * 1024;
 export const COMPARE_MAX_DEPTH = 100;
@@ -159,4 +160,233 @@ export const dataCompareOperations: Record<string, FmHandler> = {
   async "data/compare"(ctx, b) {
     return { ...(await compareDataFiles(ctx, b.left, b.right)) };
   },
+  async "text/compare"(ctx, b) {
+    return { ...(await compareTextFiles(ctx, b.left, b.right)) };
+  },
 };
+
+export const TEXT_COMPARE_MAX_BYTES = 2 * 1024 * 1024;
+export const TEXT_COMPARE_MAX_LINES = 2000;
+
+export interface TextDiffRow {
+  type: "same" | "add" | "del";
+  leftLine?: number;
+  rightLine?: number;
+  text: string;
+}
+
+export interface TextCompareResult {
+  identical: boolean;
+  left: { name: string; path: string; lines: number; bytes: number };
+  right: { name: string; path: string; lines: number; bytes: number };
+  added: number;
+  removed: number;
+  unchanged: number;
+  similarityPct: number;
+  truncated: boolean;
+  rows: TextDiffRow[];
+  unifiedPatch: string;
+}
+
+async function loadReadableTextForCompare(ctx: FmContext, input: unknown): Promise<{ name: string; path: string; text: string; bytes: number }> {
+  const path = absolutePath(ctx, input);
+  const name = pathApi(ctx).basename(path);
+  try {
+    const st = await fsp.stat(path);
+    if (st.isDirectory()) {
+      const extracted = await extractReadableDocumentText(path, 200_000);
+      if (extracted !== null) {
+        return { name, path, text: extracted, bytes: Buffer.byteLength(extracted, "utf8") };
+      }
+      throw new FmError("NOT_A_FILE", `"${name}" is a folder and not a document package, so it can't be text-compared here.`);
+    }
+    if (!st.isFile()) throw new FmError("NOT_A_FILE", `"${name}" isn't an ordinary file.`);
+    const extracted = await extractReadableDocumentText(path, 200_000);
+    if (extracted !== null) {
+      return { name, path, text: extracted, bytes: st.size };
+    }
+    if (st.size > TEXT_COMPARE_MAX_BYTES) {
+      throw new FmError("TOO_LARGE", `"${name}" is bigger than ${TEXT_COMPARE_MAX_BYTES / 1048576} MB, which is more than can be compared line-by-line.`);
+    }
+    const buf = await fsp.readFile(path);
+    const checkLen = Math.min(buf.length, 4096);
+    for (let i = 0; i < checkLen; i++) {
+      if (buf[i] === 0) {
+        throw new FmError("BINARY_FILE", `"${name}" looks like a binary file rather than readable text or code.`);
+      }
+    }
+    return { name, path, text: buf.toString("utf8").replace(/^\uFEFF/, ""), bytes: buf.length };
+  } catch (err) {
+    if (err instanceof FmError) throw err;
+    const d = describeFsError(err, "read that file");
+    throw new FmError(d.code, d.message);
+  }
+}
+
+/** Computes line-by-line LCS diff with prefix/suffix trimming for speed. */
+export function computeLineDiff(leftLines: string[], rightLines: string[]): TextDiffRow[] {
+  let start = 0;
+  while (start < leftLines.length && start < rightLines.length && leftLines[start] === rightLines[start]) {
+    start++;
+  }
+  let endLeft = leftLines.length - 1;
+  let endRight = rightLines.length - 1;
+  while (endLeft >= start && endRight >= start && leftLines[endLeft] === rightLines[endRight]) {
+    endLeft--;
+    endRight--;
+  }
+
+  const rows: TextDiffRow[] = [];
+  for (let i = 0; i < start; i++) {
+    rows.push({ type: "same", leftLine: i + 1, rightLine: i + 1, text: leftLines[i]! });
+  }
+
+  const midLeft = leftLines.slice(start, endLeft + 1);
+  const midRight = rightLines.slice(start, endRight + 1);
+  const n = midLeft.length;
+  const m = midRight.length;
+
+  if (n === 0 && m === 0) {
+    // Only prefix/suffix
+  } else if (n === 0) {
+    for (let j = 0; j < m; j++) {
+      rows.push({ type: "add", rightLine: start + j + 1, text: midRight[j]! });
+    }
+  } else if (m === 0) {
+    for (let i = 0; i < n; i++) {
+      rows.push({ type: "del", leftLine: start + i + 1, text: midLeft[i]! });
+    }
+  } else if (n * m <= 1_200_000) {
+    // Standard 2D LCS matrix using Uint16Array for speed and compact memory
+    const cols = m + 1;
+    const dp = new Uint16Array((n + 1) * cols);
+    for (let i = n - 1; i >= 0; i--) {
+      const a = midLeft[i];
+      const rowOff = i * cols;
+      const nextRowOff = (i + 1) * cols;
+      for (let j = m - 1; j >= 0; j--) {
+        dp[rowOff + j] = a === midRight[j]
+          ? dp[nextRowOff + j + 1]! + 1
+          : Math.max(dp[nextRowOff + j]!, dp[rowOff + j + 1]!);
+      }
+    }
+    let i = 0;
+    let j = 0;
+    while (i < n && j < m) {
+      if (midLeft[i] === midRight[j]) {
+        rows.push({ type: "same", leftLine: start + i + 1, rightLine: start + j + 1, text: midLeft[i]! });
+        i++;
+        j++;
+      } else if (dp[(i + 1) * cols + j]! >= dp[i * cols + j + 1]!) {
+        rows.push({ type: "del", leftLine: start + i + 1, text: midLeft[i]! });
+        i++;
+      } else {
+        rows.push({ type: "add", rightLine: start + j + 1, text: midRight[j]! });
+        j++;
+      }
+    }
+    while (i < n) {
+      rows.push({ type: "del", leftLine: start + i + 1, text: midLeft[i]! });
+      i++;
+    }
+    while (j < m) {
+      rows.push({ type: "add", rightLine: start + j + 1, text: midRight[j]! });
+      j++;
+    }
+  } else {
+    // Fallback greedy anchor matching for very large middle sections
+    let i = 0;
+    let j = 0;
+    while (i < n || j < m) {
+      if (i < n && j < m && midLeft[i] === midRight[j]) {
+        rows.push({ type: "same", leftLine: start + i + 1, rightLine: start + j + 1, text: midLeft[i]! });
+        i++;
+        j++;
+      } else if (i < n) {
+        rows.push({ type: "del", leftLine: start + i + 1, text: midLeft[i]! });
+        i++;
+      } else if (j < m) {
+        rows.push({ type: "add", rightLine: start + j + 1, text: midRight[j]! });
+        j++;
+      }
+    }
+  }
+
+  const suffixCount = leftLines.length - 1 - endLeft;
+  for (let k = 0; k < suffixCount; k++) {
+    const lIdx = endLeft + 1 + k;
+    const rIdx = endRight + 1 + k;
+    rows.push({ type: "same", leftLine: lIdx + 1, rightLine: rIdx + 1, text: leftLines[lIdx]! });
+  }
+  return rows;
+}
+
+function buildUnifiedPatch(leftName: string, rightName: string, rows: TextDiffRow[]): string {
+  const out = [`--- a/${leftName}`, `+++ b/${rightName}`];
+  const hasChanges = rows.some((r) => r.type !== "same");
+  if (!hasChanges) return out.join("\n") + "\n";
+  // Emit context around changed lines (3 lines of context)
+  const keep = new Uint8Array(rows.length);
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i]!.type !== "same") {
+      const lo = Math.max(0, i - 3);
+      const hi = Math.min(rows.length - 1, i + 3);
+      for (let k = lo; k <= hi; k++) keep[k] = 1;
+    }
+  }
+  let inHunk = false;
+  for (let i = 0; i < rows.length; i++) {
+    if (!keep[i]) {
+      inHunk = false;
+      continue;
+    }
+    const r = rows[i]!;
+    if (!inHunk) {
+      out.push(`@@ -${r.leftLine ?? 1} +${r.rightLine ?? 1} @@`);
+      inHunk = true;
+    }
+    const prefix = r.type === "add" ? "+" : r.type === "del" ? "-" : " ";
+    out.push(`${prefix}${r.text}`);
+  }
+  return out.join("\n") + "\n";
+}
+
+/** Compares two text, code, or document files line by line. */
+export async function compareTextFiles(ctx: FmContext, leftPath: unknown, rightPath: unknown): Promise<TextCompareResult> {
+  const left = await loadReadableTextForCompare(ctx, leftPath);
+  const right = await loadReadableTextForCompare(ctx, rightPath);
+  const normLeft = left.text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const normRight = right.text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const identical = normLeft === normRight;
+  const rawLeftLines = normLeft.length === 0 ? [] : normLeft.split("\n");
+  const rawRightLines = normRight.length === 0 ? [] : normRight.split("\n");
+  const truncated = rawLeftLines.length > TEXT_COMPARE_MAX_LINES || rawRightLines.length > TEXT_COMPARE_MAX_LINES;
+  const leftLines = rawLeftLines.slice(0, TEXT_COMPARE_MAX_LINES);
+  const rightLines = rawRightLines.slice(0, TEXT_COMPARE_MAX_LINES);
+  const rows = computeLineDiff(leftLines, rightLines);
+
+  let added = 0;
+  let removed = 0;
+  let unchanged = 0;
+  for (const r of rows) {
+    if (r.type === "add") added++;
+    else if (r.type === "del") removed++;
+    else unchanged++;
+  }
+  const totalLines = Math.max(1, leftLines.length + rightLines.length);
+  const similarityPct = identical ? 100 : Math.round(((2 * unchanged) / totalLines) * 100);
+  const unifiedPatch = buildUnifiedPatch(left.name, right.name, rows);
+
+  return {
+    identical,
+    left: { name: left.name, path: left.path, lines: rawLeftLines.length, bytes: left.bytes },
+    right: { name: right.name, path: right.path, lines: rawRightLines.length, bytes: right.bytes },
+    added,
+    removed,
+    unchanged,
+    similarityPct,
+    truncated,
+    rows,
+    unifiedPatch,
+  };
+}

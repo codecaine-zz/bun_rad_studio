@@ -271,7 +271,8 @@
 }
 .theme-tier-ultra {
   border-color: color-mix(in oklab, var(--accent) 55%, var(--border));
-  color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 14%, var(--panel));
+  color: var(--text);
 }
 .theme-card-actions {
   position: absolute;

@@ -4,6 +4,7 @@
 import { call, getToken } from "./api.js";
 import { computeLineDiff, parseMarkdown, tokenizeText } from "./codeLogic.js";
 import { clear, h } from "./dom.js";
+import { getClientModelFeatureProfile } from "./ollama.js";
 
 const QUICK_PROMPTS = [
   {
@@ -65,6 +66,16 @@ const QUICK_PROMPTS = [
 function splitThinkBlocks(rawText) {
   let content = String(rawText ?? "");
   const reasoningParts = [];
+  // Extract gpt-oss Harmony <|channel|>analysis<|message|>...<|end|> blocks
+  content = content.replace(
+    /<\|(?:start\|>assistant<\|)?channel\|>(?:analysis|thinking|thought)<\|message\|>([\s\S]*?)(?:<\|end\|>|<\|return\|>)/gi,
+    (_m, inner) => {
+      if (inner && inner.trim()) reasoningParts.push(inner.trim());
+      return "";
+    },
+  );
+  content = content.replace(/<\|(?:start\|>assistant<\|)?channel\|>final<\|message\|>/gi, "");
+  content = content.replace(/<\|(?:end|return|start|channel|message)\|>/gi, "");
   content = content.replace(/<think>([\s\S]*?)<\/think>/gi, (_m, inner) => {
     if (inner && inner.trim()) reasoningParts.push(inner.trim());
     return "";
@@ -91,10 +102,13 @@ export function createCodeAiChat(ctx) {
     ollamaStatus: null,
     bionicModel: "",
     ollamaModel: "",
+    thinkingLevel: "auto", // "auto" | "off" | "on" | "low" | "medium" | "high"
     selectedSkill: "",
     includeFile: true,
     includeSelection: true,
     codeWrap: true,
+    expanded: false,
+    fullscreen: false,
     loading: false,
     statusLoading: false,
     promptText: "",
@@ -129,6 +143,60 @@ export function createCodeAiChat(ctx) {
       start: sel.start,
       end: sel.end,
     };
+  }
+
+  function resolveCodeChatActiveProfile() {
+    const isBionic = state.engine === "bionic";
+    const bionicModels = Array.isArray(state.bionicStatus?.models)
+      ? state.bionicStatus.models.filter((m) => m.type === "llm" || m.type === "vlm")
+      : [];
+    const ollamaModels = Array.isArray(state.ollamaStatus?.models) ? state.ollamaStatus.models : [];
+    const activeModelName = isBionic
+      ? state.bionicModel || "openai/gpt-oss-20b"
+      : state.ollamaModel || "qwen3.5:latest";
+    return getClientModelFeatureProfile(activeModelName, isBionic ? bionicModels : ollamaModels);
+  }
+
+  function syncCodeChatModelCapabilities() {
+    const profile = resolveCodeChatActiveProfile();
+    const feat = profile.features || {};
+    const caps = profile.thinkingCapabilities || {};
+    if (caps.thinkingMode === "levels") {
+      if (state.thinkingLevel !== "low" && state.thinkingLevel !== "medium" && state.thinkingLevel !== "high") {
+        state.thinkingLevel = caps.defaultLevel || "medium";
+      }
+    } else if (caps.thinkingMode === "always_on") {
+      state.thinkingLevel = "on";
+    } else if (caps.thinkingMode === "none") {
+      state.thinkingLevel = "off";
+    } else if (caps.thinkingMode === "toggle") {
+      if (state.thinkingLevel !== "on" && state.thinkingLevel !== "off") {
+        state.thinkingLevel = caps.defaultLevel === "on" ? "on" : "off";
+      }
+    }
+    if (!feat.tools) {
+      state.selectedSkill = "";
+    }
+  }
+
+  function resolveCodeChatThinkArgs() {
+    const profile = resolveCodeChatActiveProfile();
+    const caps = profile.thinkingCapabilities || {};
+    if (caps.thinkingMode === "none" || !caps.supportsThinking) {
+      return { think: false, thinkingLevel: "off" };
+    }
+    if (caps.thinkingMode === "levels") {
+      const lvl =
+        state.thinkingLevel === "low" || state.thinkingLevel === "medium" || state.thinkingLevel === "high"
+          ? state.thinkingLevel
+          : caps.defaultLevel || "medium";
+      return { think: lvl, thinkingLevel: lvl };
+    }
+    if (caps.thinkingMode === "always_on") {
+      return { think: true, thinkingLevel: "on" };
+    }
+    const isOn = state.thinkingLevel !== "off";
+    return { think: isOn, thinkingLevel: isOn ? "on" : "off" };
   }
 
   async function refreshEngines(silent = false) {
@@ -514,7 +582,8 @@ export function createCodeAiChat(ctx) {
     const selInfo = activeSelectionInfo();
     const parts = [];
 
-    if (state.engine === "bionic" && state.selectedSkill && !userPrompt.includes(`@${state.selectedSkill}`)) {
+    const profile = resolveCodeChatActiveProfile();
+    if (state.engine === "bionic" && state.selectedSkill && profile.features?.tools && !userPrompt.includes(`@${state.selectedSkill}`)) {
       parts.push(`@${state.selectedSkill}`);
     }
 
@@ -636,6 +705,8 @@ export function createCodeAiChat(ctx) {
   }
 
   async function streamFromBionic(fullPrompt, assistantMsg, signal) {
+    const thinkArgs = resolveCodeChatThinkArgs();
+    const profile = resolveCodeChatActiveProfile();
     const res = await fetch("/api/bionic/stream", {
       method: "POST",
       headers: {
@@ -646,19 +717,27 @@ export function createCodeAiChat(ctx) {
         model: state.bionicModel || undefined,
         prompt: fullPrompt,
         paths: [],
+        think: thinkArgs.think,
+        thinkingLevel: thinkArgs.thinkingLevel,
       }),
       signal,
     });
 
     if (!res.ok || !res.body) {
       // Fallback to RPC bionic/chat
-      const rpcRes = await call("bionic/chat", {
-        model: state.bionicModel || undefined,
-        prompt: fullPrompt,
-        paths: [],
-        dirPath: ctx.getWorkspace?.() || "/",
-        skill: state.selectedSkill || undefined,
-      });
+      const rpcRes = await call(
+        "bionic/chat",
+        {
+          model: state.bionicModel || undefined,
+          prompt: fullPrompt,
+          paths: [],
+          dirPath: ctx.getWorkspace?.() || "/",
+          skill: profile.features?.tools && state.selectedSkill ? state.selectedSkill : undefined,
+          think: thinkArgs.think,
+          thinkingLevel: thinkArgs.thinkingLevel,
+        },
+        { signal },
+      );
       assistantMsg.model = rpcRes.model || assistantMsg.model;
       assistantMsg.reasoning = rpcRes.reasoningText || "";
       assistantMsg.content = rpcRes.content || "";
@@ -705,6 +784,7 @@ export function createCodeAiChat(ctx) {
   }
 
   async function streamFromOllama(fullPrompt, assistantMsg, signal) {
+    const thinkArgs = resolveCodeChatThinkArgs();
     const res = await fetch("/api/ollama/stream", {
       method: "POST",
       headers: {
@@ -715,17 +795,24 @@ export function createCodeAiChat(ctx) {
         model: state.ollamaModel || undefined,
         prompt: fullPrompt,
         paths: [],
-        think: true,
+        think: thinkArgs.think,
+        thinkingLevel: thinkArgs.thinkingLevel,
       }),
       signal,
     });
 
     if (!res.ok || !res.body) {
-      const rpcRes = await call("ollama/chat", {
-        model: state.ollamaModel || undefined,
-        prompt: fullPrompt,
-        paths: [],
-      });
+      const rpcRes = await call(
+        "ollama/chat",
+        {
+          model: state.ollamaModel || undefined,
+          prompt: fullPrompt,
+          paths: [],
+          think: thinkArgs.think,
+          thinkingLevel: thinkArgs.thinkingLevel,
+        },
+        { signal },
+      );
       assistantMsg.model = rpcRes.model || assistantMsg.model;
       assistantMsg.reasoning = rpcRes.thinkingText || "";
       assistantMsg.content = rpcRes.content || "";
@@ -882,7 +969,10 @@ export function createCodeAiChat(ctx) {
     const d = ctx.getDoc?.();
     const selInfo = activeSelectionInfo();
 
-    // 1. Header bar: Engine Switcher (LM Studio Bionic vs Ollama) + status dot + Close
+    root.classList.toggle("is-expanded", Boolean(state.expanded));
+    root.classList.toggle("is-fullscreen", Boolean(state.fullscreen));
+
+    // 1. Header bar: Engine Switcher (LM Studio Bionic vs Ollama) + status dot + Expand/Fullscreen/Stop/Close
     const head = h("div", { class: "code-preview-head code-ai-head" }, [
       h("div", { class: "code-ai-engine-switch", role: "group", "aria-label": "Choose AI Engine" }, [
         h(
@@ -895,6 +985,7 @@ export function createCodeAiChat(ctx) {
             onclick: () => {
               state.engine = "bionic";
               state.engineManuallyChosen = true;
+              syncCodeChatModelCapabilities();
               render();
             },
           },
@@ -913,6 +1004,7 @@ export function createCodeAiChat(ctx) {
             onclick: () => {
               state.engine = "ollama";
               state.engineManuallyChosen = true;
+              syncCodeChatModelCapabilities();
               render();
             },
           },
@@ -923,6 +1015,51 @@ export function createCodeAiChat(ctx) {
         ),
       ]),
       h("span", { class: "code-grow" }),
+      state.loading
+        ? h(
+            "button",
+            {
+              type: "button",
+              class: "btn code-small danger",
+              "data-code-ai-action": "stop-generation",
+              title: "Stop LLM generation immediately",
+              onclick: stopGeneration,
+            },
+            "⏹ Stop",
+          )
+        : null,
+      h(
+        "button",
+        {
+          type: "button",
+          class: `btn code-small${state.expanded ? " primary" : ""}`,
+          "data-code-ai-action": "toggle-expand",
+          "aria-pressed": String(Boolean(state.expanded)),
+          title: "Expand AI Chat pane width for easier reading of long responses and code blocks",
+          onclick: () => {
+            state.expanded = !state.expanded;
+            if (!state.expanded) state.fullscreen = false;
+            render();
+          },
+        },
+        state.expanded ? "⤡ Narrow" : "⤢ Expand",
+      ),
+      h(
+        "button",
+        {
+          type: "button",
+          class: `btn code-small${state.fullscreen ? " primary" : ""}`,
+          "data-code-ai-action": "toggle-fullscreen",
+          "aria-pressed": String(Boolean(state.fullscreen)),
+          title: "Toggle Fullscreen AI Reader Mode",
+          onclick: () => {
+            state.fullscreen = !state.fullscreen;
+            if (state.fullscreen) state.expanded = true;
+            render();
+          },
+        },
+        state.fullscreen ? "✕ Exit Full" : "⛶ Full",
+      ),
       h(
         "button",
         {
@@ -973,6 +1110,9 @@ export function createCodeAiChat(ctx) {
       ),
     ]);
 
+    const activeProfile = resolveCodeChatActiveProfile();
+    const activeFeatures = activeProfile.features || {};
+
     // 2. Model & @Skill selector row (+ Start Server helper if offline)
     const modelBar = h("div", { class: "code-ai-model-bar" }, [
       isBionic
@@ -984,6 +1124,8 @@ export function createCodeAiChat(ctx) {
               title: "Choose LM Studio / Bionic model",
               onchange: (e) => {
                 state.bionicModel = e.target.value;
+                syncCodeChatModelCapabilities();
+                render();
               },
             },
             bionicModels.length === 0
@@ -1007,6 +1149,8 @@ export function createCodeAiChat(ctx) {
               title: "Choose Ollama model",
               onchange: (e) => {
                 state.ollamaModel = e.target.value;
+                syncCodeChatModelCapabilities();
+                render();
               },
             },
             ollamaModels.length === 0
@@ -1022,7 +1166,7 @@ export function createCodeAiChat(ctx) {
                   ),
                 ),
           ),
-      isBionic && skills.length > 0
+      isBionic && skills.length > 0 && activeFeatures.tools
         ? h(
             "select",
             {
@@ -1048,6 +1192,68 @@ export function createCodeAiChat(ctx) {
             ],
           )
         : null,
+      activeFeatures.thinkingLevels
+        ? h(
+            "select",
+            {
+              class: "code-in code-ai-skill-select",
+              "aria-label": "Reasoning effort level (Low / Medium / High)",
+              title: "Select reasoning effort level for this multi-level reasoning model (gpt-oss)",
+              onchange: (e) => {
+                state.thinkingLevel = e.target.value;
+              },
+            },
+            [
+              { val: "low", label: "🧠 Effort: Low" },
+              { val: "medium", label: "🧠 Effort: Medium" },
+              { val: "high", label: "🧠 Effort: High" },
+            ].map((opt) =>
+              h(
+                "option",
+                {
+                  value: opt.val,
+                  selected: (state.thinkingLevel === "low" || state.thinkingLevel === "medium" || state.thinkingLevel === "high" ? state.thinkingLevel : "medium") === opt.val ? "selected" : null,
+                },
+                opt.label,
+              ),
+            ),
+          )
+        : activeFeatures.thinkingToggle
+          ? h(
+              "select",
+              {
+                class: "code-in code-ai-skill-select",
+                "aria-label": "Toggle thinking On or Off",
+                title: "Turn chain-of-thought thinking On or Off for this model",
+                onchange: (e) => {
+                  state.thinkingLevel = e.target.value;
+                },
+              },
+              [
+                { val: "off", label: "🔀 Think: Off (Fast)" },
+                { val: "on", label: "🔀 Think: On (Deep)" },
+              ].map((opt) =>
+                h(
+                  "option",
+                  {
+                    value: opt.val,
+                    selected: (state.thinkingLevel === "on" ? "on" : "off") === opt.val ? "selected" : null,
+                  },
+                  opt.label,
+                ),
+              ),
+            )
+          : activeFeatures.thinkingAlwaysOn
+            ? h(
+                "span",
+                {
+                  class: "code-ai-chip",
+                  title: "Native chain-of-thought reasoning is always active for this model",
+                  style: "cursor:default;",
+                },
+                "🧠 Always-On <think>",
+              )
+            : null,
       !currentOnline && isBionic
         ? h(
             "button",
@@ -1069,6 +1275,26 @@ export function createCodeAiChat(ctx) {
           )
         : null,
     ]);
+
+    const modelCapabilitiesBar = h(
+      "div",
+      {
+        class: "code-ai-quick-bar code-ai-model-caps-bar",
+        "data-code-model-capabilities": activeProfile.modelName,
+      },
+      (activeProfile.indicators || []).map((ind) =>
+        h(
+          "span",
+          {
+            class: "code-ai-chip",
+            "data-model-indicator": ind.id,
+            title: ind.description,
+            style: "cursor:default;font-size:10.5px;padding:2px 6px;",
+          },
+          `${ind.icon} ${ind.label}`,
+        ),
+      ),
+    );
 
     // 3. Quick Code Action Chips
     const quickBar = h(
@@ -1147,6 +1373,7 @@ export function createCodeAiChat(ctx) {
 
     promptInputEl = h("textarea", {
       class: "code-in code-ai-input",
+      "aria-label": "Ask AI Code Assistant",
       rows: "3",
       placeholder: selInfo.hasSelection
         ? `Ask ${isBionic ? "LM Studio" : "Ollama"} about selected lines ${selInfo.startLine}–${selInfo.endLine}… (Enter to send, Shift+Enter for newline)`
@@ -1198,7 +1425,7 @@ export function createCodeAiChat(ctx) {
       ]),
     ]);
 
-    root.append(head, modelBar, quickBar, threadContainerEl, composer);
+    root.append(head, modelBar, modelCapabilitiesBar, quickBar, threadContainerEl, composer);
     if (hadFocus && promptInputEl) {
       promptInputEl.focus();
     }

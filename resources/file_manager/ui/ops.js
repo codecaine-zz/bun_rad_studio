@@ -1,9 +1,9 @@
 // Everything the person can do to files, with Undo. Each operation calls the server, explains problems in plain
 // words, offers Undo where it is possible, and refreshes the view.
 import { ApiError, call } from "./api.js";
-import { readFromClipboard } from "./copyclip.js";
-import { chooseConflict, confirmBox, problemsBox } from "./dialogs.js";
-import { announce } from "./dom.js";
+import { copyItemButton, readFromClipboard } from "./copyclip.js";
+import { chooseConflict, confirmBox, openDialog, problemsBox, promptBox } from "./dialogs.js";
+import { announce, h } from "./dom.js";
 import { toast } from "./menus.js";
 import { openInCode } from "./code.js";
 import { hasNoExtension, isKnownTextName } from "./codeLang.js";
@@ -957,4 +957,265 @@ export async function toggleFavorite(path) {
   } catch (err) {
     fail(err);
   }
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Checksum Manifest Generator & Verifier + Folder Inventory / Tree Exporter
+// ---------------------------------------------------------------------------------------------------------------
+
+export function isChecksumManifestName(name) {
+  const lower = String(name || "").toLowerCase();
+  return /\.(sha256|sha1|md5|sfv|sums)$/i.test(lower) || /^(sha256sums|sha1sums|md5sums|checksums(\.txt)?)$/i.test(lower);
+}
+
+/** Generates a SHA-256 (or MD5/SHA-1) checksum manifest file for the selected items (or active selection), with Undo. */
+export async function generateChecksumManifest(entries = null, algorithm = "sha256") {
+  const pane = activePane();
+  const list = Array.isArray(entries) && entries.length ? entries : selectedEntries(pane);
+  if (!list.length) {
+    toast("Select one or more files to generate a checksum manifest.", { kind: "info" });
+    return null;
+  }
+  try {
+    const res = await busy(() =>
+      call("checksum/generate", {
+        paths: list.map((e) => (typeof e === "string" ? e : e.path)),
+        algorithm,
+        saveFile: true,
+      }),
+    );
+    if (res.savedPath) {
+      pushUndo(`create checksum manifest "${res.savedName}"`, async () => {
+        const { failed } = await trashPaths([res.savedPath]);
+        if (failed.length) throw new Error(failed[0]);
+      });
+      await refresh({ keepSelection: false, pane });
+      selectKeys([res.savedPath], pane);
+    }
+    toast(`Saved ${res.algorithm.toUpperCase()} manifest "${res.savedName}" (${plural(res.items.length, "file")}).`, {
+      kind: "success",
+      action: { label: "Undo", run: undo },
+    });
+    return res;
+  } catch (err) {
+    fail(err);
+    return null;
+  }
+}
+
+/** Verifies a checksum manifest (.sha256, .md5, SHA256SUMS) or verifies a single file against an expected hash. */
+export async function verifyChecksumFile(entryOrPath = null) {
+  const pane = activePane();
+  const target = entryOrPath || selectedEntries(pane)[0];
+  const path = typeof target === "string" ? target : target?.path;
+  const name = (typeof target === "object" && target?.name) || baseName(path || "", state.sep);
+  if (!path) {
+    toast("Select a file or .sha256 / SHA256SUMS manifest to verify.", { kind: "info" });
+    return null;
+  }
+
+  let res = null;
+  if (isChecksumManifestName(name)) {
+    try {
+      res = await busy(() => call("checksum/verify", { path }));
+    } catch (err) {
+      fail(err);
+      return null;
+    }
+  } else {
+    // Try automatic sidecar verification first; if no sidecar exists, prompt for expected hash
+    try {
+      res = await busy(() => call("checksum/verify", { path }));
+    } catch (err) {
+      if (err instanceof ApiError && err.code === "NEEDS_EXPECTED_HASH") {
+        res = await promptBox({
+          title: `Verify Checksum — ${name}`,
+          label: "Paste expected SHA-256, SHA-1, or MD5 hash",
+          value: "",
+          confirmLabel: "Verify",
+          hint: "Tip: If a .sha256 sidecar file is in the same folder, Verification runs automatically without asking.",
+          submit: async (hashText) => {
+            return await call("checksum/verify", { path, expectedHash: hashText });
+          },
+        });
+        if (!res) return null;
+      } else {
+        fail(err);
+        return null;
+      }
+    }
+  }
+
+  const allOk = res.failed === 0 && res.missing === 0 && res.passed > 0;
+  const statusEl = h("p", {
+    class: `cmp-verdict ${allOk ? "cmp-same" : "cmp-diff"}`,
+    role: "status",
+  }, allOk
+    ? `✔ Verified ${plural(res.passed, "file")} (${res.algorithm.toUpperCase()}) — all checksums match!`
+    : `✖ Verification found issues: ${res.passed} passed, ${res.failed} mismatched, ${res.missing} missing.`);
+
+  const tbody = h("tbody", {},
+    ...res.results.map((r) =>
+      h("tr", {},
+        h("td", { style: "padding: 6px 8px; font-weight: 600;" }, r.name),
+        h("td", { style: "padding: 6px 8px;" },
+          r.status === "ok" ? "✅ Match" : r.status === "mismatch" ? "❌ Mismatch" : "⚠️ Missing file"),
+        h("td", { style: "padding: 6px 8px; font-family: var(--mono, monospace); font-size: 11px; word-break: break-all;" },
+          r.status === "ok" ? r.actual : `Expected: ${r.expected}\nActual:   ${r.actual || "(missing)"}`),
+      ),
+    ),
+  );
+
+  openDialog({
+    title: `Checksum Verification — ${res.manifestName}`,
+    wide: true,
+    body: [
+      statusEl,
+      h("div", { style: "max-height: 45vh; overflow: auto; border: 1px solid var(--border, #334155); border-radius: 6px;" },
+        h("table", { style: "width: 100%; border-collapse: collapse; font-size: 12px;" },
+          h("thead", {},
+            h("tr", { style: "text-align: left; border-bottom: 1px solid rgba(148,163,184,0.25);" },
+              h("th", { style: "padding: 6px 8px;" }, "File"),
+              h("th", { style: "padding: 6px 8px;" }, "Result"),
+              h("th", { style: "padding: 6px 8px;" }, "Digest"),
+            ),
+          ),
+          tbody,
+        ),
+      ),
+    ],
+    buttons: [{ label: "Close", primary: true, value: true }],
+  });
+  return res;
+}
+
+/** Interactive dialog to preview, copy, or save a Folder Inventory / Directory Tree (ASCII Tree, Markdown, CSV, JSON). */
+export async function showFolderInventoryDialog(folderPath = null) {
+  const pane = activePane();
+  const targetDir = folderPath || currentPath(pane);
+  if (!targetDir) {
+    toast("Open or select a folder first to export its directory tree or inventory.", { kind: "info" });
+    return null;
+  }
+  let format = "tree";
+  let maxDepth = 3;
+  let includeHidden = false;
+  let latestRes = null;
+
+  const previewArea = h("pre", {
+    class: "preview-text",
+    dataset: { inventoryPreview: "" },
+    style: "max-height: 46vh; min-height: 180px; overflow: auto; margin: 8px 0; padding: 10px; border: 1px solid var(--border, #334155); border-radius: 6px; font-family: var(--mono, monospace); font-size: 12px; white-space: pre;",
+  }, "Loading folder inventory…");
+  const statsSpan = h("span", { class: "hint", dataset: { inventoryStats: "" } }, "");
+
+  async function refreshPreview() {
+    try {
+      const res = await call("folder/inventory", {
+        path: targetDir,
+        format,
+        maxDepth,
+        includeHidden,
+        saveFile: false,
+      });
+      latestRes = res;
+      previewArea.textContent = res.content;
+      statsSpan.textContent = `${plural(res.totalFolders, "folder")}, ${plural(res.totalFiles, "file")}${res.truncated ? " (truncated at 500 items)" : ""}`;
+    } catch (err) {
+      previewArea.textContent = err instanceof ApiError ? err.message : "Failed to load folder inventory.";
+    }
+  }
+
+  const fmtSelect = h("select", {
+    class: "select",
+    dataset: { inventoryFormat: "" },
+    "aria-label": "Inventory format",
+    onchange: () => {
+      format = fmtSelect.value;
+      refreshPreview();
+    },
+  },
+    h("option", { value: "tree" }, "🌳 ASCII Directory Tree (.txt)"),
+    h("option", { value: "markdown" }, "📝 Markdown Inventory Table (.md)"),
+    h("option", { value: "csv" }, "📊 Spreadsheet CSV (.csv)"),
+    h("option", { value: "json" }, "🧩 Structured JSON (.json)"),
+  );
+
+  const depthSelect = h("select", {
+    class: "select",
+    dataset: { inventoryDepth: "" },
+    "aria-label": "Maximum folder depth",
+    onchange: () => {
+      maxDepth = Number(depthSelect.value) || 3;
+      refreshPreview();
+    },
+  },
+    ...[1, 2, 3, 4, 5, 6].map((d) => h("option", { value: String(d), selected: d === 3 }, `Depth: ${d} level${d === 1 ? "" : "s"}`)),
+  );
+
+  const hiddenChk = h("input", {
+    type: "checkbox",
+    dataset: { inventoryHidden: "" },
+    onchange: () => {
+      includeHidden = hiddenChk.checked;
+      refreshPreview();
+    },
+  });
+
+  const saveBtn = h("button", {
+    type: "button",
+    class: "btn primary",
+    dataset: { inventorySaveBtn: "" },
+    onclick: async () => {
+      try {
+        const res = await busy(() =>
+          call("folder/inventory", {
+            path: targetDir,
+            format,
+            maxDepth,
+            includeHidden,
+            saveFile: true,
+          }),
+        );
+        if (res.savedPath) {
+          pushUndo(`export inventory "${res.savedName}"`, async () => {
+            const { failed } = await trashPaths([res.savedPath]);
+            if (failed.length) throw new Error(failed[0]);
+          });
+          await refresh({ keepSelection: false, pane });
+          selectKeys([res.savedPath], pane);
+        }
+        toast(`Saved folder inventory as "${res.savedName}".`, {
+          kind: "success",
+          action: { label: "Undo", run: undo },
+        });
+      } catch (err) {
+        fail(err);
+      }
+    },
+  }, "💾 Save to File");
+
+  await refreshPreview();
+
+  openDialog({
+    title: `Export Folder Inventory & Tree — ${baseName(targetDir, state.sep) || targetDir}`,
+    wide: true,
+    body: [
+      h("div", { style: "display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 6px;" },
+        fmtSelect,
+        depthSelect,
+        h("label", { style: "display: inline-flex; align-items: center; gap: 5px; font-size: 12px; cursor: pointer;" }, hiddenChk, "Include dotfiles"),
+        statsSpan,
+      ),
+      previewArea,
+      h("div", { style: "display: flex; gap: 8px; align-items: center; justify-content: space-between;" },
+        h("div", { style: "display: flex; gap: 8px; align-items: center;" },
+          copyItemButton({ label: "the folder inventory", getText: () => latestRes?.content || "", words: "📋 Copy to Clipboard" }),
+          saveBtn,
+        ),
+        h("span", { class: "hint" }, "Great for READMEs, documentation, audits & LLM context"),
+      ),
+    ],
+    buttons: [{ label: "Close", primary: true, value: true }],
+  });
 }

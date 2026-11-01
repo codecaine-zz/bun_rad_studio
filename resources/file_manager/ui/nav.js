@@ -111,12 +111,14 @@ function compareNumericOp(actual, op, target) {
   return actual === target;
 }
 
-function matchSingleQuickToken(entry, rawTok, tags, now) {
+function matchSingleQuickToken(entry, rawTok, tags, now, notes) {
   const tok = rawTok.toLowerCase();
   const name = String(entry.name || "").toLowerCase();
   const label = String(entry.label || "").toLowerCase();
+  const entryNote = String((notes && entry.path ? notes[entry.path] : "") || "");
+  const entryNoteLower = entryNote.toLowerCase();
 
-  // Type & state predicates: is:dir, is:file, is:hidden, is:link, is:empty, is:archive
+  // Type & state predicates: is:dir, is:file, is:hidden, is:link, is:empty, is:archive, is:noted
   if (tok.startsWith("is:")) {
     const val = tok.slice(3);
     if (val === "dir" || val === "folder" || val === "folders") return !!entry.isDir;
@@ -124,6 +126,7 @@ function matchSingleQuickToken(entry, rawTok, tags, now) {
     if (val === "hidden") return !!entry.hidden || name.startsWith(".");
     if (val === "link" || val === "symlink") return !!entry.isSymlink;
     if (val === "broken") return !!entry.broken;
+    if (val === "noted" || val === "note") return Boolean(entryNote);
     if (val === "empty") {
       if (!entry.isDir) return entry.size === 0;
       return Boolean(entry.folderSizeCalculated && entry.size === 0 && (entry.folderFiles ?? 0) === 0);
@@ -160,6 +163,14 @@ function matchSingleQuickToken(entry, rawTok, tags, now) {
     if (val === "any" || val === "*") return Boolean(entryTag);
     if (val === "none" || val === "untagged") return !entryTag;
     return entryTag.toLowerCase() === val;
+  }
+
+  // Sticky note predicate: note:any, note:none, note:<keyword>
+  if (tok.startsWith("note:")) {
+    const val = tok.slice(5).trim();
+    if (!val || val === "any" || val === "*") return Boolean(entryNote);
+    if (val === "none" || val === "empty") return !entryNote;
+    return entryNoteLower.includes(val);
   }
 
   // Size predicate: size:>1mb, size:<=10kb, size:empty, or bare >10mb / <500kb
@@ -208,23 +219,23 @@ function matchSingleQuickToken(entry, rawTok, tags, now) {
     }
   }
 
-  // Plain substring match on filename or kind label
-  return name.includes(tok) || label.includes(tok);
+  // Plain substring match on filename, kind label, or sticky note text
+  return name.includes(tok) || label.includes(tok) || (entryNoteLower.length > 0 && entryNoteLower.includes(tok));
 }
 
 /**
  * Evaluates whether `entry` matches a Quick-Filter query string.
  * Supports plain substrings, multi-word AND tokens, negation (`-node_modules`, `!*.log`),
- * wildcards (`*.ts`), `ext:ts,js`, `size:>1mb`, `date:today`, `is:dir`, `is:file`, `tag:red`, and `kind:code`.
+ * wildcards (`*.ts`), `ext:ts,js`, `size:>1mb`, `date:today`, `is:dir`, `is:file`, `is:noted`, `tag:red`, `note:todo`, and `kind:code`.
  */
-export function entryMatchesQuickFilter(entry, query, tags = state.settings?.tags, now = Date.now()) {
+export function entryMatchesQuickFilter(entry, query, tags = state.settings?.tags, now = Date.now(), notes = state.settings?.notes) {
   if (!query || !String(query).trim()) return true;
   const tokens = tokenizeQuickFilter(query);
   if (tokens.length === 0) return true;
   for (const raw of tokens) {
     if ((raw.startsWith("-") || raw.startsWith("!")) && raw.length > 1) {
-      if (matchSingleQuickToken(entry, raw.slice(1), tags, now)) return false;
-    } else if (!matchSingleQuickToken(entry, raw, tags, now)) {
+      if (matchSingleQuickToken(entry, raw.slice(1), tags, now, notes)) return false;
+    } else if (!matchSingleQuickToken(entry, raw, tags, now, notes)) {
       return false;
     }
   }

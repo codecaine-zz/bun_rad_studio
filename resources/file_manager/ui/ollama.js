@@ -16,6 +16,20 @@ const uiState = {
   selectedModel: "qwen3.5:latest",
   selectedVoice: "Zoey",
   thinkEnabled: false,
+  thinkingLevel: "auto", // "auto" | "off" | "on" | "low" | "medium" | "high"
+  thinkingBudget: 0,
+  showAdvancedSampling: false,
+  numCtx: 8192,
+  temperature: 0.4,
+  topP: 0.9,
+  topK: 40,
+  minP: 0.0,
+  repeatPenalty: 1.1,
+  numPredict: 2048,
+  seed: "",
+  stopSequences: "",
+  keepAlive: "5m",
+  customSystemPrompt: "",
   speakReply: false,
   useWebSearch: false,
   schemaPreset: "",
@@ -25,7 +39,12 @@ const uiState = {
   answerOutput: "",
   structuredOutput: null,
   outputExpanded: false,
+  outputFullscreen: false,
+  compactControls: false,
+  mdFontScale: 14,
+  showOutline: true,
   markdownView: true,
+  abortController: null,
   refusalBanner: null,
   lastAudioUrl: "",
   autoPlayedAudioUrl: "",
@@ -96,6 +115,368 @@ function formatElapsedTime(sec) {
   const mins = Math.floor(s / 60);
   const rem = s % 60;
   return `${String(mins).padStart(2, "0")}:${String(rem).padStart(2, "0")}s`;
+}
+
+export function getClientModelThinkingCapabilities(modelName, statusModels = []) {
+  const clean = String(modelName || "qwen3.5:latest").trim();
+  const found = (statusModels || []).find(
+    (m) => (m.name || m.id || "").toLowerCase() === clean.toLowerCase(),
+  );
+  if (found?.thinkingCapabilities) {
+    return found.thinkingCapabilities;
+  }
+  const lower = clean.toLowerCase();
+  if (
+    lower.includes("phonon") ||
+    lower.includes("embed") ||
+    lower.includes("bge-") ||
+    lower.startsWith("d3:") ||
+    lower === "d3"
+  ) {
+    return {
+      supportsThinking: false,
+      thinkingMode: "none",
+      canToggle: false,
+      supportedLevels: [],
+      defaultLevel: "off",
+      supportsThinkingBudget: false,
+      badgeLabel: "No Thinking (Direct Output)",
+      description: "Direct output model without chain-of-thought reasoning.",
+    };
+  }
+  if (
+    lower.includes("gpt-oss") ||
+    lower.includes("gpt_oss") ||
+    /^o[134](?:[-:_]|$)/.test(lower)
+  ) {
+    return {
+      supportsThinking: true,
+      thinkingMode: "levels",
+      canToggle: false,
+      supportedLevels: ["low", "medium", "high"],
+      defaultLevel: "medium",
+      supportsThinkingBudget: false,
+      badgeLabel: "Thinking Levels: Low / Med / High",
+      description:
+        "Multi-level reasoning model (gpt-oss): choose Low, Medium, or High thinking effort (passes think: \"low\" | \"medium\" | \"high\").",
+    };
+  }
+  if (
+    lower.includes("deepseek-r1") ||
+    lower.includes("qwq") ||
+    lower.includes("phi4-reasoning") ||
+    lower.includes("magistral")
+  ) {
+    return {
+      supportsThinking: true,
+      thinkingMode: "always_on",
+      canToggle: false,
+      supportedLevels: ["on"],
+      defaultLevel: "on",
+      supportsThinkingBudget: true,
+      badgeLabel: "Always-On Chain-of-Thought",
+      description:
+        "Native reasoning model with <think>...</think> traces always active by default.",
+    };
+  }
+  if (
+    lower.includes("qwen3") ||
+    lower.includes("lfm3") ||
+    lower.includes("glm-4.5") ||
+    lower.includes("glm-z1") ||
+    lower.includes("glm4") ||
+    lower.includes("cogito") ||
+    lower.includes("granite3.2") ||
+    lower.includes("granite3.3") ||
+    lower.includes("smollm3") ||
+    lower.includes("deepseek-v3") ||
+    lower.includes("nemotron") ||
+    lower.includes("seed-oss") ||
+    lower.includes("hunyuan") ||
+    lower.includes("mimo") ||
+    lower.includes("gemma4") ||
+    lower.includes("muse")
+  ) {
+    return {
+      supportsThinking: true,
+      thinkingMode: "toggle",
+      canToggle: true,
+      supportedLevels: ["off", "on"],
+      defaultLevel: "off",
+      supportsThinkingBudget: true,
+      badgeLabel: "Thinking Toggle: On / Off",
+      description:
+        "Hybrid thinking model: toggle Deep Thinking On (think: true) or Off (think: false).",
+    };
+  }
+  return {
+    supportsThinking: false,
+    thinkingMode: "none",
+    canToggle: false,
+    supportedLevels: [],
+    defaultLevel: "off",
+    supportsThinkingBudget: false,
+    badgeLabel: "Standard Direct Response (No Thinking)",
+    description: "Standard direct response model without chain-of-thought thinking overhead.",
+  };
+}
+
+export function getClientModelFeatureProfile(modelName, statusModels = []) {
+  const clean = String(modelName || "qwen3.5:latest").trim();
+  const found = (statusModels || []).find(
+    (m) => (m.name || m.id || "").toLowerCase() === clean.toLowerCase(),
+  );
+  if (found?.featureProfile) {
+    return found.featureProfile;
+  }
+  const lower = clean.toLowerCase();
+  const thinkingCaps = getClientModelThinkingCapabilities(clean, statusModels);
+  const badges = new Set((found?.badges || []).map((b) => String(b).toLowerCase()));
+
+  const isPhonon = lower.includes("phonon");
+  const isAudioSpeech = isPhonon || badges.has("speech") || lower.includes("omni") || lower.includes("tts");
+  const isDecision = badges.has("decision") || lower.startsWith("d3:") || lower === "d3";
+  const isEmbedding = badges.has("embeddings") || lower.includes("embed") || lower.includes("bge-");
+  const isChat = !isPhonon && !isEmbedding && (!isDecision || badges.has("chat"));
+  const isVision =
+    badges.has("vision") ||
+    lower.includes("-vl") ||
+    lower.includes("_vl") ||
+    lower.includes("omni") ||
+    lower.includes("qwen3.5") ||
+    lower.includes("gemma3") ||
+    lower.includes("gemma4") ||
+    lower.includes("llava") ||
+    lower.includes("pixtral") ||
+    lower.includes("minicpm-v");
+  const isTools =
+    badges.has("tools") ||
+    (isChat &&
+      !lower.includes("deepseek-r1") &&
+      !lower.includes("qwq") &&
+      !lower.includes("-vl:") &&
+      (lower.includes("qwen") ||
+        lower.includes("gpt-oss") ||
+        lower.includes("lfm3") ||
+        lower.includes("cogito") ||
+        lower.includes("llama3") ||
+        lower.includes("mistral") ||
+        lower.includes("gemma4") ||
+        lower.includes("glm")));
+  const isCode = isChat;
+  const isStructuredJson = isChat;
+  const isWebSearch = isChat;
+  const isCloud = badges.has("cloud") || lower.endsWith(":cloud") || lower.includes("-cloud");
+  const isMlx = badges.has("mlx") || lower.includes("mlx") || lower.includes("mxfp");
+
+  const indicators = [];
+  const useCases = [];
+
+  if (thinkingCaps.thinkingMode === "levels") {
+    indicators.push({
+      id: "thinking_levels",
+      icon: "🧠",
+      label: "Thinking Levels (Low / Med / High)",
+      description: "Choose Low, Medium, or High reasoning effort before generating.",
+    });
+    useCases.push("Select Low, Medium, or High reasoning effort for complex tasks");
+  } else if (thinkingCaps.thinkingMode === "toggle") {
+    indicators.push({
+      id: "thinking_toggle",
+      icon: "🔀",
+      label: "Thinking Toggle (On / Off)",
+      description: "Turn Deep Thinking On for step-by-step reasoning or Off for instant direct replies.",
+    });
+    useCases.push("Toggle Thinking On for deep analysis or Off for fast replies");
+  } else if (thinkingCaps.thinkingMode === "always_on") {
+    indicators.push({
+      id: "thinking_always_on",
+      icon: "🧠",
+      label: "Always-On Reasoning (<think>)",
+      description: "Always performs multi-step chain-of-thought verification before answering.",
+    });
+    useCases.push("Step-by-step math proofs, logic verification & root-cause bug hunting");
+  } else if (isChat) {
+    indicators.push({
+      id: "direct_fast",
+      icon: "⚡",
+      label: "Fast Direct Output (No Thinking Overhead)",
+      description: "Answers immediately without chain-of-thought latency.",
+    });
+    useCases.push("Instant low-latency answers, summarization & code drafting");
+  }
+
+  if (isVision) {
+    indicators.push({
+      id: "vision",
+      icon: "👁",
+      label: "Vision (Images & Screenshots)",
+      description: "Inspects PNG/JPG/WebP images, receipts, diagrams, and UI screenshots.",
+    });
+    useCases.push("Inspect images, receipts, diagrams, and UI screenshots");
+  }
+
+  if (isAudioSpeech) {
+    indicators.push({
+      id: "speech",
+      icon: "🔊",
+      label: "Speech & Audio Synthesis",
+      description: "Reads files and answers aloud with natural voice synthesis.",
+    });
+    useCases.push("Read documents aloud and export spoken WAV/PCM audio");
+  }
+
+  if (isDecision) {
+    indicators.push({
+      id: "decision",
+      icon: "⚖️",
+      label: "SystemOne Decision (noul / choice / score)",
+      description: "Scores Yes/No probabilities, multi-choice buckets (A-Z), and 1-10 ratings.",
+    });
+    useCases.push("Triage files with Yes/No (noul), A-Z categories, and 1-10 urgency scores");
+  }
+
+  if (isEmbedding) {
+    indicators.push({
+      id: "embeddings",
+      icon: "🧭",
+      label: "Semantic Embeddings (/api/embed)",
+      description: "Generates dense vector embeddings for meaning-based file search.",
+    });
+    useCases.push("Search files by meaning and cluster related documents");
+  }
+
+  if (isCode) {
+    indicators.push({
+      id: "code",
+      icon: "💻",
+      label: "Chat & Code Analysis",
+      description: "Summarizes files, writes/refactors code, and explains logs.",
+    });
+    useCases.push("Summarize files, refactor code, and explain logs in plain English");
+  }
+
+  if (isTools) {
+    indicators.push({
+      id: "tools",
+      icon: "🛠",
+      label: "Tool Calling",
+      description: "Can propose safe file creation/rename actions with visual confirmation.",
+    });
+    useCases.push("Run safe file creation & organization tools with confirmation");
+  }
+
+  if (isStructuredJson) {
+    indicators.push({
+      id: "structured_json",
+      icon: "📐",
+      label: "Structured JSON",
+      description: "Outputs schema-validated JSON for batch renames, audits, and tables.",
+    });
+    useCases.push("Generate schema-validated JSON plans (batch rename, code review, tables)");
+  }
+
+  if (isCloud) {
+    indicators.push({
+      id: "cloud",
+      icon: "☁️",
+      label: "Zero-RAM Cloud Host",
+      description: "Runs on remote cloud GPUs using 0 GB of local system RAM.",
+    });
+  } else if (isMlx) {
+    indicators.push({
+      id: "mlx",
+      icon: "🍎",
+      label: "Apple Silicon MLX",
+      description: "Accelerated with native Apple Silicon unified memory.",
+    });
+  }
+
+  const summary =
+    useCases.length > 0
+      ? `Best for: ${useCases.slice(0, 3).join(" • ")}.`
+      : "General-purpose local AI model.";
+
+  return {
+    modelName: clean,
+    summary,
+    useCases,
+    indicators,
+    features: {
+      chat: isChat,
+      code: isCode,
+      thinking: thinkingCaps.supportsThinking,
+      thinkingMode: thinkingCaps.thinkingMode,
+      thinkingLevels: thinkingCaps.thinkingMode === "levels",
+      thinkingToggle: thinkingCaps.thinkingMode === "toggle",
+      thinkingAlwaysOn: thinkingCaps.thinkingMode === "always_on",
+      thinkingBudget: thinkingCaps.supportsThinkingBudget,
+      vision: isVision,
+      tools: isTools,
+      structuredJson: isStructuredJson,
+      decisionSystemOne: isDecision,
+      audioSpeech: isAudioSpeech,
+      embeddings: isEmbedding,
+      webSearch: isWebSearch,
+      cloud: isCloud,
+      mlx: isMlx,
+    },
+    thinkingCapabilities: thinkingCaps,
+  };
+}
+
+function buildSamplingPayload() {
+  const out = {
+    numCtx: Number(uiState.numCtx) || 8192,
+    temperature: Number(uiState.temperature),
+    topP: Number(uiState.topP),
+    topK: Number(uiState.topK),
+    minP: Number(uiState.minP),
+    repeatPenalty: Number(uiState.repeatPenalty),
+    numPredict: Number(uiState.numPredict) || 2048,
+    keepAlive: uiState.keepAlive || undefined,
+    systemPrompt: String(uiState.customSystemPrompt || "").trim() || undefined,
+  };
+  if (uiState.seed !== "" && Number.isFinite(Number(uiState.seed))) {
+    out.seed = Number(uiState.seed);
+  }
+  if (String(uiState.stopSequences || "").trim()) {
+    out.stop = String(uiState.stopSequences)
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  if (Number(uiState.thinkingBudget) > 0) {
+    out.thinkingBudget = Number(uiState.thinkingBudget);
+  }
+  return out;
+}
+
+function resolveEffectiveThinkArgs() {
+  const caps = getClientModelThinkingCapabilities(uiState.selectedModel, uiState.statusData?.models);
+  if (caps.thinkingMode === "none" || !caps.supportsThinking) {
+    return { think: false, thinkingLevel: "off" };
+  }
+  let level = uiState.thinkingLevel || "auto";
+  if (caps.thinkingMode === "levels") {
+    if (level !== "low" && level !== "medium" && level !== "high") {
+      level = caps.defaultLevel || "medium";
+    }
+    return { think: level, thinkingLevel: level };
+  }
+  if (caps.thinkingMode === "always_on") {
+    return { think: true, thinkingLevel: "on" };
+  }
+  if (level === "auto") {
+    return {
+      think: uiState.thinkEnabled,
+      thinkingLevel: uiState.thinkEnabled ? "on" : "off",
+    };
+  }
+  if (level === "off") {
+    return { think: false, thinkingLevel: "off" };
+  }
+  return { think: true, thinkingLevel: "on" };
 }
 
 function startLiveTaskTicker(title, initialStep, initialPercent = 8, pollBackend = false) {
@@ -358,16 +739,32 @@ function renderFormattedOutputBody(rawText, title = "Ollama AI Output", clearSco
 function scrollConsoleOutput(btnEl, direction) {
   const consoleEl = btnEl?.closest?.(".ollama-output-console") || rootContainer?.querySelector(".ollama-output-console");
   if (!consoleEl) return;
-  const boxes = consoleEl.querySelectorAll(".ollama-output-box, .ollama-thinking-box");
+  const boxes = consoleEl.querySelectorAll(".bionic-md-viewer, .ollama-output-box, .ollama-thinking-box");
   for (const box of boxes) {
     if (direction === "top") {
-      box.scrollTo({ top: 0, behavior: "smooth" });
+      box.scrollTo?.({ top: 0, behavior: "smooth" });
       box.scrollTop = 0;
     } else {
-      box.scrollTo({ top: box.scrollHeight, behavior: "smooth" });
+      box.scrollTo?.({ top: box.scrollHeight, behavior: "smooth" });
       box.scrollTop = box.scrollHeight;
     }
   }
+}
+
+export function stopOllamaGeneration() {
+  if (uiState.abortController) {
+    try {
+      uiState.abortController.abort();
+    } catch {}
+    uiState.abortController = null;
+  }
+  stopLiveTaskTicker();
+  uiState.loading = false;
+  uiState.routeBanner = uiState.routeBanner
+    ? `${uiState.routeBanner.replace(/\s*•\s*\[⏹ Stopped by user\]$/, "")} • [⏹ Stopped by user]`
+    : "⏹ Generation stopped by user.";
+  toast("⏹ Stopped LLM generation.");
+  renderOllamaPanel();
 }
 
 function renderStudioOutputConsole({
@@ -379,7 +776,7 @@ function renderStudioOutputConsole({
   clearScope = "assistant",
   saveName = "ollama-output",
   showWhenEmpty = false,
-  emptyHint = "Output will appear here — use Copy Output, Save to Folder, Speak Output, or Clear Output anytime.",
+  emptyHint = "Output will appear here — use ⤢ Expand, ⛶ Fullscreen, A−/A+, Copy Output, Save to Folder, Speak Output, or Clear Output anytime.",
 }) {
   const hasContent = Boolean(String(content || "").trim());
   const hasThinking = Boolean(String(thinking || "").trim());
@@ -393,11 +790,17 @@ function renderStudioOutputConsole({
         ? content
         : thinking;
 
+  const mdBuilt = hasContent && uiState.markdownView ? buildBionicMarkdownDom(content, clearScope) : null;
+  const headingList = mdBuilt?.headings || [];
+  const isExpanded = Boolean(uiState.outputExpanded);
+  const isFullscreen = Boolean(uiState.outputFullscreen);
+
   return h(
     "div",
     {
-      class: `ollama-output-console${uiState.outputExpanded ? " is-expanded" : ""}`,
+      class: `ollama-output-console${isExpanded ? " is-expanded" : ""}${isFullscreen ? " is-fullscreen" : ""}`,
       "data-ollama-output-console": clearScope,
+      style: `--bionic-md-font-size: ${uiState.mdFontScale}px;`,
     },
     [
       h("div", { class: "ollama-output-header" }, [
@@ -414,6 +817,55 @@ function renderStudioOutputConsole({
             : h("span", { class: "ollama-pill" }, "Ready"),
         ]),
         h("div", { class: "ollama-output-toolbar" }, [
+          uiState.loading && !uiState.installing
+            ? h(
+                "button",
+                {
+                  type: "button",
+                  class: "ollama-btn is-danger is-mini",
+                  "data-ollama-action": "stop-generation",
+                  title: "Stop LLM response generation immediately",
+                  onclick: () => stopOllamaGeneration(),
+                },
+                "⏹ Stop",
+              )
+            : null,
+          h(
+            "button",
+            {
+              type: "button",
+              class: `ollama-btn is-mini${isExpanded ? " is-primary" : ""}`,
+              "data-ollama-action": "toggle-expand-output",
+              "aria-pressed": isExpanded ? "true" : "false",
+              title: isExpanded
+                ? "Restore prompt controls and default output height"
+                : "Expand output to fill the panel and collapse controls above",
+              onclick: () => {
+                uiState.outputExpanded = !uiState.outputExpanded;
+                if (!uiState.outputExpanded) uiState.outputFullscreen = false;
+                renderOllamaPanel();
+              },
+            },
+            isExpanded ? "⤡ Collapse Output" : "⤢ Expand Output",
+          ),
+          h(
+            "button",
+            {
+              type: "button",
+              class: `ollama-btn is-mini${isFullscreen ? " is-primary" : ""}`,
+              "data-ollama-action": "toggle-fullscreen-output",
+              "aria-pressed": isFullscreen ? "true" : "false",
+              title: isFullscreen
+                ? "Exit fullscreen output reader (Esc)"
+                : "Open output console in fullscreen window reader mode",
+              onclick: () => {
+                uiState.outputFullscreen = !uiState.outputFullscreen;
+                if (uiState.outputFullscreen) uiState.outputExpanded = true;
+                renderOllamaPanel();
+              },
+            },
+            isFullscreen ? "✕ Exit Fullscreen" : "⛶ Fullscreen",
+          ),
           h(
             "button",
             {
@@ -427,6 +879,50 @@ function renderStudioOutputConsole({
               },
             },
             uiState.markdownView ? "📖 Markdown View" : "{ } Raw Text",
+          ),
+          headingList.length >= 2 && uiState.markdownView
+            ? h(
+                "button",
+                {
+                  type: "button",
+                  class: `ollama-btn is-mini${uiState.showOutline ? " is-primary" : ""}`,
+                  "aria-pressed": uiState.showOutline ? "true" : "false",
+                  title: "Show or hide clickable Markdown section outline",
+                  onclick: () => {
+                    uiState.showOutline = !uiState.showOutline;
+                    renderOllamaPanel();
+                  },
+                },
+                `☰ Outline (${headingList.length})`,
+              )
+            : null,
+          h(
+            "button",
+            {
+              type: "button",
+              class: "ollama-btn is-mini",
+              "data-ollama-action": "font-smaller",
+              title: "Decrease output reader font size",
+              onclick: () => {
+                uiState.mdFontScale = Math.max(11.5, uiState.mdFontScale - 1);
+                renderOllamaPanel();
+              },
+            },
+            "A−",
+          ),
+          h(
+            "button",
+            {
+              type: "button",
+              class: "ollama-btn is-mini",
+              "data-ollama-action": "font-larger",
+              title: "Increase output reader font size",
+              onclick: () => {
+                uiState.mdFontScale = Math.min(20, uiState.mdFontScale + 1);
+                renderOllamaPanel();
+              },
+            },
+            "A+",
           ),
           hasContent || hasThinking
             ? h(
@@ -452,24 +948,6 @@ function renderStudioOutputConsole({
                   onclick: (e) => scrollConsoleOutput(e.currentTarget, "bottom"),
                 },
                 "⬇ Bottom",
-              )
-            : null,
-          hasContent || hasThinking
-            ? h(
-                "button",
-                {
-                  type: "button",
-                  class: "ollama-btn is-mini",
-                  "data-ollama-action": "toggle-expand-output",
-                  title: uiState.outputExpanded
-                    ? "Restore default output box height"
-                    : "Expand output box height for reading long responses",
-                  onclick: () => {
-                    uiState.outputExpanded = !uiState.outputExpanded;
-                    renderOllamaPanel();
-                  },
-                },
-                uiState.outputExpanded ? "⤡ Compact" : "⤢ Expand",
               )
             : null,
           h(
@@ -567,8 +1045,45 @@ function renderStudioOutputConsole({
             ),
           ])
         : null,
+      headingList.length >= 2 && uiState.markdownView && uiState.showOutline
+        ? h(
+            "div",
+            {
+              class: "bionic-md-outline-bar",
+              role: "navigation",
+              "aria-label": "Markdown section outline",
+            },
+            [
+              h("strong", {}, "Jump to Section:"),
+              ...headingList.map((hd) =>
+                h(
+                  "button",
+                  {
+                    type: "button",
+                    class: "bionic-md-outline-chip",
+                    onclick: () => {
+                      hd.el?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+                    },
+                  },
+                  `${"#".repeat(Math.min(hd.level, 3))} ${hd.text}`,
+                ),
+              ),
+            ],
+          )
+        : null,
       hasContent
-        ? renderFormattedOutputBody(content, title)
+        ? uiState.markdownView && mdBuilt
+          ? h(
+              "div",
+              {
+                class: "bionic-md-viewer",
+                tabindex: "0",
+                role: "region",
+                "aria-label": title,
+              },
+              [mdBuilt.fmEl, ...mdBuilt.renderedBlocks],
+            )
+          : renderFormattedOutputBody(content, title, clearScope)
         : !hasThinking
           ? h("div", { class: "ollama-output-empty" }, emptyHint)
           : null,
@@ -684,6 +1199,38 @@ function createBadgeEl(badge) {
   return h("span", { class: `ollama-cap-badge${extraClass}` }, badge);
 }
 
+function syncSelectedModelCapabilitiesState() {
+  const caps = getClientModelThinkingCapabilities(uiState.selectedModel, uiState.statusData?.models);
+  const profile = getClientModelFeatureProfile(uiState.selectedModel, uiState.statusData?.models);
+  const feat = profile.features || {};
+  if (caps.thinkingMode === "levels") {
+    if (uiState.thinkingLevel !== "low" && uiState.thinkingLevel !== "medium" && uiState.thinkingLevel !== "high") {
+      uiState.thinkingLevel = caps.defaultLevel || "medium";
+    }
+    uiState.thinkEnabled = true;
+  } else if (caps.thinkingMode === "always_on") {
+    uiState.thinkingLevel = "on";
+    uiState.thinkEnabled = true;
+  } else if (caps.thinkingMode === "none") {
+    uiState.thinkingLevel = "off";
+    uiState.thinkEnabled = false;
+  } else if (caps.thinkingMode === "toggle") {
+    if (uiState.thinkingLevel !== "on" && uiState.thinkingLevel !== "off") {
+      uiState.thinkingLevel = caps.defaultLevel === "on" ? "on" : "off";
+    }
+    uiState.thinkEnabled = uiState.thinkingLevel === "on";
+  }
+  if (!feat.structuredJson) {
+    uiState.schemaPreset = "";
+  }
+  if (!feat.webSearch) {
+    uiState.useWebSearch = false;
+  }
+  if (!feat.thinkingBudget) {
+    uiState.thinkingBudget = 0;
+  }
+}
+
 export async function refreshOllamaStatus(silent = false) {
   if (!silent) uiState.loading = true;
   renderOllamaPanel();
@@ -695,6 +1242,7 @@ export async function refreshOllamaStatus(silent = false) {
       const chatModel = res.models.find((m) => m.badges?.includes("Chat")) || res.models[0];
       if (chatModel) uiState.selectedModel = chatModel.name;
     }
+    syncSelectedModelCapabilitiesState();
     if (!uiState.decisionModel && Array.isArray(res.models)) {
       const decModel = res.models.find((m) => m.badges?.includes("Decision"));
       if (decModel) uiState.decisionModel = decModel.name;
@@ -723,6 +1271,15 @@ async function runSmartAutoRouter(customPrompt) {
     toast("Type a plain-English request or select a file to read aloud.");
     return;
   }
+  if (uiState.abortController) {
+    try {
+      uiState.abortController.abort();
+    } catch {
+      // ignore
+    }
+  }
+  const abortController = new AbortController();
+  uiState.abortController = abortController;
   const prompt = livePrompt;
   uiState.loading = true;
   uiState.refusalBanner = null;
@@ -740,19 +1297,29 @@ async function runSmartAutoRouter(customPrompt) {
   renderOllamaPanel();
 
   try {
-    if (prompt && (uiState.schemaPreset || uiState.useWebSearch || uiState.thinkEnabled)) {
-      const chatRes = await call("ollama/chat", {
-        model: uiState.selectedModel || undefined,
-        prompt,
-        paths,
-        think: uiState.thinkEnabled,
-        speakReply: uiState.speakReply,
-        voice: uiState.selectedVoice,
-        schemaPreset: uiState.schemaPreset || undefined,
-        useWebSearch: uiState.useWebSearch,
-        enableTools: true,
-      });
-      uiState.routeBanner = `Executed via /api/chat (${chatRes.model}, num_ctx=${chatRes.enforcedNumCtx}, think=${chatRes.thinkEnabled})`;
+    const thinkArgs = resolveEffectiveThinkArgs();
+    const samplingArgs = buildSamplingPayload();
+    const hasExplicitThink = Boolean(thinkArgs.think);
+
+    if (prompt && (uiState.schemaPreset || uiState.useWebSearch || hasExplicitThink)) {
+      const chatRes = await call(
+        "ollama/chat",
+        {
+          model: uiState.selectedModel || undefined,
+          prompt,
+          paths,
+          think: thinkArgs.think,
+          thinkingLevel: thinkArgs.thinkingLevel,
+          speakReply: uiState.speakReply,
+          voice: uiState.selectedVoice,
+          schemaPreset: uiState.schemaPreset || undefined,
+          useWebSearch: uiState.useWebSearch,
+          enableTools: true,
+          ...samplingArgs,
+        },
+        { signal: abortController.signal },
+      );
+      uiState.routeBanner = `Executed via /api/chat (${chatRes.model}, num_ctx=${chatRes.enforcedNumCtx}, think=${JSON.stringify(chatRes.thinkParam ?? chatRes.thinkEnabled)}, level=${chatRes.thinkingLevel || thinkArgs.thinkingLevel})`;
       uiState.thinkingOutput = chatRes.thinkingText || "";
       uiState.answerOutput = chatRes.content || "";
       uiState.structuredOutput = chatRes.structuredJson || null;
@@ -763,15 +1330,22 @@ async function runSmartAutoRouter(customPrompt) {
         uiState.lastAudioUrl = `${chatRes.speechResult.audioUrl}&token=${encodeURIComponent(getToken())}`;
       }
     } else {
-      const routed = await call("ollama/route", {
-        prompt,
-        paths,
-        dirPath: currentFolderRel(),
-        model: uiState.selectedModel || undefined,
-        speechModel: uiState.speechModel || undefined,
-        voice: uiState.selectedVoice,
-        speakReply: uiState.speakReply,
-      });
+      const routed = await call(
+        "ollama/route",
+        {
+          prompt,
+          paths,
+          dirPath: currentFolderRel(),
+          model: uiState.selectedModel || undefined,
+          speechModel: uiState.speechModel || undefined,
+          voice: uiState.selectedVoice,
+          speakReply: uiState.speakReply,
+          think: thinkArgs.think,
+          thinkingLevel: thinkArgs.thinkingLevel,
+          ...samplingArgs,
+        },
+        { signal: abortController.signal },
+      );
       uiState.routeBanner = routed.routeExplanation || `Routed to ${routed.routedCapability}`;
       const r = routed.result || {};
       if (routed.routedCapability === "speech") {
@@ -801,7 +1375,12 @@ async function runSmartAutoRouter(customPrompt) {
       }
     }
   } catch (err) {
-    if (err.code === "HARDWARE_RAM_REFUSAL" || err.code === "HARDWARE_MLX_EXCLUSIVITY") {
+    if (err?.name === "AbortError" || err?.code === "ABORTED" || abortController.signal.aborted) {
+      uiState.routeBanner = "⏹ Generation stopped by user.";
+      if (!uiState.answerOutput) {
+        uiState.answerOutput = "[Generation stopped by user]";
+      }
+    } else if (err.code === "HARDWARE_RAM_REFUSAL" || err.code === "HARDWARE_MLX_EXCLUSIVITY") {
       uiState.refusalBanner = {
         code: err.code,
         message: err.message,
@@ -811,6 +1390,9 @@ async function runSmartAutoRouter(customPrompt) {
       uiState.answerOutput = `Error (${err.code || "ERR"}): ${err.message}`;
     }
   } finally {
+    if (uiState.abortController === abortController) {
+      uiState.abortController = null;
+    }
     stopLiveTaskTicker();
     uiState.loading = false;
     renderOllamaPanel();
@@ -828,6 +1410,15 @@ async function runLiveStreamChat() {
     toast("Enter a message to stream or select a file to read aloud.");
     return;
   }
+  if (uiState.abortController) {
+    try {
+      uiState.abortController.abort();
+    } catch {
+      // ignore
+    }
+  }
+  const abortController = new AbortController();
+  uiState.abortController = abortController;
   uiState.loading = true;
   uiState.refusalBanner = null;
   uiState.lastAudioUrl = "";
@@ -838,8 +1429,11 @@ async function runLiveStreamChat() {
   renderOllamaPanel();
 
   try {
+    const thinkArgs = resolveEffectiveThinkArgs();
+    const samplingArgs = buildSamplingPayload();
     const res = await fetch("/api/ollama/stream", {
       method: "POST",
+      signal: abortController.signal,
       headers: {
         "Content-Type": "application/json",
         "x-fm-token": getToken(),
@@ -848,9 +1442,11 @@ async function runLiveStreamChat() {
         model: uiState.selectedModel || undefined,
         prompt,
         paths: selectedFilePaths(),
-        think: uiState.thinkEnabled,
+        think: thinkArgs.think,
+        thinkingLevel: thinkArgs.thinkingLevel,
         speakReply: uiState.speakReply,
         useWebSearch: uiState.useWebSearch,
+        ...samplingArgs,
       }),
     });
 
@@ -905,7 +1501,7 @@ async function runLiveStreamChat() {
       if (updatedThinking || updatedAnswer) {
         const thinkingBox = rootContainer?.querySelector(".ollama-thinking-box");
         const outputBox = rootContainer?.querySelector(".ollama-output-box");
-        if ((updatedThinking && !thinkingBox) || (updatedAnswer && !outputBox)) {
+        if (uiState.markdownView || (updatedThinking && !thinkingBox) || (updatedAnswer && !outputBox)) {
           renderOllamaPanel();
         } else {
           if (updatedThinking && thinkingBox) {
@@ -922,20 +1518,34 @@ async function runLiveStreamChat() {
       }
     }
 
-    if (uiState.speakReply && uiState.answerOutput.trim()) {
-      const spk = await call("ollama/speech", {
-        input: uiState.answerOutput,
-        voice: uiState.selectedVoice,
-        mode: "speaker",
-        playOnServer: false,
-      });
+    if (uiState.speakReply && uiState.answerOutput.trim() && !abortController.signal.aborted) {
+      const spk = await call(
+        "ollama/speech",
+        {
+          input: uiState.answerOutput,
+          voice: uiState.selectedVoice,
+          mode: "speaker",
+          playOnServer: false,
+        },
+        { signal: abortController.signal },
+      );
       if (spk.audioUrl) {
         uiState.lastAudioUrl = `${spk.audioUrl}&token=${encodeURIComponent(getToken())}`;
       }
     }
   } catch (err) {
-    uiState.answerOutput = `Stream failed: ${err.message}`;
+    if (err?.name === "AbortError" || err?.code === "ABORTED" || abortController.signal.aborted) {
+      uiState.routeBanner = "⏹ Live stream stopped by user (partial output preserved).";
+      if (!uiState.answerOutput && !uiState.thinkingOutput) {
+        uiState.answerOutput = "[Live stream stopped by user]";
+      }
+    } else {
+      uiState.answerOutput = `Stream failed: ${err.message}`;
+    }
   } finally {
+    if (uiState.abortController === abortController) {
+      uiState.abortController = null;
+    }
     uiState.loading = false;
     renderOllamaPanel();
   }
@@ -1157,6 +1767,19 @@ function renderLiveActivityBanner() {
       h("span", { class: "ollama-pill is-mlx ollama-live-pct" }, `${pct}%`),
       h("span", { class: "ollama-pill is-ram ollama-live-elapsed" }, `Elapsed: ${formatElapsedTime(elapsedSec)}`),
       h("span", { class: "ollama-pill" }, "Live Activity — App is NOT Frozen"),
+      uiState.loading
+        ? h(
+            "button",
+            {
+              type: "button",
+              class: "ollama-btn is-danger is-mini",
+              "data-ollama-action": "stop-generation",
+              title: "Stop LLM generation immediately",
+              onclick: () => stopOllamaGeneration(),
+            },
+            "⏹ Stop Generation",
+          )
+        : null,
     ]),
     h("div", { class: "ollama-live-step" }, step),
     h("div", { class: "ollama-progress-track" }, [
@@ -1235,12 +1858,14 @@ function renderModeTabs() {
   ];
   return h(
     "div",
-    { class: "ollama-mode-nav" },
+    { class: "ollama-mode-nav", role: "tablist", "aria-label": "Ollama AI Modes" },
     tabs.map((t) =>
       h(
         "button",
         {
           type: "button",
+          role: "tab",
+          "aria-selected": String(uiState.subTab === t.id),
           class: `ollama-mode-btn${uiState.subTab === t.id ? " is-active" : ""}`,
           onclick: () => {
             uiState.subTab = t.id;
@@ -1355,6 +1980,406 @@ function renderPendingConfirmations() {
   );
 }
 
+function renderSelectedModelCapabilitiesCard(profile) {
+  if (!profile) return null;
+  const f = profile.features || {};
+  return h(
+    "div",
+    {
+      class: "ollama-model-capabilities-card",
+      role: "region",
+      "aria-label": `Selected Model Capabilities (${profile.modelName || "Auto"})`,
+      "data-model-capabilities-card": profile.modelName,
+      "data-thinking-mode": f.thinkingMode || "none",
+    },
+    [
+      h("div", { class: "ollama-row", style: "flex-wrap:wrap;gap:6px;align-items:center;" }, [
+        h(
+          "strong",
+          { style: "font-size:12px;" },
+          `Selected Model Capabilities (${profile.modelName || "Auto: qwen3.5:latest"}):`,
+        ),
+        ...(profile.indicators || []).map((ind) =>
+          h(
+            "span",
+            {
+              class: "ollama-pill is-mlx",
+              "data-model-indicator": ind.id,
+              title: ind.description,
+              style: "font-size:11px;padding:2px 8px;",
+            },
+            `${ind.icon} ${ind.label}`,
+          ),
+        ),
+      ]),
+      h(
+        "div",
+        { class: "ollama-model-use-cases" },
+        `What you can use this model for: ${(profile.useCases || []).join(" • ")}`,
+      ),
+    ],
+  );
+}
+
+function renderThinkingControlBar() {
+  const caps = getClientModelThinkingCapabilities(uiState.selectedModel, uiState.statusData?.models);
+  const thinkArgs = resolveEffectiveThinkArgs();
+  const activeLevel = thinkArgs.thinkingLevel;
+
+  const samplingBtn = h(
+    "button",
+    {
+      type: "button",
+      class: `ollama-btn${uiState.showAdvancedSampling ? " is-primary" : ""}`,
+      "data-ollama-action": "toggle-sampling",
+      "aria-expanded": String(Boolean(uiState.showAdvancedSampling)),
+      "aria-pressed": String(Boolean(uiState.showAdvancedSampling)),
+      style: "margin-left:auto;padding:3px 10px;font-size:12px;",
+      onclick: () => {
+        uiState.showAdvancedSampling = !uiState.showAdvancedSampling;
+        renderOllamaPanel();
+      },
+    },
+    uiState.showAdvancedSampling
+      ? "⚙️ Hide Sampling & Engine Options"
+      : "⚙️ Sampling, Context & Engine Options",
+  );
+
+  // If the selected model does NOT support thinking, do NOT show any thinking controls in the UI!
+  if (!caps.supportsThinking || caps.thinkingMode === "none") {
+    return h(
+      "div",
+      {
+        class: "ollama-thinking-control-bar",
+        role: "toolbar",
+        "aria-label": "Reasoning and Sampling Controls",
+        "data-thinking-mode": "none",
+      },
+      [
+        h(
+          "span",
+          { class: "ollama-pill", title: caps.description },
+          "⚡ Direct Output Model (Thinking Controls Hidden — Not Used by This Model)",
+        ),
+        samplingBtn,
+      ],
+    );
+  }
+
+  // Only show the buttons that this specific model mode actually supports:
+  // - "levels" (gpt-oss, o1/o3/o4-mini): ONLY Low / Medium / High
+  // - "toggle" (qwen3.5, cogito, lfm3, gemma4): ONLY Off (Fast) / On (Think)
+  // - "always_on" (deepseek-r1, qwq): Native Always-On badge (no Off button, no Low/Med/High buttons)
+  const pillDefs =
+    caps.thinkingMode === "levels"
+      ? [
+          { id: "low", label: "Low Effort", hint: "think: \"low\" — Fast reasoning pass (gpt-oss)" },
+          { id: "medium", label: "Medium Effort", hint: "think: \"medium\" — Balanced chain-of-thought (gpt-oss)" },
+          { id: "high", label: "High Effort", hint: "think: \"high\" — Deep multi-step reasoning (gpt-oss)" },
+        ]
+      : caps.thinkingMode === "toggle"
+        ? [
+            { id: "off", label: "Off (Fast)", hint: "think: false — Skip chain-of-thought for instant reply" },
+            { id: "on", label: "On (Think)", hint: "think: true — Enable step-by-step chain-of-thought reasoning" },
+          ]
+        : [];
+
+  const showBudgetControl =
+    caps.supportsThinkingBudget &&
+    (caps.thinkingMode === "always_on" || (caps.thinkingMode === "toggle" && activeLevel !== "off"));
+
+  return h(
+    "div",
+    {
+      class: "ollama-thinking-control-bar",
+      role: "toolbar",
+      "aria-label": "Reasoning and Sampling Controls",
+      "data-thinking-mode": caps.thinkingMode,
+    },
+    [
+      h(
+        "span",
+        {
+          class: "ollama-pill is-mlx",
+          title: caps.description,
+        },
+        `🧠 ${caps.badgeLabel}`,
+      ),
+      pillDefs.length > 0
+        ? h(
+            "div",
+            { class: "ollama-row", style: "gap:4px;" },
+            pillDefs.map((p) => {
+              const isSelected = activeLevel === p.id;
+              return h(
+                "button",
+                {
+                  type: "button",
+                  class: `ollama-btn${isSelected ? " is-primary" : ""}`,
+                  "data-thinking-level": p.id,
+                  "aria-pressed": String(isSelected),
+                  title: p.hint,
+                  style: "padding:3px 9px;font-size:12px;",
+                  onclick: () => {
+                    uiState.thinkingLevel = p.id;
+                    uiState.thinkEnabled = p.id !== "off";
+                    renderOllamaPanel();
+                  },
+                },
+                p.label,
+              );
+            }),
+          )
+        : null,
+      showBudgetControl
+        ? h("label", { class: "ollama-row", style: "font-size:12px;gap:4px;" }, [
+            h("span", {}, "Thinking Budget:"),
+            h(
+              "select",
+              {
+                class: "ollama-select",
+                "data-ollama-select": "thinking-budget",
+                style: "padding:2px 6px;font-size:12px;",
+                onchange: (e) => {
+                  uiState.thinkingBudget = Number(e.target.value) || 0;
+                },
+              },
+              [
+                { val: 0, label: "Auto (Unlimited)" },
+                { val: 1024, label: "1,024 tokens" },
+                { val: 4096, label: "4,096 tokens" },
+                { val: 8192, label: "8,192 tokens" },
+                { val: 16384, label: "16,384 tokens" },
+                { val: 32768, label: "32,768 tokens" },
+              ].map((opt) =>
+                h(
+                  "option",
+                  {
+                    value: String(opt.val),
+                    selected: Number(uiState.thinkingBudget) === opt.val ? "selected" : null,
+                  },
+                  opt.label,
+                ),
+              ),
+            ),
+          ])
+        : null,
+      samplingBtn,
+    ],
+  );
+}
+
+function renderAdvancedSamplingPanel() {
+  if (!uiState.showAdvancedSampling) return null;
+  return h(
+    "div",
+    {
+      class: "ollama-advanced-sampling-panel",
+      role: "region",
+      "aria-label": "Ollama Runtime and Sampling Parameters",
+    },
+    [
+      h("div", { class: "ollama-row", style: "justify-content:space-between;" }, [
+        h("strong", { style: "font-size:12px;" }, "⚙️ Ollama Runtime, Context & Sampling Parameters (/api/chat options)"),
+        h(
+          "button",
+          {
+            type: "button",
+            class: "ollama-btn",
+            style: "padding:2px 8px;font-size:11px;",
+            onclick: () => {
+              uiState.numCtx = 8192;
+              uiState.temperature = 0.4;
+              uiState.topP = 0.9;
+              uiState.topK = 40;
+              uiState.minP = 0.0;
+              uiState.repeatPenalty = 1.1;
+              uiState.numPredict = 2048;
+              uiState.seed = "";
+              uiState.stopSequences = "";
+              uiState.keepAlive = "5m";
+              uiState.customSystemPrompt = "";
+              renderOllamaPanel();
+            },
+          },
+          "Reset Defaults",
+        ),
+      ]),
+      h("div", { class: "ollama-row", style: "flex-wrap:wrap;gap:10px;font-size:12px;" }, [
+        h("label", { class: "ollama-row", style: "gap:4px;" }, [
+          h("span", {}, "Context (num_ctx):"),
+          h(
+            "select",
+            {
+              class: "ollama-select",
+              onchange: (e) => {
+                uiState.numCtx = Number(e.target.value) || 8192;
+              },
+            },
+            [2048, 4096, 8192, 16384, 32768, 65536, 131072].map((ctxVal) =>
+              h(
+                "option",
+                {
+                  value: String(ctxVal),
+                  selected: Number(uiState.numCtx) === ctxVal ? "selected" : null,
+                },
+                `${ctxVal.toLocaleString()} tokens`,
+              ),
+            ),
+          ),
+        ]),
+        h("label", { class: "ollama-row", style: "gap:4px;" }, [
+          h("span", {}, "Temperature:"),
+          h("input", {
+            type: "number",
+            class: "ollama-input",
+            style: "width:68px;",
+            step: "0.05",
+            min: "0",
+            max: "2",
+            value: String(uiState.temperature),
+            oninput: (e) => {
+              uiState.temperature = Number(e.target.value);
+            },
+          }),
+        ]),
+        h("label", { class: "ollama-row", style: "gap:4px;" }, [
+          h("span", {}, "Top-P:"),
+          h("input", {
+            type: "number",
+            class: "ollama-input",
+            style: "width:68px;",
+            step: "0.05",
+            min: "0",
+            max: "1",
+            value: String(uiState.topP),
+            oninput: (e) => {
+              uiState.topP = Number(e.target.value);
+            },
+          }),
+        ]),
+        h("label", { class: "ollama-row", style: "gap:4px;" }, [
+          h("span", {}, "Top-K:"),
+          h("input", {
+            type: "number",
+            class: "ollama-input",
+            style: "width:68px;",
+            step: "1",
+            min: "1",
+            max: "200",
+            value: String(uiState.topK),
+            oninput: (e) => {
+              uiState.topK = Number(e.target.value);
+            },
+          }),
+        ]),
+        h("label", { class: "ollama-row", style: "gap:4px;" }, [
+          h("span", {}, "Min-P:"),
+          h("input", {
+            type: "number",
+            class: "ollama-input",
+            style: "width:68px;",
+            step: "0.01",
+            min: "0",
+            max: "1",
+            value: String(uiState.minP),
+            oninput: (e) => {
+              uiState.minP = Number(e.target.value);
+            },
+          }),
+        ]),
+        h("label", { class: "ollama-row", style: "gap:4px;" }, [
+          h("span", {}, "Repeat Penalty:"),
+          h("input", {
+            type: "number",
+            class: "ollama-input",
+            style: "width:68px;",
+            step: "0.05",
+            min: "0.5",
+            max: "2.0",
+            value: String(uiState.repeatPenalty),
+            oninput: (e) => {
+              uiState.repeatPenalty = Number(e.target.value);
+            },
+          }),
+        ]),
+        h("label", { class: "ollama-row", style: "gap:4px;" }, [
+          h("span", {}, "Max Tokens (num_predict):"),
+          h("input", {
+            type: "number",
+            class: "ollama-input",
+            style: "width:82px;",
+            step: "256",
+            min: "64",
+            max: "65536",
+            value: String(uiState.numPredict),
+            oninput: (e) => {
+              uiState.numPredict = Number(e.target.value);
+            },
+          }),
+        ]),
+        h("label", { class: "ollama-row", style: "gap:4px;" }, [
+          h("span", {}, "Seed:"),
+          h("input", {
+            type: "text",
+            class: "ollama-input",
+            style: "width:76px;",
+            placeholder: "Random",
+            value: String(uiState.seed),
+            oninput: (e) => {
+              uiState.seed = e.target.value;
+            },
+          }),
+        ]),
+        h("label", { class: "ollama-row", style: "gap:4px;" }, [
+          h("span", {}, "Keep Alive:"),
+          h(
+            "select",
+            {
+              class: "ollama-select",
+              onchange: (e) => {
+                uiState.keepAlive = e.target.value;
+              },
+            },
+            ["5m", "15m", "30m", "60m", "-1", "0"].map((ka) =>
+              h(
+                "option",
+                {
+                  value: ka,
+                  selected: String(uiState.keepAlive) === ka ? "selected" : null,
+                },
+                ka === "-1" ? "Keep Loaded (-1)" : ka === "0" ? "Unload Immediately (0)" : ka,
+              ),
+            ),
+          ),
+        ]),
+        h("label", { class: "ollama-row", style: "gap:4px;" }, [
+          h("span", {}, "Stop Sequences:"),
+          h("input", {
+            type: "text",
+            class: "ollama-input",
+            style: "width:130px;",
+            placeholder: "e.g. <|eot_id|>, STOP",
+            value: String(uiState.stopSequences),
+            oninput: (e) => {
+              uiState.stopSequences = e.target.value;
+            },
+          }),
+        ]),
+      ]),
+      h("input", {
+        type: "text",
+        class: "ollama-input",
+        placeholder: "Optional Custom System Prompt override (e.g., 'Always answer in TypeScript with strict types')...",
+        value: uiState.customSystemPrompt,
+        oninput: (e) => {
+          uiState.customSystemPrompt = e.target.value;
+        },
+      }),
+    ],
+  );
+}
+
 function renderAssistantTab() {
   const models = (uiState.statusData?.models || []).filter((m) => !m.badges?.includes("Speech") || m.badges?.includes("Chat"));
   const voices = uiState.statusData?.phononVoices || ["default", "Zoey", "Easton", "Freya"];
@@ -1376,7 +2401,7 @@ function renderAssistantTab() {
             value: "qwen3.5:latest",
             selected: uiState.selectedModel === "qwen3.5:latest" ? "selected" : null,
           },
-          "qwen3.5:latest (Default General-Purpose Chat, Vision, Deep Thinking & Tools)",
+          "qwen3.5:latest (Default General-Purpose Chat, Vision, Toggleable Thinking On/Off & Tools)",
         )
       : null,
     !installedModelNames.has("qwen3.5:4b")
@@ -1386,7 +2411,47 @@ function renderAssistantTab() {
             value: "qwen3.5:4b",
             selected: uiState.selectedModel === "qwen3.5:4b" ? "selected" : null,
           },
-          "qwen3.5:4b (Qwen 3.5 4B — Compact Multimodal for Smaller Memory Computers)",
+          "qwen3.5:4b (Qwen 3.5 4B — Compact Multimodal + Toggleable Thinking)",
+        )
+      : null,
+    !installedModelNames.has("gpt-oss:20b")
+      ? h(
+          "option",
+          {
+            value: "gpt-oss:20b",
+            selected: uiState.selectedModel === "gpt-oss:20b" ? "selected" : null,
+          },
+          "gpt-oss:20b (OpenAI gpt-oss 20B — Multi-Level Thinking: Low / Medium / High)",
+        )
+      : null,
+    !installedModelNames.has("gpt-oss:120b")
+      ? h(
+          "option",
+          {
+            value: "gpt-oss:120b",
+            selected: uiState.selectedModel === "gpt-oss:120b" ? "selected" : null,
+          },
+          "gpt-oss:120b (OpenAI gpt-oss 120B — Multi-Level Thinking: Low / Medium / High)",
+        )
+      : null,
+    !installedModelNames.has("deepseek-r1:8b")
+      ? h(
+          "option",
+          {
+            value: "deepseek-r1:8b",
+            selected: uiState.selectedModel === "deepseek-r1:8b" ? "selected" : null,
+          },
+          "deepseek-r1:8b (DeepSeek-R1 8B — Native Chain-of-Thought Reasoning)",
+        )
+      : null,
+    !installedModelNames.has("cogito:8b")
+      ? h(
+          "option",
+          {
+            value: "cogito:8b",
+            selected: uiState.selectedModel === "cogito:8b" ? "selected" : null,
+          },
+          "cogito:8b (Cogito v1 8B — Hybrid On/Off Deep Thinking Toggle)",
         )
       : null,
     !installedModelNames.has("lfm3-omni:latest")
@@ -1397,6 +2462,46 @@ function renderAssistantTab() {
             selected: uiState.selectedModel === "lfm3-omni:latest" ? "selected" : null,
           },
           "lfm3-omni:latest (Liquid LFM3-Omni 2B — Omni Audio, Speech, Vision & Chat)",
+        )
+      : null,
+    !installedModelNames.has("qwen2.5-coder:7b")
+      ? h(
+          "option",
+          {
+            value: "qwen2.5-coder:7b",
+            selected: uiState.selectedModel === "qwen2.5-coder:7b" ? "selected" : null,
+          },
+          "qwen2.5-coder:7b (Fast Direct Code & Chat — No Thinking Overhead)",
+        )
+      : null,
+    !installedModelNames.has("d3:latest") && !installedModelNames.has("d3")
+      ? h(
+          "option",
+          {
+            value: "d3:latest",
+            selected: uiState.selectedModel === "d3:latest" ? "selected" : null,
+          },
+          "d3:latest (SystemOne Decision Engine — Fast <5ms Yes/No, Choice & Score)",
+        )
+      : null,
+    !installedModelNames.has("phonon:latest") && !installedModelNames.has("phonon")
+      ? h(
+          "option",
+          {
+            value: "phonon:latest",
+            selected: uiState.selectedModel === "phonon:latest" ? "selected" : null,
+          },
+          "phonon:latest (Phonon TTS — 24kHz Natural Speech Synthesis)",
+        )
+      : null,
+    !installedModelNames.has("nomic-embed-text:latest") && !installedModelNames.has("nomic-embed-text")
+      ? h(
+          "option",
+          {
+            value: "nomic-embed-text:latest",
+            selected: uiState.selectedModel === "nomic-embed-text:latest" ? "selected" : null,
+          },
+          "nomic-embed-text:latest (Semantic Embeddings — Folder Search by Meaning)",
         )
       : null,
     ...models.map((m) =>
@@ -1419,25 +2524,42 @@ function renderAssistantTab() {
     ),
   ].filter(Boolean);
 
+  const selectedProfile = getClientModelFeatureProfile(uiState.selectedModel, uiState.statusData?.models);
+  const feat = selectedProfile.features || {};
+
+  // Filter quick prompts so only capabilities that apply to the selected model are displayed
   const quickPrompts = [
-    { label: "Summarize Selected File", text: "Summarize the selected file in plain English and highlight key takeaways." },
-    { label: "Read Out Loud (Phonon)", text: "Read this out loud with natural date pronunciation." },
-    { label: "Crash Check (SystemOne noul)", text: "Does this file contain a crash, bug, or error? Return probability." },
-    { label: "Auto-Sort Category (SystemOne choice)", text: "Classify into billing, bug_report, source_code, or personal." },
-    { label: "Score Urgency (SystemOne score)", text: "Score urgency across Routine, Soon, or Immediate." },
-    { label: "Batch Rename Plan (JSON)", text: "Create a clean batch-rename JSON plan for the selected files." },
-    { label: "Deep-Think Code Debug", text: "Debug this code step-by-step and explain how to fix any edge cases." },
-  ];
+    feat.chat
+      ? { label: "Summarize Selected File", text: "Summarize the selected file in plain English and highlight key takeaways." }
+      : null,
+    feat.vision
+      ? { label: "👁 Inspect Selected Image / Screenshot", text: "Inspect the selected image or screenshot and describe its contents, text, and layout." }
+      : null,
+    feat.thinkingLevels
+      ? { label: "🧠 Multi-Level Architecture Audit (gpt-oss)", text: "Perform a deep architectural and security audit of the selected code." }
+      : null,
+    feat.thinking
+      ? { label: "🧠 Deep-Think Code Debug", text: "Debug this code step-by-step and explain how to fix any edge cases." }
+      : null,
+    feat.structuredJson
+      ? { label: "📐 Batch Rename Plan (JSON)", text: "Create a clean batch-rename JSON plan for the selected files." }
+      : null,
+    { label: "🔊 Read Out Loud (Phonon)", text: "Read this out loud with natural date pronunciation." },
+    { label: "⚖️ Crash Check (SystemOne noul)", text: "Does this file contain a crash, bug, or error? Return probability." },
+    { label: "⚖️ Auto-Sort Category (SystemOne choice)", text: "Classify into billing, bug_report, source_code, or personal." },
+    { label: "⚖️ Score Urgency (SystemOne score)", text: "Score urgency across Routine, Soon, or Immediate." },
+  ].filter(Boolean);
 
   const sel = selectedFilePaths();
   assistantTextareaEl = h(
     "textarea",
     {
       class: "ollama-textarea",
+      "aria-label": "Ollama AI Prompt Input",
       placeholder:
         sel.length > 0
-          ? `Leave blank to read selected file (${sel[0]}) aloud, or ask anything in plain English (e.g., 'Summarize this file', 'Does this receipt image show a refund?', 'Create a batch rename JSON plan')...`
-          : "Ask anything in plain English (e.g., 'Summarize this file', 'Read this out loud', 'Does this receipt image show a refund?', 'Find the file where I wrote the login logic', or 'Create a batch rename JSON plan')...",
+          ? `Leave blank to read selected file (${sel[0]}) aloud, or ask anything supported by ${selectedProfile.modelName} (${selectedProfile.summary})...`
+          : `Ask anything supported by ${selectedProfile.modelName} (${selectedProfile.summary})...`,
       oninput: (e) => {
         uiState.promptText = e.target.value;
       },
@@ -1452,7 +2574,23 @@ function renderAssistantTab() {
     h("div", { class: "ollama-card-title" }, [
       h("span", {}, "Conversational AI Assistant & Automatic Capability Router"),
       h("span", { class: "ollama-pill is-mlx" }, "Zero-JSON Plain English Mode"),
+      h(
+        "button",
+        {
+          type: "button",
+          class: `ollama-btn is-mini${uiState.compactControls ? " is-primary" : ""}`,
+          "data-ollama-action": "toggle-compact-controls",
+          "aria-pressed": String(Boolean(uiState.compactControls)),
+          title: "Collapse or restore prompt banners and model cards so the LLM Output Console gets maximum vertical space",
+          onclick: () => {
+            uiState.compactControls = !uiState.compactControls;
+            renderOllamaPanel();
+          },
+        },
+        uiState.compactControls ? "🔽 Show Prompt Controls" : "🔼 Compact Controls",
+      ),
     ]),
+    renderSelectedModelCapabilitiesCard(selectedProfile),
     h(
       "div",
       { class: "ollama-quick-prompts" },
@@ -1471,27 +2609,38 @@ function renderAssistantTab() {
       ),
     ),
     assistantTextareaEl,
-    h("div", { class: "ollama-row" }, [
+    renderThinkingControlBar(),
+    renderAdvancedSamplingPanel(),
+    h("div", { class: "ollama-row ollama-assistant-options-row" }, [
       h(
         "select",
         {
           class: "ollama-select",
+          "aria-label": "Select Ollama Model",
+          "data-ollama-select": "assistant-model",
           onchange: (e) => {
             uiState.selectedModel = e.target.value;
+            syncSelectedModelCapabilitiesState();
+            renderOllamaPanel();
           },
         },
         modelOptions,
       ),
-      h("label", { class: "ollama-row" }, [
-        h("input", {
-          type: "checkbox",
-          checked: uiState.thinkEnabled ? "checked" : null,
-          onchange: (e) => {
-            uiState.thinkEnabled = e.target.checked;
-          },
-        }),
-        h("span", {}, "Deep Thinking (think: true)"),
-      ]),
+      // Only show the On/Off Deep Thinking checkbox if the selected model supports boolean On/Off thinking toggle
+      feat.thinkingToggle
+        ? h("label", { class: "ollama-row" }, [
+            h("input", {
+              type: "checkbox",
+              checked: uiState.thinkEnabled ? "checked" : null,
+              onchange: (e) => {
+                uiState.thinkEnabled = e.target.checked;
+                uiState.thinkingLevel = e.target.checked ? "on" : "off";
+                renderOllamaPanel();
+              },
+            }),
+            h("span", {}, "Deep Thinking (think: true / false)"),
+          ])
+        : null,
       h("label", { class: "ollama-row" }, [
         h("input", {
           type: "checkbox",
@@ -1500,7 +2649,7 @@ function renderAssistantTab() {
             uiState.speakReply = e.target.checked;
           },
         }),
-        h("span", {}, "Speak Reply (Phonon TTS, forces think: false)"),
+        h("span", {}, "Speak Reply (Phonon TTS)"),
       ]),
       h(
         "select",
@@ -1522,59 +2671,80 @@ function renderAssistantTab() {
           ),
         ),
       ),
-      h("label", { class: "ollama-row" }, [
-        h("input", {
-          type: "checkbox",
-          checked: uiState.useWebSearch ? "checked" : null,
-          onchange: (e) => {
-            uiState.useWebSearch = e.target.checked;
-          },
-        }),
-        h("span", {}, "Web Search (Enforces 32,000+ num_ctx)"),
-      ]),
-      h(
-        "select",
-        {
-          class: "ollama-select",
-          onchange: (e) => {
-            uiState.schemaPreset = e.target.value;
-          },
-        },
-        [
-          h("option", { value: "" }, "Output: Natural Text / Auto"),
-          h(
-            "option",
+      feat.webSearch
+        ? h("label", { class: "ollama-row" }, [
+            h("input", {
+              type: "checkbox",
+              checked: uiState.useWebSearch ? "checked" : null,
+              onchange: (e) => {
+                uiState.useWebSearch = e.target.checked;
+              },
+            }),
+            h("span", {}, "Web Search (Enforces 32,000+ num_ctx)"),
+          ])
+        : null,
+      feat.structuredJson
+        ? h(
+            "select",
             {
-              value: "batch_rename_plan",
-              selected: uiState.schemaPreset === "batch_rename_plan" ? "selected" : null,
+              class: "ollama-select",
+              onchange: (e) => {
+                uiState.schemaPreset = e.target.value;
+              },
             },
-            "Structured JSON: Batch Rename Plan",
-          ),
-          h(
-            "option",
-            {
-              value: "folder_organization_plan",
-              selected: uiState.schemaPreset === "folder_organization_plan" ? "selected" : null,
-            },
-            "Structured JSON: Folder Organization Plan",
-          ),
-          h(
-            "option",
-            {
-              value: "table_extraction",
-              selected: uiState.schemaPreset === "table_extraction" ? "selected" : null,
-            },
-            "Structured JSON: Table Extraction",
-          ),
-        ],
-      ),
+            [
+              h("option", { value: "" }, "Output: Natural Text / Auto"),
+              h(
+                "option",
+                {
+                  value: "batch_rename_plan",
+                  selected: uiState.schemaPreset === "batch_rename_plan" ? "selected" : null,
+                },
+                "Structured JSON: Batch Rename Plan",
+              ),
+              h(
+                "option",
+                {
+                  value: "folder_organization_plan",
+                  selected: uiState.schemaPreset === "folder_organization_plan" ? "selected" : null,
+                },
+                "Structured JSON: Folder Organization Plan",
+              ),
+              h(
+                "option",
+                {
+                  value: "table_extraction",
+                  selected: uiState.schemaPreset === "table_extraction" ? "selected" : null,
+                },
+                "Structured JSON: Table Extraction",
+              ),
+              h(
+                "option",
+                {
+                  value: "code_review_report",
+                  selected: uiState.schemaPreset === "code_review_report" ? "selected" : null,
+                },
+                "Structured JSON: Code Review Report",
+              ),
+              h(
+                "option",
+                {
+                  value: "security_audit_report",
+                  selected: uiState.schemaPreset === "security_audit_report" ? "selected" : null,
+                },
+                "Structured JSON: Security Audit Report",
+              ),
+            ],
+          )
+        : null,
     ]),
-    h("div", { class: "ollama-row" }, [
+    h("div", { class: "ollama-row ollama-assistant-actions-row" }, [
       h(
         "button",
         {
           type: "button",
           class: "ollama-btn is-primary",
+          "data-ollama-action": "send-auto-route",
           onclick: () => void runSmartAutoRouter(),
         },
         uiState.loading ? [h("span", { class: "ollama-spinner" }), " Running..."] : "Send & Auto-Route Request",
@@ -1584,10 +2754,24 @@ function renderAssistantTab() {
         {
           type: "button",
           class: "ollama-btn",
+          "data-ollama-action": "stream-live-tokens",
           onclick: () => void runLiveStreamChat(),
         },
         "Stream Live Tokens (/api/chat)",
       ),
+      uiState.loading
+        ? h(
+            "button",
+            {
+              type: "button",
+              class: "ollama-btn is-danger",
+              "data-ollama-action": "stop-generation",
+              title: "Stop LLM generation immediately (preserves tokens generated so far)",
+              onclick: () => stopOllamaGeneration(),
+            },
+            "⏹ Stop Generation",
+          )
+        : null,
       h(
         "button",
         {
@@ -1604,6 +2788,38 @@ function renderAssistantTab() {
           },
         },
         sel.length > 0 ? "Clear & Read Selected File Aloud" : "Clear Prompt",
+      ),
+      h(
+        "button",
+        {
+          type: "button",
+          class: `ollama-btn${uiState.outputExpanded ? " is-primary" : ""}`,
+          "data-ollama-action": "toggle-expand-output",
+          "aria-pressed": String(Boolean(uiState.outputExpanded)),
+          title: "Expand Output Console and collapse prompt banners above so the LLM response fills the viewport",
+          onclick: () => {
+            uiState.outputExpanded = !uiState.outputExpanded;
+            if (!uiState.outputExpanded) uiState.outputFullscreen = false;
+            renderOllamaPanel();
+          },
+        },
+        uiState.outputExpanded ? "⤡ Collapse Output" : "⤢ Expand Output",
+      ),
+      h(
+        "button",
+        {
+          type: "button",
+          class: `ollama-btn${uiState.outputFullscreen ? " is-primary" : ""}`,
+          "data-ollama-action": "toggle-fullscreen-output",
+          "aria-pressed": String(Boolean(uiState.outputFullscreen)),
+          title: "Toggle Fullscreen Reader Mode across the entire window",
+          onclick: () => {
+            uiState.outputFullscreen = !uiState.outputFullscreen;
+            if (uiState.outputFullscreen) uiState.outputExpanded = true;
+            renderOllamaPanel();
+          },
+        },
+        uiState.outputFullscreen ? "✕ Exit Fullscreen" : "⛶ Fullscreen",
       ),
       h(
         "button",
@@ -2361,19 +3577,58 @@ function renderModelsAndAccountTab() {
     h(
       "div",
       { class: "ollama-model-grid" },
-      models.map((m) =>
-        h("div", { class: "ollama-model-card" }, [
+      models.map((m) => {
+        const mProfile = m.featureProfile || getClientModelFeatureProfile(m.name, models);
+        return h("div", { class: "ollama-model-card", "data-ollama-model-card": m.name }, [
           h("div", { class: "ollama-row" }, [
             h("strong", {}, m.name),
             h("span", { class: "ollama-pill" }, `${m.parameterSize} • ${m.sizeGb} GB`),
           ]),
           h("div", { class: "ollama-badge-row" }, (m.badges || []).map(createBadgeEl)),
+          mProfile?.indicators?.length
+            ? h(
+                "div",
+                { class: "ollama-badge-row" },
+                mProfile.indicators.map((ind) =>
+                  h(
+                    "span",
+                    {
+                      class: "ollama-pill",
+                      title: ind.tip || ind.label,
+                      "data-model-indicator": ind.id,
+                    },
+                    `${ind.icon ? `${ind.icon} ` : ""}${ind.label}`,
+                  ),
+                ),
+              )
+            : null,
+          mProfile?.useCases?.length
+            ? h(
+                "div",
+                { style: "font-size: 11px; color: var(--fg-muted);" },
+                `Use for: ${mProfile.useCases.slice(0, 3).join(" • ")}`,
+              )
+            : null,
           h(
             "div",
             {},
             `Runner: ${m.runner} | Quant: ${m.quantization || "native"} | Ctx: ${m.contextLength}${m.voices?.length ? ` | Voices: ${m.voices.length}` : ""}`,
           ),
           h("div", { class: "ollama-row" }, [
+            h(
+              "button",
+              {
+                type: "button",
+                class: `ollama-btn is-mini${uiState.selectedModel === m.name ? " is-primary" : ""}`,
+                onclick: () => {
+                  uiState.selectedModel = m.name;
+                  syncSelectedModelCapabilitiesState();
+                  uiState.subTab = "assistant";
+                  renderOllamaPanel();
+                },
+              },
+              uiState.selectedModel === m.name ? "✓ Selected Model" : "Select Model",
+            ),
             h(
               "button",
               {
@@ -2418,8 +3673,8 @@ function renderModelsAndAccountTab() {
               "Delete",
             ),
           ]),
-        ]),
-      ),
+        ]);
+      }),
     ),
     uiState.inspectedModelInfo
       ? renderStudioOutputConsole({
@@ -2524,8 +3779,9 @@ function renderModelsAndAccountTab() {
     h(
       "div",
       { class: "ollama-model-grid" },
-      catalog.map((c) =>
-        h("div", { class: "ollama-model-card" }, [
+      catalog.map((c) => {
+        const cProfile = c.featureProfile || getClientModelFeatureProfile(c.name, models);
+        return h("div", { class: "ollama-model-card", "data-ollama-catalog-card": c.name }, [
           h("div", { class: "ollama-row" }, [
             h("strong", {}, c.label),
             h(
@@ -2535,9 +3791,47 @@ function renderModelsAndAccountTab() {
             ),
           ]),
           h("div", { class: "ollama-badge-row" }, (c.badges || []).map(createBadgeEl)),
+          cProfile?.indicators?.length
+            ? h(
+                "div",
+                { class: "ollama-badge-row" },
+                cProfile.indicators.map((ind) =>
+                  h(
+                    "span",
+                    {
+                      class: "ollama-pill",
+                      title: ind.tip || ind.label,
+                      "data-model-indicator": ind.id,
+                    },
+                    `${ind.icon ? `${ind.icon} ` : ""}${ind.label}`,
+                  ),
+                ),
+              )
+            : null,
+          cProfile?.useCases?.length
+            ? h(
+                "div",
+                { style: "font-size: 11px; color: var(--fg-muted);" },
+                `Use for: ${cProfile.useCases.slice(0, 3).join(" • ")}`,
+              )
+            : null,
           h("div", {}, c.description),
           c.hardwareVerdict?.allowed && !c.name.endsWith(":cloud")
             ? h("div", { class: "ollama-row" }, [
+                h(
+                  "button",
+                  {
+                    type: "button",
+                    class: `ollama-btn is-mini${uiState.selectedModel === c.name ? " is-primary" : ""}`,
+                    onclick: () => {
+                      uiState.selectedModel = c.name;
+                      syncSelectedModelCapabilitiesState();
+                      uiState.subTab = "assistant";
+                      renderOllamaPanel();
+                    },
+                  },
+                  uiState.selectedModel === c.name ? "✓ Selected Model" : "Select Model",
+                ),
                 h(
                   "button",
                   {
@@ -2583,8 +3877,8 @@ function renderModelsAndAccountTab() {
                 ),
               ])
             : null,
-        ]),
-      ),
+        ]);
+      }),
     ),
   ]);
 }
@@ -2599,7 +3893,7 @@ export function renderOllamaPanel() {
   if (rootContainer.querySelectorAll) {
     for (const consoleEl of rootContainer.querySelectorAll("[data-ollama-output-console]")) {
       const scope = consoleEl.getAttribute("data-ollama-output-console") || "default";
-      const outBox = consoleEl.querySelector(".ollama-output-box");
+      const outBox = consoleEl.querySelector(".bionic-md-viewer, .ollama-output-box");
       const thinkBox = consoleEl.querySelector(".ollama-thinking-box");
       savedBoxScrolls.set(scope, {
         outTop: outBox ? outBox.scrollTop || 0 : 0,
@@ -2615,10 +3909,18 @@ export function renderOllamaPanel() {
     typeof document !== "undefined" && document.documentElement?.dataset
       ? document.documentElement.dataset
       : {};
+  const suiteClasses = [
+    "ollama-suite",
+    uiState.outputExpanded ? "is-output-expanded" : "",
+    uiState.outputFullscreen ? "is-output-fullscreen" : "",
+    uiState.compactControls ? "is-compact-controls" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
   const suite = h(
     "div",
     {
-      class: "ollama-suite",
+      class: suiteClasses,
       "data-theme-scheme": rootDataset.theme || "auto",
       "data-theme-palette": rootDataset.palette || "standard",
     },
@@ -2651,7 +3953,7 @@ export function renderOllamaPanel() {
       const scope = consoleEl.getAttribute("data-ollama-output-console") || "default";
       const saved = savedBoxScrolls.get(scope);
       if (!saved) continue;
-      const outBox = consoleEl.querySelector(".ollama-output-box");
+      const outBox = consoleEl.querySelector(".bionic-md-viewer, .ollama-output-box");
       const thinkBox = consoleEl.querySelector(".ollama-thinking-box");
       if (outBox) {
         if (saved.outTop > 0) outBox.scrollTop = saved.outTop;
@@ -2667,8 +3969,25 @@ export function renderOllamaPanel() {
 export function mountOllamaTool(container) {
   rootContainer = container;
   if (typeof window !== "undefined" && window.location?.search) {
-    const sub = new URLSearchParams(window.location.search).get("subTab");
+    const params = new URLSearchParams(window.location.search);
+    const sub = params.get("subTab");
     if (sub) uiState.subTab = sub;
+    const modelParam = params.get("model");
+    if (modelParam) {
+      uiState.selectedModel = modelParam;
+      syncSelectedModelCapabilitiesState();
+    }
+    if (params.get("adv") === "1") uiState.showAdvancedSampling = true;
+    if (params.get("expand") === "1") uiState.outputExpanded = true;
+    if (params.get("fullscreen") === "1") {
+      uiState.outputFullscreen = true;
+      uiState.outputExpanded = true;
+    }
+    if (params.get("compact") === "1") uiState.compactControls = true;
+    if (params.get("demo") === "1" && !uiState.answerOutput) {
+      uiState.thinkingOutput = "1. Checking model capabilities and reasoning effort level.\n2. Generating syntax-highlighted TypeScript implementation and Markdown summary table.";
+      uiState.answerOutput = "## Architecture & Performance Audit\n\n> [!TIP] Expanded Output Mode Active\n> All bulky headers, banners, and prompt cards above the console are collapsed so you can read long LLM responses and code blocks across the full viewport.\n\n```typescript\nexport async function streamWithStopSignal(prompt: string, signal: AbortSignal): Promise<string> {\n  const res = await fetch(\"/api/ollama/stream\", { method: \"POST\", body: JSON.stringify({ prompt }), signal });\n  if (!res.ok) throw new Error(`HTTP ${res.status}`);\n  return await res.text();\n}\n```\n\n| Feature | Control | Shortcut / Action |\n| :--- | :--- | :--- |\n| **Expand Output** | `⤢ Expand Output` / `⤡ Compact View` | Collapses top chrome & fills viewport |\n| **Fullscreen Reader** | `⛶ Fullscreen` / `✕ Exit Fullscreen` | Pins Output Console across entire window |\n| **Stop LLM Anytime** | `⏹ Stop Generation` | Aborts both Smart Auto-Router & Live Stream |";
+    }
   }
   renderOllamaPanel();
   if (!uiState.statusData && !uiState.loading) {

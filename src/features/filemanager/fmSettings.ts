@@ -185,6 +185,8 @@ export interface Settings {
   rowDensity: RowDensity;
   /** Color tags assigned to files or folders: absolute path -> tag color key. */
   tags: Record<string, TagColor>;
+  /** Personal sticky notes / annotations assigned to files or folders: absolute path -> note text. */
+  notes: Record<string, string>;
   /** Whether the collapsible Folder Tree section in the sidebar is expanded. */
   treeExpanded: boolean;
   /** Default Ollama Phonon voice name used when reading text aloud or exporting audio. */
@@ -215,6 +217,8 @@ export type RowDensity = (typeof ROW_DENSITIES)[number];
 export const TAG_COLORS = ["red", "orange", "yellow", "green", "blue", "purple", "gray"] as const;
 export type TagColor = (typeof TAG_COLORS)[number];
 export const MAX_TAGS = 500;
+export const MAX_NOTES = 500;
+export const MAX_NOTE_LENGTH = 500;
 
 export interface StudioPreset {
   name: string;
@@ -397,6 +401,7 @@ export const DEFAULT_SETTINGS: Settings = {
   groupBy: "none",
   rowDensity: "comfortable",
   tags: {},
+  notes: {},
   treeExpanded: false,
   phononVoice: "Zoey",
   phononFormat: "wav",
@@ -458,6 +463,17 @@ export function sanitizeSettings(raw: unknown, ctx: FmContext): Settings {
     if (!isPath(key) || typeof value !== "string") continue;
     if ((TAG_COLORS as readonly string[]).includes(value)) {
       tags[p.resolve(key)] = value as TagColor;
+    }
+  }
+  const notes: Record<string, string> = {};
+  const rawNotes = r.notes && typeof r.notes === "object" && !Array.isArray(r.notes) ? (r.notes as Record<string, unknown>) : {};
+  for (const [key, value] of Object.entries(rawNotes)) {
+    if (Object.keys(notes).length >= MAX_NOTES) break;
+    if (!isPath(key) || typeof value !== "string") continue;
+    // eslint-disable-next-line no-control-regex
+    const cleanNote = value.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, " ").trim().slice(0, MAX_NOTE_LENGTH);
+    if (cleanNote) {
+      notes[p.resolve(key)] = cleanNote;
     }
   }
   const size = typeof r.textSize === "number" && isFinite(r.textSize) ? Math.round(Math.min(160, Math.max(80, r.textSize))) : DEFAULT_SETTINGS.textSize;
@@ -563,6 +579,7 @@ export function sanitizeSettings(raw: unknown, ctx: FmContext): Settings {
     groupBy: oneOf(r.groupBy, GROUP_BY_MODES, DEFAULT_SETTINGS.groupBy),
     rowDensity: oneOf(r.rowDensity, ROW_DENSITIES, DEFAULT_SETTINGS.rowDensity),
     tags,
+    notes,
     treeExpanded: typeof r.treeExpanded === "boolean" ? r.treeExpanded : DEFAULT_SETTINGS.treeExpanded,
     phononVoice: typeof r.phononVoice === "string" && /^[A-Za-z0-9 _-]{1,48}$/.test(r.phononVoice.trim()) ? r.phononVoice.trim() : DEFAULT_SETTINGS.phononVoice,
     phononFormat: oneOf(r.phononFormat, PHONON_AUDIO_FORMATS, DEFAULT_SETTINGS.phononFormat),
