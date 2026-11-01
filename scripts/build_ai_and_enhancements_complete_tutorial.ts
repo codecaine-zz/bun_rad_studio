@@ -25,13 +25,15 @@
  * Usage:
  *   bun scripts/build_ai_and_enhancements_complete_tutorial.ts
  */
+process.env.TTS_ENGINE = "edge";
+process.env.EDGE_TTS_VOICE = "en-US-AndrewMultilingualNeural";
+
 import "./lib/tts_edge_default";
 import { copyFileSync, existsSync, mkdirSync, rmSync, writeFileSync } from "fs";
 import { join } from "path";
 import { Cdp, sleep } from "./lib/cdp_recorder";
 import { seedDemoWorkspace } from "./lib/demo_workspace";
 import { FFMPEG, FFPROBE, narrate, sh } from "./lib/video_pipeline";
-import { createWavHeader, parseWavPcm, splitTextForPhonon } from "../src/features/filemanager/fmPhonon";
 
 const ROOT = process.cwd();
 const PROD = join(ROOT, "youtube_production");
@@ -165,7 +167,7 @@ export const defaultAiConfig: AiServerConfig = {
     join(studioDir, "04_Podcast_Subtitles.srt"),
     `1
 00:00:01,000 --> 00:00:05,000
-Welcome to the Codecaine AI Masterclass tutorial narrated by Zoey!
+Welcome to the Codecaine AI Masterclass tutorial!
 
 2
 00:00:05,500 --> 00:00:10,500
@@ -209,37 +211,38 @@ async function installVisualLearnerDemoHarness(c: Cdp) {
     window.__vlHarnessInstalled = true;
 
     const demoModels = [
-      { name: "gpt-oss:20b", sizeBytes: 13800000000, sizeHuman: "12.9 GB", family: "gpt-oss", parameterSize: "20B", quantization: "MXFP4", modifiedAt: "Just now", capabilities: ["chat", "thinking", "tools", "code"] },
-      { name: "qwen3.5:latest", sizeBytes: 5200000000, sizeHuman: "4.8 GB", family: "qwen3", parameterSize: "8B", quantization: "Q4_K_M", modifiedAt: "Just now", capabilities: ["chat", "thinking", "vision", "tools", "code"] },
-      { name: "deepseek-r1:14b", sizeBytes: 9100000000, sizeHuman: "8.5 GB", family: "deepseek2", parameterSize: "14B", quantization: "Q4_K_M", modifiedAt: "Just now", capabilities: ["chat", "thinking", "code"] },
-      { name: "qwen2.5-coder:7b", sizeBytes: 4700000000, sizeHuman: "4.4 GB", family: "qwen2", parameterSize: "7B", quantization: "Q4_K_M", modifiedAt: "Just now", capabilities: ["chat", "tools", "code"] },
-      { name: "nomic-embed-text:latest", sizeBytes: 274000000, sizeHuman: "274 MB", family: "nomic-bert", parameterSize: "137M", quantization: "F16", modifiedAt: "Just now", capabilities: ["embedding"] },
-      { name: "phonon:latest", sizeBytes: 112000000, sizeHuman: "112 MB", family: "phonon", parameterSize: "40M", quantization: "MLX", modifiedAt: "Just now", capabilities: ["tts"] }
+      { name: "gpt-oss:20b", sizeBytes: 13800000000, sizeHuman: "12.9 GB", sizeGb: 12.9, family: "gpt-oss", parameterSize: "20B", quantization: "MXFP4", modifiedAt: "Just now", badges: ["Chat", "Thinking", "Tools", "Code", "Decision"], capabilities: ["chat", "thinking", "tools", "code"] },
+      { name: "qwen3.5:latest", sizeBytes: 5200000000, sizeHuman: "4.8 GB", sizeGb: 4.8, family: "qwen3", parameterSize: "8B", quantization: "Q4_K_M", modifiedAt: "Just now", badges: ["Chat", "Thinking", "Vision", "Tools", "Code", "Decision"], capabilities: ["chat", "thinking", "vision", "tools", "code"] },
+      { name: "deepseek-r1:14b", sizeBytes: 9100000000, sizeHuman: "8.5 GB", sizeGb: 8.5, family: "deepseek2", parameterSize: "14B", quantization: "Q4_K_M", modifiedAt: "Just now", badges: ["Chat", "Thinking", "Code"], capabilities: ["chat", "thinking", "code"] },
+      { name: "qwen2.5-coder:7b", sizeBytes: 4700000000, sizeHuman: "4.4 GB", sizeGb: 4.4, family: "qwen2", parameterSize: "7B", quantization: "Q4_K_M", modifiedAt: "Just now", badges: ["Chat", "Tools", "Code"], capabilities: ["chat", "tools", "code"] },
+      { name: "nomic-embed-text:latest", sizeBytes: 274000000, sizeHuman: "274 MB", sizeGb: 0.27, family: "nomic-bert", parameterSize: "137M", quantization: "F16", modifiedAt: "Just now", badges: ["Embedding"], capabilities: ["embedding"] },
+      { name: "phonon:latest", sizeBytes: 112000000, sizeHuman: "112 MB", sizeGb: 0.11, family: "phonon", parameterSize: "40M", quantization: "MLX", modifiedAt: "Just now", badges: ["Speech", "MLX"], capabilities: ["tts"] }
     ];
 
     const origFetch = window.fetch.bind(window);
     window.fetch = async (input, init) => {
       const url = typeof input === "string" ? input : (input?.url || "");
-      if (url.includes("/api/call") && init?.body) {
+      if (url.includes("/api/")) {
         try {
-          const parsed = JSON.parse(String(init.body));
-          const op = parsed?.op || "";
-          const args = parsed?.args || {};
+          const pathname = new URL(url, location.origin).pathname;
+          const op = pathname.startsWith("/api/") ? pathname.slice(5) : pathname;
+          const args = init?.body ? JSON.parse(String(init.body)) : {};
 
           if (op === "ollama/status") {
             const realRes = await origFetch(input, init);
             const data = await realRes.json();
-            if (data?.ok && data?.result) {
-              data.result.installed = true;
-              data.result.running = true;
-              data.result.version = data.result.version || "0.17.4 (Apple Metal MLX)";
-              data.result.models = demoModels;
-              data.result.recommendedModel = "gpt-oss:20b";
+            if (data && typeof data === "object") {
+              data.ok = true;
+              data.installed = true;
+              data.running = true;
+              data.version = data.version || "0.17.4 (Apple Metal MLX)";
+              data.models = demoModels;
+              data.recommendedModel = "gpt-oss:20b";
               return new Response(JSON.stringify(data), { status: 200, headers: { "Content-Type": "application/json" } });
             }
           }
 
-          if (op === "ollama/autoRoute" || op === "ollama/chat" || op === "ollama/stream") {
+          if (op === "ollama/chat" || op === "ollama/route" || op === "ollama/autoRoute" || op === "bionic/chat" || op === "bionic/route") {
             const sig = init?.signal;
             if (window.__simulateSlowStream) {
               await new Promise((resolve, reject) => {
@@ -253,83 +256,87 @@ async function installVisualLearnerDemoHarness(c: Cdp) {
               });
             }
             const model = args.model || "gpt-oss:20b";
-            const level = args.think || "high";
+            const level = args.thinkingLevel || args.think || "high";
+            const bt = String.fromCharCode(96);
+            const fence = bt + bt + bt;
+            const thinkingTrace = "1. Inspected workspace files (01_AI_Architecture_Guide.md, 02_Server_Config.v1.ts).\\n2. Verified per-model capability indicators and hardware RAM safety guard (<70%).\\n3. Synthesized structured Markdown table and TypeScript reference snippet.";
             const replyMd = [
               "### ✨ Architecture & Performance Summary (" + model + ")",
               "",
               "| Component | Shortcut | Capability |",
               "|---|---|---|",
-              "| **Ollama AI Studio** | \`⌘K\` → *Ollama AI* | Multi-level reasoning (\`Low/Med/High\`), Vision & Tools |",
-              "| **LM Studio Bionic** | \`⌥B\` / \`Alt+B\` | Speculative Decoding, Multi-File Synthesis & \`SKILL.md\` |",
-              "| **Phonon Voice Reader** | \`🗣️ Speak Reply\` | 24 kHz Apple MLX Neural Speech (\`--voice Zoey\`) |",
+              "| **Ollama AI Studio** | **⌘K** → *Ollama AI* | Multi-level reasoning (Low/Med/High), Vision & Tools |",
+              "| **LM Studio Bionic** | **⌥B** / **Alt+B** | Speculative Decoding, Multi-File Synthesis & SKILL.md |",
+              "| **Phonon Voice Reader** | **🗣️ Speak Reply** | 24 kHz Apple MLX Neural Speech (38 Voices) |",
               "",
-              "\`\`\`typescript",
+              fence + "typescript",
               "export async function runLocalAiPipeline(model = '" + model + "') {",
               "  return { thinking: '" + String(level) + "', offline: true, ramGuardPct: 70 };",
               "}",
-              "\`\`\`"
+              fence
             ].join("\\n");
             return new Response(JSON.stringify({
               ok: true,
+              model,
+              routedCapability: "chat",
+              routeExplanation: "Routed to /api/chat (" + model + ", reasoning=" + String(level) + ", num_ctx=8192)",
+              thinkingText: thinkingTrace,
+              thinking: thinkingTrace,
+              content: replyMd,
+              reply: replyMd,
+              enforcedNumCtx: 8192,
+              thinkParam: level,
+              thinkingLevel: String(level),
+              durationMs: 420,
+              tokensPerSec: 94.6,
               result: {
-                ok: true,
                 model,
-                route: "thinking",
-                routeReason: "Model " + model + " selected with reasoning effort: " + String(level),
-                thinking: "1. Inspected workspace files (01_AI_Architecture_Guide.md, 02_Server_Config.v1.ts).\\n2. Verified per-model capability indicators and hardware RAM safety guard (<70%).\\n3. Synthesized structured Markdown table and TypeScript reference snippet.",
-                thinkingText: "1. Inspected workspace files (01_AI_Architecture_Guide.md, 02_Server_Config.v1.ts).\\n2. Verified per-model capability indicators and hardware RAM safety guard (<70%).\\n3. Synthesized structured Markdown table and TypeScript reference snippet.",
-                reply: replyMd,
+                thinkingText: thinkingTrace,
                 content: replyMd,
                 enforcedNumCtx: 8192,
                 thinkParam: level,
-                thinkingLevel: String(level),
-                durationMs: 420,
-                tokensPerSec: 94.6
+                thinkingLevel: String(level)
               }
             }), { status: 200, headers: { "Content-Type": "application/json" } });
           }
 
-          if (op === "ollama/systemOne") {
+          if (op === "ollama/decision" || op === "ollama/systemOne") {
             return new Response(JSON.stringify({
               ok: true,
-              result: {
-                ok: true,
-                model: args.model || "gpt-oss:20b",
-                decision: "allow",
-                confidence: 0.99,
-                category: "safe_workspace_operation",
-                rationale: "Verified local read-only code analysis and documentation synthesis within sandbox.",
-                latencyMs: 38
-              }
+              model: args.model || "gpt-oss:20b",
+              decision: "allow",
+              confidence: 0.99,
+              category: "safe_workspace_operation",
+              rationale: "Verified local read-only code analysis and documentation synthesis within sandbox.",
+              answers: [{ prompt: "Safety & Routing Triage", answer: "allow", confidence: 0.99 }],
+              latencyMs: 38
             }), { status: 200, headers: { "Content-Type": "application/json" } });
           }
 
-          if (op === "ollama/semanticSearch") {
+          if (op === "ollama/semanticSearch" || op === "bionic/semanticSearch") {
             return new Response(JSON.stringify({
               ok: true,
-              result: {
-                ok: true,
-                model: "nomic-embed-text:latest",
-                query: args.query || "thinking levels and local AI configuration",
-                matches: [
-                  { path: "01_AI_Architecture_Guide.md", name: "01_AI_Architecture_Guide.md", score: 0.948, snippet: "Adaptive Reasoning Modes: gpt-oss Low/Medium/High, qwen3.5 On/Off toggle, deepseek-r1 Always-On." },
-                  { path: "03_Server_Config.v2.ts", name: "03_Server_Config.v2.ts", score: 0.892, snippet: "thinkingLevel: 'high', gpuOffload: 'max', flashAttention: true" }
-                ]
-              }
+              model: "nomic-embed-text:latest",
+              query: args.query || "thinking levels and local AI configuration",
+              matches: [
+                { path: "01_AI_Architecture_Guide.md", name: "01_AI_Architecture_Guide.md", similarity: 0.948, score: 0.948, preview: "Adaptive Reasoning Modes: gpt-oss Low/Medium/High, qwen3.5 On/Off toggle, deepseek-r1 Always-On." },
+                { path: "03_Server_Config.v2.ts", name: "03_Server_Config.v2.ts", similarity: 0.892, score: 0.892, preview: "thinkingLevel: 'high', gpuOffload: 'max', flashAttention: true" }
+              ]
             }), { status: 200, headers: { "Content-Type": "application/json" } });
           }
 
           if (op === "bionic/status") {
             const realRes = await origFetch(input, init);
             const data = await realRes.json();
-            if (data?.ok && data?.result) {
-              data.result.installed = true;
-              data.result.serverRunning = true;
-              data.result.activeEndpoint = "http://127.0.0.1:1235";
-              data.result.models = [
-                { id: "gpt-oss-20b-mxfp4", name: "gpt-oss-20b-mxfp4", arch: "gpt-oss", params: "20B", quant: "MXFP4", format: "MLX", sizeBytes: 13800000000, sizeHuman: "12.9 GB", loaded: true, capabilities: ["chat", "thinking", "tools", "code"] },
-                { id: "qwen3.5-8b-mlx", name: "qwen3.5-8b-mlx", arch: "qwen3", params: "8B", quant: "4bit", format: "MLX", sizeBytes: 5100000000, sizeHuman: "4.8 GB", loaded: true, capabilities: ["chat", "thinking", "vision", "tools", "code"] },
-                { id: "qwen2.5-coder-1.5b-draft", name: "qwen2.5-coder-1.5b-draft", arch: "qwen2", params: "1.5B", quant: "4bit", format: "MLX", sizeBytes: 980000000, sizeHuman: "980 MB", loaded: false, capabilities: ["chat", "code"] }
+            if (data && typeof data === "object") {
+              data.ok = true;
+              data.installed = true;
+              data.serverRunning = true;
+              data.activeEndpoint = "http://127.0.0.1:1235";
+              data.models = [
+                { id: "gpt-oss-20b-mxfp4", name: "gpt-oss-20b-mxfp4", type: "llm", arch: "gpt-oss", params: "20B", quant: "MXFP4", format: "MLX", sizeBytes: 13800000000, sizeHuman: "12.9 GB", sizeGb: 12.9, loaded: true, capabilities: ["chat", "thinking", "tools", "code"] },
+                { id: "qwen3.5-8b-mlx", name: "qwen3.5-8b-mlx", type: "vlm", arch: "qwen3", params: "8B", quant: "4bit", format: "MLX", sizeBytes: 5100000000, sizeHuman: "4.8 GB", sizeGb: 4.8, loaded: true, capabilities: ["chat", "thinking", "vision", "tools", "code"] },
+                { id: "qwen2.5-coder-1.5b-draft", name: "qwen2.5-coder-1.5b-draft", type: "llm", arch: "qwen2", params: "1.5B", quant: "4bit", format: "MLX", sizeBytes: 980000000, sizeHuman: "980 MB", sizeGb: 0.98, loaded: false, capabilities: ["chat", "code"] }
               ];
               return new Response(JSON.stringify(data), { status: 200, headers: { "Content-Type": "application/json" } });
             }
@@ -338,20 +345,17 @@ async function installVisualLearnerDemoHarness(c: Cdp) {
           if (op === "bionic/synthesize") {
             return new Response(JSON.stringify({
               ok: true,
-              result: {
-                ok: true,
-                mode: args.mode || "compare",
-                model: args.model || "gpt-oss-20b-mxfp4",
-                filesProcessed: 2,
-                thinking: "Compared 02_Server_Config.v1.ts and 03_Server_Config.v2.ts across context window, thinkingLevel, and Metal GPU offload settings.",
-                synthesis: [
-                  "### 📚 Multi-File Bionic Synthesis (v1 vs v2 Server Config)",
-                  "",
-                  "- **Context Window**: Upgraded from \`8,192\` to \`32,768\` tokens (\`4×\` increase).",
-                  "- **Reasoning Control**: Added explicit \`thinkingLevel: 'high'\` for \`gpt-oss\`.",
-                  "- **Apple Silicon Acceleration**: Enabled \`gpuOffload: 'max'\` and \`flashAttention: true\`."
-                ].join("\\n")
-              }
+              mode: args.mode || "compare",
+              model: args.model || "gpt-oss-20b-mxfp4",
+              filesProcessed: 2,
+              thinking: "Compared 02_Server_Config.v1.ts and 03_Server_Config.v2.ts across context window, thinkingLevel, and Metal GPU offload settings.",
+              synthesis: [
+                "### 📚 Multi-File Bionic Synthesis (v1 vs v2 Server Config)",
+                "",
+                "- **Context Window**: Upgraded from **8,192** to **32,768** tokens (4× increase).",
+                "- **Reasoning Control**: Added explicit **thinkingLevel: 'high'** for **gpt-oss**.",
+                "- **Apple Silicon Acceleration**: Enabled **gpuOffload: 'max'** and **flashAttention: true**."
+              ].join("\\n")
             }), { status: 200, headers: { "Content-Type": "application/json" } });
           }
         } catch {}
@@ -502,13 +506,13 @@ const sceneSpecs: SceneSpec[] = [
     label: "🦙 1-CLICK OLLAMA + PHONON INSTALL · ⌘K / Ctrl+K COMMAND PALETTE · KEEP_ALIVE: 0",
     clickWay: "Click '🤖 Ollama AI' tab or 'Convert & process → Helper programs'",
     shortcutWay: "⌘K (Mac) / Ctrl+K (Win/Linux) → Type 'Ollama'",
-    extra: "Narrated Live by Zoey (ollama run phonon --voice Zoey) · Both Mouse & Shortcut Shown",
+    extra: "Narrated by Natural Male Studio Voice · Both Mouse Click & Keyboard Shortcut Shown",
     bullets: [
       "🖱️ Click '🤖 Ollama AI' OR Press `⌘K` / `Ctrl+K` Command Palette",
       "⚡ 1-Click Auto-Install Ollama, Starter Models & Phonon Neural Voice",
       "🛡️ 70% Unified RAM Hardware Guard + 1-Click `keep_alive: 0` Unload",
     ],
-    say: "Hi! I am Zoey, narrating this complete visual tutorial live from this Mac using ollama run phonon dash dash voice Zoey! For every feature, I will show you both the mouse click and the keyboard shortcut. To open Ollama A I, either press Command K on Mac or Control K on Windows and Linux to open the Command Palette, or click the Ollama A I button in the Power Tools bar. You can also click Convert and Process, then Helper Programs, for one-click Ollama setup, protected by a seventy-percent RAM safety guard and one-click memory unload.",
+    say: "Welcome to the complete visual masterclass for using local AI and power tools in the Codecaine File Manager. For every single feature, you will see both the mouse click and the keyboard shortcut right on screen. To open Ollama AI, press Command K on Mac or Control K on Windows and Linux to open the Command Palette, or click the Ollama AI button in the Power Tools bar. You can also click Convert and Process, then Helper Programs, for one-click local AI setup, protected by a seventy percent RAM safety guard and one-click memory unload.",
     record: async (c) => {
       await installVisualLearnerDemoHarness(c);
       await showVisualLearnerHud(c, {
@@ -602,7 +606,7 @@ const sceneSpecs: SceneSpec[] = [
       "🔀 `qwen3.5` / `gemma4` / `lfm3`: Toggle Thinking `On` or `Off`",
       "🔒 `deepseek-r1` / `qwq`: `Always-On` Reasoning + Token Budget Cap",
     ],
-    say: "Different reasoning models work in different ways. Select G P T dash O S S to reveal Low, Medium, and High thinking effort buttons—click Low for fast answers, Medium for balanced analysis, or High for deep architecture planning, or press Tab and Spacebar to switch levels. Select Qwen three point five to toggle thinking On or Off, or select DeepSeek R one to see its Always-On reasoning badge and token budget selector.",
+    say: "Different reasoning models work in different ways. Select GPT-OSS to reveal Low, Medium, and High thinking effort buttons. Click Low for fast answers, Medium for balanced analysis, or High for deep architecture planning, or press Tab and Spacebar to switch levels. Select Qwen 3.5 to toggle thinking On or Off, or select DeepSeek R1 to see its Always-On reasoning badge and token budget selector.",
     record: async (c) => {
       await installVisualLearnerDemoHarness(c);
       await showVisualLearnerHud(c, {
@@ -713,7 +717,7 @@ const sceneSpecs: SceneSpec[] = [
       "🔼 `🔼 Compact Controls`: Collapses Prompt Box so Output Fills the View",
       "⛶ `⛶ Fullscreen`: Edge-to-Edge Reader Modal (Press `Esc` to Exit)",
     ],
-    say: "Want to see much more of the L L M response at once? Click Expand Output in either the Assistant bar or the Output Console toolbar—it dramatically enlarges the response area and scrolls it smoothly into view. Click Compact Controls to tuck away the prompt inputs, or click Fullscreen for an edge-to-edge distraction-free reading view with font size controls and one-click code copy. Press Escape anytime to exit fullscreen.",
+    say: "Want to see much more of the AI response at once? Click Expand Output in either the Assistant bar or the Output Console toolbar. It dramatically enlarges the response area and scrolls it smoothly into view. Click Compact Controls to tuck away the prompt inputs, or click Fullscreen for an edge-to-edge distraction-free reading view with font size controls and one-click code copy. Press Escape anytime to exit fullscreen.",
     record: async (c) => {
       await installVisualLearnerDemoHarness(c);
       await showVisualLearnerHud(c, {
@@ -760,7 +764,7 @@ const sceneSpecs: SceneSpec[] = [
       "⚡ Tab 2 `SystemOne (/v1/systemone)`: Sub-Second JSON Routing & Triage",
       "🔎 Tab 4 `Meaning Search (/api/embed)`: Find Files by Concept, Not Filename",
     ],
-    say: "Click Sampling and Runtime Parameters to fine-tune ten engine settings including context window up to one-hundred-twenty-eight K tokens, temperature, top P, top K, min P, repeat penalty, seed, and keep-alive duration. Switch to Tab two for sub-second System-One JSON classification, or Tab four for Semantic Meaning Search to find files across your folder by concept using local embeddings!",
+    say: "Click Sampling and Runtime Parameters to fine-tune ten engine settings, including context window up to 128K tokens, temperature, top P, top K, min P, repeat penalty, seed, and keep-alive duration. Switch to Tab two for sub-second SystemOne JSON classification, or Tab four for Semantic Meaning Search to find files across your folder by concept using local embeddings.",
     record: async (c) => {
       await installVisualLearnerDemoHarness(c);
       await showVisualLearnerHud(c, {
@@ -780,13 +784,28 @@ const sceneSpecs: SceneSpec[] = [
         const btn2 = Array.from(document.querySelectorAll('.ollama-mode-btn')).find(b => b.textContent && b.textContent.includes('2. Decision'));
         if (btn2) btn2.click();
       })()`);
-      await sleep(750);
+      await sleep(300);
+      await c.eval(`(() => {
+        const runDecBtn = Array.from(document.querySelectorAll('button')).find(b => b.textContent && b.textContent.includes('Run Multi-Question SystemOne Check'));
+        if (runDecBtn) runDecBtn.click();
+      })()`);
+      await sleep(650);
 
       await c.eval(`(() => {
         const btn4 = Array.from(document.querySelectorAll('.ollama-mode-btn')).find(b => b.textContent && b.textContent.includes('4. Meaning Search'));
         if (btn4) btn4.click();
       })()`);
-      await sleep(800);
+      await sleep(300);
+      await c.eval(`(() => {
+        const inp = document.querySelector('input[placeholder*="Search active folder by meaning"]');
+        if (inp) {
+          inp.value = 'thinking levels and local AI configuration';
+          inp.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        const searchBtn = Array.from(document.querySelectorAll('button')).find(b => b.textContent && b.textContent.includes('Search Folder by Meaning'));
+        if (searchBtn) searchBtn.click();
+      })()`);
+      await sleep(750);
 
       await c.eval(`(() => {
         const btn1 = Array.from(document.querySelectorAll('.ollama-mode-btn')).find(b => b.textContent && b.textContent.includes('1. Ask Anything'));
@@ -810,7 +829,7 @@ const sceneSpecs: SceneSpec[] = [
       "⚡ Speculative Decoding (`draftModel`), Metal GPU Offload & KV Cache Quant",
       "📚 Multi-File Synthesis (`Compare`, `Summarize`, `Study Guide`) & `SKILL.md`",
     ],
-    say: "To open LM Studio Bionic from anywhere in the app, press Option B on Mac or Alt B on Windows and Linux, or click the Bionic A I button in the top ribbon! Bionic gives you the same per-model capability badges and thinking controls, plus speculative decoding with a draft model, Metal G P U offload, Flash Attention, K V cache quantization, reusable Agent Skills, and one-click Multi-File Synthesis to compare or summarize multiple selected files at once!",
+    say: "To open LM Studio Bionic from anywhere in the app, press Option B on Mac or Alt B on Windows and Linux, or click the Bionic AI button in the top ribbon. Bionic gives you the same per-model capability badges and thinking controls, plus speculative decoding with a draft model, Metal GPU offload, Flash Attention, KV cache quantization, reusable Agent Skills, and one-click Multi-File Synthesis to compare or summarize multiple selected files at once.",
     record: async (c) => {
       await installVisualLearnerDemoHarness(c);
       await showVisualLearnerHud(c, {
@@ -849,7 +868,7 @@ const sceneSpecs: SceneSpec[] = [
       "🏷️ Full Model Capability Badges, Thinking Levels (`Low/Med/High`) & `⏹ Stop`",
       "✨ Ask AI to Refactor or Document Code & Click `✨ Apply to Editor`",
     ],
-    say: "When editing source code in the built-in Code Studio, click the A I Chat button in the editor toolbar to open the side-by-side coding assistant! You get full model capability badges, thinking level controls, Expand Output, Stop Generation, and one-click Apply to Editor, then press Command S or Control S to save your file.",
+    say: "When editing source code in the built-in Code Studio, click the AI Chat button in the editor toolbar to open the side-by-side coding assistant. You get full model capability badges, thinking level controls, Expand Output, Stop Generation, and one-click Apply to Editor, then press Command S or Control S to save your file.",
     record: async (c) => {
       await installVisualLearnerDemoHarness(c);
       await showVisualLearnerHud(c, {
@@ -888,7 +907,7 @@ const sceneSpecs: SceneSpec[] = [
       "📖 Waveform-Synced Follow-Along Karaoke Teleprompter (4 Cinema Themes)",
       "🎬 Export 9 Audio Formats, Chaptered Audiobooks (`.m3u8`) & 4 Video Formats",
     ],
-    say: "In the Phonon Voice Reader studio—which you can open from the Power Tools bar, by right-clicking any document, or via Command K—you can read over twenty-five file formats out loud in my Zoey voice or thirty-seven other neural voices! Follow along word by word in the waveform-synced karaoke teleprompter, clone your own voice locally, or export to nine audio formats, chaptered M 3 U 8 audiobooks, and four read-along video formats!",
+    say: "In the Phonon Voice Reader studio—which you can open from the Power Tools bar, by right-clicking any document, or via Command K—you can read over twenty-five file formats out loud across thirty-eight expressive neural voices. Follow along word by word in the waveform-synced karaoke teleprompter, clone your own voice locally, or export to nine audio formats, chaptered audiobooks, and four read-along video formats.",
     record: async (c) => {
       await installVisualLearnerDemoHarness(c);
       await showVisualLearnerHud(c, {
@@ -1001,7 +1020,7 @@ const sceneSpecs: SceneSpec[] = [
       "🔤 Regex `$1`/`$2`, 6 Case Styles (`kebab`, `snake`, `camel`, `Pascal`) & Tokens",
       "🔐 1-Click `SHA256SUMS` Verifier + `📋 Export Folder Inventory` (Tree/MD/CSV/JSON)",
     ],
-    say: "Select multiple files and press F2—or click Bulk Rename in the selection bar—to open Power Bulk Rename two point O, with Regex capture groups, six naming case styles like kebab-case, snake_case, and camelCase, plus date and folder tokens with a live diff preview! You can also generate and verify SHA-256 checksum manifests in one click, or export a complete Folder Inventory as an ASCII directory tree, Markdown table, C S V, or JSON!",
+    say: "Select multiple files and press F2—or click Bulk Rename in the selection bar—to open Power Bulk Rename 2.0, with Regex capture groups, six naming case styles like kebab-case, snake_case, and camelCase, plus date and folder tokens with a live diff preview. You can also generate and verify SHA-256 checksum manifests in one click, or export a complete Folder Inventory as an ASCII directory tree, Markdown table, CSV, or JSON.",
     record: async (c) => {
       await installVisualLearnerDemoHarness(c);
       await showVisualLearnerHud(c, {
@@ -1060,7 +1079,7 @@ const sceneSpecs: SceneSpec[] = [
       "🔎 Press `⌘F` (`Ctrl+F`) Inside Any Document Preview for Instant Highlighted Find",
       "🧹 `Smart Tidy Folder` with Dry-Run Preview & `⌘Z` (`Ctrl+Z`) 1-Click Undo",
     ],
-    say: "Finally, select any file and press Spacebar—or click Quick Look—for instant previews! On images, use the interactive Image Inspector bar or press Plus, Minus, R to rotate, H or V to flip, and cycle between checkerboard, dark, and light backdrops. On documents and macOS packages, press Command F or Control F for highlighted in-preview search, resume right where you left off, click Ask A I or Speak, and use Smart Tidy Folder with one-click Command Z undo!",
+    say: "Finally, select any file and press Spacebar—or click Quick Look—for instant previews. On images, use the interactive Image Inspector bar or press Plus, Minus, R to rotate, H or V to flip, and cycle between checkerboard, dark, and light backdrops. On documents and macOS packages, press Command F or Control F for highlighted in-preview search, resume right where you left off, click Ask AI or Speak, and use Smart Tidy Folder with one-click Command Z undo.",
     record: async (c) => {
       await installVisualLearnerDemoHarness(c);
       await showVisualLearnerHud(c, {
@@ -1171,7 +1190,7 @@ body{
 </style>
 <div class="top">
   <div class="hw-strip">
-    <span class="apple-chip">🎙️ NARRATED LIVE BY: OLLAMA RUN PHONON --VOICE ZOEY</span>
+    <span class="apple-chip">🎙️ CODECAINE AI &amp; POWER TOOLS MASTERCLASS</span>
     <span>VISUAL LEARNER EDITION</span>
   </div>
   <div class="badge">${esc(scene.badge)}</div>
@@ -1206,7 +1225,7 @@ body{width:1920px;height:1080px;background:transparent;font-family:-apple-system
 .right{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:5px}
 .rig{color:#0f172a;font-size:13px;font-weight:900;letter-spacing:.01em;background:#fef3c7;border:1.5px solid #f59e0b;padding:4px 12px;border-radius:8px;white-space:nowrap}
 .n{flex:none;color:#bae6fd;font-size:15px;font-weight:800;background:rgba(56,189,248,0.15);border:1.5px solid rgba(56,189,248,0.45);padding:4px 13px;border-radius:10px}
-</style></head><body><div class="strip"><div class="badge">${esc(`STEP ${String(index + 1).padStart(2, "0")} / ${totalScenes}`)}</div><div class="col"><div class="top-row"><span class="click-tag">🖱️ Click: ${esc(scene.clickWay)}</span><span class="key-tag">⌨️ Shortcut: ${esc(scene.shortcutWay)}</span></div><div class="cap">${esc(scene.bullets.join("  ·  "))}</div></div><div class="right"><div class="rig">🎙️ Narrated by: ollama run phonon --voice Zoey</div><div class="n">Visual Masterclass ${index + 1}/${totalScenes}</div></div></div></body></html>`;
+</style></head><body><div class="strip"><div class="badge">${esc(`STEP ${String(index + 1).padStart(2, "0")} / ${totalScenes}`)}</div><div class="col"><div class="top-row"><span class="click-tag">🖱️ Click: ${esc(scene.clickWay)}</span><span class="key-tag">⌨️ Shortcut: ${esc(scene.shortcutWay)}</span></div><div class="cap">${esc(scene.bullets.join("  ·  "))}</div></div><div class="right"><div class="rig">🎙️ Visual Learner Masterclass · Both Ways Shown</div><div class="n">Step ${index + 1} of ${totalScenes}</div></div></div></body></html>`;
 }
 
 function buildCompleteTutorialMarkdown(
@@ -1222,7 +1241,7 @@ function buildCompleteTutorialMarkdown(
     .map((m, i) => `- **\`${fmt(i === 0 ? 0 : m.at)}\` — ${m.scene.badge}**: ${m.scene.label}\n  - 🖱️ **Mouse Click**: ${m.scene.clickWay}\n  - ⌨️ **Keyboard Shortcut**: \`${m.scene.shortcutWay}\``)
     .join("\n");
 
-  return `# Codecaine File Manager — Complete Visual-Learner AI & Enhancements Masterclass Tutorial (Narrated by \`ollama run phonon --voice Zoey\`)
+  return `# Codecaine File Manager — Complete Visual-Learner AI & Enhancements Masterclass Tutorial (Narrated by Natural Male Studio Voice \`en-US-AndrewMultilingualNeural\`)
 
 ## 🎬 Video Production Deliverables
 
@@ -1268,85 +1287,30 @@ ${chapters}
 `;
 }
 
-function runOllamaPhononWav(text: string, voice: string, outWav: string): void {
-  const chunks = splitTextForPhonon(text, { maxChars: 480 });
-  const pcmParts: Buffer[] = [];
-  let sampleRate = 24000;
-  let numChannels = 1;
-  let bitsPerSample = 16;
-
-  for (let i = 0; i < chunks.length; i++) {
-    const c = chunks[i]!;
-    const res = Bun.spawnSync(["ollama", "run", "phonon", "--voice", voice], {
-      stdin: new TextEncoder().encode(c.text + "\n"),
-      stdout: "pipe",
-      stderr: "pipe",
-      timeout: 60_000,
-    });
-    if (res.exitCode !== 0 || res.stdout.byteLength < 100) {
-      throw new Error(`ollama run phonon failed (${res.exitCode}): ${res.stderr.toString()}`);
-    }
-    const parsed = parseWavPcm(Buffer.from(res.stdout));
-    sampleRate = parsed.sampleRate;
-    numChannels = parsed.numChannels;
-    bitsPerSample = parsed.bitsPerSample;
-    pcmParts.push(parsed.pcmData);
-    if (i + 1 < chunks.length) {
-      const gapSamples = Math.round(sampleRate * 0.14);
-      pcmParts.push(Buffer.alloc(gapSamples * numChannels * (bitsPerSample >> 3)));
-    }
-  }
-
-  const totalPcm = Buffer.concat(pcmParts);
-  const header = createWavHeader(totalPcm.length, sampleRate, numChannels, bitsPerSample);
-  writeFileSync(outWav, Buffer.concat([header, totalPcm]));
-}
-
 async function synthesizeSceneNarration(scene: SceneSpec): Promise<string> {
   const audioDir = join(WORK, "audio");
   mkdirSync(audioDir, { recursive: true });
-  const safeVoice = scene.voice.replace(/\s+/g, "_");
-  const rawWav = join(audioDir, `raw_phonon_${scene.id}_${safeVoice}.wav`);
-  const masteredWav = join(WORK, `phonon_${scene.id}_${safeVoice}.wav`);
+  const masteredWav = join(WORK, `andrew_${scene.id}.wav`);
 
   if (!existsSync(masteredWav)) {
-    console.log(`🎙️  Synthesizing ${scene.id} with ollama run phonon --voice "${scene.voice}"...`);
-    try {
-      runOllamaPhononWav(scene.say, scene.voice, rawWav);
-      run([
-        FFMPEG,
-        "-hide_banner",
-        "-loglevel",
-        "error",
-        "-y",
-        "-i",
-        rawWav,
-        "-af",
-        "highpass=f=70,acompressor=threshold=-20dB:ratio=2:attack=20:release=250,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000,adelay=180|180,apad=pad_dur=0.40",
-        "-ar",
-        "48000",
-        "-c:a",
-        "pcm_s16le",
-        masteredWav,
-      ]);
-    } catch (err) {
-      console.warn(`⚠️ Phonon CLI fallback to Edge TTS for ${scene.id}:`, err);
-      const fallbackMp3 = await narrate(scene.id, scene.say, audioDir, { rate: "+4%", gap: 0.2 });
-      run([
-        FFMPEG,
-        "-hide_banner",
-        "-loglevel",
-        "error",
-        "-y",
-        "-i",
-        fallbackMp3,
-        "-ar",
-        "48000",
-        "-c:a",
-        "pcm_s16le",
-        masteredWav,
-      ]);
-    }
+    console.log(`🎙️  Synthesizing ${scene.id} with natural male neural voice (en-US-AndrewMultilingualNeural)...`);
+    const narratedMp3 = await narrate(scene.id, scene.say, audioDir, { rate: "+2%", gap: 0.22 });
+    run([
+      FFMPEG,
+      "-hide_banner",
+      "-loglevel",
+      "error",
+      "-y",
+      "-i",
+      narratedMp3,
+      "-af",
+      "highpass=f=65,acompressor=threshold=-20dB:ratio=2:attack=20:release=250,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000,adelay=160|160,apad=pad_dur=0.35",
+      "-ar",
+      "48000",
+      "-c:a",
+      "pcm_s16le",
+      masteredWav,
+    ]);
   }
   return masteredWav;
 }

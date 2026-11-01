@@ -1,12 +1,12 @@
-# Codecaine File Manager — Complete Visual-Learner AI & Enhancements Masterclass Tutorial (Narrated by `ollama run phonon --voice Zoey`)
+# Codecaine File Manager — Complete Visual-Learner AI & Enhancements Masterclass Tutorial (Narrated by Natural Male Studio Voice `en-US-AndrewMultilingualNeural`)
 
 ## 🎬 Video Production Deliverables
 
 - **Full 1080p Widescreen Masterclass (16:9, 1920×1080, 1.00× Natural Speaking Pace, CRF 12, 320k AAC)**:
-  - `youtube_production/codecaine_file_manager_ai_and_enhancements_complete_tutorial_1080p.mp4` (5:20 / 320.4s)
+  - `youtube_production/codecaine_file_manager_ai_and_enhancements_complete_tutorial_1080p.mp4` (5:54 / 354.6s)
   - `youtube_production/phonon_ollama_complete_tutorial_1080p.mp4`
 - **Vertical 9:16 YouTube Short Edition (1080×1920, CRF 14, 320k AAC)**:
-  - `youtube_production/codecaine-file-manager-ai-complete-tutorial-short.mp4` (2:52 / 172.0s)
+  - `youtube_production/codecaine-file-manager-ai-complete-tutorial-short.mp4` (2:57 / 177.2s)
   - `youtube_production/codecaine-file-manager-phonon-voice-reader-short.mp4`
 
 ---
@@ -43,36 +43,36 @@
 - **`0:00` — 01 / 12 · 1-CLICK AI SETUP, COMMAND PALETTE (⌘K) & 70% RAM GUARD**: 🦙 1-CLICK OLLAMA + PHONON INSTALL · ⌘K / Ctrl+K COMMAND PALETTE · KEEP_ALIVE: 0
   - 🖱️ **Mouse Click**: Click '🤖 Ollama AI' tab or 'Convert & process → Helper programs'
   - ⌨️ **Keyboard Shortcut**: `⌘K (Mac) / Ctrl+K (Win/Linux) → Type 'Ollama'`
-- **`0:34` — 02 / 12 · PER-MODEL CAPABILITY INDICATORS & AUTOMATIC UI FEATURE GATING**: 🏷️ WHAT YOU CAN USE EACH MODEL FOR · HIDES UNSUPPORTED UI CONTROLS AUTOMATICALLY
+- **`0:35` — 02 / 12 · PER-MODEL CAPABILITY INDICATORS & AUTOMATIC UI FEATURE GATING**: 🏷️ WHAT YOU CAN USE EACH MODEL FOR · HIDES UNSUPPORTED UI CONTROLS AUTOMATICALLY
   - 🖱️ **Mouse Click**: Click the 'Model:' dropdown in Ollama AI or Bionic AI
   - ⌨️ **Keyboard Shortcut**: `Tab to Model Selector → ↑ / ↓ Arrow Keys to Switch Models`
-- **`0:56` — 03 / 12 · MULTI-LEVEL REASONING (GPT-OSS LOW/MED/HIGH) & THINKING TOGGLES**: 🧠 GPT-OSS (LOW / MEDIUM / HIGH) · QWEN 3.5 (ON / OFF) · DEEPSEEK-R1 (ALWAYS-ON)
+- **`1:00` — 03 / 12 · MULTI-LEVEL REASONING (GPT-OSS LOW/MED/HIGH) & THINKING TOGGLES**: 🧠 GPT-OSS (LOW / MEDIUM / HIGH) · QWEN 3.5 (ON / OFF) · DEEPSEEK-R1 (ALWAYS-ON)
   - 🖱️ **Mouse Click**: Click 'Low / Medium / High' or 'On / Off' pills in the Thinking Bar
   - ⌨️ **Keyboard Shortcut**: `Tab to Thinking Pill → Press Space or Enter to Toggle`
-- **`1:23` — 04 / 12 · ASK AUTO-ROUTER, LIVE STREAMING & ⏹ STOP GENERATION ANYTIME**: 🚀 ASK AUTO-ROUTER (⌘ENTER) · 📡 STREAM LIVE TOKENS · ⏹ STOP GENERATION (ESC)
+- **`1:31` — 04 / 12 · ASK AUTO-ROUTER, LIVE STREAMING & ⏹ STOP GENERATION ANYTIME**: 🚀 ASK AUTO-ROUTER (⌘ENTER) · 📡 STREAM LIVE TOKENS · ⏹ STOP GENERATION (ESC)
   - 🖱️ **Mouse Click**: Click '🚀 Ask' or '📡 Stream Live Tokens' → Click Red '⏹ Stop Generation'
   - ⌨️ **Keyboard Shortcut**: `⌘Enter / Ctrl+Enter to Send · Esc to Stop Generation Immediately`
-- **`1:48` — 05 / 12 · ⤢ EXPAND OUTPUT, ⛶ FULLSCREEN READER & 🔼 COMPACT CONTROLS**: ⤢ EXPAND OUTPUT (1100PX+) · ⛶ FULLSCREEN MODAL (ESC TO EXIT) · 🔼 COMPACT CONTROLS
+- **`2:00` — 05 / 12 · ⤢ EXPAND OUTPUT, ⛶ FULLSCREEN READER & 🔼 COMPACT CONTROLS**: ⤢ EXPAND OUTPUT (1100PX+) · ⛶ FULLSCREEN MODAL (ESC TO EXIT) · 🔼 COMPACT CONTROLS
   - 🖱️ **Mouse Click**: Click '⤢ Expand Output', '⛶ Fullscreen', or '🔼 Compact Controls'
   - ⌨️ **Keyboard Shortcut**: `Press Esc Anytime to Exit Fullscreen Reader Mode`
-- **`2:13` — 06 / 12 · ADVANCED SAMPLING, SYSTEMONE (/V1/SYSTEMONE) & MEANING SEARCH**: ⚙️ 10 SAMPLING CONTROLS (4K–128K CTX) · ⚡ SYSTEMONE DECISIONS · 🔎 MEANING SEARCH
+- **`2:28` — 06 / 12 · ADVANCED SAMPLING, SYSTEMONE (/V1/SYSTEMONE) & MEANING SEARCH**: ⚙️ 10 SAMPLING CONTROLS (4K–128K CTX) · ⚡ SYSTEMONE DECISIONS · 🔎 MEANING SEARCH
   - 🖱️ **Mouse Click**: Click '⚙️ Sampling & Runtime Parameters' or Mode Tabs 2 & 4
   - ⌨️ **Keyboard Shortcut**: `Tab / Enter to Toggle Parameters · ⌘K → 'Semantic Search'`
-- **`2:39` — 07 / 12 · LM STUDIO BIONIC (⌥B / ALT+B), MULTI-FILE SYNTHESIS & SKILLS**: 🧬 SHORTCUT ⌥B / ALT+B · SPECULATIVE DECODING · MULTI-FILE SYNTHESIS · SKILL.MD
+- **`2:56` — 07 / 12 · LM STUDIO BIONIC (⌥B / ALT+B), MULTI-FILE SYNTHESIS & SKILLS**: 🧬 SHORTCUT ⌥B / ALT+B · SPECULATIVE DECODING · MULTI-FILE SYNTHESIS · SKILL.MD
   - 🖱️ **Mouse Click**: Click '🧬 Bionic AI' in Top Ribbon or Power Tools Bar
   - ⌨️ **Keyboard Shortcut**: `Press ⌥B (Mac) / Alt+B (Windows & Linux) From Anywhere`
-- **`3:07` — 08 / 12 · BUILT-IN CODE EDITOR AI CHAT DRAWER & 1-CLICK APPLY TO EDITOR**: 💻 DOUBLE-CLICK CODE FILE → CLICK '🤖 AI CHAT' → THINKING & 1-CLICK APPLY
+- **`3:26` — 08 / 12 · BUILT-IN CODE EDITOR AI CHAT DRAWER & 1-CLICK APPLY TO EDITOR**: 💻 DOUBLE-CLICK CODE FILE → CLICK '🤖 AI CHAT' → THINKING & 1-CLICK APPLY
   - 🖱️ **Mouse Click**: Open File in Code Studio → Click '🤖 AI Chat' Button in Editor Toolbar
   - ⌨️ **Keyboard Shortcut**: `⌘K / Ctrl+K → 'Code Studio' · ⌘S / Ctrl+S to Save File`
-- **`3:27` — 09 / 12 · PHONON VOICE READER (--VOICE ZOEY), KARAOKE & 9 AUDIO / 4 VIDEO FORMATS**: 🗣️ --VOICE ZOEY · WAVEFORM TELEPROMPTER · CHAPTERED AUDIOBOOKS · MP4 READ-ALONG
+- **`3:48` — 09 / 12 · PHONON VOICE READER (--VOICE ZOEY), KARAOKE & 9 AUDIO / 4 VIDEO FORMATS**: 🗣️ --VOICE ZOEY · WAVEFORM TELEPROMPTER · CHAPTERED AUDIOBOOKS · MP4 READ-ALONG
   - 🖱️ **Mouse Click**: Click '🗣️ Speak Reply' or Open '🔊 Voice Reader' Studio Tab
   - ⌨️ **Keyboard Shortcut**: `Right-Click Any File → 'Read out loud in Voice Reader' · ⌘K → 'Voice Reader'`
-- **`3:54` — 10 / 12 · STICKY NOTES (📝) & UNIVERSAL 2-FILE TEXT & CODE DIFF VIEWER**: 📝 FILE ANNOTATIONS & FILTER CHIP · 🔀 UNIFIED & SPLIT SIDE-BY-SIDE DIFF + .PATCH
+- **`4:15` — 10 / 12 · STICKY NOTES (📝) & UNIVERSAL 2-FILE TEXT & CODE DIFF VIEWER**: 📝 FILE ANNOTATIONS & FILTER CHIP · 🔀 UNIFIED & SPLIT SIDE-BY-SIDE DIFF + .PATCH
   - 🖱️ **Mouse Click**: Right-Click File → '📝 Edit Note…' · Select 2 Files → Click '🔀 Diff Text'
   - ⌨️ **Keyboard Shortcut**: `⌘K / Ctrl+K → 'Edit Sticky Note' or 'Compare / Diff Two Files'`
-- **`4:21` — 11 / 12 · POWER BULK RENAME 2.0 (F2), SHA-256 CHECKSUMS & FOLDER INVENTORY**: ✏️ SELECT MULTIPLE + PRESS F2 (REGEX & 6 CASE STYLES) · 🔐 SHA256SUMS · 📋 TREE EXPORT
+- **`4:47` — 11 / 12 · POWER BULK RENAME 2.0 (F2), SHA-256 CHECKSUMS & FOLDER INVENTORY**: ✏️ SELECT MULTIPLE + PRESS F2 (REGEX & 6 CASE STYLES) · 🔐 SHA256SUMS · 📋 TREE EXPORT
   - 🖱️ **Mouse Click**: Select Files → Click '✏️ Bulk Rename' / '🔐 SHA-256' / '📋 Export Folder Inventory'
   - ⌨️ **Keyboard Shortcut**: `Select Multiple Files + Press F2 for Power Bulk Rename 2.0`
-- **`4:50` — 12 / 12 · QUICK LOOK (SPACEBAR) IMAGE INSPECTOR, FIND (⌘F) & SMART TIDY**: 👁️ SPACEBAR QUICK LOOK · IMAGE ZOOM/ROTATE/FLIP · ⌘F IN-PREVIEW FIND · 🧹 SMART TIDY
+- **`5:20` — 12 / 12 · QUICK LOOK (SPACEBAR) IMAGE INSPECTOR, FIND (⌘F) & SMART TIDY**: 👁️ SPACEBAR QUICK LOOK · IMAGE ZOOM/ROTATE/FLIP · ⌘F IN-PREVIEW FIND · 🧹 SMART TIDY
   - 🖱️ **Mouse Click**: Click Quick Look (👁️) → Use Image Inspector Bar or Find Bar · Right-Click → Smart Tidy
   - ⌨️ **Keyboard Shortcut**: `Spacebar to Preview · + / - / R / H / V / 0 for Images · ⌘F / Ctrl+F to Find`
