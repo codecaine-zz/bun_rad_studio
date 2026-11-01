@@ -486,6 +486,101 @@ export async function pasteTextAsFile(rawText = null, customName = null) {
   }
 }
 
+/**
+ * Saves an image from the system or browser clipboard as a new PNG file in the active folder with Undo support.
+ */
+export async function pasteClipboardImageAsFile(customName = null) {
+  if (!needFolder("saving a clipboard picture as a file")) return null;
+  const pane = activePane();
+  let base64Png = "";
+  if (typeof navigator !== "undefined" && typeof navigator.clipboard?.read === "function") {
+    try {
+      const items = await navigator.clipboard.read();
+      for (const item of items) {
+        const imgType = item.types.find((t) => t === "image/png" || t.startsWith("image/"));
+        if (imgType) {
+          const blob = await item.getType(imgType);
+          const buf = await blob.arrayBuffer();
+          const bytes = new Uint8Array(buf);
+          let binary = "";
+          for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+          base64Png = btoa(binary);
+          break;
+        }
+      }
+    } catch {}
+  }
+  try {
+    const r = await busy(() =>
+      call("clip/pasteImageAsFile", {
+        dirPath: currentPath(pane),
+        base64Png: base64Png || undefined,
+        fileName: customName || undefined,
+      }),
+    );
+    lastCreated = { path: r.path };
+    const tracker = lastCreated;
+    pushUndo(`pasted picture "${r.name}"`, async () =>
+      ensureOk((await trashPaths([tracker.path])).failed.map((m) => ({ ok: false, message: m })), "undo"),
+    );
+    await refresh({ keepSelection: false, pane });
+    selectKeys([r.path], pane);
+    toast(`Saved clipboard image as "${r.name}".`, {
+      kind: "success",
+      action: { label: "Undo", run: undo },
+    });
+    return r;
+  } catch (err) {
+    fail(err);
+    return null;
+  }
+}
+
+/**
+ * Smart Folder Tidy: previews and organizes loose files and document packages in `folderPath` (or the current folder)
+ * into clean category subfolders (`Books & Documents`, `Images & Screenshots`, `Audio & Music`, `Videos`,
+ * `Archives & Installers`, `Code & Data`) with full 1-click Undo support.
+ */
+export async function tidyFolderHere(folderPath = null) {
+  if (! folderPath && !needFolder("tidying and organizing this folder")) return null;
+  const pane = activePane();
+  const targetDir = folderPath || currentPath(pane);
+  try {
+    const preview = await call("folder/tidy", { path: targetDir, preview: true });
+    if (!preview.movedCount) {
+      toast("This folder is already tidy — no loose files to organize.", { kind: "info" });
+      return preview;
+    }
+    const summary = Object.entries(preview.byCategory || {})
+      .map(([cat, count]) => `${count} → ${cat}`)
+      .join("  ·  ");
+    const folderLabel = baseName(targetDir, state.sep) || targetDir;
+    const ok = await confirmBox({
+      title: `Tidy & organize "${folderLabel}"?`,
+      message: `Organize ${plural(preview.movedCount, "loose item")} into category subfolders (${summary})? You can Undo this with one click.`,
+      confirmLabel: `Organize ${plural(preview.movedCount, "item")}`,
+    });
+    if (!ok) return null;
+
+    const res = await busy(() => call("folder/tidy", { path: targetDir, preview: false }));
+    if (res.movedCount > 0 && Array.isArray(res.moves) && res.moves.length > 0) {
+      const reversePairs = res.moves.map((m) => ({ from: m.to, to: m.from }));
+      pushUndo(`tidy "${folderLabel}" (${plural(res.movedCount, "item")})`, async () => {
+        ensureOk((await call("relocate", { pairs: reversePairs })).results, "undo tidy");
+      });
+    }
+    await refresh({ keepSelection: false, pane });
+    toast(`Organized ${plural(res.movedCount, "item")} into category folders (${summary}).`, {
+      kind: "success",
+      action: { label: "Undo", run: undo },
+    });
+    return res;
+  } catch (err) {
+    fail(err);
+    return null;
+  }
+}
+
 /** Renames one item; throws an ApiError when the name isn't accepted (the caller shows it next to the name). */
 export async function commitRename(path, newName, pane = activePane()) {
   const r = await call("rename", { path, name: newName });

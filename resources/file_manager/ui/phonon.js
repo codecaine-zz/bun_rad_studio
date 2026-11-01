@@ -1599,6 +1599,57 @@ function mountPhononStudio(root, payload) {
     }
   }
 
+  async function exportChapteredAudiobook() {
+    const sel = getSelectedReadableEntries();
+    const targetPath = sourcePath || sel[0]?.path || "";
+    const raw = textArea.value.trim();
+    if (!targetPath && !raw) {
+      toast("Load a book/document or enter text before exporting a chaptered audiobook.", { kind: "info" });
+      return;
+    }
+    if (isPlaying || isPaused) {
+      stopReading();
+    }
+    const fmt = VIDEO_EXT_SET.has(selectedFormat) ? "wav" : (selectedFormat || "wav");
+    try {
+      const res = await call("phonon/audiobook", {
+        path: targetPath || undefined,
+        text: targetPath ? undefined : raw,
+        voice: selectedVoice,
+        format: fmt,
+        speed,
+        pitch,
+        pauseMs,
+        cleanText,
+        outputDir: outDirInput.value.trim() || currentPath() || "",
+        bookTitle: outNameInput.value.trim() || undefined,
+      });
+      if (res.job) emit("job-started", res.job);
+      nowPlayingStatus.textContent = `⏳ Exporting Chaptered Audiobook "${res.bookTitle}" (${res.chapterCount} chapters, voice: ${selectedVoice}) → ${res.audiobookDir}…`;
+      toast(`Started exporting ${res.chapterCount}-chapter audiobook "${res.bookTitle}" (${selectedVoice}).`, { kind: "info" });
+      if (res.job?.id) {
+        pollJobUntilDone(
+          res.job.id,
+          () => {
+            nowPlayingStatus.textContent = `✔ Saved ${res.chapterCount}-chapter audiobook + M3U8 playlist in: ${res.audiobookDir}`;
+            toast(`Saved chaptered audiobook "${res.bookTitle}" (${res.chapterCount} chapters).`, { kind: "success" });
+            if (currentPath()) void refresh();
+          },
+          (runningJob) => {
+            if (runningJob.log) {
+              const lastLine = runningJob.log.trim().split(/\r?\n/).pop();
+              if (lastLine) {
+                nowPlayingStatus.textContent = `⏳ Audiobook "${res.bookTitle}": ${lastLine}`;
+              }
+            }
+          },
+        );
+      }
+    } catch (err) {
+      toast(err instanceof ApiError ? err.message : "Could not export chaptered audiobook.", { kind: "error" });
+    }
+  }
+
   function loadLargeTextStressSample() {
     const paragraphs = [];
     for (let i = 1; i <= 18; i++) {
@@ -2588,6 +2639,12 @@ function mountPhononStudio(root, payload) {
         }, "🎬 Save Read-Along Video (.MP4)"),
         h("button", {
           type: "button",
+          class: "btn phonon-audiobook-btn",
+          title: "Export a multi-chapter book or document (.epub, .ibooks, .scriv, .textbundle, .md) as numbered per-chapter audio files plus an M3U8 playlist & chapters.json manifest",
+          onclick: () => void exportChapteredAudiobook(),
+        }, "📖 Export Chaptered Audiobook"),
+        h("button", {
+          type: "button",
           class: "btn",
           title: "Convert all selected files in the File Manager into audio files using your Phonon voice",
           onclick: () => batchConvertSelectedFiles(false),
@@ -2631,7 +2688,21 @@ function mountPhononStudio(root, payload) {
   // Handle payload (when opened from right-click menu or command palette with a file or text)
   function applyPayload(p) {
     if (!p || typeof p !== "object") return;
-    if (typeof p.path === "string" && p.path.trim()) {
+    if (typeof p.text === "string" && p.text.trim()) {
+      if (typeof p.path === "string" && p.path.trim()) {
+        sourcePath = p.path.trim();
+        outNameInput.value = stemOf(baseName(sourcePath, state.sep));
+      }
+      textArea.value = p.text.trim();
+      void recomputeChunksFromEditor().then(() => {
+        if (p.autoPlay) void startOrResumeReading();
+        if (p.autoExportVideo) {
+          selectedFormat = "mp4";
+          formatSelect.value = "mp4";
+          void exportEditorTextWithFormat("mp4");
+        }
+      });
+    } else if (typeof p.path === "string" && p.path.trim()) {
       void loadFileAndExtract(p.path.trim()).then(() => {
         if (p.autoPlay) void startOrResumeReading();
         if (p.autoExportVideo) {
@@ -2642,16 +2713,6 @@ function mountPhononStudio(root, payload) {
       });
     } else if (Array.isArray(p.paths) && p.paths.length > 0) {
       void loadFileAndExtract(p.paths[0]).then(() => {
-        if (p.autoPlay) void startOrResumeReading();
-        if (p.autoExportVideo) {
-          selectedFormat = "mp4";
-          formatSelect.value = "mp4";
-          void exportEditorTextWithFormat("mp4");
-        }
-      });
-    } else if (typeof p.text === "string" && p.text.trim()) {
-      textArea.value = p.text.trim();
-      void recomputeChunksFromEditor().then(() => {
         if (p.autoPlay) void startOrResumeReading();
         if (p.autoExportVideo) {
           selectedFormat = "mp4";

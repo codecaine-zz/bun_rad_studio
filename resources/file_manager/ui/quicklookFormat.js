@@ -13,9 +13,302 @@ import { openPower } from "./power.js";
 import { extensionOf, formatDate, formatSize } from "./util.js";
 
 let cachedQuickLookSelection = "";
+const QL_PROGRESS_STORAGE_KEY = "fm.ql.progress.v1";
 
 export function setCachedQuickLookSelection(text) {
   cachedQuickLookSelection = String(text ?? "");
+}
+
+const qlMemoryProgressFallback = new Map();
+
+function readProgressMap() {
+  try {
+    const ls =
+      typeof localStorage !== "undefined"
+        ? localStorage
+        : typeof window !== "undefined" && window.localStorage
+          ? window.localStorage
+          : null;
+    if (ls) {
+      const raw = ls.getItem(QL_PROGRESS_STORAGE_KEY);
+      if (raw) return JSON.parse(raw) || {};
+    }
+  } catch {}
+  return Object.fromEntries(qlMemoryProgressFallback.entries());
+}
+
+function writeProgressMap(map) {
+  qlMemoryProgressFallback.clear();
+  for (const [k, v] of Object.entries(map || {})) {
+    qlMemoryProgressFallback.set(k, v);
+  }
+  try {
+    const ls =
+      typeof localStorage !== "undefined"
+        ? localStorage
+        : typeof window !== "undefined" && window.localStorage
+          ? window.localStorage
+          : null;
+    if (ls) {
+      ls.setItem(QL_PROGRESS_STORAGE_KEY, JSON.stringify(map));
+    }
+  } catch {}
+}
+
+export function loadQuickLookReadingProgress(filePath) {
+  if (!filePath) return null;
+  try {
+    const map = readProgressMap();
+    const entry = map?.[filePath];
+    if (!entry || typeof entry !== "object") return null;
+    return {
+      chapterIdx: typeof entry.chapterIdx === "number" ? entry.chapterIdx : -1,
+      scrollTop: typeof entry.scrollTop === "number" ? entry.scrollTop : 0,
+      scrollRatio: typeof entry.scrollRatio === "number" ? entry.scrollRatio : 0,
+      updatedAt: Number(entry.updatedAt) || 0,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function saveQuickLookReadingProgress(filePath, { chapterIdx = -1, scrollTop = 0, scrollRatio = 0 } = {}) {
+  if (!filePath) return;
+  try {
+    const map = readProgressMap();
+    map[filePath] = {
+      chapterIdx: Number.isFinite(chapterIdx) ? chapterIdx : -1,
+      scrollTop: Math.max(0, Math.round(Number(scrollTop) || 0)),
+      scrollRatio: Number.isFinite(scrollRatio) ? Math.max(0, Math.min(1, Number(scrollRatio))) : 0,
+      updatedAt: Date.now(),
+    };
+    const keys = Object.keys(map);
+    if (keys.length > 150) {
+      keys
+        .sort((a, b) => (map[a]?.updatedAt || 0) - (map[b]?.updatedAt || 0))
+        .slice(0, keys.length - 150)
+        .forEach((k) => delete map[k]);
+    }
+    writeProgressMap(map);
+  } catch {}
+}
+
+export function clearQuickLookHighlights() {
+  if (typeof globalThis.CSS !== "undefined" && globalThis.CSS?.highlights) {
+    try {
+      globalThis.CSS.highlights.delete("ql-search");
+      globalThis.CSS.highlights.delete("ql-search-active");
+    } catch {}
+  }
+  if (typeof document !== "undefined") {
+    for (const el of document.querySelectorAll("[data-ql-match-active]")) {
+      delete el.dataset.qlMatchActive;
+    }
+  }
+}
+
+export function ensureQuickLookFindBar(hostEl) {
+  const host = hostEl || (typeof document !== "undefined" ? document.querySelector(".ql-body") : null);
+  if (!host) return null;
+  let bar = host.querySelector(".ql-find-bar");
+  if (bar) return bar;
+
+  let matches = [];
+  let activeIdx = -1;
+
+  const input = h("input", {
+    type: "search",
+    class: "ql-fmt-search ql-find-input",
+    placeholder: "Find in preview… (Enter next, Shift+Enter prev)",
+    "aria-label": "Find in preview",
+  });
+  const countEl = h("span", { class: "ql-fmt-count ql-find-count", "aria-live": "polite" }, "Type to find");
+
+  const collectRanges = (query) => {
+    clearQuickLookHighlights();
+    const q = String(query ?? "").trim().toLowerCase();
+    if (!q || typeof document === "undefined" || typeof document.createTreeWalker !== "function") return [];
+    const NF =
+      (typeof NodeFilter !== "undefined" ? NodeFilter : typeof window !== "undefined" && window.NodeFilter) || {
+        SHOW_TEXT: 4,
+        FILTER_ACCEPT: 1,
+        FILTER_REJECT: 2,
+        FILTER_SKIP: 3,
+      };
+    const found = [];
+    const walker = document.createTreeWalker(host, NF.SHOW_TEXT, {
+      acceptNode(node) {
+        const parent = node.parentElement;
+        if (!parent) return NF.FILTER_REJECT;
+        if (parent.closest(".ql-fmt-head, .ql-find-bar, .code-md-toolbar, [data-copy-ui], [hidden], script, style")) {
+          return NF.FILTER_REJECT;
+        }
+        return node.nodeValue && node.nodeValue.trim() ? NF.FILTER_ACCEPT : NF.FILTER_SKIP;
+      },
+    });
+    let textNode = walker.nextNode();
+    while (textNode) {
+      const val = (textNode.nodeValue || "").toLowerCase();
+      let startPos = 0;
+      const doc = textNode.ownerDocument || document;
+      while (startPos <= val.length - q.length) {
+        const idx = val.indexOf(q, startPos);
+        if (idx === -1) break;
+        if (typeof doc.createRange === "function" || typeof Range !== "undefined") {
+          const range = typeof doc.createRange === "function" ? doc.createRange() : new Range();
+          range.setStart(textNode, idx);
+          range.setEnd(textNode, idx + q.length);
+          found.push(range);
+        }
+        startPos = idx + q.length;
+        if (found.length >= 1000) break;
+      }
+      if (found.length >= 1000) break;
+      textNode = walker.nextNode();
+    }
+    return found;
+  };
+
+  const applyHighlights = (scrollToActive = true) => {
+    clearQuickLookHighlights();
+    if (!matches.length) {
+      countEl.textContent = input.value.trim() ? "No matches" : "Type to find";
+      return;
+    }
+    if (activeIdx < 0 || activeIdx >= matches.length) activeIdx = 0;
+    countEl.textContent = `${activeIdx + 1} of ${matches.length}`;
+
+    if (typeof globalThis.CSS !== "undefined" && globalThis.CSS?.highlights && typeof globalThis.Highlight === "function") {
+      try {
+        const allHighlight = new globalThis.Highlight(...matches);
+        globalThis.CSS.highlights.set("ql-search", allHighlight);
+        const activeRange = matches[activeIdx];
+        if (activeRange) {
+          const activeHighlight = new globalThis.Highlight(activeRange);
+          activeHighlight.priority = 1;
+          globalThis.CSS.highlights.set("ql-search-active", activeHighlight);
+        }
+      } catch {}
+    }
+
+    const activeRange = matches[activeIdx];
+    const targetEl = activeRange?.startContainer?.parentElement;
+    if (targetEl) {
+      targetEl.dataset.qlMatchActive = "true";
+      if (scrollToActive && typeof targetEl.scrollIntoView === "function") {
+        targetEl.scrollIntoView({ block: "center", behavior: "smooth" });
+      }
+    }
+  };
+
+  const runSearch = () => {
+    matches = collectRanges(input.value);
+    activeIdx = matches.length ? 0 : -1;
+    applyHighlights(true);
+  };
+
+  const stepMatch = (delta) => {
+    if (!matches.length) {
+      runSearch();
+      return;
+    }
+    activeIdx = (activeIdx + delta + matches.length) % matches.length;
+    applyHighlights(true);
+  };
+
+  input.addEventListener("input", runSearch);
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      e.stopPropagation();
+      stepMatch(e.shiftKey ? -1 : 1);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      e.stopPropagation();
+      bar.hidden = true;
+      clearQuickLookHighlights();
+    }
+  });
+
+  const prevBtn = h(
+    "button",
+    {
+      type: "button",
+      class: "code-btn code-small ql-find-prev",
+      title: "Previous match (Shift+Enter)",
+      onclick: () => stepMatch(-1),
+    },
+    "↑ Prev",
+  );
+  const nextBtn = h(
+    "button",
+    {
+      type: "button",
+      class: "code-btn code-small ql-find-next",
+      title: "Next match (Enter)",
+      onclick: () => stepMatch(1),
+    },
+    "↓ Next",
+  );
+  const closeBtn = h(
+    "button",
+    {
+      type: "button",
+      class: "code-btn code-small ql-find-close",
+      title: "Close Find bar (Esc)",
+      onclick: () => {
+        bar.hidden = true;
+        clearQuickLookHighlights();
+      },
+    },
+    "✕",
+  );
+
+  bar = h(
+    "div",
+    { class: "ql-find-bar", "data-copy-ui": "", hidden: true, role: "search", "aria-label": "Find in preview" },
+    h("span", { class: "ql-fmt-badge" }, "🔍 Find"),
+    input,
+    countEl,
+    prevBtn,
+    nextBtn,
+    closeBtn,
+  );
+  bar._focusInput = (seedText = "") => {
+    bar.hidden = false;
+    if (seedText && !input.value) {
+      input.value = seedText;
+    }
+    if (input.value) runSearch();
+    input.focus();
+    input.select?.();
+  };
+
+  const head = host.querySelector(".ql-fmt-head, .code-md-toolbar");
+  if (head && head.parentElement) {
+    head.insertAdjacentElement("afterend", bar);
+  } else {
+    host.prepend(bar);
+  }
+  return bar;
+}
+
+export function toggleQuickLookFindBar(hostEl, seedText = "") {
+  const host = hostEl || (typeof document !== "undefined" ? document.querySelector(".ql-body") : null);
+  const bar = ensureQuickLookFindBar(host);
+  if (!bar) return false;
+  if (!bar.hidden && !seedText) {
+    const inp = bar.querySelector(".ql-find-input");
+    if (typeof document !== "undefined" && document.activeElement !== inp) {
+      bar._focusInput?.();
+      return true;
+    }
+    bar.hidden = true;
+    clearQuickLookHighlights();
+    return false;
+  }
+  bar._focusInput?.(seedText);
+  return true;
 }
 
 export function getSelectedTextInQuickLook(rootEl = null) {
@@ -203,7 +496,74 @@ export function extractQuickLookPreviewText(entry, preview, rootEl = null) {
   return "";
 }
 
-export function buildQuickLookCopyButtons(entry, preview, getContainer = null) {
+export function buildQuickLookCopyButtons(entry, preview, getContainer = null, helpers = {}) {
+  const findBtn = h(
+    "button",
+    {
+      type: "button",
+      class: "code-btn code-small ql-find-btn",
+      "data-copy-ui": "",
+      title: "Find text in this preview (⌘F / Ctrl+F)",
+      onmousedown: (e) => e.preventDefault(),
+      onclick: () => {
+        const host = getContainer?.() ?? findBtn.closest(".ql-body, .ql-fmt-wrap, .ql");
+        const selText = getSelectedTextInQuickLook(host) || cachedQuickLookSelection;
+        toggleQuickLookFindBar(host, selText && selText.length <= 80 ? selText.trim() : "");
+      },
+    },
+    "🔍 Find",
+  );
+
+  const askAiBtn = h(
+    "button",
+    {
+      type: "button",
+      class: "code-btn code-small ql-ask-ai-btn",
+      "data-copy-ui": "",
+      title: "Send selected passage (or document context) to LM Studio Bionic AI",
+      onmousedown: (e) => e.preventDefault(),
+      onclick: () => {
+        const host = getContainer?.() ?? askAiBtn.closest(".ql-body, .ql-fmt-wrap, .ql");
+        const selText = (getSelectedTextInQuickLook(host) || cachedQuickLookSelection || "").trim();
+        const prompt = selText
+          ? `Analyze and explain this selected passage from "${entry?.name || "document"}":\n\n> ${selText.slice(0, 2400)}`
+          : `Summarize and highlight the key takeaways of "${entry?.name || "this file"}".`;
+        helpers.onClose?.();
+        openPower("bionic", {
+          subTab: "assistant",
+          paths: entry?.path ? [entry.path] : [],
+          prompt,
+        });
+      },
+    },
+    "🤖 Ask AI",
+  );
+
+  const speakSelBtn = h(
+    "button",
+    {
+      type: "button",
+      class: "code-btn code-small ql-speak-sel-btn",
+      "data-copy-ui": "",
+      title: "Read selected passage (or full document) aloud in Phonon Voice Reader",
+      onmousedown: (e) => e.preventDefault(),
+      onclick: () => {
+        const host = getContainer?.() ?? speakSelBtn.closest(".ql-body, .ql-fmt-wrap, .ql");
+        const selText = (getSelectedTextInQuickLook(host) || cachedQuickLookSelection || "").trim();
+        helpers.onClose?.();
+        if (selText) {
+          openPower("phonon", { text: selText, path: entry?.path, autoPlay: true });
+        } else if (entry?.path) {
+          openPower("phonon", { path: entry.path, autoPlay: true });
+        } else {
+          const allText = extractQuickLookPreviewText(entry, preview, host);
+          openPower("phonon", { text: allText, autoPlay: true });
+        }
+      },
+    },
+    "🗣️ Speak",
+  );
+
   const copyAllBtn = h(
     "button",
     {
@@ -250,7 +610,15 @@ export function buildQuickLookCopyButtons(entry, preview, getContainer = null) {
     "✂️ Copy Selected",
   );
 
-  return h("span", { class: "ql-copy-group", role: "group", "aria-label": "Copy preview text", "data-copy-ui": "" }, copyAllBtn, copySelBtn);
+  return h(
+    "span",
+    { class: "ql-copy-group", role: "group", "aria-label": "Preview text actions", "data-copy-ui": "" },
+    findBtn,
+    askAiBtn,
+    speakSelBtn,
+    copyAllBtn,
+    copySelBtn,
+  );
 }
 
 function metaChips(meta = []) {
@@ -514,6 +882,16 @@ function renderDocumentQuickLook(entry, preview, rich, helpers = {}) {
 
   let chapterIdx = -1;
   const chapters = rich.chapters || [];
+  const savedProgress = entry?.path ? loadQuickLookReadingProgress(entry.path) : null;
+  if (
+    savedProgress &&
+    typeof savedProgress.chapterIdx === "number" &&
+    savedProgress.chapterIdx >= -1 &&
+    savedProgress.chapterIdx < chapters.length
+  ) {
+    chapterIdx = savedProgress.chapterIdx;
+  }
+
   let chapterSelect = null;
   const drawReader = () => {
     const blocks = chapterIdx >= 0 && chapters[chapterIdx] ? chapters[chapterIdx].blocks : rich.blocks;
@@ -532,13 +910,58 @@ function renderDocumentQuickLook(entry, preview, rich, helpers = {}) {
         onchange: () => {
           chapterIdx = Number(chapterSelect.value);
           drawReader();
+          readerHost.scrollTop = 0;
+          if (entry?.path) {
+            saveQuickLookReadingProgress(entry.path, { chapterIdx, scrollTop: 0 });
+          }
         },
       },
       h("option", { value: "-1" }, `All chapters (${chapters.length})`),
       ...chapters.map((c, i) => h("option", { value: String(i) }, `${i + 1}. ${c.title}`)),
     );
+    chapterSelect.value = String(chapterIdx);
   }
   drawReader();
+
+  let resumeChip = null;
+  if (savedProgress && (savedProgress.chapterIdx >= 0 || savedProgress.scrollTop > 40)) {
+    const chapLabel =
+      savedProgress.chapterIdx >= 0 && chapters[savedProgress.chapterIdx]
+        ? `Ch. ${savedProgress.chapterIdx + 1}`
+        : "Saved spot";
+    resumeChip = h(
+      "button",
+      {
+        type: "button",
+        class: "code-btn code-small ql-resume-chip",
+        title: "Resumed from your last reading position — click to reset to the beginning",
+        onclick: () => {
+          chapterIdx = -1;
+          if (chapterSelect) chapterSelect.value = "-1";
+          drawReader();
+          readerHost.scrollTop = 0;
+          if (entry?.path) saveQuickLookReadingProgress(entry.path, { chapterIdx: -1, scrollTop: 0 });
+          resumeChip.remove();
+        },
+      },
+      `🔖 Resumed (${chapLabel})`,
+    );
+    if (savedProgress.scrollTop > 0) {
+      queueMicrotask(() => {
+        readerHost.scrollTop = savedProgress.scrollTop;
+      });
+    }
+  }
+
+  if (entry?.path) {
+    readerHost.addEventListener(
+      "scroll",
+      () => {
+        saveQuickLookReadingProgress(entry.path, { chapterIdx, scrollTop: readerHost.scrollTop });
+      },
+      { passive: true },
+    );
+  }
 
   const modes = [
     { id: "formatted", label: "Formatted", title: "Show formatted document headings, paragraphs, and tables" },
@@ -570,7 +993,7 @@ function renderDocumentQuickLook(entry, preview, rich, helpers = {}) {
   return h(
     "div",
     { class: "ql-textwrap ql-fmt-wrap" },
-    h("div", { class: "ql-fmt-head" }, h("span", { class: "ql-fmt-badge" }, rich.formatLabel), chapterSelect, metaChips(rich.meta), h("span", { class: "code-grow" }), voiceReaderBtn, switcher),
+    h("div", { class: "ql-fmt-head" }, h("span", { class: "ql-fmt-badge" }, rich.formatLabel), chapterSelect, resumeChip, metaChips(rich.meta), h("span", { class: "code-grow" }), voiceReaderBtn, switcher),
     readerHost,
     plainPre,
     thumbHost,
@@ -1466,7 +1889,7 @@ function renderBinaryQuickLook(entry, rich) {
  * Renders the formatted Quick Look body when `preview.rich` is available or when a text file is a known programming language.
  * Returns null when Quick Look should use its default plain text / CSV / Markdown view.
  */
-function attachCopyButtonsToRichHead(node, entry, preview) {
+function attachCopyButtonsToRichHead(node, entry, preview, helpers = {}) {
   if (!node) return null;
   if (preview?.rich?.kind === "font") return node;
   const head = node.querySelector?.(".ql-fmt-head");
@@ -1474,7 +1897,7 @@ function attachCopyButtonsToRichHead(node, entry, preview) {
     if (!head.querySelector(".code-grow")) {
       head.append(h("span", { class: "code-grow" }));
     }
-    head.append(buildQuickLookCopyButtons(entry, preview, () => node));
+    head.append(buildQuickLookCopyButtons(entry, preview, () => node, helpers));
   }
   return node;
 }
@@ -1539,7 +1962,7 @@ export function renderRichQuickLook(entry, preview, helpers = {}) {
         node = renderBinaryQuickLook(entry, rich);
         break;
     }
-    if (node) return attachCopyButtonsToRichHead(node, entry, preview);
+    if (node) return attachCopyButtonsToRichHead(node, entry, preview, helpers);
   }
 
   // Syntax-highlighted source code for programming languages
@@ -1567,6 +1990,7 @@ export function renderRichQuickLook(entry, preview, helpers = {}) {
         ),
         entry,
         preview,
+        helpers,
       );
     }
   }

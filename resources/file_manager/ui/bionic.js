@@ -1111,6 +1111,45 @@ async function runBionicStreamChat() {
   }
 }
 
+async function runBionicSynthesisFlow(pathsOverride = null, mode = "compare", saveToFile = false) {
+  const paths = Array.isArray(pathsOverride) && pathsOverride.length > 0 ? pathsOverride : selectedFilePaths();
+  if (!paths.length) {
+    toast("Select 1 or more files or document packages in the file list first to synthesize.");
+    return;
+  }
+  uiState.subTab = "assistant";
+  uiState.loading = true;
+  uiState.markdownView = true;
+  uiState.routeBanner = `🧬 Synthesizing ${paths.length} ${paths.length === 1 ? "file" : "files"} (${mode})...`;
+  renderBionicPanel();
+  try {
+    const res = await call("bionic/synthesize", {
+      paths,
+      mode,
+      model: uiState.selectedModel || undefined,
+      saveToFile,
+      dirPath: currentFolderRel(),
+    });
+    uiState.answerOutput = res.reportMarkdown || "";
+    uiState.reasoningOutput = "";
+    uiState.routeBanner = `📑 Synthesized ${res.fileCount} ${res.fileCount === 1 ? "document" : "documents"} (${res.mode} via ${res.engine})${
+      res.savedRelativePath ? ` · Saved to ${res.savedRelativePath}` : ""
+    }`;
+    if (res.savedRelativePath) {
+      toast(`Saved synthesis report: ${res.savedRelativePath}`);
+      await refresh().catch(() => {});
+    } else {
+      toast(`Synthesized ${res.fileCount} ${res.fileCount === 1 ? "document" : "documents"} in Bionic Markdown Reader`);
+    }
+  } catch (err) {
+    uiState.answerOutput = `Synthesis failed: ${err.message || err}`;
+    toast(err.message || "Synthesis failed", { kind: "error" });
+  } finally {
+    uiState.loading = false;
+    renderBionicPanel();
+  }
+}
+
 function renderHeroBanner() {
   const st = uiState.statusData;
   const hw = st?.hardware;
@@ -1495,6 +1534,17 @@ function renderAssistantTab() {
           onclick: () => void runBionicStreamChat(),
         },
         "⚡ Stream Live Tokens (/api/bionic/stream)",
+      ),
+      h(
+        "button",
+        {
+          type: "button",
+          class: "ollama-btn",
+          title: "Synthesize and compare all selected files or document packages into a structured Markdown report",
+          disabled: uiState.loading ? "disabled" : null,
+          onclick: () => void runBionicSynthesisFlow(null, "compare", false),
+        },
+        "📑 Synthesize Selected",
       ),
       h(
         "button",
@@ -2330,19 +2380,30 @@ export function mountBionicTool(container) {
   const offSelection = on("selection", () => {
     if (rootContainer && !rootContainer.hidden) renderBionicPanel();
   });
+  const applyOpts = (opts) => {
+    if (!opts) return;
+    if (opts.subTab) uiState.subTab = opts.subTab;
+    if (typeof opts.path === "string" && opts.path.trim()) {
+      uiState.contextPaths = [opts.path.trim()];
+    } else if (Array.isArray(opts.paths) && opts.paths.length > 0) {
+      uiState.contextPaths = opts.paths;
+    }
+    if (opts.synthesize) {
+      void runBionicSynthesisFlow(opts.paths || uiState.contextPaths, opts.mode || "compare", Boolean(opts.saveToFile));
+    } else if (opts.prompt) {
+      uiState.promptText = opts.prompt;
+      void runBionicSmartRouter(opts.prompt);
+    } else {
+      void refreshBionicStatus(true);
+    }
+    renderBionicPanel();
+  };
   return {
     show(opts) {
-      if (opts?.subTab) uiState.subTab = opts.subTab;
-      if (Array.isArray(opts?.paths) && opts.paths.length > 0) {
-        uiState.contextPaths = opts.paths;
-      }
-      if (opts?.prompt) {
-        uiState.promptText = opts.prompt;
-        void runBionicSmartRouter(opts.prompt);
-      } else {
-        void refreshBionicStatus(true);
-      }
-      renderBionicPanel();
+      applyOpts(opts || {});
+    },
+    onPayload(opts) {
+      applyOpts(opts || {});
     },
     dispose() {
       offSelection?.();

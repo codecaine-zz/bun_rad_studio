@@ -1840,6 +1840,48 @@ export async function runBionicEmbeddings(
   };
 }
 
+const bionicEmbeddingMemoryCache = new Map<string, number[]>();
+let bionicEmbeddingDiskLoadedFrom = "";
+
+function getEmbeddingCacheFilePath(ctx: FmContext): string {
+  const baseDir = ctx.dataDir || tempDirPath();
+  return joinPath([baseDir, "bionic-embeddings-cache.json"], ctx.platform);
+}
+
+function loadEmbeddingCacheIntoMemory(ctx: FmContext): void {
+  const cacheFile = getEmbeddingCacheFilePath(ctx);
+  if (bionicEmbeddingDiskLoadedFrom === cacheFile) return;
+  bionicEmbeddingDiskLoadedFrom = cacheFile;
+  const raw = readTextFileSyncPure(cacheFile);
+  if (!raw) return;
+  try {
+    const parsed = JSON.parse(raw);
+    const entries = parsed?.entries;
+    if (entries && typeof entries === "object") {
+      for (const [k, vec] of Object.entries(entries)) {
+        if (Array.isArray(vec) && vec.length > 0 && typeof vec[0] === "number") {
+          bionicEmbeddingMemoryCache.set(k, vec as number[]);
+        }
+      }
+    }
+  } catch {}
+}
+
+async function persistEmbeddingCacheToDisk(ctx: FmContext): Promise<void> {
+  const cacheFile = getEmbeddingCacheFilePath(ctx);
+  try {
+    ensureDirectoryPure(dirnamePath(cacheFile, ctx.platform), ctx.platform);
+    const allKeys = [...bionicEmbeddingMemoryCache.keys()];
+    const recentKeys = allKeys.slice(Math.max(0, allKeys.length - 500));
+    const entries: Record<string, number[]> = {};
+    for (const k of recentKeys) {
+      const v = bionicEmbeddingMemoryCache.get(k);
+      if (v) entries[k] = v;
+    }
+    await Bun.write(cacheFile, JSON.stringify({ version: 1, updatedAt: Date.now(), entries }));
+  } catch {}
+}
+
 export async function runBionicSemanticSearch(
   ctx: FmContext,
   payload: { query: string; dirPath?: string; model?: string; topK?: number },
@@ -1847,6 +1889,8 @@ export async function runBionicSemanticSearch(
   query: string;
   model: string;
   scannedFilesCount: number;
+  cachedFilesCount: number;
+  computedFilesCount: number;
   matches: Array<{
     name: string;
     path: string;
@@ -1861,6 +1905,7 @@ export async function runBionicSemanticSearch(
     throw new FmError("INVALID_INPUT", "Enter a meaning search query to search files with Bionic Embeddings.");
   }
 
+  const model = String(payload.model || "text-embedding-nomic-embed-text-v1.5").trim();
   const dirAbs = resolveSandboxPath(ctx, payload.dirPath || ".");
   const entries = listDirectoryWithBun(dirAbs, { recursive: true, maxEntries: 30 });
   const textExts = new Set([
@@ -1869,18 +1914,21 @@ export async function runBionicSemanticSearch(
     "pdf", "docx", "odt", "rtf", "fb2",
   ]);
 
-  const candidates: Array<{ name: string; absPath: string; relPath: string; snippet: string }> = [];
+  const candidates: Array<{ name: string; absPath: string; relPath: string; snippet: string; cacheKey: string }> = [];
   for (const item of entries) {
     const ext = extnameLower(item.absPath);
     if (!textExts.has(ext)) continue;
     try {
       const snippet = (await readTextFileSnippet(item.absPath, 1500)).trim();
       if (!snippet) continue;
+      const docText = `File: ${item.name}\n${snippet.slice(0, 800)}`;
+      const cacheKey = `${item.absPath}|${model}|${sha256Hex(docText).slice(0, 24)}`;
       candidates.push({
         name: item.name,
         absPath: item.absPath,
         relPath: toSandboxRelative(ctx, item.absPath),
         snippet,
+        cacheKey,
       });
     } catch {}
     if (candidates.length >= 16) break;
@@ -1889,21 +1937,58 @@ export async function runBionicSemanticSearch(
   if (candidates.length === 0) {
     return {
       query,
-      model: payload.model || "text-embedding-nomic-embed-text-v1.5",
+      model,
       scannedFilesCount: 0,
+      cachedFilesCount: 0,
+      computedFilesCount: 0,
       matches: [],
     };
   }
 
-  const embedInput = [query, ...candidates.map((c) => `File: ${c.name}\n${c.snippet.slice(0, 800)}`)];
+  loadEmbeddingCacheIntoMemory(ctx);
+  const uncachedIndices: number[] = [];
+  const docVectors: Array<number[]> = new Array(candidates.length);
+  let cachedFilesCount = 0;
+
+  for (let i = 0; i < candidates.length; i++) {
+    const cand = candidates[i]!;
+    const cachedVec = bionicEmbeddingMemoryCache.get(cand.cacheKey);
+    if (cachedVec && cachedVec.length > 0) {
+      docVectors[i] = cachedVec;
+      cachedFilesCount++;
+    } else {
+      uncachedIndices.push(i);
+    }
+  }
+
+  const embedInput = [
+    query,
+    ...uncachedIndices.map((idx) => {
+      const c = candidates[idx]!;
+      return `File: ${c.name}\n${c.snippet.slice(0, 800)}`;
+    }),
+  ];
   const embedRes = await runBionicEmbeddings(ctx, {
-    model: payload.model || "text-embedding-nomic-embed-text-v1.5",
+    model,
     input: embedInput,
   });
 
   const queryVec = embedRes.embeddings[0] || [];
+  for (let j = 0; j < uncachedIndices.length; j++) {
+    const candIdx = uncachedIndices[j]!;
+    const vec = embedRes.embeddings[j + 1] || [];
+    docVectors[candIdx] = vec;
+    if (vec.length > 0) {
+      bionicEmbeddingMemoryCache.set(candidates[candIdx]!.cacheKey, vec);
+    }
+  }
+
+  if (uncachedIndices.length > 0) {
+    await persistEmbeddingCacheToDisk(ctx);
+  }
+
   const scored = candidates.map((cand, idx) => {
-    const docVec = embedRes.embeddings[idx + 1] || [];
+    const docVec = docVectors[idx] || [];
     const sim = cosineSimilarity(queryVec, docVec);
     return {
       name: cand.name,
@@ -1922,6 +2007,8 @@ export async function runBionicSemanticSearch(
     query,
     model: embedRes.model,
     scannedFilesCount: candidates.length,
+    cachedFilesCount,
+    computedFilesCount: uncachedIndices.length,
     matches: scored.slice(0, topK),
   };
 }
@@ -2570,6 +2657,274 @@ export async function handleBionicStreamRequest(ctx: FmContext, req: Request): P
   }
 }
 
+const SYNTHESIS_STOP_WORDS = new Set([
+  "the", "and", "for", "that", "this", "with", "from", "have", "are", "was", "were", "will", "would",
+  "could", "should", "into", "about", "there", "their", "they", "them", "then", "than", "when", "where",
+  "which", "while", "what", "your", "more", "some", "such", "only", "other", "also", "been", "being",
+  "each", "over", "under", "after", "before", "between", "through", "during", "file", "package", "chapter",
+]);
+
+function extractTopKeywordsFromText(text: string, limit = 8): string[] {
+  const counts = new Map<string, number>();
+  const words = text.toLowerCase().match(/[a-z][a-z0-9_-]{3,24}/g) || [];
+  for (const w of words) {
+    if (SYNTHESIS_STOP_WORDS.has(w)) continue;
+    counts.set(w, (counts.get(w) || 0) + 1);
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([k]) => k);
+}
+
+function extractHeadingsFromSnippet(text: string, limit = 6): string[] {
+  const headings: string[] = [];
+  for (const rawLine of text.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    const mdMatch = /^#{1,4}\s+(.+)$/.exec(line);
+    const secMatch = /^===\s*(.+?)\s*===$/.exec(line);
+    const candidate = mdMatch?.[1] || secMatch?.[1] || "";
+    if (candidate && candidate.length <= 90 && !headings.includes(candidate)) {
+      headings.push(candidate);
+      if (headings.length >= limit) break;
+    }
+  }
+  return headings;
+}
+
+export interface BionicSynthesizeDocItem {
+  name: string;
+  path: string;
+  ext: string;
+  wordCount: number;
+  lineCount: number;
+  charCount: number;
+  headings: string[];
+  keywords: string[];
+  excerpt: string;
+}
+
+function buildDeterministicSynthesisReport(
+  docs: BionicSynthesizeDocItem[],
+  mode: "compare" | "summarize" | "study-guide" | "action-items",
+): string {
+  const modeTitle =
+    mode === "compare"
+      ? "Multi-Document Comparison & Synthesis"
+      : mode === "study-guide"
+        ? "Multi-Document Study Guide & Key Concepts"
+        : mode === "action-items"
+          ? "Consolidated Action Items & Takeaways"
+          : "Multi-File Executive Summary";
+
+  const totalWords = docs.reduce((acc, d) => acc + d.wordCount, 0);
+  const totalLines = docs.reduce((acc, d) => acc + d.lineCount, 0);
+
+  // Compute shared keywords across 2+ documents
+  const kwFreq = new Map<string, number>();
+  for (const d of docs) {
+    for (const kw of new Set(d.keywords)) {
+      kwFreq.set(kw, (kwFreq.get(kw) || 0) + 1);
+    }
+  }
+  const sharedThemes = [...kwFreq.entries()]
+    .filter(([, count]) => count >= Math.min(2, docs.length))
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([kw, count]) => `\`${kw}\` (${count}/${docs.length} files)`);
+
+  const lines: string[] = [
+    `# 🧬 ${modeTitle}`,
+    "",
+    `Synthesized **${docs.length} ${docs.length === 1 ? "document" : "documents"}** totaling **${totalWords.toLocaleString("en-US")} words** (${totalLines.toLocaleString("en-US")} lines).`,
+    "",
+    "## 📊 Document Comparison Matrix",
+    "",
+    "| Document | Format | Words | Lines | Primary Keywords |",
+    "| --- | --- | ---: | ---: | --- |",
+    ...docs.map(
+      (d) =>
+        `| **${d.name.replace(/\|/g, "\\|")}** | \`.${d.ext || "txt"}\` | ${d.wordCount.toLocaleString("en-US")} | ${d.lineCount.toLocaleString("en-US")} | ${
+          d.keywords.slice(0, 5).map((k) => `\`${k}\``).join(", ") || "—"
+        } |`,
+    ),
+    "",
+    "## 🔗 Shared Themes & Cross-File Overlap",
+    "",
+    sharedThemes.length
+      ? `- **Cross-Document Vocabulary:** ${sharedThemes.join(", ")}`
+      : "- **Distinct Topics:** Each selected file focuses on distinct terminology with minimal direct keyword overlap.",
+    "",
+    "## 📑 Per-Document Breakdown",
+    "",
+  ];
+
+  for (let i = 0; i < docs.length; i++) {
+    const d = docs[i]!;
+    lines.push(`### ${i + 1}. ${d.name} (\`${d.path}\`)`);
+    lines.push(`- **Metrics:** ${d.wordCount.toLocaleString("en-US")} words · ${d.lineCount.toLocaleString("en-US")} lines · ${d.charCount.toLocaleString("en-US")} chars`);
+    if (d.headings.length) {
+      lines.push(`- **Sections / Headings:** ${d.headings.map((h) => `*${h}*`).join(" · ")}`);
+    }
+    if (d.keywords.length) {
+      lines.push(`- **Key Terms:** ${d.keywords.map((k) => `\`${k}\``).join(", ")}`);
+    }
+    const cleanExcerpt = d.excerpt
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter((l) => l && !l.startsWith("==="))
+      .slice(0, 4)
+      .join(" ")
+      .slice(0, 360);
+    if (cleanExcerpt) {
+      lines.push(`> ${cleanExcerpt}${cleanExcerpt.length >= 360 ? "…" : ""}`);
+    }
+    lines.push("");
+  }
+
+  return lines.join("\n");
+}
+
+export async function runBionicSynthesize(
+  ctx: FmContext,
+  payload: {
+    paths: string[];
+    mode?: "compare" | "summarize" | "study-guide" | "action-items";
+    customPrompt?: string;
+    model?: string;
+    saveToFile?: boolean;
+    dirPath?: string;
+  },
+): Promise<{
+  ok: boolean;
+  mode: "compare" | "summarize" | "study-guide" | "action-items";
+  engine: string;
+  fileCount: number;
+  files: Array<{
+    name: string;
+    path: string;
+    ext: string;
+    wordCount: number;
+    lineCount: number;
+    keywords: string[];
+  }>;
+  reportMarkdown: string;
+  savedRelativePath: string | null;
+}> {
+  const rawPaths = Array.isArray(payload?.paths) ? payload.paths.map((p) => String(p || "").trim()).filter(Boolean) : [];
+  if (rawPaths.length === 0) {
+    throw new FmError("INVALID_INPUT", "Select at least one file or document package to synthesize.");
+  }
+
+  const mode =
+    payload.mode === "summarize" || payload.mode === "study-guide" || payload.mode === "action-items"
+      ? payload.mode
+      : "compare";
+
+  const docs: BionicSynthesizeDocItem[] = [];
+  for (const rel of rawPaths.slice(0, 12)) {
+    const abs = resolveSandboxPath(ctx, rel);
+    const snippet = (await readTextFileSnippet(abs, 16_000)).trim();
+    const words = snippet ? snippet.split(/\s+/).filter(Boolean) : [];
+    const lines = snippet ? snippet.split(/\r?\n/) : [];
+    docs.push({
+      name: basenamePath(abs),
+      path: toSandboxRelative(ctx, abs),
+      ext: extnameLower(abs) || "txt",
+      wordCount: words.length,
+      lineCount: lines.length,
+      charCount: snippet.length,
+      headings: extractHeadingsFromSnippet(snippet),
+      keywords: extractTopKeywordsFromText(snippet),
+      excerpt: snippet.slice(0, 4500),
+    });
+  }
+
+  let reportMarkdown = "";
+  let engine = "bionic-deterministic-synthesizer";
+
+  const modePromptMap: Record<typeof mode, string> = {
+    compare:
+      "Compare and synthesize the following files/documents into a structured Markdown report with an overview table, key similarities, key differences, and a per-document summary.",
+    summarize:
+      "Create a comprehensive executive summary in Markdown across all of the following files/documents, highlighting core themes and takeaways.",
+    "study-guide":
+      "Build a structured Markdown study guide across the following documents/books with key concepts, definitions, chapter/section highlights, and review questions.",
+    "action-items":
+      "Extract and organize all actionable items, next steps, risks, and decisions across the following files into a clean Markdown checklist.",
+  };
+
+  try {
+    const server = await ensureBionicServerRunning(ctx);
+    if (server.running) {
+      const promptHeader = payload.customPrompt?.trim() || modePromptMap[mode];
+      const combinedDocs = docs
+        .map(
+          (d, i) =>
+            `### Document ${i + 1}: ${d.name} (${d.path}) [${d.wordCount} words]\n${d.excerpt}`,
+        )
+        .join("\n\n");
+      const chatRes = await runBionicChat(ctx, {
+        model: payload.model,
+        prompt: `${promptHeader}\n\n${combinedDocs}`,
+        maxTokens: 2048,
+      });
+      if (chatRes.content && chatRes.content.trim()) {
+        const corpusTable = [
+          `## Bionic Multi-File Synthesis (${mode.toUpperCase()})`,
+          "",
+          `### Source Corpus (${docs.length} items)`,
+          "| # | Document | Format | Words | Top Keywords |",
+          "|---|---|---|---|---|",
+          ...docs.map(
+            (d, idx) =>
+              `| ${idx + 1} | **${d.name}** (\`${d.path}\`) | \`${d.ext.toUpperCase()}\` | ${d.wordCount.toLocaleString("en-US")} | ${d.keywords.slice(0, 6).join(", ") || "—"} |`,
+          ),
+          "",
+          chatRes.content.trim(),
+        ].join("\n");
+        reportMarkdown = corpusTable;
+        engine = chatRes.model;
+      }
+    }
+  } catch {}
+
+  if (!reportMarkdown) {
+    reportMarkdown = buildDeterministicSynthesisReport(docs, mode);
+  }
+
+  let savedRelativePath: string | null = null;
+  if (payload.saveToFile) {
+    const baseDir = resolveSandboxPath(
+      ctx,
+      payload.dirPath || (rawPaths[0] ? dirnamePath(resolveSandboxPath(ctx, rawPaths[0]), ctx.platform) : "."),
+    );
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+    const outAbs = joinPath([baseDir, `Bionic-Synthesis-${stamp}.md`], ctx.platform);
+    await assertCreatable(ctx, outAbs);
+    await Bun.write(outAbs, reportMarkdown);
+    savedRelativePath = toSandboxRelative(ctx, outAbs);
+  }
+
+  return {
+    ok: true,
+    mode,
+    engine,
+    fileCount: docs.length,
+    files: docs.map((d) => ({
+      name: d.name,
+      path: d.path,
+      ext: d.ext,
+      wordCount: d.wordCount,
+      lineCount: d.lineCount,
+      keywords: d.keywords,
+    })),
+    reportMarkdown,
+    savedRelativePath,
+  };
+}
+
 export async function getFullBionicStatus(ctx: FmContext, payload?: { dirPath?: string }) {
   const apps = detectBionicApps(ctx);
   const server = await ensureBionicServerRunning(ctx);
@@ -2624,6 +2979,7 @@ export const BIONIC_OPS: Record<string, (ctx: FmContext, payload: any) => Promis
   "bionic/get": (ctx, p) => downloadBionicModel(ctx, p || {}),
   "bionic/chat": (ctx, p) => runBionicChat(ctx, p || {}),
   "bionic/route": (ctx, p) => routeBionicRequest(ctx, p || {}),
+  "bionic/synthesize": (ctx, p) => runBionicSynthesize(ctx, p || {}),
   "bionic/speech": (ctx, p) => runBionicSpeech(ctx, p || {}),
   "bionic/voices": async (ctx) => getBionicTtsConfigAndVoices(ctx),
   "bionic/ttsConfig": (ctx, p) => updateBionicTtsConfig(ctx, p || {}),

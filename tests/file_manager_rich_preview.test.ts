@@ -398,7 +398,14 @@ describe("UI renderers for rich Quick Look and Details panel (quicklookFormat.js
       Object.defineProperty(g, k, { value: (dom.window as any)[k], configurable: true, writable: true });
     }
     try {
-      const { renderRichQuickLook, renderRichInfoSummary, extractQuickLookPreviewText } = await import("../resources/file_manager/ui/quicklookFormat.js");
+      const {
+        renderRichQuickLook,
+        renderRichInfoSummary,
+        extractQuickLookPreviewText,
+        toggleQuickLookFindBar,
+        saveQuickLookReadingProgress,
+        loadQuickLookReadingProgress,
+      } = await import("../resources/file_manager/ui/quicklookFormat.js");
       for (const name of ["budget.xlsx", "proposal.docx", "deck.pptx", "app.sqlite", "analysis.ipynb", "triangle.obj", "module.wasm"]) {
         const path = join(root, name);
         const preview = await previewFile(ctx, path);
@@ -408,12 +415,32 @@ describe("UI renderers for rich Quick Look and Details panel (quicklookFormat.js
         expect(qlNode!.textContent, name).not.toMatch(/\bnull\b|\bundefined\b|\[object/i);
         expect(qlNode!.querySelector(".ql-copy-all-btn"), name).toBeTruthy();
         expect(qlNode!.querySelector(".ql-copy-sel-btn"), name).toBeTruthy();
+        expect(qlNode!.querySelector(".ql-find-btn"), name).toBeTruthy();
+        expect(qlNode!.querySelector(".ql-ask-ai-btn"), name).toBeTruthy();
+        expect(qlNode!.querySelector(".ql-speak-sel-btn"), name).toBeTruthy();
         expect(extractQuickLookPreviewText(entry, preview, qlNode).length, name).toBeGreaterThan(0);
 
         const infoNode = renderRichInfoSummary(entry, preview);
         expect(infoNode, name).toBeTruthy();
         expect(infoNode!.textContent, name).not.toMatch(/\bnull\b|\bundefined\b|\[object/i);
       }
+
+      // Verify Quick Look Find Bar and Reading Progress Memory
+      const host = dom.window.document.createElement("div");
+      const content = dom.window.document.createElement("div");
+      content.className = "ql-rich";
+      content.innerHTML = "<p>Alpha beta gamma delta</p><p>Another alpha match here</p>";
+      host.appendChild(content);
+      dom.window.document.body.appendChild(host);
+      expect(toggleQuickLookFindBar(host, "alpha")).toBe(true);
+      const findBar = host.querySelector(".ql-find-bar") as HTMLElement | null;
+      expect(findBar).toBeTruthy();
+      expect(findBar!.hidden).toBe(false);
+
+      saveQuickLookReadingProgress("/tmp/book.epub", { chapterIdx: 2, scrollRatio: 0.45 });
+      const progress = loadQuickLookReadingProgress("/tmp/book.epub");
+      expect(progress?.chapterIdx).toBe(2);
+      expect(progress?.scrollRatio).toBeCloseTo(0.45, 2);
     } finally {
       for (const k of keys) {
         const d = saved.get(k);

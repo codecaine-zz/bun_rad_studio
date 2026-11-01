@@ -5605,6 +5605,419 @@ export async function savePlainTextToFile(
   return { path: outPath, size: st.size };
 }
 
+export interface PhononAudiobookChapterPlan {
+  index: number;
+  number: number;
+  title: string;
+  safeFileName: string;
+  text: string;
+  wordCount: number;
+  charCount: number;
+  estimatedSeconds: number;
+}
+
+function splitPlainTextIntoChapterSections(rawText: string, maxChapters = 60): Array<{ title: string; text: string }> {
+  const lines = rawText.replace(/\r\n?/g, "\n").split("\n");
+  const sections: Array<{ title: string; lines: string[] }> = [];
+  let current: { title: string; lines: string[] } = { title: "Chapter 1", lines: [] };
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    const mdHeading = /^#{1,3}\s+(.{2,90})$/.exec(trimmed);
+    const chapHeading = /^(?:chapter|part|book|section|prologue|epilogue)\s+(?:\d+|[ivxlcdm]+|[a-z]+)(?:\s*[:.—-]\s*(.{1,80}))?$/i.exec(
+      trimmed,
+    );
+    const bannerHeading = /^===\s*(.{2,90}?)\s*===$/.exec(trimmed);
+    const matchedTitle = mdHeading?.[1] || bannerHeading?.[1] || (chapHeading ? trimmed : "");
+    if (matchedTitle && sections.length < maxChapters) {
+      if (current.lines.some((l) => l.trim().length > 0)) {
+        sections.push(current);
+      }
+      current = { title: matchedTitle.replace(/^#+\s*/, "").trim(), lines: [] };
+      continue;
+    }
+    current.lines.push(line);
+  }
+  if (current.lines.some((l) => l.trim().length > 0)) {
+    sections.push(current);
+  }
+
+  const nonEmpty = sections
+    .map((s) => ({ title: s.title, text: s.lines.join("\n").trim() }))
+    .filter((s) => s.text.length > 0);
+
+  if (nonEmpty.length > 1) return nonEmpty.slice(0, maxChapters);
+
+  // If no explicit headings were found and the text is long, split into ~2500-word sections
+  const full = nonEmpty[0]?.text || rawText.trim();
+  const paras = full.split(/\n{2,}/).filter((p) => p.trim());
+  if (paras.length <= 4 || countWords(full) <= 3000) {
+    return full ? [{ title: nonEmpty[0]?.title || "Chapter 1", text: full }] : [];
+  }
+  const chunked: Array<{ title: string; text: string }> = [];
+  let acc: string[] = [];
+  let accWords = 0;
+  for (const p of paras) {
+    const w = countWords(p);
+    if (acc.length > 0 && accWords + w > 2500 && chunked.length < maxChapters - 1) {
+      chunked.push({ title: `Part ${chunked.length + 1}`, text: acc.join("\n\n") });
+      acc = [];
+      accWords = 0;
+    }
+    acc.push(p);
+    accWords += w;
+  }
+  if (acc.length > 0) {
+    chunked.push({ title: `Part ${chunked.length + 1}`, text: acc.join("\n\n") });
+  }
+  return chunked;
+}
+
+export async function extractAudiobookChapters(
+  ctx: FmContext,
+  input: { path?: unknown; text?: unknown; clean?: boolean; maxChapters?: number; ext?: string },
+): Promise<{ bookTitle: string; formatLabel: string; chapters: PhononAudiobookChapterPlan[] }> {
+  const clean = input.clean ?? true;
+  const maxChapters = Math.max(1, Math.min(200, Number(input.maxChapters) || 80));
+  const audioExt = (input.ext || "wav").replace(/^\./, "").toLowerCase();
+
+  let bookTitle = "Audiobook";
+  let formatLabel = "Document";
+  let rawChapters: Array<{ title: string; text: string }> = [];
+
+  if (typeof input.path === "string" && input.path.trim()) {
+    const rawIn = input.path.trim();
+    const resolvedIn =
+      nodePath.isAbsolute(rawIn) || /^[A-Za-z]:[\\/]/.test(rawIn)
+        ? rawIn
+        : nodePath.join(ctx.sandboxRoot || ctx.home, rawIn);
+    const filePath = absolutePath(ctx, resolvedIn);
+    const st = await fsp.stat(filePath).catch(() => null);
+    if (!st) throw new FmError("NOT_A_FILE", "File or book package not found.");
+    const base = nodePath.basename(filePath);
+    bookTitle = splitName(base)[0] || base;
+    const ext = extensionOf(base);
+
+    let richDoc: RichPreview | null = null;
+    if (st.isDirectory()) {
+      richDoc = await inspectPackageDirectoryRich(filePath, false, {
+        maxChapters,
+        maxBlocksPerChapter: 10_000,
+        maxTotalBlocks: 200_000,
+        maxPartBytes: 4 * 1024 * 1024,
+      }).catch(() => null);
+    } else if (ext === "epub" || ext === "ibooks") {
+      richDoc = await extractFullEpubRich(filePath, false).catch(() => null);
+    } else {
+      const handle = await fsp.open(filePath, "r").catch(() => null);
+      if (handle) {
+        try {
+          const headLen = Math.min(st.size, 256 * 1024);
+          const headBuf = Buffer.alloc(headLen);
+          const { bytesRead } = await handle.read(headBuf, 0, headLen, 0);
+          const head = headBuf.subarray(0, bytesRead);
+          const isBin = head.subarray(0, 8192).includes(0);
+          const headText = !isBin ? decodeBytes(head, "auto", true).text : null;
+          richDoc = await inspectRichPreview(handle, filePath, st.size, head, headText, false).catch(() => null);
+        } finally {
+          await handle.close().catch(() => {});
+        }
+      }
+    }
+
+    if (richDoc && richDoc.kind === "document") {
+      if (richDoc.title?.trim()) bookTitle = richDoc.title.trim();
+      formatLabel = richDoc.formatLabel || formatLabel;
+      if (Array.isArray(richDoc.chapters) && richDoc.chapters.length > 0) {
+        rawChapters = richDoc.chapters
+          .map((ch, idx) => ({
+            title: ch.title?.trim() || `Chapter ${idx + 1}`,
+            text: docBlocksToPlainText(ch.blocks || []),
+          }))
+          .filter((ch) => ch.text.trim().length > 0)
+          .slice(0, maxChapters);
+      }
+    }
+
+    if (rawChapters.length === 0) {
+      const extracted = await extractPlainTextFromFile(ctx, filePath, { clean: false });
+      if (extracted.title?.trim()) bookTitle = extracted.title.trim();
+      formatLabel = extracted.formatLabel;
+      rawChapters = splitPlainTextIntoChapterSections(extracted.rawText || extracted.text, maxChapters);
+    }
+  } else if (typeof input.text === "string" && input.text.trim()) {
+    rawChapters = splitPlainTextIntoChapterSections(input.text.trim(), maxChapters);
+    formatLabel = "Direct Text";
+  } else {
+    throw new FmError("BAD_REQUEST", "Provide a book/document path or text to export as a chaptered audiobook.");
+  }
+
+  const padWidth = Math.max(2, String(rawChapters.length).length);
+  const chapters: PhononAudiobookChapterPlan[] = [];
+
+  for (let i = 0; i < rawChapters.length; i++) {
+    const raw = rawChapters[i]!;
+    const cleaned = clean ? cleanTextForSpeech(raw.text) : raw.text.trim();
+    if (!cleaned) continue;
+    const num = chapters.length + 1;
+    const numStr = String(num).padStart(padWidth, "0");
+    const safeTitle =
+      raw.title
+        .replace(/[<>:"/\\|?*\x00-\x1f]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 72) || `Chapter ${num}`;
+    const wordCount = countWords(cleaned);
+    chapters.push({
+      index: chapters.length,
+      number: num,
+      title: raw.title.trim() || `Chapter ${num}`,
+      safeFileName: `${numStr} - ${safeTitle}.${audioExt}`,
+      text: cleaned,
+      wordCount,
+      charCount: cleaned.length,
+      estimatedSeconds: Math.max(1, Math.round((wordCount / 155) * 60)),
+    });
+  }
+
+  if (chapters.length === 0) {
+    throw new FmError("EMPTY_TEXT", "No readable chapters or text found to export as an audiobook.");
+  }
+
+  return { bookTitle, formatLabel, chapters };
+}
+
+export async function startPhononAudiobookExportJob(
+  ctx: FmContext,
+  body: Record<string, unknown>,
+): Promise<{
+  previewOnly: boolean;
+  bookTitle: string;
+  formatLabel: string;
+  voice: string;
+  format: string;
+  audiobookDir: string;
+  playlistPath: string;
+  manifestPath: string;
+  chapterCount: number;
+  totalWords: number;
+  estimatedTotalSeconds: number;
+  chapters: Array<{
+    number: number;
+    title: string;
+    fileName: string;
+    outputPath: string;
+    wordCount: number;
+    estimatedSeconds: number;
+  }>;
+  job?: ReturnType<FmContext["jobs"]["start"]>;
+}> {
+  const settings = await loadSettings(ctx);
+  const voice =
+    typeof body.voice === "string" && /^[A-Za-z0-9 _-]{1,48}$/.test(body.voice.trim())
+      ? body.voice.trim()
+      : settings.phononVoice || "Zoey";
+  const requestedFmt = String(body.format ?? settings.phononFormat ?? "wav").toLowerCase();
+  const format: PhononAudioFormat =
+    (PHONON_AUDIO_FORMATS as readonly string[]).includes(requestedFmt) && !isPhononVideoFormat(requestedFmt)
+      ? (requestedFmt as PhononAudioFormat)
+      : "wav";
+  const speed =
+    typeof body.speed === "number" && isFinite(body.speed)
+      ? Math.min(2.5, Math.max(0.5, body.speed))
+      : settings.phononSpeed || 1;
+  const pitch =
+    typeof body.pitch === "number" && isFinite(body.pitch)
+      ? Math.round(Math.min(6, Math.max(-6, body.pitch)) * 2) / 2
+      : (settings.phononPitch ?? 0);
+  const pauseMs =
+    typeof body.pauseMs === "number" && isFinite(body.pauseMs)
+      ? Math.min(2000, Math.max(0, Math.round(body.pauseMs)))
+      : (settings.phononPauseMs ?? 200);
+  const cleanText = typeof body.cleanText === "boolean" ? body.cleanText : (settings.phononCleanText ?? true);
+  const maxChunkChars =
+    typeof body.maxChunkChars === "number" && isFinite(body.maxChunkChars)
+      ? Math.min(PHONON_HARD_MAX_CHUNK_CHARS, Math.max(150, Math.round(body.maxChunkChars)))
+      : PHONON_BATCH_CHUNK_CHARS;
+  const previewOnly = Boolean(body.previewOnly);
+
+  const fmtInfo = ALL_MEDIA_FORMAT_INFO.find((f) => f.id === format) ?? AUDIO_FORMAT_INFO[0]!;
+  const extracted = await extractAudiobookChapters(ctx, {
+    path: body.path,
+    text: body.text,
+    clean: cleanText,
+    maxChapters: typeof body.maxChapters === "number" ? body.maxChapters : 80,
+    ext: fmtInfo.ext,
+  });
+
+  const rawBookTitle =
+    typeof body.bookTitle === "string" && body.bookTitle.trim() ? body.bookTitle.trim() : extracted.bookTitle;
+  const safeBookTitle =
+    rawBookTitle
+      .replace(/[<>:"/\\|?*\x00-\x1f]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 80) || "Audiobook";
+
+  const resolveRelOrAbs = (raw: string) =>
+    nodePath.isAbsolute(raw) || /^[A-Za-z]:[\\/]/.test(raw)
+      ? absolutePath(ctx, raw)
+      : absolutePath(ctx, nodePath.join(ctx.sandboxRoot || ctx.home, raw));
+  const srcAbs =
+    typeof body.path === "string" && body.path.trim() ? resolveRelOrAbs(body.path.trim()) : "";
+  const parentDir =
+    typeof body.outputDir === "string" && body.outputDir.trim()
+      ? resolveRelOrAbs(body.outputDir.trim())
+      : srcAbs
+        ? nodePath.dirname(srcAbs)
+        : ctx.sandboxRoot || ctx.home;
+
+  const audiobookDir = nodePath.join(parentDir, `${safeBookTitle} - Audiobook`);
+  const playlistPath = nodePath.join(audiobookDir, "audiobook.m3u8");
+  const manifestPath = nodePath.join(audiobookDir, "chapters.json");
+
+  const chapterItems = extracted.chapters.map((ch) => ({
+    number: ch.number,
+    title: ch.title,
+    fileName: ch.safeFileName,
+    outputPath: nodePath.join(audiobookDir, ch.safeFileName),
+    wordCount: ch.wordCount,
+    estimatedSeconds: ch.estimatedSeconds,
+  }));
+  const totalWords = extracted.chapters.reduce((s, c) => s + c.wordCount, 0);
+  const estimatedTotalSeconds = extracted.chapters.reduce((s, c) => s + c.estimatedSeconds, 0);
+
+  if (previewOnly) {
+    return {
+      previewOnly: true,
+      bookTitle: safeBookTitle,
+      formatLabel: extracted.formatLabel,
+      voice,
+      format,
+      audiobookDir,
+      playlistPath,
+      manifestPath,
+      chapterCount: chapterItems.length,
+      totalWords,
+      estimatedTotalSeconds,
+      chapters: chapterItems,
+    };
+  }
+
+  const protectWhy = protectedReason(
+    parentDir,
+    { platform: ctx.platform, home: ctx.home, extraProtected: [ctx.trashRoot] },
+    "create",
+  );
+  if (protectWhy) throw new FmError("PROTECTED_PATH", protectWhy);
+
+  await fsp.mkdir(audiobookDir, { recursive: true });
+
+  // Write M3U8 playlist and chapters.json manifest immediately
+  const m3uLines = [
+    "#EXTM3U",
+    `#PLAYLIST:${safeBookTitle} (${voice})`,
+    ...extracted.chapters.flatMap((ch) => [
+      `#EXTINF:${ch.estimatedSeconds},${safeBookTitle} - ${ch.title}`,
+      ch.safeFileName,
+    ]),
+    "",
+  ];
+  await fsp.writeFile(playlistPath, m3uLines.join("\n"), "utf8");
+
+  const manifestData = {
+    bookTitle: safeBookTitle,
+    formatLabel: extracted.formatLabel,
+    voice,
+    format: fmtInfo.ext,
+    createdAt: new Date().toISOString(),
+    chapterCount: chapterItems.length,
+    totalWords,
+    estimatedTotalSeconds,
+    playlist: "audiobook.m3u8",
+    chapters: chapterItems.map((c) => ({
+      number: c.number,
+      title: c.title,
+      fileName: c.fileName,
+      wordCount: c.wordCount,
+      estimatedSeconds: c.estimatedSeconds,
+    })),
+  };
+  await fsp.writeFile(manifestPath, JSON.stringify(manifestData, null, 2), "utf8");
+
+  const ollamaExe = resolveTool(ctx, "ollama");
+  if (!ollamaExe) {
+    throw new FmError("MISSING_TOOL", "Ollama isn't installed yet. Click Install Ollama & Phonon first.");
+  }
+  const ffmpegExe = resolveTool(ctx, "ffmpeg");
+  if (fmtInfo.needsFfmpeg && !ffmpegExe) {
+    throw new FmError(
+      "MISSING_TOOL",
+      `Saving audiobook chapters as .${format.toUpperCase()} needs ffmpeg. Install ffmpeg or choose WAV / AIFF.`,
+    );
+  }
+
+  const steps = extracted.chapters.map((ch) => {
+    const outPath = nodePath.join(audiobookDir, ch.safeFileName);
+    const chunks = splitTextForPhonon(ch.text, { maxChars: maxChunkChars, mergeShortParagraphs: true });
+    return {
+      label: `Chapter ${ch.number}/${extracted.chapters.length}: ${ch.title} → ${ch.safeFileName}`,
+      output: outPath,
+      timeoutMs: Math.max(10 * 60 * 1000, chunks.length * 90_000),
+      prepare: async () => ({
+        work: async (signal: AbortSignal, log: (text: string) => void) => {
+          log(`Synthesizing Chapter ${ch.number}: "${ch.title}" (${chunks.length} chunks, ${ch.wordCount} words, voice: ${voice})…\n`);
+          await ensureOllamaDaemon(ctx, ollamaExe);
+          await synthesizeAndExportAudioFile(ctx, {
+            ollamaExe,
+            ffmpegExe,
+            chunks,
+            voice,
+            format,
+            speed,
+            pitch,
+            pauseMs,
+            outputPath: outPath,
+            aspectRatio: "16:9",
+            videoTheme: "midnight",
+            saveSubtitles: false,
+            title: `${safeBookTitle} - ${ch.title}`,
+            signal,
+            onChunkProgress: (done, total) => {
+              log(`Chapter ${ch.number}: chunk ${done} of ${total}\n`);
+            },
+            onStageLog: (line) => {
+              log(`${line}\n`);
+            },
+          });
+        },
+      }),
+    };
+  });
+
+  const job = ctx.jobs.start({
+    kind: "convert",
+    title: `Phonon Audiobook: ${safeBookTitle} (${extracted.chapters.length} chapters, ${voice})`,
+    steps,
+  });
+
+  return {
+    previewOnly: false,
+    bookTitle: safeBookTitle,
+    formatLabel: extracted.formatLabel,
+    voice,
+    format,
+    audiobookDir,
+    playlistPath,
+    manifestPath,
+    chapterCount: chapterItems.length,
+    totalWords,
+    estimatedTotalSeconds,
+    chapters: chapterItems,
+    job,
+  };
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // HTTP Operations Table (`PHONON_OPS`)
 // ---------------------------------------------------------------------------------------------------------------
@@ -5704,6 +6117,7 @@ export const PHONON_OPS: Record<string, FmHandler> = {
   "phonon/clone-voice": (ctx, b) => createCustomVoiceFromAudio(ctx, (b ?? {}) as { name?: unknown; audioBase64?: unknown; sourcePath?: unknown }),
   "phonon/delete-voice": (ctx, b) => deleteCustomVoice(ctx, (b ?? {}) as { id?: unknown }),
   "phonon/save": (ctx, b) => startPhononAudioExportJob(ctx, (b ?? {}) as Record<string, unknown>),
+  "phonon/audiobook": (ctx, b) => startPhononAudiobookExportJob(ctx, (b ?? {}) as Record<string, unknown>),
   "phonon/video": (ctx, b) => {
     const rec = (b ?? {}) as Record<string, unknown>;
     const fmt = isPhononVideoFormat(String(rec.format ?? "")) ? rec.format : "mp4";

@@ -5,7 +5,7 @@
 import { ApiError, call, rawUrl } from "./api.js";
 import { $, announce, h, iconFor } from "./dom.js";
 import { menuIsOpen, showMenu, toast } from "./menus.js";
-import { visibleEntries } from "./nav.js";
+import { goToIn, visibleEntries } from "./nav.js";
 import { copyImageFile, copyTextFile } from "./clipfile.js";
 import { copyToClipboard, flashCopied } from "./copyclip.js";
 import { copyPathOf, openEntry, revealEntry } from "./ops.js";
@@ -25,10 +25,12 @@ import { inTrash, on, state } from "./state.js";
 import { parseTable } from "./quicklookTable.js";
 import {
   buildQuickLookCopyButtons,
+  clearQuickLookHighlights,
   extractQuickLookPreviewText,
   getSelectedTextInQuickLook,
   renderRichQuickLook,
   setCachedQuickLookSelection,
+  toggleQuickLookFindBar,
 } from "./quicklookFormat.js";
 import { openPower } from "./power.js";
 import { isStudioPicture } from "./imageStudio.js";
@@ -110,8 +112,8 @@ function onSelectionChange() {
   if (ql.copySelBtn) {
     ql.copySelBtn.hidden = !selText;
     ql.copySelBtn.textContent = selText
-      ? `Copy selected (${selText.length.toLocaleString("en-US")} chars)`
-      : "Copy selected";
+      ? `✂️ Copy selected (${selText.length.toLocaleString("en-US")} chars)`
+      : "✂️ Copy selected";
   }
   for (const btn of ql.body.querySelectorAll(".ql-copy-sel-btn")) {
     btn.classList.toggle("active", Boolean(selText));
@@ -123,10 +125,14 @@ function onSelectionChange() {
 
 /** Which of the header's other buttons make sense for the item in view. */
 function setActions(entry) {
+  const isDocPkg = isDocumentPackageEntry(entry);
   const text = !entry.isDir && isKnownTextName(entry.name);
-  ql.convertBtn.hidden = entry.isDir;
+  ql.convertBtn.hidden = entry.isDir && !isDocPkg;
   ql.editBtn.hidden = !text;
   ql.studioBtn.hidden = entry.isDir || !(isStudioPicture(entry.name) || isStudioMedia(entry.name));
+  if (ql.pkgBtn) {
+    ql.pkgBtn.hidden = !(isDocPkg || (entry.isDir && /\.app$/i.test(entry.name)));
+  }
 }
 
 function setSub(text) {
@@ -281,7 +287,7 @@ async function renderBody(entry, mine) {
         if (rows.length) {
           const width = Math.max(...rows.map((r) => r.length));
           const body = rows.slice(1).map((r) => h("tr", {}, ...Array.from({ length: width }, (_, i) => h("td", {}, r[i] ?? ""))));
-          const copyBar = h("div", { class: "ql-fmt-head ql-plain-copybar" }, h("span", { class: "ql-fmt-badge" }, `${ext.toUpperCase()} Table`), h("span", { class: "code-grow" }), buildQuickLookCopyButtons(entry, preview, () => ql?.body));
+          const copyBar = h("div", { class: "ql-fmt-head ql-plain-copybar" }, h("span", { class: "ql-fmt-badge" }, `${ext.toUpperCase()} Table`), h("span", { class: "code-grow" }), buildQuickLookCopyButtons(entry, preview, () => ql?.body, { onClose: closeQuickLook }));
           return open(h("div", { class: "ql-tablewrap", tabindex: "0", "aria-label": `Table ${entry.name}` }, copyBar, h("table", { class: "ql-table" }, h("thead", {}, h("tr", {}, ...Array.from({ length: width }, (_, i) => h("th", { scope: "col" }, rows[0][i] ?? "")))), h("tbody", {}, ...body)), note, rows.length >= 300 ? h("p", { class: "ql-note" }, "Showing the first 300 rows.") : null));
         }
       }
@@ -296,7 +302,7 @@ async function renderBody(entry, mine) {
           resolveImageSrc: (src) => resolveQuickLookImageSrc(entry, src),
         });
         const mdBar = mdWrap.querySelector(".code-md-toolbar");
-        if (mdBar) mdBar.append(buildQuickLookCopyButtons(entry, preview, () => ql?.body));
+        if (mdBar) mdBar.append(buildQuickLookCopyButtons(entry, preview, () => ql?.body, { onClose: closeQuickLook }));
         if (note) mdWrap.append(note);
         ql.foot.textContent = MD_FOOT;
         return open(mdWrap);
@@ -306,7 +312,7 @@ async function renderBody(entry, mine) {
         if (note) richNode.append(note);
         return open(richNode);
       }
-      const plainCopyBar = h("div", { class: "ql-fmt-head ql-plain-copybar" }, h("span", { class: "ql-fmt-badge" }, "Plain Text"), h("span", { class: "code-grow" }), buildQuickLookCopyButtons(entry, preview, () => ql?.body));
+      const plainCopyBar = h("div", { class: "ql-fmt-head ql-plain-copybar" }, h("span", { class: "ql-fmt-badge" }, "Plain Text"), h("span", { class: "code-grow" }), buildQuickLookCopyButtons(entry, preview, () => ql?.body, { onClose: closeQuickLook }));
       return open(h("div", { class: "ql-textwrap" }, plainCopyBar, h("pre", { class: "ql-text", tabindex: "0", "aria-label": `Contents of ${entry.name}` }, preview.text || "(An empty file.)"), note));
     }
     default: {
@@ -381,6 +387,7 @@ async function show(index) {
   }
   setCopy(null);
   setCachedQuickLookSelection("");
+  clearQuickLookHighlights();
   if (ql.copySelBtn) ql.copySelBtn.hidden = true;
   setActions(entry);
   ql.icon.textContent = entry.icon || iconFor(entry.name, entry.isDir);
@@ -398,6 +405,7 @@ export function closeQuickLook() {
   destroyPlayer();
   destroyGif();
   setCachedQuickLookSelection("");
+  clearQuickLookHighlights();
   document.removeEventListener("keydown", onKey, true);
   document.removeEventListener("selectionchange", onSelectionChange);
   ql.backdrop.remove();
@@ -424,6 +432,13 @@ function onKey(e) {
   const target = e.target instanceof Element ? e.target : null;
   const onControl = !!target?.closest("button, select, input, textarea, a[href], [role='link']");
   const isArrow = e.key.startsWith("Arrow");
+  if ((e.metaKey || e.ctrlKey) && !e.altKey && (e.key === "f" || e.key === "F")) {
+    e.stopPropagation();
+    e.preventDefault();
+    const selText = getSelectedTextInQuickLook(ql.body);
+    toggleQuickLookFindBar(ql.body, selText && selText.length <= 80 ? selText.trim() : "");
+    return;
+  }
   // While Quick Look is open it owns the keyboard: nothing reaches the file list underneath.
   if (e.ctrlKey || e.metaKey || e.altKey) { if (!e.metaKey && !e.ctrlKey) e.stopPropagation(); return; }
   if (e.key === "Escape") {
@@ -445,7 +460,7 @@ function onKey(e) {
   // A focused button, list or slider keeps the keys it uses itself (Space and Enter press a button; arrows move a slider or a list).
   if (e.key === "Enter" && target?.closest("button, [role='link']")) { e.stopPropagation(); return; }
   if (e.key === " " && onControl) { e.stopPropagation(); return; }
-  if (isArrow && target?.closest("select, input[type=range], input[type=text]")) { e.stopPropagation(); return; }
+  if (isArrow && target?.closest("select, input[type=range], input[type=text], input[type=search]")) { e.stopPropagation(); return; }
   if (e.key === "Enter") { e.stopPropagation(); e.preventDefault(); return openCurrent(); }
   // The player owns the rest of the keys while a sound or video is in view.
   if (ql.player && ql.player.handleKey(e)) { e.stopPropagation(); e.preventDefault(); return; }
@@ -504,21 +519,24 @@ export function openQuickLook(entry = null, pane = activePane()) {
         }
       },
     },
-    "Copy selected",
+    "✂️ Copy selected",
   );
   const current = () => ql?.entries[ql.index];
   // Convert, Edit and the dialogs of the More menu work on the selection, which follows Quick Look, so Quick Look steps aside first.
   const thenClose = (fn) => () => { const e = current(); if (!e) return; closeQuickLook(); fn(e); };
+  const pkgBtn = h("button", { type: "button", class: "btn", hidden: true, title: "Browse the internal files and folders inside this package directory", onclick: thenClose((e) => goToIn(activePane(), e.path)) }, "📦 Package Contents");
   const convertBtn = h("button", { type: "button", class: "btn", hidden: true, title: "Turn this file into another format, or make a smaller or changed copy (Convert and process)", onclick: thenClose(() => showToolsDialog()) }, "Convert…");
   const editBtn = h("button", { type: "button", class: "btn", hidden: true, title: "Edit it in the built-in Code editor", onclick: thenClose((e) => openInCode(e.path)) }, "Edit");
   const studioBtn = h("button", { type: "button", class: "btn", hidden: true, id: "ql-studio", title: "Change it with sliders in the Image Studio or the Media Studio, then save a copy", onclick: thenClose((e) => openPower(isStudioPicture(e.name) ? "imagestudio" : "mediastudio", { path: e.path })) }, "Edit in Studio");
   const moreBtn = h("button", { type: "button", class: "btn", "aria-haspopup": "menu", title: "More things to do with this file", onclick: () => {
     const e = current();
     if (!e) return;
+    const isPkg = isDocumentPackageEntry(e) || (e.isDir && /\.app$/i.test(e.name));
     const quick = quickMediaMenuItems([e], { limit: 8 });
     showMenu([
       { label: "Copy path", icon: "🔗", action: () => copyPathOf([e]) },
-      { label: "Open with…", icon: "🧩", disabled: e.isDir, action: thenClose((x) => showOpenWith([x])) },
+      ...(isPkg ? [{ label: "Browse package contents", icon: "📦", action: thenClose((x) => goToIn(activePane(), x.path)) }] : []),
+      { label: "Open with…", icon: "🧩", disabled: e.isDir && !isPkg, action: thenClose((x) => showOpenWith([x])) },
       { label: "Show in file manager", icon: "🔎", action: () => revealEntry(e) },
       ...(quick.length ? [{ separator: true }, ...quick] : []),
       { separator: true },
@@ -528,14 +546,14 @@ export function openQuickLook(entry = null, pane = activePane()) {
   } }, "More ▾");
   const dialog = h("div", { class: "ql", role: "dialog", "aria-modal": "true", "aria-label": "Quick Look", tabindex: "-1" },
     h("div", { class: "ql-head" }, icon, h("div", { class: "ql-headtext" }, title, sub), count,
-      copySelBtn, copyBtn, convertBtn, editBtn, studioBtn,
+      copyBtn, copySelBtn, pkgBtn, convertBtn, editBtn, studioBtn,
       h("button", { type: "button", class: "btn", title: "Open it with the program chosen in Settings, or the one your computer uses for it (Enter). Pictures, sound and video go to your computer's program from here.", onclick: () => openCurrent() }, "Open"),
       moreBtn,
       h("button", { type: "button", class: "btn", "aria-label": "Close Quick Look", title: "Close (Space or Esc)", onclick: () => closeQuickLook() }, "Close")),
     body,
     foot);
   const backdrop = h("div", { class: "ql-backdrop", onclick: (ev) => { if (ev.target === backdrop) closeQuickLook(); } }, dialog);
-  ql = { backdrop, dialog, body, icon, title, sub, count, foot, copyBtn, copySelBtn, convertBtn, editBtn, studioBtn, player: null, copyAction: null, entries, index, pane, seq: 0, opener: document.activeElement };
+  ql = { backdrop, dialog, body, icon, title, sub, count, foot, copyBtn, copySelBtn, pkgBtn, convertBtn, editBtn, studioBtn, player: null, copyAction: null, entries, index, pane, seq: 0, opener: document.activeElement };
   $("#overlay").append(backdrop);
   document.addEventListener("keydown", onKey, true);
   document.addEventListener("selectionchange", onSelectionChange);

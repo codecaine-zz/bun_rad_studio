@@ -576,4 +576,101 @@ describe("Codecaine File Manager — Built-In LM Studio Bionic AI Studio & Agent
     expect(readFileSync(join(docsDir, "NovelProject.html"), "utf8")).toContain("The Dawn of Scrivener");
     expect(readFileSync(join(docsDir, "MeetingNotes.html"), "utf8")).toContain("Quarterly Review Notes");
   });
+
+  test("10. Multi-File Bionic Synthesis, Persistent Embedding Cache, Smart Folder Tidy, Clipboard Image Dropzone, and Chaptered Audiobook Export", async () => {
+    const { mkdirSync, writeFileSync, existsSync, readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+
+    const homeRoot = `${tempRoot}/home`;
+
+    // 1. Multi-file Bionic Synthesis across .epub, .textbundle, and .scriv packages
+    const synthRes = await apiCall("bionic/synthesize", {
+      paths: ["docs/Deadlocked 3.epub", "docs/Architecture.textbundle", "docs/NovelProject.scriv"],
+      mode: "compare",
+      saveToFile: true,
+      dirPath: "docs",
+    });
+    expect(synthRes.status).toBe(200);
+    expect(synthRes.json.ok).toBe(true);
+    expect(synthRes.json.fileCount).toBe(3);
+    expect(synthRes.json.reportMarkdown).toContain("Deadlocked 3.epub");
+    expect(synthRes.json.reportMarkdown).toContain("Architecture.textbundle");
+    expect(synthRes.json.reportMarkdown).toContain("NovelProject.scriv");
+    expect(synthRes.json.savedRelativePath).toMatch(/^docs\/Bionic-Synthesis-.*\.md$/);
+    expect(existsSync(join(homeRoot, synthRes.json.savedRelativePath))).toBe(true);
+
+    // 2. Persistent Embedding Cache on second semanticSearch call
+    const sem1 = await apiCall("bionic/semanticSearch", {
+      query: "authentication token verification",
+      dirPath: ".",
+      topK: 3,
+    });
+    expect(sem1.status).toBe(200);
+    expect(sem1.json.scannedFilesCount).toBeGreaterThan(0);
+
+    const sem2 = await apiCall("bionic/semanticSearch", {
+      query: "lighthouse storm waves",
+      dirPath: ".",
+      topK: 3,
+    });
+    expect(sem2.status).toBe(200);
+    expect(sem2.json.cachedFilesCount).toBeGreaterThan(0);
+    expect(sem2.json.computedFilesCount).toBe(0);
+
+    // 3. Clipboard Image Dropzone (`clip/pasteImageAsFile`)
+    const tinyPngBase64 =
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+    const clipImgRes = await apiCall("clip/pasteImageAsFile", {
+      dirPath: "docs",
+      base64Png: tinyPngBase64,
+      fileName: "Screenshot-Test.png",
+    });
+    expect(clipImgRes.status).toBe(200);
+    expect(clipImgRes.json.saved).toBe(true);
+    expect(clipImgRes.json.name).toBe("Screenshot-Test.png");
+    expect(existsSync(clipImgRes.json.path)).toBe(true);
+
+    // 4. Smart Folder Tidy (`folder/tidy` preview and execution)
+    const messyDir = join(homeRoot, "messy-downloads");
+    mkdirSync(messyDir, { recursive: true });
+    writeFileSync(join(messyDir, "report.pdf"), "%PDF-1.4 sample");
+    writeFileSync(join(messyDir, "photo.png"), Buffer.from(tinyPngBase64, "base64"));
+    writeFileSync(join(messyDir, "song.mp3"), "ID3-sample");
+    writeFileSync(join(messyDir, "archive.zip"), "PK\x03\x04");
+    writeFileSync(join(messyDir, "script.ts"), "export const x = 42;\n");
+    const miniEpub = join(messyDir, "MiniBook.epub");
+    mkdirSync(miniEpub, { recursive: true });
+    writeFileSync(join(miniEpub, "mimetype"), "application/epub+zip");
+
+    const tidyPrev = await apiCall("folder/tidy", { path: "messy-downloads", preview: true });
+    expect(tidyPrev.status).toBe(200);
+    expect(tidyPrev.json.preview).toBe(true);
+    expect(tidyPrev.json.movedCount).toBe(6);
+    expect(tidyPrev.json.byCategory["Books & Documents"]).toBe(2);
+    expect(tidyPrev.json.byCategory["Images & Screenshots"]).toBe(1);
+    expect(tidyPrev.json.byCategory["Audio & Music"]).toBe(1);
+    expect(tidyPrev.json.byCategory["Archives & Installers"]).toBe(1);
+    expect(tidyPrev.json.byCategory["Code & Data"]).toBe(1);
+
+    const tidyExec = await apiCall("folder/tidy", { path: "messy-downloads", preview: false });
+    expect(tidyExec.status).toBe(200);
+    expect(tidyExec.json.preview).toBe(false);
+    expect(tidyExec.json.movedCount).toBe(6);
+    expect(existsSync(join(messyDir, "Books & Documents", "report.pdf"))).toBe(true);
+    expect(existsSync(join(messyDir, "Books & Documents", "MiniBook.epub", "mimetype"))).toBe(true);
+    expect(existsSync(join(messyDir, "Images & Screenshots", "photo.png"))).toBe(true);
+
+    // 5. Chaptered Audiobook Plan (`phonon/audiobook` previewOnly)
+    const abRes = await apiCall("phonon/audiobook", {
+      path: "docs/Deadlocked 3.epub",
+      voice: "Zoey",
+      format: "wav",
+      previewOnly: true,
+    });
+    expect(abRes.status).toBe(200);
+    expect(abRes.json.bookTitle).toBe("Deadlocked 3");
+    expect(abRes.json.chapterCount).toBeGreaterThanOrEqual(1);
+    expect(abRes.json.chapters[0].fileName).toContain("01 - ");
+    expect(readFileSync(join(homeRoot, synthRes.json.savedRelativePath), "utf8")).toContain("Bionic Multi-File Synthesis");
+  });
 });
