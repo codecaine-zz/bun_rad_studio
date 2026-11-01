@@ -11,10 +11,12 @@ import * as nodePath from "path";
 import { absolutePath, createContext, pathApi, type FmContext, type FmContextOptions } from "./fmCore";
 import { listCliUtils, runCliUtil } from "./fmCliUtils";
 import { fileInfo } from "./fmInfoFile";
-import { listFolder, propertiesOf, searchFolder, type SortBy } from "./fmList";
+import { listFolder, propertiesOf, searchFolder } from "./fmList";
 import { APP_NAME, APP_VERSION } from "./fmServer";
 import { toolStatus } from "./fmToolDetect";
 import { listTrash, moveToTrash, restoreFromTrash } from "./fmTrash";
+
+type SortBy = "name" | "size" | "modified" | "type";
 
 async function computeFileDigests(ctx: FmContext, targetPath: string) {
   const safePath = absolutePath(ctx, targetPath);
@@ -202,7 +204,17 @@ export async function runFileManagerCli(rawArgs: string[], io: FmCliIo = {}): Pr
         }
 
         const targetPath = resolveUserPath(ctx, targets[0] ?? ".", cwd);
-        const listing = await listFolder(ctx, targetPath, { showHidden, sortBy, sortDir });
+        const listing = await listFolder(ctx, targetPath, { showHidden });
+        const dirMul = sortDir === "desc" ? -1 : 1;
+        listing.entries.sort((a, b) => {
+          if (a.isDir !== b.isDir) return a.isDir ? -1 : 1;
+          let cmp = 0;
+          if (sortBy === "size") cmp = a.size - b.size;
+          else if (sortBy === "modified") cmp = a.mtimeMs - b.mtimeMs;
+          else if (sortBy === "type") cmp = a.kind.localeCompare(b.kind) || a.name.localeCompare(b.name);
+          else cmp = a.name.localeCompare(b.name);
+          return cmp * dirMul;
+        });
         if (json) {
           out(JSON.stringify(listing, null, 2));
           return 0;
@@ -357,7 +369,7 @@ export async function runFileManagerCli(rawArgs: string[], io: FmCliIo = {}): Pr
         let failed = 0;
         for (const r of res) {
           if (r.ok) {
-            out(`Trashed: ${r.value.originalPath} (id: ${r.value.id})`);
+            out(`Trashed: ${r.value.path} (id: ${r.value.id})`);
           } else {
             failed++;
             err(`Failed: ${r.message}`);
@@ -425,7 +437,7 @@ export async function runFileManagerCli(rawArgs: string[], io: FmCliIo = {}): Pr
         for (const t of status.tools) {
           const badge = t.installed ? "✓" : "✗";
           const ver = t.version ? ` (${t.version})` : "";
-          out(`  [${badge}] ${t.name.padEnd(22)} ${t.purpose}${ver}`);
+          out(`  [${badge}] ${t.name.padEnd(22)} ${t.what}${ver}`);
         }
         return 0;
       }

@@ -124,9 +124,9 @@ export function readTextFileSyncPure(filePath: string): string {
   }
 }
 
-export function ensureDirectoryPure(dirPath: string, platform = process.platform): void {
+export function ensureDirectoryPure(dirPath: string, _platform = process.platform): void {
   if (!dirPath || dirPath.includes("\0")) return;
-  if (platform === "win32") {
+  if (process.platform === "win32") {
     Bun.spawnSync(
       [
         "powershell",
@@ -155,7 +155,7 @@ export function listDirectoryEntriesPure(
 ): Array<{ name: string; path: string; isDir: boolean }> {
   if (!dirPath || dirPath.includes("\0")) return [];
   try {
-    if (platform === "win32") {
+    if (process.platform === "win32") {
       const res = Bun.spawnSync(
         [
           "powershell",
@@ -995,6 +995,7 @@ export function evaluateModelHardwareGuard(
   hardware: OllamaHardwareSpecs,
   options?: {
     hasMlxAlternativeForTask?: boolean;
+    allowNonMlxStandardOnMac?: boolean;
     installedModels?: Array<{ name: string; isMlx?: boolean; fitsRam?: boolean; capabilities?: string[] }>;
     taskCapability?: "chat" | "vision" | "decision" | "speech" | "embed";
   },
@@ -1127,7 +1128,7 @@ export function evaluateModelHardwareGuard(
   }
 
   // Rule A: Mac Apple Silicon MLX Exclusivity
-  const mlxAltAvailable = options?.hasMlxAlternativeForTask ?? true;
+  const mlxAltAvailable = (options?.hasMlxAlternativeForTask ?? true) && !options?.allowNonMlxStandardOnMac;
   if (hardware.isAppleSiliconMac && mlxAltAvailable && !isMlx && !isUtility) {
     return {
       allowed: false,
@@ -3610,6 +3611,7 @@ export async function runOllamaSpeech(
     responseFormat?: "wav" | "pcm";
     saveDir?: string;
     saveFilename?: string;
+    filename?: string;
     playOnServer?: boolean;
   },
 ): Promise<{
@@ -3625,6 +3627,7 @@ export async function runOllamaSpeech(
   durationSecondsEstimate: number;
   audioId: string;
   audioUrl: string;
+  savedFilePath: string | null;
   savedRelativePath: string | null;
   playedOnOsSpeaker: boolean;
   playerCommand: string;
@@ -3734,15 +3737,17 @@ export async function runOllamaSpeech(
     createdAt: Date.now(),
   });
 
+  const requestedSaveFilename = payload.saveFilename || payload.filename;
+  let savedFilePath: string | null = null;
   let savedRelativePath: string | null = null;
-  if (mode === "file" || payload.saveFilename) {
+  if (mode === "file" || requestedSaveFilename) {
     const folderRel = payload.saveDir ? String(payload.saveDir) : ".";
     const folderAbs = resolveSandboxPath(ctx, folderRel);
     assertCreatable(ctx, folderAbs);
     ensureDirSyncWithBun(folderAbs);
     const ext = responseFormat === "pcm" ? ".pcm" : ".wav";
     const prefix = baseModelName(effectiveModel) || "speech";
-    const rawFileName = bunBasename(String(payload.saveFilename || `${prefix}_${voice.toLowerCase()}_${Date.now()}${ext}`).trim());
+    const rawFileName = bunBasename(String(requestedSaveFilename || `${prefix}_${voice.toLowerCase()}_${Date.now()}${ext}`).trim());
     if (!rawFileName || rawFileName === "." || rawFileName === "..") {
       throw new FmError("BAD_NAME", "Invalid output filename.");
     }
@@ -3750,6 +3755,7 @@ export async function runOllamaSpeech(
     const outAbs = bunJoinPath(folderAbs, safeFileName);
     assertModifiable(ctx, outAbs);
     await Bun.write(outAbs, combinedBytes);
+    savedFilePath = outAbs;
     savedRelativePath = toSandboxRelative(ctx, outAbs);
   }
 
@@ -3778,6 +3784,7 @@ export async function runOllamaSpeech(
     durationSecondsEstimate,
     audioId,
     audioUrl: `/api/ollama/audio?id=${encodeURIComponent(audioId)}`,
+    savedFilePath,
     savedRelativePath,
     playedOnOsSpeaker,
     playerCommand,

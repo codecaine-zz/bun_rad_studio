@@ -15,15 +15,20 @@ export function embeddedUrl(id) {
 }
 
 const frames = new Set();
-let listening = false;
+const listeningWindows = new WeakSet();
+let themeSubscribed = false;
 
-function ensureMessageBridge() {
-  if (listening || typeof window === "undefined" || typeof window.addEventListener !== "function") return;
-  listening = true;
-  window.addEventListener("message", onFrameMessage);
-  on("theme-changed", (payload) => {
-    for (const f of frames) syncFrameTheme(f, payload);
-  });
+function ensureMessageBridge(targetWin = typeof window !== "undefined" ? window : null) {
+  if (targetWin && typeof targetWin.addEventListener === "function" && !listeningWindows.has(targetWin)) {
+    listeningWindows.add(targetWin);
+    targetWin.addEventListener("message", onFrameMessage);
+  }
+  if (!themeSubscribed) {
+    themeSubscribed = true;
+    on("theme-changed", (payload) => {
+      for (const f of frames) syncFrameTheme(f, payload);
+    });
+  }
 }
 
 ensureMessageBridge();
@@ -75,7 +80,7 @@ export function mountEmbedded(root, { id, title, note }) {
   });
   frame.addEventListener("load", () => syncFrameTheme(frame));
   frames.add(frame);
-  ensureMessageBridge();
+  ensureMessageBridge(root?.ownerDocument?.defaultView || (typeof window !== "undefined" ? window : null));
   const expanded = isPowerExpanded();
   const expandBtn = h("button", {
     type: "button",

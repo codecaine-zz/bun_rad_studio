@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { startFileManagerServer } from "../src/features/filemanager/fmServer";
 import { encodeFloat32SamplesToWav, parseSkillFrontmatter } from "../src/features/filemanager/fmBionic";
+import { ensureDirectoryPure } from "../src/features/filemanager/fmOllama";
 
 describe("Codecaine File Manager — Built-In LM Studio Bionic AI Studio & Agent Hub", () => {
   let mockBionicServer: ReturnType<typeof Bun.serve>;
@@ -16,7 +17,8 @@ describe("Codecaine File Manager — Built-In LM Studio Bionic AI Studio & Agent
   beforeAll(async () => {
     prevBionicHost = process.env.BIONIC_HOST;
     tempRoot = `/tmp/fm_bionic_test_${Date.now()}`;
-    Bun.spawnSync(["mkdir", "-p", `${tempRoot}/home/docs`, `${tempRoot}/data`]);
+    ensureDirectoryPure(`${tempRoot}/home/docs`);
+    ensureDirectoryPure(`${tempRoot}/data`);
 
     await Bun.write(
       `${tempRoot}/home/docs/bionic_auth.ts`,
@@ -187,8 +189,15 @@ describe("Codecaine File Manager — Built-In LM Studio Bionic AI Studio & Agent
       token: "test-bionic-secret-token",
       context: {
         home: `${tempRoot}/home`,
+        sandboxRoot: `${tempRoot}/home`,
         dataDir: `${tempRoot}/data`,
-        platform: "darwin",
+        ollama: {
+          platform: "darwin",
+          arch: "arm64",
+          totalRamBytes: 48 * 1024 ** 3,
+          cpuModel: "Apple M4 Pro",
+          cpuCores: 14,
+        },
       },
     });
     fmUrl = `http://127.0.0.1:${fmServer.port}`;
