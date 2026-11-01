@@ -25,8 +25,9 @@ function stemOf(name) {
 const READABLE_EXTS = new Set([
   "txt", "md", "markdown", "rst", "org", "adoc", "asciidoc", "tex", "textile", "wiki", "mediawiki", "log",
   "html", "htm", "xhtml", "svg", "xml", "json", "jsonl", "ndjson", "yaml", "yml", "toml", "ini", "cfg", "conf", "env", "properties", "plist",
-  "csv", "tsv", "xlsx", "xlsm", "ods",
-  "docx", "odt", "rtf", "rtfd", "doc", "pages", "epub", "fb2", "mobi", "azw", "azw3",
+  "csv", "tsv", "xlsx", "xlsm", "ods", "numbers",
+  "docx", "odt", "rtf", "rtfd", "doc", "pages", "key", "epub", "ibooks", "fb2", "mobi", "azw", "azw3",
+  "textbundle", "scriv", "ulysses", "oo3", "mindnode", "graffle", "playground", "playgroundbook",
   "pptx", "ppsx", "odp", "pdf", "ipynb",
   "srt", "vtt", "sbv", "ass", "ssa", "lrc", "ics", "vcs", "vcf", "vcard",
   "js", "mjs", "cjs", "ts", "tsx", "jsx", "py", "rs", "go", "java", "c", "cpp", "h", "hpp", "cs", "rb", "php", "sh", "bash", "zsh", "sql", "css",

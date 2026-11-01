@@ -83,7 +83,7 @@ export function entryMatchesKindFilter(entry, kind) {
   const ext = dot > 0 ? n.slice(dot + 1) : String(entry.ext || "").replace(/^\./, "").toLowerCase();
   if (kind === "image" || kind === "images") return k === "image" || /^(png|jpe?g|gif|webp|svg|bmp|ico|avif|tiff?|heic)$/.test(ext);
   if (kind === "media") return k === "audio" || k === "video" || /^(mp3|wav|ogg|flac|m4a|aac|opus|mp4|mkv|webm|mov|avi|m3u8?)$/.test(ext);
-  if (kind === "document" || kind === "docs") return isDocPkg || k === "pdf" || k === "document" || /^(pdf|md|txt|rtf|rtfd|doc|docx|odt|pages|epub|tex)$/.test(ext);
+  if (kind === "document" || kind === "docs") return isDocPkg || k === "pdf" || k === "document" || k === "spreadsheet" || k === "presentation" || /^(pdf|md|txt|rtf|rtfd|doc|docx|odt|pages|numbers|key|epub|ibooks|textbundle|scriv|ulysses|oo3|mindnode|graffle|playground|playgroundbook|tex)$/.test(ext);
   if (kind === "code") return k === "code" || /^(ts|tsx|js|jsx|mjs|cjs|py|rs|go|c|cpp|h|hpp|java|kt|swift|rb|php|sh|zsh|bash|html?|css|scss|less|vue|svelte|astro|sql|lua|zig|toml|ya?ml)$/.test(ext) || /^(dockerfile|makefile|justfile|\.gitignore|\.env.*)$/.test(n);
   if (kind === "archive" || kind === "archives") return k === "archive" || /^(zip|tar|gz|tgz|bz2|xz|7z|rar|zst|radenc)$/.test(ext);
   if (kind === "data") return /^(json|jsonl|csv|tsv|parquet|sqlite|sqlite3|db|ddb|duckdb|xml|ini|conf|env|lock)$/.test(ext);

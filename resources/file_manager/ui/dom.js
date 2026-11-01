@@ -1051,7 +1051,7 @@ export function classifyFolderTopic(name) {
 }
 
 function isDocBundleName(name) {
-  return /\.(?:epub|rtfd)$/i.test(String(name || "").trim());
+  return /\.(?:epub|ibooks|rtfd|textbundle|scriv|ulysses|pages|numbers|key|playground|playgroundbook|oo3|mindnode|graffle)$/i.test(String(name || "").trim());
 }
 
 /** Resolves the rich semantic metadata entry from `SYSTEM_ICON_CATALOG` (260+ system icons) for any file or folder name. */

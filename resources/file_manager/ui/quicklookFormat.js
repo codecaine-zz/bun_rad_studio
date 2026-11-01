@@ -5,10 +5,253 @@ import { rawUrl } from "./api.js";
 import { detectLanguage, languageInfo } from "./codeLang.js";
 import { extractSymbols, tokenizeText } from "./codeLogic.js";
 import { renderMarkdown } from "./codePreview.js";
+import { copyToClipboard, flashCopied } from "./copyclip.js";
 import { openInSqliteStudio } from "./dbFiles.js";
 import { h, iconFor } from "./dom.js";
+import { toast } from "./menus.js";
 import { openPower } from "./power.js";
 import { extensionOf, formatDate, formatSize } from "./util.js";
+
+let cachedQuickLookSelection = "";
+
+export function setCachedQuickLookSelection(text) {
+  cachedQuickLookSelection = String(text ?? "");
+}
+
+export function getSelectedTextInQuickLook(rootEl = null) {
+  if (typeof window === "undefined" || typeof window.getSelection !== "function") return "";
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return "";
+  const text = sel.toString();
+  if (!text || !text.trim()) return "";
+  const scope = rootEl || (typeof document !== "undefined" ? document.querySelector(".ql-body, .ql") : null);
+  if (scope) {
+    const a = sel.anchorNode;
+    const f = sel.focusNode;
+    if ((a && !scope.contains(a)) && (f && !scope.contains(f))) return "";
+  }
+  return text;
+}
+
+function tableElementToTsv(table) {
+  if (!table) return "";
+  return [...table.querySelectorAll("tr")]
+    .map((tr) => [...tr.querySelectorAll("th, td")].map((c) => (c.textContent || "").trim()).join("\t"))
+    .filter(Boolean)
+    .join("\n");
+}
+
+function blocksToPlainText(blocks = []) {
+  return blocks
+    .map((b) => (b.type === "table" && Array.isArray(b.rows) ? b.rows.map((r) => r.join("\t")).join("\n") : b.text || ""))
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+export function extractQuickLookPreviewText(entry, preview, rootEl = null) {
+  const scope = rootEl || (typeof document !== "undefined" ? document.querySelector(".ql-body") : null);
+  const rich = preview?.rich;
+  if (rich) {
+    switch (rich.kind) {
+      case "document": {
+        const chapSelect = scope?.querySelector?.(".ql-fmt-select");
+        const chapIdx = chapSelect ? Number(chapSelect.value) : -1;
+        if (chapIdx >= 0 && rich.chapters?.[chapIdx]) {
+          const ch = rich.chapters[chapIdx];
+          return [ch.title || "", blocksToPlainText(ch.blocks || [])].filter(Boolean).join("\n\n");
+        }
+        return (
+          rich.plainText ||
+          blocksToPlainText(rich.blocks || []) ||
+          (preview?.type === "text" ? preview.text : "") ||
+          ""
+        );
+      }
+      case "pdf":
+        return rich.extractedText || "";
+      case "presentation":
+        return (rich.slides || [])
+          .map((s) =>
+            [
+              `Slide ${s.number}: ${s.title || ""}`.trim(),
+              ...(s.bullets || []).map((b) => `- ${b}`),
+              s.notes ? `Speaker notes: ${s.notes}` : "",
+            ]
+              .filter(Boolean)
+              .join("\n"),
+          )
+          .join("\n\n");
+      case "spreadsheet": {
+        const domTable = scope?.querySelector?.(".ql-fmt-table");
+        const domTsv = tableElementToTsv(domTable);
+        if (domTsv) return domTsv;
+        const s = rich.sheets?.[0];
+        if (!s) return "";
+        return [s.headers.join("\t"), ...(s.rows || []).map((r) => r.join("\t"))].filter(Boolean).join("\n");
+      }
+      case "sqlite": {
+        const sqlPre = scope?.querySelector?.(".ql-rich-pre");
+        const domTable = scope?.querySelector?.(".ql-fmt-table");
+        const domTsv = tableElementToTsv(domTable);
+        if (domTsv || sqlPre?.textContent) {
+          return [domTsv, sqlPre?.textContent || ""].filter(Boolean).join("\n\n");
+        }
+        const t = rich.tables?.[0];
+        if (!t) return "";
+        const headers = (t.columns || []).map((c) => c.name).join("\t");
+        return [headers, ...(t.rows || []).map((r) => r.join("\t"))].filter(Boolean).join("\n");
+      }
+      case "structured":
+        return (preview?.type === "text" && preview.text) || rich.formattedText || (rich.data !== undefined ? JSON.stringify(rich.data, null, 2) : "");
+      case "notebook":
+        return (rich.cells || [])
+          .map((c) => [c.source || "", ...(c.outputs || []).map((o) => o.text || "")].filter(Boolean).join("\n"))
+          .filter(Boolean)
+          .join("\n\n");
+      case "subtitles":
+        return (
+          (preview?.type === "text" && preview.text) ||
+          (rich.cues || [])
+            .map((c) => `${c.start}${c.end ? ` --> ${c.end}` : ""} ${c.speaker ? `[${c.speaker}] ` : ""}${c.text}`)
+            .join("\n")
+        );
+      case "playlist":
+        return (
+          (preview?.type === "text" && preview.text) ||
+          (rich.tracks || []).map((t) => `${t.index}. ${t.title}${t.duration ? ` (${t.duration})` : ""} — ${t.path}`).join("\n")
+        );
+      case "calendar":
+        return (
+          (preview?.type === "text" && preview.text) ||
+          (rich.events || [])
+            .map((ev) =>
+              [
+                ev.summary,
+                `Starts: ${ev.start || "—"}`,
+                ev.end ? `Ends: ${ev.end}` : "",
+                ev.location ? `Location: ${ev.location}` : "",
+                ev.description || "",
+              ]
+                .filter(Boolean)
+                .join("\n"),
+            )
+            .join("\n\n")
+        );
+      case "contact":
+        return (
+          (preview?.type === "text" && preview.text) ||
+          (rich.contacts || [])
+            .map((c) =>
+              [
+                c.fullName,
+                [c.title, c.org].filter(Boolean).join(" · "),
+                ...(c.phones || []),
+                ...(c.emails || []),
+                ...(c.addresses || []),
+                c.url || "",
+                c.note || "",
+              ]
+                .filter(Boolean)
+                .join("\n"),
+            )
+            .join("\n\n")
+        );
+      case "certificate":
+        return (
+          (preview?.type === "text" && preview.text) ||
+          (rich.blocks || [])
+            .map((b) =>
+              [b.label, `SHA-256: ${b.sha256}`, `SHA-1: ${b.sha1}`, ...(b.details || []).map(([k, v]) => `${k}: ${v}`)].join("\n"),
+            )
+            .join("\n\n")
+        );
+      case "model3d":
+        return (preview?.type === "text" && preview.text) || (rich.meta || []).map(([k, v]) => `${k}: ${v}`).join("\n");
+      case "diff":
+        return (
+          (preview?.type === "text" && preview.text) ||
+          (rich.files || [])
+            .map((f) =>
+              [f.newFile || f.oldFile, ...(f.hunks || []).flatMap((hk) => [hk.header, ...(hk.lines || []).map((l) => `${l.type}${l.text}`)])].join("\n"),
+            )
+            .join("\n\n")
+        );
+      case "log": {
+        const logList = scope?.querySelector?.(".ql-log-list");
+        if (logList && !logList.closest("[hidden]")) {
+          const lines = [...logList.querySelectorAll(".ql-log-line")].map((row) => {
+            const lvl = row.querySelector(".ql-log-badge")?.textContent || "";
+            const msg = row.querySelector(".ql-log-msg")?.textContent || "";
+            return `[${lvl}] ${msg}`.trim();
+          });
+          if (lines.length) return lines.join("\n");
+        }
+        return (preview?.type === "text" && preview.text) || (rich.entries || []).map((e) => `[${e.level}] ${e.text}`).join("\n");
+      }
+      case "archive":
+        return rich.innerText || (rich.entries || []).map((e) => e.name).join("\n");
+      case "binary": {
+        const visiblePre = scope?.querySelector?.("pre.ql-hex-dump:not([hidden])");
+        if (visiblePre?.textContent) return visiblePre.textContent;
+        return (rich.hexLines || []).join("\n");
+      }
+    }
+  }
+  if (preview?.type === "text" && typeof preview.text === "string") {
+    return preview.text;
+  }
+  return "";
+}
+
+export function buildQuickLookCopyButtons(entry, preview, getContainer = null) {
+  const copyAllBtn = h(
+    "button",
+    {
+      type: "button",
+      class: "code-btn code-small ql-copy-all-btn",
+      "data-copy-ui": "",
+      title: "Copy all text in this preview to the clipboard",
+      onmousedown: (e) => e.preventDefault(),
+      onclick: async () => {
+        const host = getContainer?.() ?? copyAllBtn.closest(".ql-body, .ql-fmt-wrap, .ql");
+        const text = extractQuickLookPreviewText(entry, preview, host);
+        if (!text) {
+          toast("There is no text in this preview to copy.", { kind: "info" });
+          return;
+        }
+        if (await copyToClipboard(text, { what: `all preview text from ${entry?.name || "preview"}` })) {
+          flashCopied(copyAllBtn, "Copied All ✓");
+        }
+      },
+    },
+    "📋 Copy All Text",
+  );
+
+  const copySelBtn = h(
+    "button",
+    {
+      type: "button",
+      class: "code-btn code-small ql-copy-sel-btn",
+      "data-copy-ui": "",
+      title: "Copy the highlighted/selected text in this preview to the clipboard",
+      onmousedown: (e) => e.preventDefault(),
+      onclick: async () => {
+        const host = getContainer?.() ?? copySelBtn.closest(".ql-body, .ql-fmt-wrap, .ql");
+        const selText = getSelectedTextInQuickLook(host) || cachedQuickLookSelection;
+        if (selText) {
+          if (await copyToClipboard(selText, { what: `selected text (${selText.length.toLocaleString("en-US")} chars)` })) {
+            flashCopied(copySelBtn, "Copied Selection ✓");
+          }
+          return;
+        }
+        toast("Select some text in the preview first, or click Copy All Text.", { kind: "info" });
+      },
+    },
+    "✂️ Copy Selected",
+  );
+
+  return h("span", { class: "ql-copy-group", role: "group", "aria-label": "Copy preview text", "data-copy-ui": "" }, copyAllBtn, copySelBtn);
+}
 
 function metaChips(meta = []) {
   const valid = meta.filter(([k, v]) => k && v && !/\b(?:null|undefined)\b/i.test(String(v)));
@@ -1223,47 +1466,80 @@ function renderBinaryQuickLook(entry, rich) {
  * Renders the formatted Quick Look body when `preview.rich` is available or when a text file is a known programming language.
  * Returns null when Quick Look should use its default plain text / CSV / Markdown view.
  */
+function attachCopyButtonsToRichHead(node, entry, preview) {
+  if (!node) return null;
+  if (preview?.rich?.kind === "font") return node;
+  const head = node.querySelector?.(".ql-fmt-head");
+  if (head && !head.querySelector(".ql-copy-group")) {
+    if (!head.querySelector(".code-grow")) {
+      head.append(h("span", { class: "code-grow" }));
+    }
+    head.append(buildQuickLookCopyButtons(entry, preview, () => node));
+  }
+  return node;
+}
+
 export function renderRichQuickLook(entry, preview, helpers = {}) {
   const rich = preview?.rich;
+  let node = null;
   if (rich) {
     switch (rich.kind) {
       case "spreadsheet":
-        return renderSpreadsheetQuickLook(entry, rich);
+        node = renderSpreadsheetQuickLook(entry, rich);
+        break;
       case "document":
-        return renderDocumentQuickLook(entry, preview, rich, helpers);
+        node = renderDocumentQuickLook(entry, preview, rich, helpers);
+        break;
       case "presentation":
-        return renderPresentationQuickLook(entry, rich);
+        node = renderPresentationQuickLook(entry, rich);
+        break;
       case "pdf":
-        return renderPdfQuickLook(entry, rich);
+        node = renderPdfQuickLook(entry, rich);
+        break;
       case "sqlite":
-        return renderSqliteQuickLook(entry, rich, helpers);
+        node = renderSqliteQuickLook(entry, rich, helpers);
+        break;
       case "archive":
-        return renderArchiveQuickLook(entry, rich);
+        node = renderArchiveQuickLook(entry, rich);
+        break;
       case "font":
-        return renderFontQuickLook(entry, rich);
+        node = renderFontQuickLook(entry, rich);
+        break;
       case "structured":
-        return renderStructuredQuickLook(entry, preview, rich);
+        node = renderStructuredQuickLook(entry, preview, rich);
+        break;
       case "notebook":
-        return renderNotebookQuickLook(entry, preview, rich);
+        node = renderNotebookQuickLook(entry, preview, rich);
+        break;
       case "subtitles":
-        return renderSubtitlesQuickLook(entry, preview, rich);
+        node = renderSubtitlesQuickLook(entry, preview, rich);
+        break;
       case "playlist":
-        return renderPlaylistQuickLook(entry, preview, rich);
+        node = renderPlaylistQuickLook(entry, preview, rich);
+        break;
       case "calendar":
-        return renderCalendarQuickLook(entry, preview, rich);
+        node = renderCalendarQuickLook(entry, preview, rich);
+        break;
       case "contact":
-        return renderContactQuickLook(entry, preview, rich);
+        node = renderContactQuickLook(entry, preview, rich);
+        break;
       case "certificate":
-        return renderCertificateQuickLook(entry, preview, rich);
+        node = renderCertificateQuickLook(entry, preview, rich);
+        break;
       case "model3d":
-        return renderModel3dQuickLook(entry, preview, rich);
+        node = renderModel3dQuickLook(entry, preview, rich);
+        break;
       case "diff":
-        return renderDiffQuickLook(entry, preview, rich);
+        node = renderDiffQuickLook(entry, preview, rich);
+        break;
       case "log":
-        return renderLogQuickLook(entry, preview, rich);
+        node = renderLogQuickLook(entry, preview, rich);
+        break;
       case "binary":
-        return renderBinaryQuickLook(entry, rich);
+        node = renderBinaryQuickLook(entry, rich);
+        break;
     }
+    if (node) return attachCopyButtonsToRichHead(node, entry, preview);
   }
 
   // Syntax-highlighted source code for programming languages
@@ -1282,11 +1558,15 @@ export function renderRichQuickLook(entry, preview, helpers = {}) {
         ["Lines", lineCount.toLocaleString("en-US")],
         ...(symbols.length ? [["Symbols", String(symbols.length)]] : []),
       ];
-      return h(
-        "div",
-        { class: "ql-textwrap ql-fmt-wrap" },
-        h("div", { class: "ql-fmt-head" }, h("span", { class: "ql-fmt-badge" }, lang.name), metaChips(meta)),
-        codePre,
+      return attachCopyButtonsToRichHead(
+        h(
+          "div",
+          { class: "ql-textwrap ql-fmt-wrap" },
+          h("div", { class: "ql-fmt-head" }, h("span", { class: "ql-fmt-badge" }, lang.name), metaChips(meta)),
+          codePre,
+        ),
+        entry,
+        preview,
       );
     }
   }

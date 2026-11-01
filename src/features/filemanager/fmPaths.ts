@@ -234,7 +234,7 @@ const EXT_GROUPS: Array<[FileKind["kind"], string, string, string[]]> = [
   ["video", "🎞️", "video", ["mp4", "mov", "mkv", "avi", "webm", "wmv", "flv", "m4v", "mpg", "mpeg"]],
   ["audio", "🎵", "audio file", ["mp3", "wav", "flac", "aac", "ogg", "m4a", "wma", "opus", "aiff", "mid", "midi"]],
   ["pdf", "📕", "PDF document", ["pdf"]],
-  ["document", "📄", "document", ["doc", "docx", "odt", "rtf", "pages", "epub", "mobi", "fb2"]],
+  ["document", "📄", "document", ["doc", "docx", "odt", "rtf", "rtfd", "pages", "epub", "ibooks", "mobi", "fb2", "textbundle", "scriv", "ulysses", "oo3", "mindnode", "graffle", "playground", "playgroundbook"]],
   ["spreadsheet", "📊", "spreadsheet", ["xls", "xlsx", "xlsm", "ods", "csv", "tsv", "numbers"]],
   ["presentation", "📽️", "presentation", ["ppt", "pptx", "ppsx", "odp", "key"]],
   ["archive", "🗜️", "archive", ["zip", "rar", "7z", "tar", "gz", "tgz", "bz2", "tbz2", "tbz", "xz", "txz", "zst", "tzst", "lzma", "tlz", "lz4", "br", "z", "cab", "iso", "whl", "cbz", "cpio", "lzh", "lha", "xar", "ar", "ipa", "xpi"]],
@@ -260,16 +260,36 @@ export function extensionOf(name: string): string {
   return ext.replace(/^\./, "").toLowerCase();
 }
 
+export const DOCUMENT_PACKAGE_EXTS = [
+  "epub",
+  "ibooks",
+  "rtfd",
+  "textbundle",
+  "scriv",
+  "ulysses",
+  "pages",
+  "numbers",
+  "key",
+  "playground",
+  "playgroundbook",
+  "oo3",
+  "mindnode",
+  "graffle",
+] as const;
+
 export function isDocumentPackageName(name: string): boolean {
-  return /\.(?:epub|rtfd)$/i.test(name.trim());
+  return /\.(?:epub|ibooks|rtfd|textbundle|scriv|ulysses|pages|numbers|key|playground|playgroundbook|oo3|mindnode|graffle)$/i.test(name.trim());
 }
 
 export function classify(name: string, isDir: boolean, hasExecBit = false): FileKind {
   if (isDir) {
     const lower = name.toLowerCase();
     if (lower.endsWith(".app")) return { kind: "program", icon: "⚙️", label: "Application", preview: null, program: true };
-    if (lower.endsWith(".epub")) return { kind: "document", icon: "📕", label: "document", preview: null, program: false };
-    if (lower.endsWith(".rtfd")) return { kind: "document", icon: "📄", label: "document", preview: null, program: false };
+    if (lower.endsWith(".epub") || lower.endsWith(".ibooks")) return { kind: "document", icon: "📕", label: "document", preview: null, program: false };
+    if (lower.endsWith(".numbers")) return { kind: "spreadsheet", icon: "📊", label: "spreadsheet", preview: null, program: false };
+    if (lower.endsWith(".key")) return { kind: "presentation", icon: "📽️", label: "presentation", preview: null, program: false };
+    if (lower.endsWith(".playground") || lower.endsWith(".playgroundbook")) return { kind: "document", icon: "💻", label: "document", preview: null, program: false };
+    if (isDocumentPackageName(lower)) return { kind: "document", icon: "📄", label: "document", preview: null, program: false };
     return { kind: "folder", icon: "📁", label: "Folder", preview: null, program: false };
   }
   const ext = extensionOf(name);

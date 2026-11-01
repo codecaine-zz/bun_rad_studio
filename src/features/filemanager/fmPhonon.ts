@@ -1600,8 +1600,8 @@ export async function extractPlainTextFromFile(
   } else {
     if (st.size === 0) throw new FmError("EMPTY_FILE", "This file is empty.");
 
-    // 0. Full-Book EPUB Extractor (reads all spine chapters without preview limits)
-    if (lastExt === "epub") {
+    // 0. Full-Book EPUB / iBooks Extractor (reads all spine chapters without preview limits)
+    if (lastExt === "epub" || lastExt === "ibooks") {
       const fullEpub = await extractFullEpubRich(filePath, false).catch(() => null);
       if (fullEpub) {
         const extracted = richPreviewToPlainText(fullEpub);
@@ -1616,7 +1616,7 @@ export async function extractPlainTextFromFile(
   }
 
   // 1. Spreadsheets (.xlsx, .xlsm, .ods, .csv, .tsv) via full built-in reader
-  if (["xlsx", "xlsm", "ods", "csv", "tsv"].includes(lastExt) && st.size <= 50 * 1024 * 1024) {
+  if (!rawText && !st.isDirectory() && ["xlsx", "xlsm", "ods", "csv", "tsv"].includes(lastExt) && st.size <= 50 * 1024 * 1024) {
     try {
       const kind = lastExt === "ods" ? "ods" : lastExt === "csv" ? "csv" : lastExt === "tsv" ? "tsv" : "xlsx";
       if (kind === "xlsx" || kind === "ods") {

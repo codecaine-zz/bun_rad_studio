@@ -41,12 +41,17 @@ export function plural(n, word, pluralWord = `${word}s`) {
 }
 
 export function isDocumentPackageName(name) {
-  return /\.(?:epub|rtfd)$/i.test(String(name || "").trim());
+  return /\.(?:epub|ibooks|rtfd|textbundle|scriv|ulysses|pages|numbers|key|playground|playgroundbook|oo3|mindnode|graffle)$/i.test(String(name || "").trim());
 }
 
 export function isDocumentPackageEntry(entry) {
   if (!entry || !entry.isDir) return false;
-  return isDocumentPackageName(entry.name || entry.path || "") || entry.kind === "document";
+  return (
+    isDocumentPackageName(entry.name || entry.path || "") ||
+    entry.kind === "document" ||
+    entry.kind === "spreadsheet" ||
+    entry.kind === "presentation"
+  );
 }
 
 const KIND_ORDER = (e) => (e.isDir && !isDocumentPackageEntry(e) ? 0 : 1);

@@ -360,7 +360,7 @@ function escapeRtfText(s: string): string {
   return out;
 }
 
-function formatEpubDocumentOutput(
+export function formatEpubDocumentOutput(
   rich: RichDocumentPreview,
   fallbackTitle: string,
   to: string,

@@ -469,7 +469,12 @@ export async function readImageAsBase64(absPath: string): Promise<string> {
 
 export async function readTextFileSnippet(absPath: string, maxChars = 24_000): Promise<string> {
   const ext = extnameLower(absPath);
-  const richExts = new Set(["epub", "rtfd", "docx", "odt", "rtf", "fb2", "pdf", "pptx", "ppsx", "odp", "xlsx", "xlsm", "ods"]);
+  const richExts = new Set([
+    "epub", "ibooks", "rtfd", "textbundle", "scriv", "ulysses",
+    "pages", "numbers", "key", "playground", "playgroundbook",
+    "oo3", "mindnode", "graffle",
+    "docx", "odt", "rtf", "fb2", "pdf", "pptx", "ppsx", "odp", "xlsx", "xlsm", "ods",
+  ]);
   const file = Bun.file(absPath);
   const isRegularFile = await file.exists();
 

@@ -7,6 +7,7 @@ import { $, announce, h, iconFor } from "./dom.js";
 import { menuIsOpen, showMenu, toast } from "./menus.js";
 import { visibleEntries } from "./nav.js";
 import { copyImageFile, copyTextFile } from "./clipfile.js";
+import { copyToClipboard, flashCopied } from "./copyclip.js";
 import { copyPathOf, openEntry, revealEntry } from "./ops.js";
 import { openInCode } from "./code.js";
 import { isKnownTextName } from "./codeLang.js";
@@ -22,7 +23,13 @@ import { activePane } from "./pane.js";
 import { focusIndex, selectedEntries } from "./selection.js";
 import { inTrash, on, state } from "./state.js";
 import { parseTable } from "./quicklookTable.js";
-import { renderRichQuickLook } from "./quicklookFormat.js";
+import {
+  buildQuickLookCopyButtons,
+  extractQuickLookPreviewText,
+  getSelectedTextInQuickLook,
+  renderRichQuickLook,
+  setCachedQuickLookSelection,
+} from "./quicklookFormat.js";
 import { openPower } from "./power.js";
 import { isStudioPicture } from "./imageStudio.js";
 import { isStudioMedia } from "./mediaStudio.js";
@@ -76,6 +83,41 @@ function setCopy(offer) {
   if (offer) {
     ql.copyBtn.textContent = offer.label;
     ql.copyBtn.title = offer.tip;
+  }
+}
+
+function setRichCopyIfAvailable(entry, preview, richNode) {
+  const kind = preview?.rich?.kind;
+  if (!kind || kind === "binary" || kind === "font" || kind === "model3d") return;
+  const text = extractQuickLookPreviewText(entry, preview, richNode);
+  if (!text || !text.trim()) return;
+  setCopy({
+    label: "Copy text",
+    tip: "Put all text in this preview on the clipboard",
+    run: async () => {
+      const currentText = extractQuickLookPreviewText(entry, preview, ql?.body ?? richNode);
+      if (await copyToClipboard(currentText || text, { what: `all preview text from ${entry.name}` })) {
+        flashCopied(ql.copyBtn, "Copied ✓");
+      }
+    },
+  });
+}
+
+function onSelectionChange() {
+  if (!ql) return;
+  const selText = getSelectedTextInQuickLook(ql.body);
+  setCachedQuickLookSelection(selText);
+  if (ql.copySelBtn) {
+    ql.copySelBtn.hidden = !selText;
+    ql.copySelBtn.textContent = selText
+      ? `Copy selected (${selText.length.toLocaleString("en-US")} chars)`
+      : "Copy selected";
+  }
+  for (const btn of ql.body.querySelectorAll(".ql-copy-sel-btn")) {
+    btn.classList.toggle("active", Boolean(selText));
+    btn.textContent = selText
+      ? `✂️ Copy Selected (${selText.length.toLocaleString("en-US")} chars)`
+      : "✂️ Copy Selected";
   }
 }
 
@@ -223,7 +265,10 @@ async function renderBody(entry, mine) {
     }
     case "thumb": {
       const richNode = renderRichQuickLook(entry, preview, { onClose: closeQuickLook });
-      if (richNode) return open(richNode);
+      if (richNode) {
+        setRichCopyIfAvailable(entry, preview, richNode);
+        return open(richNode);
+      }
       const img = h("img", { class: "ql-image", src: thumbUrl(entry.path), alt: `First page or picture of ${entry.name}`, onerror: () => open(failed(entry, "This computer couldn't make a preview of it.")) });
       return open(h("div", { class: "ql-doc" }, img, h("p", { class: "ql-note" }, "A picture of the first page, made by your computer's own Quick Look.")));
     }
@@ -236,7 +281,8 @@ async function renderBody(entry, mine) {
         if (rows.length) {
           const width = Math.max(...rows.map((r) => r.length));
           const body = rows.slice(1).map((r) => h("tr", {}, ...Array.from({ length: width }, (_, i) => h("td", {}, r[i] ?? ""))));
-          return open(h("div", { class: "ql-tablewrap", tabindex: "0", "aria-label": `Table ${entry.name}` }, h("table", { class: "ql-table" }, h("thead", {}, h("tr", {}, ...Array.from({ length: width }, (_, i) => h("th", { scope: "col" }, rows[0][i] ?? "")))), h("tbody", {}, ...body)), note, rows.length >= 300 ? h("p", { class: "ql-note" }, "Showing the first 300 rows.") : null));
+          const copyBar = h("div", { class: "ql-fmt-head ql-plain-copybar" }, h("span", { class: "ql-fmt-badge" }, `${ext.toUpperCase()} Table`), h("span", { class: "code-grow" }), buildQuickLookCopyButtons(entry, preview, () => ql?.body));
+          return open(h("div", { class: "ql-tablewrap", tabindex: "0", "aria-label": `Table ${entry.name}` }, copyBar, h("table", { class: "ql-table" }, h("thead", {}, h("tr", {}, ...Array.from({ length: width }, (_, i) => h("th", { scope: "col" }, rows[0][i] ?? "")))), h("tbody", {}, ...body)), note, rows.length >= 300 ? h("p", { class: "ql-note" }, "Showing the first 300 rows.") : null));
         }
       }
       if (isMarkdownName(entry.name)) {
@@ -249,6 +295,8 @@ async function renderBody(entry, mine) {
           onOpenLink: (href) => openQuickLookMarkdownLink(entry, href),
           resolveImageSrc: (src) => resolveQuickLookImageSrc(entry, src),
         });
+        const mdBar = mdWrap.querySelector(".code-md-toolbar");
+        if (mdBar) mdBar.append(buildQuickLookCopyButtons(entry, preview, () => ql?.body));
         if (note) mdWrap.append(note);
         ql.foot.textContent = MD_FOOT;
         return open(mdWrap);
@@ -258,11 +306,15 @@ async function renderBody(entry, mine) {
         if (note) richNode.append(note);
         return open(richNode);
       }
-      return open(h("div", { class: "ql-textwrap" }, h("pre", { class: "ql-text", tabindex: "0", "aria-label": `Contents of ${entry.name}` }, preview.text || "(An empty file.)"), note));
+      const plainCopyBar = h("div", { class: "ql-fmt-head ql-plain-copybar" }, h("span", { class: "ql-fmt-badge" }, "Plain Text"), h("span", { class: "code-grow" }), buildQuickLookCopyButtons(entry, preview, () => ql?.body));
+      return open(h("div", { class: "ql-textwrap" }, plainCopyBar, h("pre", { class: "ql-text", tabindex: "0", "aria-label": `Contents of ${entry.name}` }, preview.text || "(An empty file.)"), note));
     }
     default: {
       const richNode = renderRichQuickLook(entry, preview, { onClose: closeQuickLook });
-      if (richNode) return open(richNode);
+      if (richNode) {
+        setRichCopyIfAvailable(entry, preview, richNode);
+        return open(richNode);
+      }
       return open(infoCard(entry, "There is no preview for this kind of file. Press Enter to open it in the program your computer uses for it."));
     }
   }
@@ -328,6 +380,8 @@ async function show(index) {
     ql.foot.textContent = DEFAULT_FOOT;
   }
   setCopy(null);
+  setCachedQuickLookSelection("");
+  if (ql.copySelBtn) ql.copySelBtn.hidden = true;
   setActions(entry);
   ql.icon.textContent = entry.icon || iconFor(entry.name, entry.isDir);
   ql.title.textContent = entry.name;
@@ -343,7 +397,9 @@ export function closeQuickLook() {
   if (!ql) return;
   destroyPlayer();
   destroyGif();
+  setCachedQuickLookSelection("");
   document.removeEventListener("keydown", onKey, true);
+  document.removeEventListener("selectionchange", onSelectionChange);
   ql.backdrop.remove();
   const { opener } = ql;
   ql = null;
@@ -431,7 +487,25 @@ export function openQuickLook(entry = null, pane = activePane()) {
   const count = h("span", { class: "ql-count" });
   const body = h("div", { class: "ql-body", "aria-live": "off" });
   const foot = h("div", { class: "ql-foot" }, DEFAULT_FOOT);
-  const copyBtn = h("button", { type: "button", class: "btn", hidden: true, onclick: () => ql?.copyAction?.() }, "Copy");
+  const copyBtn = h("button", { type: "button", class: "btn", hidden: true, onmousedown: (e) => e.preventDefault(), onclick: () => ql?.copyAction?.() }, "Copy");
+  const copySelBtn = h(
+    "button",
+    {
+      type: "button",
+      class: "btn primary",
+      hidden: true,
+      title: "Copy the selected text in this preview to the clipboard",
+      onmousedown: (e) => e.preventDefault(),
+      onclick: async () => {
+        const selText = getSelectedTextInQuickLook(ql?.body);
+        if (!selText) return;
+        if (await copyToClipboard(selText, { what: `selected text (${selText.length.toLocaleString("en-US")} chars)` })) {
+          flashCopied(copySelBtn, "Copied ✓");
+        }
+      },
+    },
+    "Copy selected",
+  );
   const current = () => ql?.entries[ql.index];
   // Convert, Edit and the dialogs of the More menu work on the selection, which follows Quick Look, so Quick Look steps aside first.
   const thenClose = (fn) => () => { const e = current(); if (!e) return; closeQuickLook(); fn(e); };
@@ -454,16 +528,17 @@ export function openQuickLook(entry = null, pane = activePane()) {
   } }, "More ▾");
   const dialog = h("div", { class: "ql", role: "dialog", "aria-modal": "true", "aria-label": "Quick Look", tabindex: "-1" },
     h("div", { class: "ql-head" }, icon, h("div", { class: "ql-headtext" }, title, sub), count,
-      copyBtn, convertBtn, editBtn, studioBtn,
+      copySelBtn, copyBtn, convertBtn, editBtn, studioBtn,
       h("button", { type: "button", class: "btn", title: "Open it with the program chosen in Settings, or the one your computer uses for it (Enter). Pictures, sound and video go to your computer's program from here.", onclick: () => openCurrent() }, "Open"),
       moreBtn,
       h("button", { type: "button", class: "btn", "aria-label": "Close Quick Look", title: "Close (Space or Esc)", onclick: () => closeQuickLook() }, "Close")),
     body,
     foot);
   const backdrop = h("div", { class: "ql-backdrop", onclick: (ev) => { if (ev.target === backdrop) closeQuickLook(); } }, dialog);
-  ql = { backdrop, dialog, body, icon, title, sub, count, foot, copyBtn, convertBtn, editBtn, studioBtn, player: null, copyAction: null, entries, index, pane, seq: 0, opener: document.activeElement };
+  ql = { backdrop, dialog, body, icon, title, sub, count, foot, copyBtn, copySelBtn, convertBtn, editBtn, studioBtn, player: null, copyAction: null, entries, index, pane, seq: 0, opener: document.activeElement };
   $("#overlay").append(backdrop);
   document.addEventListener("keydown", onKey, true);
+  document.addEventListener("selectionchange", onSelectionChange);
   dialog.focus();
   show(index);
 }

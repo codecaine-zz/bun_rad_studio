@@ -9,7 +9,7 @@
 import { existsSync, promises as fsp } from "fs";
 import * as nodePath from "path";
 import { CATALOG, CATALOG_BY_ID } from "./fmConvCatalog";
-import type { BuiltinJob } from "./fmConvBuiltin";
+import { formatEpubDocumentOutput, type BuiltinJob } from "./fmConvBuiltin";
 import { EXTRACT_LIMITS, Stage, publishFile, publishFolder, removeQuietly, runCommands, sanitizeExtracted, siblingTemp } from "./fmConvExec";
 import { applyPattern, validateOptions, validatePattern, type OptionDef, type OptionValues } from "./fmConvOptions";
 import { runBuiltinInWorker } from "./fmConvRun";
@@ -18,6 +18,7 @@ import { ZipFileWriter } from "./fmConvZip";
 import { absolutePath, assertCreatable, pathApi, type FmContext } from "./fmCore";
 import type { JobStepSpec, JobView, PreparedStep } from "./fmJobs";
 import { FmError, isDocumentPackageName, validateName } from "./fmPaths";
+import { extractFullEpubRich } from "./fmPreview";
 import { explainFailure, pdfEngineFor, resolveTool, toolStatus, type ToolStatus } from "./fmToolDetect";
 import { TOOLS, childEnv, missingCapability, type ToolId } from "./fmTools";
 
@@ -437,13 +438,32 @@ function stepFor(ctx: FmContext, plan: Plan, item: PlanItem, pdfEngine: string |
       for (let i = 0; i < item.originals.length; i++) {
         const orig = item.originals[i]!;
         if (engine.tool !== "builtin" && engine.tool !== "sevenzip" && isDocumentPackageName(p.basename(orig))) {
+          const origExt = extOf(p.basename(orig));
           const st = await fsp.stat(orig).catch(() => null);
-          if (st?.isDirectory()) {
-            const safePkgName = `pkg-${i + 1}-${p.basename(orig).replace(/[^A-Za-z0-9_.-]/g, "_")}`;
-            const packedPath = p.join(stage.dir(), safePkgName);
-            await packDocumentPackageDirToZip(orig, packedPath);
-            resolvedOriginals.push(packedPath);
-            continue;
+          if (origExt === "epub" || engine.tool === "libreoffice") {
+            if (st?.isDirectory()) {
+              const safePkgName = `pkg-${i + 1}-${p.basename(orig).replace(/[^A-Za-z0-9_.-]/g, "_")}`;
+              const packedPath = p.join(stage.dir(), safePkgName);
+              await packDocumentPackageDirToZip(orig, packedPath);
+              resolvedOriginals.push(packedPath);
+              continue;
+            }
+          } else if (st) {
+            const rich = await extractFullEpubRich(orig, st.isDirectory()).catch(() => null);
+            if (rich && (rich.blocks.length > 0 || rich.plainText?.trim())) {
+              const stemTitle = p.basename(orig).replace(/\.[^.]+$/, "");
+              const mdText = formatEpubDocumentOutput(rich, stemTitle, "md", false);
+              const stagedMd = stage.file(`pkg-${i + 1}.md`, mdText);
+              resolvedOriginals.push(stagedMd);
+              continue;
+            }
+            if (st.isDirectory()) {
+              const safePkgName = `pkg-${i + 1}-${p.basename(orig).replace(/[^A-Za-z0-9_.-]/g, "_")}`;
+              const packedPath = p.join(stage.dir(), safePkgName);
+              await packDocumentPackageDirToZip(orig, packedPath);
+              resolvedOriginals.push(packedPath);
+              continue;
+            }
           }
         }
         resolvedOriginals.push(orig);

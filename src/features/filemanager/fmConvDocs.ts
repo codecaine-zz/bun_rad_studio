@@ -9,8 +9,9 @@ import { pathToFileURL } from "url";
 import { optNum, optStr, type OptionValues } from "./fmConvOptions";
 import { choiceOpt, exts, numberOpt, pagesOpt, toggleOpt, type BuildContext, type ConvDef, type Engine } from "./fmConvTypes";
 
-export const DOC_IN = exts("md markdown txt html htm docx odt rtf rtfd epub tex rst org textile");
-const DOC_IN_PLUS = exts("md markdown txt html htm docx odt rtf rtfd epub tex rst org textile adoc asciidoc ipynb wiki mediawiki");
+export const DOC_PKG_EXTS = "epub ibooks rtfd textbundle scriv ulysses pages numbers key playground playgroundbook oo3 mindnode graffle";
+export const DOC_IN = exts(`md markdown txt html htm docx odt rtf ${DOC_PKG_EXTS} tex rst org textile`);
+const DOC_IN_PLUS = exts(`md markdown txt html htm docx odt rtf ${DOC_PKG_EXTS} tex rst org textile adoc asciidoc ipynb wiki mediawiki`);
 const LO_WRITER = exts("doc docx dot dotx rtf wps wpd odt ott sxw pages");
 const LO_CALC = exts("xls xlsx xlsm xlt ods ots numbers");
 const LO_IMPRESS = exts("ppt pptx pps ppsx odp otp key");
@@ -156,18 +157,18 @@ export const DOC_DEFS: ConvDef[] = [
   doc("doc-html", "Convert to a web page (HTML)", "One self-contained page.", "html", [
     pandoc("html", ["-s", "--embed-resources"]),
     { tool: "builtin", accepts: exts("md markdown txt"), builtin: { kind: "md-html" } },
-    { tool: "builtin", accepts: exts("epub rtfd"), builtin: { kind: "epub-doc", params: { to: "html" } } },
+    { tool: "builtin", accepts: exts(DOC_PKG_EXTS), builtin: { kind: "epub-doc", params: { to: "html" } } },
   ], { options: [TOC], inputs: DOC_IN }),
   doc("doc-docx", "Convert to Word (DOCX)", "Opens in Word, Pages and Google Docs.", "docx", [pandoc("docx", []), lo("docx", exts("doc dot wps wpd sxw pages ott"))], { options: [TOC], inputs: new Set([...DOC_IN, "doc", "dot", "wps", "wpd", "sxw", "pages", "ott"]) }),
   doc("doc-odt", "Convert to OpenDocument (ODT)", "Opens in LibreOffice.", "odt", [pandoc("odt", []), lo("odt", exts("doc docx dot dotx wps wpd sxw pages"))], { options: [TOC], inputs: new Set([...DOC_IN, "doc", "dot", "dotx", "wps", "wpd", "sxw", "pages"]) }),
   doc("doc-md", "Convert to Markdown", "Plain text with simple marks.", "md", [
     pandoc("md", ["--wrap=none"]),
-    { tool: "builtin", accepts: exts("epub rtfd"), builtin: { kind: "epub-doc", params: { to: "md" } } },
+    { tool: "builtin", accepts: exts(DOC_PKG_EXTS), builtin: { kind: "epub-doc", params: { to: "md" } } },
   ], { inputs: DOC_IN_PLUS }),
   doc("doc-txt", "Convert to plain text", "Only the words.", "txt", [
     pandoc("txt", ["--wrap=none"]),
     { tool: "builtin", accepts: exts("html htm"), builtin: { kind: "html-text" } },
-    { tool: "builtin", accepts: exts("epub rtfd"), builtin: { kind: "epub-doc", params: { to: "txt" } } },
+    { tool: "builtin", accepts: exts(DOC_PKG_EXTS), builtin: { kind: "epub-doc", params: { to: "txt" } } },
     { tool: "calibre", accepts: EB_FROM, argv: (c) => [c.inputs[0]!, c.output] },
     lo("txt:Text (encoded):UTF8", exts("doc docx dot dotx wps wpd sxw pages ott")),
   ], { inputs: new Set([...DOC_IN, ...EB_ONLY, "doc", "dot", "dotx", "wps", "wpd", "sxw", "pages", "ott"]) }),
@@ -193,7 +194,7 @@ export const DOC_DEFS: ConvDef[] = [
   ], { options: [TOC], inputs: new Set([...DOC_IN, ...LO_ALL, ...EB_ONLY]), keywords: "office word excel powerpoint print" }),
   doc("doc-rtf", "Convert to RTF", "Opens in almost any word processor.", "rtf", [
     pandocFmt("rtf", ["-s"]),
-    { tool: "builtin", accepts: exts("epub rtfd"), builtin: { kind: "epub-doc", params: { to: "rtf" } } },
+    { tool: "builtin", accepts: exts(DOC_PKG_EXTS), builtin: { kind: "epub-doc", params: { to: "rtf" } } },
   ], { options: [TOC] }),
   doc("doc-tex", "Convert to LaTeX", "For scientific papers.", "tex", [pandocFmt("latex", ["-s"])], { options: [TOC], keywords: "latex" }),
   doc("doc-rst", "Convert to reStructuredText", "The format of Python documentation.", "rst", [pandocFmt("rst")]),
@@ -207,7 +208,7 @@ export const DOC_DEFS: ConvDef[] = [
   doc("doc-fb2", "Convert to an FB2 e-book", "An e-book format used in Russia and by many readers.", "fb2", [
     pandocFmt("fb2"),
     { tool: "calibre", accepts: EB_FROM, argv: (c) => [c.inputs[0]!, c.output] },
-    { tool: "builtin", accepts: exts("epub rtfd"), builtin: { kind: "epub-doc", params: { to: "fb2" } } },
+    { tool: "builtin", accepts: exts(DOC_PKG_EXTS), builtin: { kind: "epub-doc", params: { to: "fb2" } } },
   ], { inputs: new Set([...DOC_IN_PLUS, ...EB_ONLY, "pdf"]), group: "Ebooks" }),
 
   { id: "ocr-text", label: "Read the text in a picture or scan (OCR)", hint: "Turns a picture, photo or scanned PDF into a text file.", group: "Documents", inputs: new Set([...OCR_IMAGES, "pdf"]), out: "txt", suffix: "text", mode: "each", engines: [ocr("txt")], options: [LANGUAGE_OPTION, { ...numberOpt("dpi", "Scan detail (for PDF files)", "Higher reads small print better and takes longer.", 100, 600, 300, "dpi", 50), forExts: ["pdf"] }], keywords: "ocr scan recognize recognize" },

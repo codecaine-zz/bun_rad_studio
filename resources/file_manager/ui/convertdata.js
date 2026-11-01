@@ -24,10 +24,10 @@ const KINDS = [
   ["subtitle file", "subtitle files", "srt vtt ass ssa"],
   ["PDF", "PDFs", "pdf"],
   ["spreadsheet", "spreadsheets", "xls xlsx xlsm ods csv tsv numbers"],
-  ["Office document", "Office documents", "doc docx dot dotx odt rtf wps pages ppt pptx odp key"],
-  ["e-book", "e-books", "epub mobi azw azw3 fb2"],
+  ["Office document", "Office documents", "doc docx dot dotx odt rtf rtfd wps pages ppt pptx odp key oo3 mindnode graffle"],
+  ["e-book", "e-books", "epub ibooks mobi azw azw3 fb2"],
   ["data file", "data files", "json jsonc json5 yaml yml toml xml ndjson jsonl ini env properties plist sql"],
-  ["text file", "text files", "txt md markdown log html htm tex rst org textile adoc"],
+  ["text file", "text files", "txt md markdown textbundle scriv ulysses playground playgroundbook log html htm tex rst org textile adoc"],
   ["archive", "archives", "zip tar tar.gz tar.bz2 tar.xz tar.zst gz tgz bz2 xz zst 7z rar iso dmg cab br"],
   ["font", "fonts", "ttf otf woff woff2"],
 ];
@@ -42,7 +42,12 @@ export function extensionOfName(name) {
   return dot > 0 && dot < lower.length - 1 ? lower.slice(dot + 1) : "";
 }
 
-const isDocPackageEntry = (e) => !!(e && e.isDir && /\.(epub|rtfd)$/i.test(String(e.name ?? "")));
+const isDocPackageEntry = (e) =>
+  !!(
+    e &&
+    e.isDir &&
+    /\.(epub|ibooks|rtfd|textbundle|scriv|ulysses|pages|numbers|key|playground|playgroundbook|oo3|mindnode|graffle)$/i.test(String(e.name ?? ""))
+  );
 
 /**
  * "3 pictures, 1 video and 2 folders" for a list of `{ name, isDir }`.

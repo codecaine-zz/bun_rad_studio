@@ -398,7 +398,7 @@ describe("UI renderers for rich Quick Look and Details panel (quicklookFormat.js
       Object.defineProperty(g, k, { value: (dom.window as any)[k], configurable: true, writable: true });
     }
     try {
-      const { renderRichQuickLook, renderRichInfoSummary } = await import("../resources/file_manager/ui/quicklookFormat.js");
+      const { renderRichQuickLook, renderRichInfoSummary, extractQuickLookPreviewText } = await import("../resources/file_manager/ui/quicklookFormat.js");
       for (const name of ["budget.xlsx", "proposal.docx", "deck.pptx", "app.sqlite", "analysis.ipynb", "triangle.obj", "module.wasm"]) {
         const path = join(root, name);
         const preview = await previewFile(ctx, path);
@@ -406,6 +406,9 @@ describe("UI renderers for rich Quick Look and Details panel (quicklookFormat.js
         const qlNode = renderRichQuickLook(entry, preview);
         expect(qlNode, name).toBeTruthy();
         expect(qlNode!.textContent, name).not.toMatch(/\bnull\b|\bundefined\b|\[object/i);
+        expect(qlNode!.querySelector(".ql-copy-all-btn"), name).toBeTruthy();
+        expect(qlNode!.querySelector(".ql-copy-sel-btn"), name).toBeTruthy();
+        expect(extractQuickLookPreviewText(entry, preview, qlNode).length, name).toBeGreaterThan(0);
 
         const infoNode = renderRichInfoSummary(entry, preview);
         expect(infoNode, name).toBeTruthy();

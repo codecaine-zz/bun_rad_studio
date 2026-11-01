@@ -854,36 +854,131 @@ async function inspectEpubFromReader(
   };
 }
 
+function parseMarkdownToBlocksAndChapters(mdText: string, defaultTitle: string, maxBlocks = 2500): {
+  title?: string;
+  blocks: DocBlock[];
+  chapters: Array<{ title: string; blocks: DocBlock[] }>;
+  plainText: string;
+} {
+  const blocks: DocBlock[] = [];
+  const chapters: Array<{ title: string; blocks: DocBlock[] }> = [];
+  let currentChapter: { title: string; blocks: DocBlock[] } = { title: defaultTitle, blocks: [] };
+  let detectedTitle: string | undefined;
+
+  const lines = mdText.replace(/\r\n/g, "\n").split("\n");
+  let inCode = false;
+  let codeLines: string[] = [];
+  let paraLines: string[] = [];
+
+  const pushBlock = (b: DocBlock) => {
+    if (blocks.length >= maxBlocks) return;
+    blocks.push(b);
+    currentChapter.blocks.push(b);
+  };
+  const flushPara = () => {
+    if (!paraLines.length) return;
+    const text = paraLines.join(" ").trim();
+    paraLines = [];
+    if (text) pushBlock({ type: "p", text });
+  };
+
+  for (const rawLine of lines) {
+    if (blocks.length >= maxBlocks) break;
+    if (rawLine.trim().startsWith("```")) {
+      flushPara();
+      if (inCode) {
+        pushBlock({ type: "code", text: codeLines.join("\n") });
+        codeLines = [];
+        inCode = false;
+      } else {
+        inCode = true;
+      }
+      continue;
+    }
+    if (inCode) {
+      codeLines.push(rawLine);
+      continue;
+    }
+    const line = rawLine.trim();
+    if (!line) {
+      flushPara();
+      continue;
+    }
+    const hMatch = /^(#{1,6})\s+(.+)$/.exec(line);
+    if (hMatch) {
+      flushPara();
+      const lvl = hMatch[1]!.length;
+      const hText = hMatch[2]!.trim();
+      const bType = lvl === 1 ? "h1" : lvl === 2 ? "h2" : "h3";
+      if (lvl === 1 && !detectedTitle) detectedTitle = hText;
+      if (lvl <= 2 && currentChapter.blocks.length > 0) {
+        chapters.push(currentChapter);
+        currentChapter = { title: hText, blocks: [] };
+      } else if (currentChapter.blocks.length === 0) {
+        currentChapter.title = hText;
+      }
+      pushBlock({ type: bType, text: hText });
+      continue;
+    }
+    if (/^[-*+]\s+/.test(line) || /^\d+\.\s+/.test(line)) {
+      flushPara();
+      pushBlock({ type: "li", text: line.replace(/^(?:[-*+]|\d+\.)\s+/, "").trim() });
+      continue;
+    }
+    if (line.startsWith(">")) {
+      flushPara();
+      pushBlock({ type: "quote", text: line.replace(/^>\s*/, "").trim() });
+      continue;
+    }
+    paraLines.push(line);
+  }
+  flushPara();
+  if (inCode && codeLines.length) pushBlock({ type: "code", text: codeLines.join("\n") });
+  if (currentChapter.blocks.length > 0) chapters.push(currentChapter);
+
+  const plainText = blocks
+    .map((b) => (b.type === "table" ? b.rows.map((r) => r.join("\t")).join("\n") : b.text))
+    .join("\n\n");
+  return { ...(detectedTitle ? { title: detectedTitle } : {}), blocks, chapters, plainText };
+}
+
+function parseGenericXmlDocumentBlocks(xml: string, maxBlocks = 1500): {
+  title?: string;
+  blocks: DocBlock[];
+  plainText: string;
+} {
+  const blocks: DocBlock[] = [];
+  let title: string | undefined;
+  const tagRe = /<(?:sf:p|p|lit|title|heading|string|text|item|note)\b[^>]*>([\s\S]*?)<\/(?:sf:p|p|lit|title|heading|string|text|item|note)>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = tagRe.exec(xml)) !== null && blocks.length < maxBlocks) {
+    const raw = decodeEntities(m[1]!.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
+    if (!raw || raw.length < 2) continue;
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(raw) || /^[A-Za-z0-9+/=]{40,}$/.test(raw)) continue;
+    const isHeading = /^<(?:title|heading)\b/i.test(m[0]);
+    if (isHeading && !title) title = raw;
+    blocks.push({ type: isHeading ? "h2" : "p", text: raw });
+  }
+  const plainText = blocks.map((b) => ("text" in b ? b.text : "")).join("\n\n");
+  return { ...(title ? { title } : {}), blocks, plainText };
+}
+
 /**
- * Inspects an unpacked macOS `.epub` (or `.rtfd`) package directory on disk.
+ * Inspects an unpacked macOS document package directory on disk (`.epub`, `.ibooks`, `.rtfd`,
+ * `.textbundle`, `.scriv`, `.ulysses`, `.pages`, `.numbers`, `.key`, `.playground`,
+ * `.playgroundbook`, `.oo3`, `.mindnode`, `.graffle`).
  */
 export async function inspectPackageDirectoryRich(
   dirPath: string,
   hasThumb = false,
   limits: EpubInspectLimits = {},
 ): Promise<RichPreview | null> {
-  const baseName = nodePath.basename(dirPath).toLowerCase();
-  // 1. Check for macOS .rtfd bundle (contains TXT.rtf)
-  if (baseName.endsWith(".rtfd")) {
-    const rtfCandidate = nodePath.join(dirPath, "TXT.rtf");
-    try {
-      const rtfText = await fsp.readFile(rtfCandidate, "utf8");
-      const { blocks, plainText, meta } = parseRtfDocument(rtfText);
-      return {
-        kind: "document",
-        formatLabel: "Rich Text Bundle (RTFD)",
-        meta: [["Paragraphs", String(blocks.length)], ...meta],
-        blocks,
-        plainText,
-        hasThumb,
-      };
-    } catch {
-      return null;
-    }
-  }
-
-  // 2. Check for unpacked .epub package directory (contains META-INF/container.xml or .opf)
+  const baseName = nodePath.basename(dirPath);
+  const lowerName = baseName.toLowerCase();
+  const stemTitle = baseName.replace(/\.[^.]+$/, "");
+  const maxTotalBlocks = limits.maxTotalBlocks ?? 300;
   const resolvedRoot = nodePath.resolve(dirPath);
+
   const readPart = async (relPath: string, limit = 512 * 1024): Promise<string> => {
     const normalizedRel = relPath.replace(/^\/+/, "").split("/").join(nodePath.sep);
     const full = nodePath.resolve(resolvedRoot, normalizedRel);
@@ -905,6 +1000,27 @@ export async function inspectPackageDirectoryRich(
     }
   };
 
+  const readPartBytes = async (relPath: string, limit = 4 * 1024 * 1024): Promise<Buffer | null> => {
+    const normalizedRel = relPath.replace(/^\/+/, "").split("/").join(nodePath.sep);
+    const full = nodePath.resolve(resolvedRoot, normalizedRel);
+    if (!full.startsWith(resolvedRoot + nodePath.sep) && full !== resolvedRoot) return null;
+    try {
+      const st = await fsp.stat(full);
+      if (!st.isFile() || st.size === 0) return null;
+      if (st.size <= limit) return await fsp.readFile(full);
+      const h = await fsp.open(full, "r");
+      try {
+        const buf = Buffer.alloc(limit);
+        const { bytesRead } = await h.read(buf, 0, limit, 0);
+        return buf.subarray(0, bytesRead);
+      } finally {
+        await h.close();
+      }
+    } catch {
+      return null;
+    }
+  };
+
   let cachedRelPaths: string[] | null = null;
   const listRelPaths = async (): Promise<string[]> => {
     if (cachedRelPaths) return cachedRelPaths;
@@ -919,6 +1035,7 @@ export async function inspectPackageDirectoryRich(
         continue;
       }
       for (const d of entries) {
+        if (d.name === ".DS_Store") continue;
         const rel = cur.rel ? `${cur.rel}/${d.name}` : d.name;
         const abs = nodePath.join(cur.abs, d.name);
         if (d.isDirectory()) {
@@ -932,8 +1049,246 @@ export async function inspectPackageDirectoryRich(
     return out;
   };
 
+  // 1. macOS .rtfd bundle (contains TXT.rtf or *.rtf + optional attachments)
+  if (lowerName.endsWith(".rtfd")) {
+    let rtfText = await readPart("TXT.rtf", 2 * 1024 * 1024);
+    if (!rtfText) {
+      const all = await listRelPaths();
+      const firstRtf = all.find((p) => /\.rtf$/i.test(p));
+      if (firstRtf) rtfText = await readPart(firstRtf, 2 * 1024 * 1024);
+    }
+    if (!rtfText) return null;
+    const { blocks, plainText, meta } = parseRtfDocument(rtfText);
+    const allFiles = await listRelPaths();
+    const attachments = allFiles.filter((f) => !/\.rtf$/i.test(f));
+    return {
+      kind: "document",
+      formatLabel: "Rich Text Bundle (RTFD)",
+      title: stemTitle,
+      meta: [
+        ["Package format", "macOS RTFD Bundle"],
+        ["Paragraphs", String(blocks.length)],
+        ...(attachments.length ? [["Attachments", String(attachments.length)] as [string, string]] : []),
+        ...meta,
+      ],
+      blocks: blocks.slice(0, maxTotalBlocks),
+      plainText,
+      hasThumb,
+    };
+  }
+
+  // 2. .textbundle (Markdown + info.json + assets/)
+  if (lowerName.endsWith(".textbundle")) {
+    const all = await listRelPaths();
+    const mdFile = all.find((f) => /^text\.(?:md|markdown|txt|text)$/i.test(f)) ?? all.find((f) => /\.(?:md|markdown|txt)$/i.test(f));
+    if (!mdFile) return null;
+    const mdText = await readPart(mdFile, 4 * 1024 * 1024);
+    const infoRaw = await readPart("info.json", 64 * 1024);
+    let creator = "";
+    try {
+      const info = JSON.parse(infoRaw);
+      if (info?.creatorIdentifier) creator = String(info.creatorIdentifier);
+    } catch {}
+    const parsed = parseMarkdownToBlocksAndChapters(mdText, stemTitle, maxTotalBlocks);
+    const assets = all.filter((f) => f.startsWith("assets/"));
+    return {
+      kind: "document",
+      formatLabel: "TextBundle Markdown Package (.textbundle)",
+      title: parsed.title || stemTitle,
+      meta: [
+        ["Package format", "TextBundle"],
+        ["Text file", mdFile],
+        ...(creator ? [["Creator", creator] as [string, string]] : []),
+        ...(assets.length ? [["Bundled assets", String(assets.length)] as [string, string]] : []),
+      ],
+      blocks: parsed.blocks,
+      chapters: parsed.chapters,
+      plainText: parsed.plainText,
+      hasThumb,
+    };
+  }
+
+  // 3. .scriv (Scrivener 2 / 3 Writing Project Bundle)
+  if (lowerName.endsWith(".scriv")) {
+    const all = await listRelPaths();
+    const scrivxRel = all.find((f) => /\.scrivx$/i.test(f));
+    const scrivxXml = scrivxRel ? await readPart(scrivxRel, 2 * 1024 * 1024) : "";
+    const binderTitles = new Map<string, string>();
+    const orderedIds: string[] = [];
+    for (const item of scrivxXml.matchAll(/<BinderItem\b([^>]*)>([\s\S]*?)<\/BinderItem>/g)) {
+      const attrs = item[1]!;
+      const inner = item[2]!;
+      const uuid = /\bUUID="([^"]+)"/i.exec(attrs)?.[1] ?? /\bID="([^"]+)"/i.exec(attrs)?.[1];
+      const titleMatch = /<Title>([\s\S]*?)<\/Title>/i.exec(inner);
+      const t = titleMatch ? decodeEntities(titleMatch[1]!.trim()) : "";
+      if (uuid) {
+        orderedIds.push(uuid);
+        if (t) binderTitles.set(uuid, t);
+      }
+    }
+    const rtfPaths = all.filter((f) => /^Files\/(?:Data|Docs)\/.*\.(?:rtf|txt)$/i.test(f) && !/notes\.rtf$/i.test(f));
+    rtfPaths.sort((a, b) => {
+      const idA = orderedIds.findIndex((id) => a.includes(id));
+      const idB = orderedIds.findIndex((id) => b.includes(id));
+      if (idA >= 0 && idB >= 0) return idA - idB;
+      if (idA >= 0) return -1;
+      if (idB >= 0) return 1;
+      return a.localeCompare(b, undefined, { numeric: true });
+    });
+
+    const chapters: Array<{ title: string; blocks: DocBlock[] }> = [];
+    const allBlocks: DocBlock[] = [];
+    for (const rel of rtfPaths.slice(0, limits.maxChapters ?? 120)) {
+      const raw = await readPart(rel, 1024 * 1024);
+      if (!raw.trim()) continue;
+      const parsed = /\.rtf$/i.test(rel)
+        ? parseRtfDocument(raw)
+        : parseMarkdownToBlocksAndChapters(raw, nodePath.basename(rel));
+      if (!parsed.blocks.length) continue;
+      const matchedId = orderedIds.find((id) => rel.includes(id));
+      const chTitle = (matchedId && binderTitles.get(matchedId)) || `Section ${chapters.length + 1}`;
+      const chBlocks: DocBlock[] = [{ type: "h2", text: chTitle }, ...parsed.blocks];
+      chapters.push({ title: chTitle, blocks: chBlocks });
+      allBlocks.push(...chBlocks);
+    }
+    if (!allBlocks.length) return null;
+    const plainText = allBlocks
+      .map((b) => (b.type === "table" ? b.rows.map((r) => r.join("\t")).join("\n") : b.text))
+      .join("\n\n");
+    return {
+      kind: "document",
+      formatLabel: "Scrivener Project (.scriv)",
+      title: stemTitle,
+      meta: [
+        ["Package format", "Scrivener Project Bundle"],
+        ["Binder sections", String(chapters.length)],
+      ],
+      blocks: allBlocks.slice(0, maxTotalBlocks),
+      chapters,
+      plainText,
+      hasThumb,
+    };
+  }
+
+  // 4. .ulysses (Ulysses Sheet Package)
+  if (lowerName.endsWith(".ulysses")) {
+    const all = await listRelPaths();
+    const xmlRel = all.find((f) => /^Content\.xml$/i.test(f)) ?? all.find((f) => /\.xml$/i.test(f));
+    if (!xmlRel) return null;
+    const xml = await readPart(xmlRel, 2 * 1024 * 1024);
+    const parsed = parseGenericXmlDocumentBlocks(xml, maxTotalBlocks);
+    if (!parsed.blocks.length) return null;
+    return {
+      kind: "document",
+      formatLabel: "Ulysses Sheet (.ulysses)",
+      title: parsed.title || stemTitle,
+      meta: [
+        ["Package format", "Ulysses Sheet Bundle"],
+        ["Paragraphs", String(parsed.blocks.length)],
+      ],
+      blocks: parsed.blocks,
+      plainText: parsed.plainText,
+      hasThumb,
+    };
+  }
+
+  // 5. .playground and .playgroundbook (Swift Playgrounds Package)
+  if (lowerName.endsWith(".playground") || lowerName.endsWith(".playgroundbook")) {
+    const all = await listRelPaths();
+    const codeAndDocFiles = all
+      .filter((f) => /\.(?:swift|md|markdown|txt)$/i.test(f))
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    if (!codeAndDocFiles.length) return null;
+    const chapters: Array<{ title: string; blocks: DocBlock[] }> = [];
+    const allBlocks: DocBlock[] = [];
+    for (const rel of codeAndDocFiles.slice(0, limits.maxChapters ?? 60)) {
+      const content = await readPart(rel, 512 * 1024);
+      if (!content.trim()) continue;
+      const chTitle = rel;
+      const chBlocks: DocBlock[] = [{ type: "h2", text: chTitle }];
+      if (/\.swift$/i.test(rel)) {
+        // Extract /// or /*: playground prose comments and Swift code
+        chBlocks.push({ type: "code", text: content.trim() });
+      } else {
+        const mdParsed = parseMarkdownToBlocksAndChapters(content, chTitle, 500);
+        chBlocks.push(...mdParsed.blocks);
+      }
+      chapters.push({ title: chTitle, blocks: chBlocks });
+      allBlocks.push(...chBlocks);
+    }
+    const plainText = allBlocks
+      .map((b) => (b.type === "table" ? b.rows.map((r) => r.join("\t")).join("\n") : b.text))
+      .join("\n\n");
+    return {
+      kind: "document",
+      formatLabel: lowerName.endsWith(".playgroundbook") ? "Swift Playground Book (.playgroundbook)" : "Swift Playground (.playground)",
+      title: stemTitle,
+      meta: [
+        ["Package format", "Swift Playgrounds Bundle"],
+        ["Source / Page files", String(codeAndDocFiles.length)],
+      ],
+      blocks: allBlocks.slice(0, maxTotalBlocks),
+      chapters,
+      plainText,
+      hasThumb,
+    };
+  }
+
+  // 6. Apple iWork (.pages, .numbers, .key) and Omni / MindNode (.oo3, .mindnode, .graffle) package directories
+  if (/\.(?:pages|numbers|key|oo3|mindnode|graffle)$/i.test(lowerName)) {
+    const all = await listRelPaths();
+    const pdfRel = all.find((f) => /(?:^|\/)Preview\.pdf$/i.test(f)) ?? all.find((f) => /\.pdf$/i.test(f));
+    if (pdfRel) {
+      const pdfBytes = await readPartBytes(pdfRel, 4 * 1024 * 1024);
+      if (pdfBytes) {
+        const { text: pdfText, outline } = extractPdfStreamsText(pdfBytes.toString("latin1"));
+        if (pdfText.trim()) {
+          const blocks: DocBlock[] = pdfText
+            .split(/\n{2,}/)
+            .map((p) => p.trim())
+            .filter(Boolean)
+            .slice(0, maxTotalBlocks)
+            .map((text) => ({ type: "p", text }));
+          return {
+            kind: "document",
+            formatLabel: `macOS Package Document (${nodePath.extname(baseName).toUpperCase()})`,
+            title: outline[0] || stemTitle,
+            meta: [
+              ["Package format", `${nodePath.extname(baseName).slice(1).toUpperCase()} Package Bundle`],
+              ["Preview source", pdfRel],
+              ["Paragraphs", String(blocks.length)],
+            ],
+            blocks,
+            plainText: pdfText,
+            hasThumb,
+          };
+        }
+      }
+    }
+    const xmlRel = all.find((f) => /(?:^|\/)(?:index\.xml|index\.apxl|contents\.xml|data\.plist)$/i.test(f)) ?? all.find((f) => /\.(?:xml|apxl|plist)$/i.test(f));
+    if (xmlRel) {
+      const xml = await readPart(xmlRel, 2 * 1024 * 1024);
+      const parsed = parseGenericXmlDocumentBlocks(xml, maxTotalBlocks);
+      if (parsed.blocks.length) {
+        return {
+          kind: "document",
+          formatLabel: `macOS Package Document (${nodePath.extname(baseName).toUpperCase()})`,
+          title: parsed.title || stemTitle,
+          meta: [
+            ["Package format", `${nodePath.extname(baseName).slice(1).toUpperCase()} Package Bundle`],
+            ["Content XML", xmlRel],
+          ],
+          blocks: parsed.blocks,
+          plainText: parsed.plainText,
+          hasThumb,
+        };
+      }
+    }
+  }
+
+  // 7. Unpacked .epub or .ibooks package directory (contains META-INF/container.xml or .opf)
   const hasContainer = await readPart("META-INF/container.xml", 16 * 1024);
-  if (!hasContainer && !baseName.endsWith(".epub")) {
+  if (!hasContainer && !lowerName.endsWith(".epub") && !lowerName.endsWith(".ibooks")) {
     const topFiles = await fsp.readdir(resolvedRoot).catch(() => [] as string[]);
     if (!topFiles.some((f) => /\.opf$/i.test(f))) return null;
   }
@@ -941,7 +1296,7 @@ export async function inspectPackageDirectoryRich(
   return await inspectEpubFromReader(
     readPart,
     listRelPaths,
-    [["Package format", "macOS EPUB Bundle"]],
+    [["Package format", lowerName.endsWith(".ibooks") ? "Apple Books (.ibooks) Bundle" : "macOS EPUB Bundle"]],
     hasThumb,
     limits,
   );
@@ -978,7 +1333,11 @@ export async function extractFullEpubRich(filePath: string, isDir: boolean): Pro
       }
     };
     const listRelPaths = async () => entries.filter((e) => !e.isDir).map((e) => e.name);
-    return await inspectEpubFromReader(readPart, listRelPaths, [], false, fullLimits);
+    const epubRich = await inspectEpubFromReader(readPart, listRelPaths, [], false, fullLimits);
+    if (epubRich) return epubRich;
+    const ext = nodePath.extname(filePath).slice(1).toLowerCase();
+    const zipRich = await inspectZipBasedRich(handle, filePath, st.size, ext, false);
+    return zipRich && zipRich.kind === "document" ? zipRich : null;
   } catch {
     return null;
   } finally {
@@ -1140,8 +1499,8 @@ async function inspectZipBasedRich(handle: fsp.FileHandle, path: string, size: n
     };
   }
 
-  // EPUB E-Book (.epub)
-  if (mimetype === "application/epub+zip" || byName.has("META-INF/container.xml") || ext === "epub") {
+  // EPUB / iBooks E-Book (.epub, .ibooks)
+  if (mimetype === "application/epub+zip" || mimetype.includes("ibooks") || byName.has("META-INF/container.xml") || ext === "epub" || ext === "ibooks") {
     const epubRich = await inspectEpubFromReader(
       readPart,
       async () => entries.filter((e) => !e.isDir).map((e) => e.name),
@@ -1149,6 +1508,51 @@ async function inspectZipBasedRich(handle: fsp.FileHandle, path: string, size: n
       hasThumb,
     );
     if (epubRich) return epubRich;
+  }
+
+  // Zipped Apple iWork (.pages, .numbers, .key) or Omni/MindNode (.oo3, .mindnode, .graffle) package
+  if (["pages", "numbers", "key", "oo3", "mindnode", "graffle"].includes(ext)) {
+    const stemTitle = nodePath.basename(path).replace(/\.[^.]+$/, "");
+    const pdfEntry = entries.find((e) => !e.isDir && /(?:^|\/)Preview\.pdf$/i.test(e.name));
+    if (pdfEntry && (pdfEntry.flags & 1) === 0) {
+      try {
+        const pdfBytes = await readZipEntry(handle, size, pdfEntry, 4 * 1024 * 1024);
+        const { text: pdfText, outline } = extractPdfStreamsText(pdfBytes.toString("latin1"));
+        if (pdfText.trim()) {
+          const blocks: DocBlock[] = pdfText
+            .split(/\n{2,}/)
+            .map((p) => p.trim())
+            .filter(Boolean)
+            .slice(0, 300)
+            .map((text) => ({ type: "p", text }));
+          return {
+            kind: "document",
+            formatLabel: `Apple / macOS Document (${ext.toUpperCase()})`,
+            title: outline[0] || stemTitle,
+            meta,
+            blocks,
+            plainText: pdfText,
+            hasThumb,
+          };
+        }
+      } catch {}
+    }
+    const xmlEntry = entries.find((e) => !e.isDir && /(?:^|\/)(?:index\.xml|index\.apxl|contents\.xml|data\.plist)$/i.test(e.name));
+    if (xmlEntry) {
+      const xml = await readPart(xmlEntry.name, 2 * 1024 * 1024);
+      const parsed = parseGenericXmlDocumentBlocks(xml, 300);
+      if (parsed.blocks.length) {
+        return {
+          kind: "document",
+          formatLabel: `Apple / macOS Document (${ext.toUpperCase()})`,
+          title: parsed.title || stemTitle,
+          meta,
+          blocks: parsed.blocks,
+          plainText: parsed.plainText,
+          hasThumb,
+        };
+      }
+    }
   }
 
   // Generic ZIP / JAR / APK / WHL / CBZ archive
@@ -2526,7 +2930,7 @@ export async function extractReadableDocumentText(absPath: string, maxChars = 24
   const ext = extensionOf(name);
   const lastExt = ext.includes(".") ? ext.slice(ext.lastIndexOf(".") + 1) : ext;
 
-  if (lastExt === "epub") {
+  if (lastExt === "epub" || lastExt === "ibooks") {
     const epubRich = await extractFullEpubRich(absPath, false).catch(() => null);
     if (epubRich && epubRich.kind === "document") {
       const full = formatDocRich(epubRich);
@@ -2534,7 +2938,7 @@ export async function extractReadableDocumentText(absPath: string, maxChars = 24
     }
   }
 
-  if (["docx", "odt", "rtf", "fb2", "pdf", "pptx", "ppsx", "odp", "xlsx", "xlsm", "ods"].includes(lastExt)) {
+  if (["docx", "odt", "rtf", "fb2", "pdf", "pptx", "ppsx", "odp", "xlsx", "xlsm", "ods", "pages", "numbers", "key", "oo3", "mindnode", "graffle"].includes(lastExt)) {
     const handle = await fsp.open(absPath, "r").catch(() => null);
     if (handle) {
       try {

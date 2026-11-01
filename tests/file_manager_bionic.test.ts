@@ -502,4 +502,78 @@ describe("Codecaine File Manager — Built-In LM Studio Bionic AI Studio & Agent
       expect(existsSync(join(homeRoot, "docs", "Deadlocked 3.pdf"))).toBe(true);
     }
   });
+
+  test("9. macOS document package directories (.textbundle, .scriv, .rtfd, .ulysses, .playground) work across AI context and Convert & Process", async () => {
+    const { mkdirSync, writeFileSync, readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const { readTextFileSnippet } = await import("../src/features/filemanager/fmOllama");
+    const { startConvert } = await import("../src/features/filemanager/fmBatch");
+    const { createContext } = await import("../src/features/filemanager/fmCore");
+
+    const homeRoot = `${tempRoot}/home`;
+    const docsDir = join(homeRoot, "docs");
+
+    // 1. .textbundle directory
+    const tbDir = join(docsDir, "Architecture.textbundle");
+    mkdirSync(join(tbDir, "assets"), { recursive: true });
+    writeFileSync(join(tbDir, "info.json"), JSON.stringify({ version: 2, type: "net.daringfireball.markdown" }));
+    writeFileSync(
+      join(tbDir, "text.md"),
+      "# System Architecture\n\n## Core Pipeline\n\nTextBundle combines Markdown with embedded assets in a single package.",
+    );
+
+    const tbSnippet = await readTextFileSnippet(tbDir, 8000);
+    expect(tbSnippet).toContain("System Architecture");
+    expect(tbSnippet).toContain("TextBundle combines Markdown");
+
+    // 2. .scriv Scrivener project bundle
+    const scrivDir = join(docsDir, "NovelProject.scriv");
+    const uuid1 = "A1B2C3D4-1111-2222-3333-444455556666";
+    mkdirSync(join(scrivDir, "Files", "Data", uuid1), { recursive: true });
+    writeFileSync(
+      join(scrivDir, "NovelProject.scrivx"),
+      `<?xml version="1.0" encoding="UTF-8"?><ScrivenerProject><Binder><BinderItem UUID="${uuid1}" Type="Text"><Title>Prologue</Title></BinderItem></Binder></ScrivenerProject>`,
+    );
+    writeFileSync(
+      join(scrivDir, "Files", "Data", uuid1, "content.rtf"),
+      "{\\rtf1\\ansi\\deff0 {\\b The Dawn of Scrivener}\\par A multi-chapter binder stored as a directory package.}",
+    );
+
+    const scrivSnippet = await readTextFileSnippet(scrivDir, 8000);
+    expect(scrivSnippet).toContain("Prologue");
+    expect(scrivSnippet).toContain("The Dawn of Scrivener");
+
+    // 3. .rtfd Rich Text Directory bundle
+    const rtfdDir = join(docsDir, "MeetingNotes.rtfd");
+    mkdirSync(rtfdDir, { recursive: true });
+    writeFileSync(
+      join(rtfdDir, "TXT.rtf"),
+      "{\\rtf1\\ansi\\deff0 {\\b Quarterly Review Notes}\\par Action items for the engineering team.}",
+    );
+
+    const rtfdSnippet = await readTextFileSnippet(rtfdDir, 8000);
+    expect(rtfdSnippet).toContain("Quarterly Review Notes");
+
+    // 4. .playground Swift Playground bundle
+    const pgDir = join(docsDir, "Algorithms.playground");
+    mkdirSync(pgDir, { recursive: true });
+    writeFileSync(join(pgDir, "Contents.swift"), "import Foundation\nfunc fibonacci(_ n: Int) -> Int { n <= 1 ? n : fibonacci(n - 1) + fibonacci(n - 2) }\n");
+
+    const pgSnippet = await readTextFileSnippet(pgDir, 8000);
+    expect(pgSnippet).toContain("fibonacci");
+
+    // 5. Built-in conversion of .textbundle and .scriv to HTML & TXT
+    const convCtx = createContext({
+      platform: "darwin",
+      home: homeRoot,
+      dataDir: join(homeRoot, ".conv-pkg-data"),
+      toolDirs: [join(homeRoot, "no-tools")],
+    });
+    const htmlJob = await startConvert(convCtx, { action: "doc-html", paths: [tbDir, scrivDir, rtfdDir] });
+    const htmlDone = await convCtx.jobs.whenDone(htmlJob.id);
+    expect(htmlDone.state).toBe("done");
+    expect(readFileSync(join(docsDir, "Architecture.html"), "utf8")).toContain("TextBundle combines Markdown");
+    expect(readFileSync(join(docsDir, "NovelProject.html"), "utf8")).toContain("The Dawn of Scrivener");
+    expect(readFileSync(join(docsDir, "MeetingNotes.html"), "utf8")).toContain("Quarterly Review Notes");
+  });
 });

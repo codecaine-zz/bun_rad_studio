@@ -882,8 +882,11 @@ body.dragging .row:not(.is-folder) { cursor: no-drop; }
 .ql-fmt-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem; }
 .ql-fmt-search, .ql-fmt-select { font: inherit; font-size: 0.86rem; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 0.25rem 0.55rem; min-width: 12rem; }
 .ql-fmt-count { color: var(--muted); font-size: 0.82rem; font-variant-numeric: tabular-nums; }
-.ql-mode-group, .ql-sheet-tabs { display: inline-flex; flex-wrap: wrap; gap: 0.25rem; }
-.ql-mode-btn.active, .ql-sheet-tab.active { background: var(--accent); color: var(--accent-text, #fff); border-color: var(--accent); }
+.ql-mode-group, .ql-sheet-tabs, .ql-copy-group { display: inline-flex; flex-wrap: wrap; gap: 0.25rem; }
+.ql-mode-btn.active, .ql-sheet-tab.active, .ql-copy-sel-btn.active { background: var(--accent); color: var(--accent-text, #fff); border-color: var(--accent); }
+.ql-plain-copybar { margin-bottom: 0.5rem; }
+.ql [hidden] { display: none !important; }
+.ql-body, .ql-doc-reader, .ql-fmt-table td, .ql-slide-card, .ql-fmt-card, .ql-log-list { user-select: text; -webkit-user-select: text; }
 .ql-fmt-stage { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 0.5rem; overflow: auto; }
 .ql-fmt-grid { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
 .ql-fmt-grid-scroll, .ql-doc-table-wrap { flex: 1 1 auto; overflow: auto; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); }
