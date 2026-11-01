@@ -211,12 +211,12 @@ async function installVisualLearnerDemoHarness(c: Cdp) {
     window.__vlHarnessInstalled = true;
 
     const demoModels = [
-      { name: "gpt-oss:20b", sizeBytes: 13800000000, sizeHuman: "12.9 GB", sizeGb: 12.9, family: "gpt-oss", parameterSize: "20B", quantization: "MXFP4", modifiedAt: "Just now", badges: ["Chat", "Thinking", "Tools", "Code", "Decision"], capabilities: ["chat", "thinking", "tools", "code"] },
-      { name: "qwen3.5:latest", sizeBytes: 5200000000, sizeHuman: "4.8 GB", sizeGb: 4.8, family: "qwen3", parameterSize: "8B", quantization: "Q4_K_M", modifiedAt: "Just now", badges: ["Chat", "Thinking", "Vision", "Tools", "Code", "Decision"], capabilities: ["chat", "thinking", "vision", "tools", "code"] },
-      { name: "deepseek-r1:14b", sizeBytes: 9100000000, sizeHuman: "8.5 GB", sizeGb: 8.5, family: "deepseek2", parameterSize: "14B", quantization: "Q4_K_M", modifiedAt: "Just now", badges: ["Chat", "Thinking", "Code"], capabilities: ["chat", "thinking", "code"] },
-      { name: "qwen2.5-coder:7b", sizeBytes: 4700000000, sizeHuman: "4.4 GB", sizeGb: 4.4, family: "qwen2", parameterSize: "7B", quantization: "Q4_K_M", modifiedAt: "Just now", badges: ["Chat", "Tools", "Code"], capabilities: ["chat", "tools", "code"] },
-      { name: "nomic-embed-text:latest", sizeBytes: 274000000, sizeHuman: "274 MB", sizeGb: 0.27, family: "nomic-bert", parameterSize: "137M", quantization: "F16", modifiedAt: "Just now", badges: ["Embedding"], capabilities: ["embedding"] },
-      { name: "phonon:latest", sizeBytes: 112000000, sizeHuman: "112 MB", sizeGb: 0.11, family: "phonon", parameterSize: "40M", quantization: "MLX", modifiedAt: "Just now", badges: ["Speech", "MLX"], capabilities: ["tts"] }
+      { name: "gpt-oss:20b", sizeBytes: 13800000000, sizeHuman: "12.9 GB", sizeGb: 12.9, estimatedRamGb: 12.9, family: "gpt-oss", parameterSize: "20B", quantization: "MXFP4", runner: "Apple Metal MLX", contextLength: 32768, modifiedAt: "Just now", badges: ["Chat", "Thinking", "Tools", "Code", "Decision"], capabilities: ["chat", "thinking", "tools", "code"] },
+      { name: "qwen3.5:latest", sizeBytes: 5200000000, sizeHuman: "4.8 GB", sizeGb: 4.8, estimatedRamGb: 5.2, family: "qwen3", parameterSize: "8B", quantization: "Q4_K_M", runner: "Apple Metal MLX", contextLength: 32768, modifiedAt: "Just now", badges: ["Chat", "Thinking", "Vision", "Tools", "Code", "Decision"], capabilities: ["chat", "thinking", "vision", "tools", "code"] },
+      { name: "deepseek-r1:14b", sizeBytes: 9100000000, sizeHuman: "8.5 GB", sizeGb: 8.5, estimatedRamGb: 9.0, family: "deepseek2", parameterSize: "14B", quantization: "Q4_K_M", runner: "Apple Metal MLX", contextLength: 32768, modifiedAt: "Just now", badges: ["Chat", "Thinking", "Code"], capabilities: ["chat", "thinking", "code"] },
+      { name: "qwen2.5-coder:7b", sizeBytes: 4700000000, sizeHuman: "4.4 GB", sizeGb: 4.4, estimatedRamGb: 4.8, family: "qwen2", parameterSize: "7B", quantization: "Q4_K_M", runner: "Apple Metal MLX", contextLength: 32768, modifiedAt: "Just now", badges: ["Chat", "Tools", "Code"], capabilities: ["chat", "tools", "code"] },
+      { name: "nomic-embed-text:latest", sizeBytes: 274000000, sizeHuman: "274 MB", sizeGb: 0.27, estimatedRamGb: 0.4, family: "nomic-bert", parameterSize: "137M", quantization: "F16", runner: "Apple Metal MLX", contextLength: 8192, modifiedAt: "Just now", badges: ["Embedding"], capabilities: ["embedding"] },
+      { name: "phonon:latest", sizeBytes: 112000000, sizeHuman: "112 MB", sizeGb: 0.11, estimatedRamGb: 0.3, family: "phonon", parameterSize: "40M", quantization: "MLX", runner: "Apple Metal MLX", contextLength: 4096, modifiedAt: "Just now", badges: ["Speech", "MLX"], capabilities: ["tts"] }
     ];
 
     const origFetch = window.fetch.bind(window);
@@ -242,11 +242,15 @@ async function installVisualLearnerDemoHarness(c: Cdp) {
             }
           }
 
+          if (op === "ollama/stream" || op === "bionic/stream") {
+            return new Response(JSON.stringify({ ok: false }), { status: 503, headers: { "Content-Type": "application/json" } });
+          }
+
           if (op === "ollama/chat" || op === "ollama/route" || op === "ollama/autoRoute" || op === "bionic/chat" || op === "bionic/route") {
             const sig = init?.signal;
             if (window.__simulateSlowStream) {
               await new Promise((resolve, reject) => {
-                const t = setTimeout(resolve, 4500);
+                const t = setTimeout(resolve, 30000);
                 if (sig) {
                   sig.addEventListener("abort", () => {
                     clearTimeout(t);
@@ -281,6 +285,7 @@ async function installVisualLearnerDemoHarness(c: Cdp) {
               routedCapability: "chat",
               routeExplanation: "Routed to /api/chat (" + model + ", reasoning=" + String(level) + ", num_ctx=8192)",
               thinkingText: thinkingTrace,
+              reasoningText: thinkingTrace,
               thinking: thinkingTrace,
               content: replyMd,
               reply: replyMd,
@@ -292,6 +297,7 @@ async function installVisualLearnerDemoHarness(c: Cdp) {
               result: {
                 model,
                 thinkingText: thinkingTrace,
+                reasoningText: thinkingTrace,
                 content: replyMd,
                 enforcedNumCtx: 8192,
                 thinkParam: level,
@@ -334,28 +340,34 @@ async function installVisualLearnerDemoHarness(c: Cdp) {
               data.serverRunning = true;
               data.activeEndpoint = "http://127.0.0.1:1235";
               data.models = [
-                { id: "gpt-oss-20b-mxfp4", name: "gpt-oss-20b-mxfp4", type: "llm", arch: "gpt-oss", params: "20B", quant: "MXFP4", format: "MLX", sizeBytes: 13800000000, sizeHuman: "12.9 GB", sizeGb: 12.9, loaded: true, capabilities: ["chat", "thinking", "tools", "code"] },
-                { id: "qwen3.5-8b-mlx", name: "qwen3.5-8b-mlx", type: "vlm", arch: "qwen3", params: "8B", quant: "4bit", format: "MLX", sizeBytes: 5100000000, sizeHuman: "4.8 GB", sizeGb: 4.8, loaded: true, capabilities: ["chat", "thinking", "vision", "tools", "code"] },
-                { id: "qwen2.5-coder-1.5b-draft", name: "qwen2.5-coder-1.5b-draft", type: "llm", arch: "qwen2", params: "1.5B", quant: "4bit", format: "MLX", sizeBytes: 980000000, sizeHuman: "980 MB", sizeGb: 0.98, loaded: false, capabilities: ["chat", "code"] }
+                { id: "gpt-oss-20b-mxfp4", name: "gpt-oss-20b-mxfp4", displayName: "OpenAI gpt-oss 20B MLX", type: "llm", arch: "gpt-oss", architecture: "gpt-oss", params: "20B", paramsString: "20B", quant: "MXFP4", quantization: "MXFP4", format: "MLX", sizeBytes: 13800000000, sizeHuman: "12.9 GB", sizeGb: 12.9, estimatedRamGb: 12.9, maxContextLength: 32768, loaded: true, badges: ["MLX", "Chat", "Thinking", "Tools", "Code"], capabilities: ["chat", "thinking", "tools", "code"] },
+                { id: "qwen3.5-8b-mlx", name: "qwen3.5-8b-mlx", displayName: "Qwen 3.5 8B MLX", type: "vlm", arch: "qwen3", architecture: "qwen3", params: "8B", paramsString: "8B", quant: "4bit", quantization: "4bit", format: "MLX", sizeBytes: 5100000000, sizeHuman: "4.8 GB", sizeGb: 4.8, estimatedRamGb: 5.1, maxContextLength: 32768, loaded: true, badges: ["MLX", "Chat", "Thinking", "Vision", "Tools", "Code"], capabilities: ["chat", "thinking", "vision", "tools", "code"] },
+                { id: "qwen2.5-coder-1.5b-draft", name: "qwen2.5-coder-1.5b-draft", displayName: "Qwen 2.5 Coder 1.5B Draft MLX", type: "llm", arch: "qwen2", architecture: "qwen2", params: "1.5B", paramsString: "1.5B", quant: "4bit", quantization: "4bit", format: "MLX", sizeBytes: 980000000, sizeHuman: "980 MB", sizeGb: 0.98, estimatedRamGb: 1.2, maxContextLength: 32768, loaded: false, badges: ["MLX", "Chat", "Code"], capabilities: ["chat", "code"] }
               ];
               return new Response(JSON.stringify(data), { status: 200, headers: { "Content-Type": "application/json" } });
             }
           }
 
           if (op === "bionic/synthesize") {
+            const reportMd = [
+              "### 📚 Multi-File Bionic Synthesis (v1 vs v2 Server Config)",
+              "",
+              "| Setting | 02_Server_Config.v1.ts | 03_Server_Config.v2.ts | Upgrade Impact |",
+              "|---|---|---|---|",
+              "| **maxContextTokens** | 8,192 | **32,768** | 4× larger multi-file context window |",
+              "| **thinkingLevel** | *(not set)* | **'high'** | Deep multi-step gpt-oss reasoning |",
+              "| **gpuOffload / flashAttention** | 'off' | **'max' + true** | Full Apple Silicon Metal acceleration |"
+            ].join("\\n");
             return new Response(JSON.stringify({
               ok: true,
               mode: args.mode || "compare",
               model: args.model || "gpt-oss-20b-mxfp4",
+              engine: "gpt-oss-20b-mxfp4 (Apple Metal MLX)",
+              fileCount: 2,
               filesProcessed: 2,
               thinking: "Compared 02_Server_Config.v1.ts and 03_Server_Config.v2.ts across context window, thinkingLevel, and Metal GPU offload settings.",
-              synthesis: [
-                "### 📚 Multi-File Bionic Synthesis (v1 vs v2 Server Config)",
-                "",
-                "- **Context Window**: Upgraded from **8,192** to **32,768** tokens (4× increase).",
-                "- **Reasoning Control**: Added explicit **thinkingLevel: 'high'** for **gpt-oss**.",
-                "- **Apple Silicon Acceleration**: Enabled **gpuOffload: 'max'** and **flashAttention: true**."
-              ].join("\\n")
+              reportMarkdown: reportMd,
+              synthesis: reportMd
             }), { status: 200, headers: { "Content-Type": "application/json" } });
           }
         } catch {}
@@ -367,71 +379,19 @@ async function installVisualLearnerDemoHarness(c: Cdp) {
 
 async function showVisualLearnerHud(
   c: Cdp,
-  opts: {
+  _opts: {
     stepBadge: string;
     title: string;
     clickWay: string;
     shortcutWay: string;
   },
 ) {
+  // The bottom cinema strip (`overlayWideStrip` in 16:9 and `overlayVertical` in 9:16)
+  // already displays the Step badge, Click way, Keyboard Shortcut way, and bullets
+  // cleanly below the 1920x952 viewport without covering the bottom 80px of the app UI.
   await c.eval(`(() => {
-    let el = document.getElementById("visual-learner-hud");
-    if (!el) {
-      el = document.createElement("div");
-      el.id = "visual-learner-hud";
-      el.style.cssText = [
-        "position:fixed",
-        "left:50%",
-        "bottom:12px",
-        "transform:translateX(-50%)",
-        "z-index:2147483645",
-        "pointer-events:none",
-        "display:flex",
-        "align-items:center",
-        "gap:14px",
-        "padding:10px 20px",
-        "border-radius:18px",
-        "background:linear-gradient(135deg, rgba(6,10,20,0.96), rgba(15,23,42,0.95))",
-        "border:2px solid rgba(56,189,248,0.75)",
-        "box-shadow:0 22px 55px rgba(0,0,0,0.85), 0 0 35px rgba(56,189,248,0.35)",
-        "backdrop-filter:blur(24px) saturate(190%)",
-        "font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif",
-        "color:#f8fafc",
-        "max-width:1860px"
-      ].join(";");
-      document.documentElement.appendChild(el);
-    }
-    el.innerHTML = "";
-
-    const badge = document.createElement("div");
-    badge.style.cssText = "background:linear-gradient(135deg,#38bdf8,#818cf8,#f472b6);color:#04070e;font-weight:900;font-size:13px;letter-spacing:0.08em;padding:6px 14px;border-radius:12px;white-space:nowrap;";
-    badge.textContent = ${JSON.stringify(opts.stepBadge)};
-
-    const center = document.createElement("div");
-    center.style.cssText = "display:flex;flex-direction:column;gap:4px;min-width:0;";
-
-    const titleEl = document.createElement("div");
-    titleEl.style.cssText = "font-size:16px;font-weight:800;color:#ffffff;letter-spacing:-0.01em;white-space:nowrap;";
-    titleEl.textContent = ${JSON.stringify(opts.title)};
-
-    const waysRow = document.createElement("div");
-    waysRow.style.cssText = "display:flex;align-items:center;gap:10px;flex-wrap:nowrap;";
-
-    const clickPill = document.createElement("span");
-    clickPill.style.cssText = "background:rgba(16,185,129,0.18);border:1px solid rgba(16,185,129,0.65);color:#a7f3d0;font-size:12.5px;font-weight:700;padding:3px 10px;border-radius:8px;white-space:nowrap;";
-    clickPill.textContent = "🖱️ Click: " + ${JSON.stringify(opts.clickWay)};
-
-    const keyPill = document.createElement("span");
-    keyPill.style.cssText = "background:rgba(245,158,11,0.20);border:1px solid rgba(245,158,11,0.75);color:#fde68a;font-size:12.5px;font-weight:800;padding:3px 10px;border-radius:8px;white-space:nowrap;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;";
-    keyPill.textContent = "⌨️ Shortcut: " + ${JSON.stringify(opts.shortcutWay)};
-
-    waysRow.appendChild(clickPill);
-    waysRow.appendChild(keyPill);
-    center.appendChild(titleEl);
-    center.appendChild(waysRow);
-
-    el.appendChild(badge);
-    el.appendChild(center);
+    const el = document.getElementById("visual-learner-hud");
+    if (el) el.remove();
   })()`);
 }
 
@@ -495,6 +455,12 @@ async function clearSpotlight(c: Cdp) {
 async function showKeycaps(c: Cdp, keys: string[], holdMs = 800) {
   await c.eval(`window.__cc && window.__cc.keys(${JSON.stringify(keys)})`);
   await sleep(holdMs);
+}
+
+async function waitUntilSceneSec(c: Cdp, targetSec: number) {
+  while ((performance.now() - c.getRecordStartTime()) / 1000 < targetSec) {
+    await sleep(220);
+  }
 }
 
 const sceneSpecs: SceneSpec[] = [
@@ -660,10 +626,11 @@ const sceneSpecs: SceneSpec[] = [
       await showVisualLearnerHud(c, {
         stepBadge: "STEP 04 / 12",
         title: "Ask / Stream Live Tokens & Stop LLM Generation Anytime",
-        clickWay: "Click '🚀 Ask' / '📡 Stream Live Tokens' → Click '⏹ Stop Generation'",
+        clickWay: "Click '🚀 Ask' / '📡 Stream Live Tokens' → Click Red '⏹ Stop Generation'",
         shortcutWay: "⌘Enter / Ctrl+Enter to Send · Esc to Stop",
       });
       await c.eval(`(() => {
+        window.__simulateSlowStream = false;
         const sel = document.querySelector('[data-ollama-select="assistant-model"]');
         if (sel) { sel.value = "gpt-oss:20b"; sel.dispatchEvent(new Event('change', { bubbles: true })); }
         const ta = document.querySelector('.ollama-textarea');
@@ -672,34 +639,60 @@ const sceneSpecs: SceneSpec[] = [
           ta.dispatchEvent(new Event('input', { bubbles: true }));
         }
       })()`);
-      await showKeycaps(c, ["⌘ / Ctrl", "Enter"], 550);
-      await spotlight(c, '[data-ollama-action="send-auto-route"]', "🚀 Click 'Ask (Smart Auto-Router)' or Press ⌘Enter", 400);
-      await c.click('[data-ollama-action="send-auto-route"]', { pause: 850 }).catch(() => {});
+      // 0.0s - 8.5s: Narrator explains clicking Ask or Stream Live Tokens, or pressing Cmd/Ctrl+Enter
+      await spotlight(c, '[data-ollama-action="send-auto-route"]', "🚀 Click 'Send & Auto-Route Request' (or Press ⌘Enter / Ctrl+Enter)", 1800);
+      await showKeycaps(c, ["⌘ / Ctrl", "Enter"], 1400);
+      await spotlight(c, '[data-ollama-action="stream-live-tokens"]', "📡 Or Click 'Stream Live Tokens (/api/chat)'", 2200);
+      await waitUntilSceneSec(c, 7.2);
+      await spotlight(c, '[data-ollama-action="send-auto-route"]', "🚀 Sending Prompt to gpt-oss:20b...", 400);
+      await c.click('[data-ollama-action="send-auto-route"]', { pause: 900 }).catch(() => {});
 
-      // Now demonstrate starting a slow generation and clicking ⏹ Stop Generation!
+      // 8.5s - 14.8s: Narrator explains collapsible thinking trace and formatted response rendering live
+      await spotlight(c, ".ollama-thinking-summary", "🧠 Collapsible Step-by-Step Deep Reasoning Trace", 2600);
+      await spotlight(c, ".bionic-md-viewer", "✨ Formatted Markdown Summary Table & TypeScript Code", 2600);
+      await waitUntilSceneSec(c, 14.8);
+
+      // 14.8s - 24.5s: Narrator says: "And if a model is generating a long answer and you want to stop it,
+      // simply click the bright red Stop Generation button—or press Escape—to abort the request immediately..."
       await c.eval(`(() => {
         window.__simulateSlowStream = true;
         const btn = document.querySelector('[data-ollama-action="send-auto-route"]');
         if (btn) btn.click();
       })()`);
-      await sleep(350);
+      await sleep(300);
       await c.eval(`(() => {
-        const stopBtn = document.querySelector('.ollama-assistant-actions-row [data-ollama-action="stop-generation"]') || document.querySelector('[data-ollama-action="stop-generation"]');
+        const stopBtn = document.querySelector('.ollama-assistant-actions-row [data-ollama-action="stop-generation"]');
         if (stopBtn) stopBtn.scrollIntoView({ block: 'center', behavior: 'instant' });
+        document.querySelectorAll('[data-ollama-action="stop-generation"]').forEach((el) => {
+          el.style.background = "linear-gradient(135deg, #ef4444, #dc2626)";
+          el.style.color = "#ffffff";
+          el.style.fontWeight = "900";
+          el.style.boxShadow = "0 0 0 3px rgba(254,202,202,0.95), 0 0 28px rgba(239,68,68,0.95)";
+          el.style.transform = "scale(1.10)";
+        });
       })()`);
-      await spotlight(c, '[data-ollama-action="stop-generation"]', "⏹ Click 'Stop Generation' (or Press Esc) to Abort Live!", 600);
-      await showKeycaps(c, ["Esc"], 450);
+      const stopSelector = '.ollama-assistant-actions-row [data-ollama-action="stop-generation"]';
+      await spotlight(c, stopSelector, "⏹ CLICK BRIGHT RED 'STOP GENERATION' BUTTON (OR PRESS ESC)!", 1200);
+      await c.hover(stopSelector, 700).catch(() => {});
+      await waitUntilSceneSec(c, 20.5);
+      await showKeycaps(c, ["Esc"], 1400);
+      await spotlight(c, stopSelector, "⏹ Clicking Red 'Stop Generation' Button Now!", 1200);
+      await waitUntilSceneSec(c, 24.0);
+      await c.click(stopSelector, { pause: 700 }).catch(() => {});
       await c.eval(`(() => {
+        window.__simulateSlowStream = false;
         const stopBtn = document.querySelector('[data-ollama-action="stop-generation"]');
         if (stopBtn) stopBtn.click();
-        window.__simulateSlowStream = false;
       })()`);
-      await sleep(550);
-      await c.eval(`(() => {
-        const btn = document.querySelector('[data-ollama-action="send-auto-route"]');
-        if (btn) btn.click();
-      })()`);
-      await sleep(600);
+
+      // 24.7s - 29.0s: "...while keeping everything generated so far!"
+      await spotlight(
+        c,
+        '[data-ollama-output-console="assistant"] .ollama-output-title-group',
+        "✅ Stopped Immediately — All Generated Output & Thinking Preserved!",
+        2800,
+      );
+      await waitUntilSceneSec(c, 28.8);
       await clearSpotlight(c);
     },
   },
@@ -720,33 +713,38 @@ const sceneSpecs: SceneSpec[] = [
     say: "Want to see much more of the AI response at once? Click Expand Output in either the Assistant bar or the Output Console toolbar. It dramatically enlarges the response area and scrolls it smoothly into view. Click Compact Controls to tuck away the prompt inputs, or click Fullscreen for an edge-to-edge distraction-free reading view with font size controls and one-click code copy. Press Escape anytime to exit fullscreen.",
     record: async (c) => {
       await installVisualLearnerDemoHarness(c);
+      await c.eval(`(() => {
+        window.__simulateSlowStream = false;
+        const btn = document.querySelector('[data-ollama-action="send-auto-route"]');
+        if (btn) btn.click();
+      })()`);
+      await sleep(250);
       await showVisualLearnerHud(c, {
         stepBadge: "STEP 05 / 12",
         title: "See More LLM Output: ⤢ Expand Output, 🔼 Compact Controls & ⛶ Fullscreen",
         clickWay: "Click '⤢ Expand Output' · '🔼 Compact Controls' · '⛶ Fullscreen'",
         shortcutWay: "Press Esc to Exit Fullscreen Reader Mode",
       });
-      await spotlight(c, '[data-ollama-action="toggle-expand-output"]', "⤢ Click 'Expand Output' to Enlarge & Scroll to Answer", 500);
-      await c.click('[data-ollama-action="toggle-expand-output"]', { pause: 900 }).catch(() => {});
+      await spotlight(c, '[data-ollama-action="toggle-expand-output"]', "⤢ Click 'Expand Output' to Enlarge & Scroll to Answer", 950);
+      await clearSpotlight(c);
+      await c.click('[data-ollama-action="toggle-expand-output"]', { pause: 1100 }).catch(() => {});
 
-      await spotlight(c, '[data-ollama-action="toggle-compact-controls"]', "🔼 Click 'Compact Controls' to Hide Input Box", 500);
-      await c.click('[data-ollama-action="toggle-compact-controls"]', { pause: 750 }).catch(() => {});
+      await spotlight(c, '[data-ollama-action="toggle-compact-controls"]', "🔼 Click 'Compact Controls' to Hide Input Box", 950);
+      await clearSpotlight(c);
+      await c.click('[data-ollama-action="toggle-compact-controls"]', { pause: 1100 }).catch(() => {});
 
-      await spotlight(c, '[data-ollama-action="toggle-fullscreen-output"]', "⛶ Click 'Fullscreen' for 100% Viewport Reader", 500);
-      await c.click('[data-ollama-action="toggle-fullscreen-output"]', { pause: 950 }).catch(() => {});
+      await spotlight(c, '[data-ollama-action="toggle-fullscreen-output"]', "⛶ Click 'Fullscreen' for 100% Viewport Reader", 950);
+      await clearSpotlight(c);
+      await c.click('[data-ollama-action="toggle-fullscreen-output"]', { pause: 1800 }).catch(() => {});
 
-      await showKeycaps(c, ["Esc"], 550);
+      await showKeycaps(c, ["Esc"], 900);
       await c.eval(`(() => {
         const fsBtn = document.querySelector('[data-ollama-action="toggle-fullscreen-output"]');
-        if (fsBtn) fsBtn.click();
-        const expBtn = document.querySelector('[data-ollama-action="toggle-expand-output"]');
-        if (expBtn && expBtn.getAttribute('aria-pressed') === 'true') expBtn.click();
+        if (fsBtn && document.querySelector('.ollama-studio.is-fullscreen-output')) fsBtn.click();
         const cmpBtn = document.querySelector('[data-ollama-action="toggle-compact-controls"]');
         if (cmpBtn && cmpBtn.getAttribute('aria-pressed') === 'true') cmpBtn.click();
-        const studio = document.querySelector('.ollama-studio');
-        if (studio) studio.scrollTop = 0;
       })()`);
-      await sleep(450);
+      await sleep(700);
       await clearSpotlight(c);
     },
   },
@@ -767,6 +765,12 @@ const sceneSpecs: SceneSpec[] = [
     say: "Click Sampling and Runtime Parameters to fine-tune ten engine settings, including context window up to 128K tokens, temperature, top P, top K, min P, repeat penalty, seed, and keep-alive duration. Switch to Tab two for sub-second SystemOne JSON classification, or Tab four for Semantic Meaning Search to find files across your folder by concept using local embeddings.",
     record: async (c) => {
       await installVisualLearnerDemoHarness(c);
+      await c.eval(`(() => {
+        const expBtn = document.querySelector('[data-ollama-action="toggle-expand-output"]');
+        if (expBtn && expBtn.getAttribute('aria-pressed') === 'true') expBtn.click();
+        const studio = document.querySelector('.ollama-studio');
+        if (studio) studio.scrollTop = 0;
+      })()`);
       await showVisualLearnerHud(c, {
         stepBadge: "STEP 06 / 12",
         title: "Advanced Sampling Parameters (4K–128K Context), SystemOne & Semantic Search",
@@ -777,25 +781,26 @@ const sceneSpecs: SceneSpec[] = [
         const sBtn = document.querySelector('[data-ollama-action="toggle-sampling"]');
         if (sBtn) sBtn.scrollIntoView({ block: 'center', behavior: 'instant' });
       })()`);
-      await spotlight(c, '[data-ollama-action="toggle-sampling"]', "⚙️ Click 'Sampling & Runtime Parameters'", 450);
-      await c.click('[data-ollama-action="toggle-sampling"]', { pause: 850 }).catch(() => {});
+      await spotlight(c, '[data-ollama-action="toggle-sampling"]', "⚙️ Click 'Sampling & Runtime Parameters' (10 Engine Knobs)", 750);
+      await clearSpotlight(c);
+      await c.click('[data-ollama-action="toggle-sampling"]', { pause: 1200 }).catch(() => {});
 
       await c.eval(`(() => {
         const btn2 = Array.from(document.querySelectorAll('.ollama-mode-btn')).find(b => b.textContent && b.textContent.includes('2. Decision'));
         if (btn2) btn2.click();
       })()`);
-      await sleep(300);
+      await sleep(450);
       await c.eval(`(() => {
         const runDecBtn = Array.from(document.querySelectorAll('button')).find(b => b.textContent && b.textContent.includes('Run Multi-Question SystemOne Check'));
         if (runDecBtn) runDecBtn.click();
       })()`);
-      await sleep(650);
+      await sleep(1100);
 
       await c.eval(`(() => {
         const btn4 = Array.from(document.querySelectorAll('.ollama-mode-btn')).find(b => b.textContent && b.textContent.includes('4. Meaning Search'));
         if (btn4) btn4.click();
       })()`);
-      await sleep(300);
+      await sleep(450);
       await c.eval(`(() => {
         const inp = document.querySelector('input[placeholder*="Search active folder by meaning"]');
         if (inp) {
@@ -805,13 +810,7 @@ const sceneSpecs: SceneSpec[] = [
         const searchBtn = Array.from(document.querySelectorAll('button')).find(b => b.textContent && b.textContent.includes('Search Folder by Meaning'));
         if (searchBtn) searchBtn.click();
       })()`);
-      await sleep(750);
-
-      await c.eval(`(() => {
-        const btn1 = Array.from(document.querySelectorAll('.ollama-mode-btn')).find(b => b.textContent && b.textContent.includes('1. Ask Anything'));
-        if (btn1) btn1.click();
-      })()`);
-      await sleep(400);
+      await sleep(1400);
       await clearSpotlight(c);
     },
   },
@@ -838,19 +837,35 @@ const sceneSpecs: SceneSpec[] = [
         clickWay: "Click '🧬 Bionic AI' Ribbon Button → Click '⚙️ Runtime & Sampling' or Subtabs",
         shortcutWay: "Press ⌥B (Mac) / Alt+B (Win/Linux)",
       });
-      await showKeycaps(c, ["⌥ / Alt", "B"], 600);
+      await showKeycaps(c, ["⌥ / Alt", "B"], 750);
       await c.eval(`(async () => {
+        const { state } = await import('/ui/state.js');
+        const { selectKeys } = await import('/ui/selection.js');
         const { openPower, setPowerExpanded } = await import('/ui/power.js');
+        const f1 = state.entries.find(e => e.name.includes('02_Server_Config.v1'));
+        const f2 = state.entries.find(e => e.name.includes('03_Server_Config.v2'));
+        if (f1 && f2) selectKeys([f1.path, f2.path]);
         openPower('bionic');
         setPowerExpanded(true);
       })()`);
-      await sleep(750);
-      await spotlight(c, "[data-bionic-model-capabilities-card]", "🧬 Bionic Per-Model Indicators & Thinking Levels", 550);
-      await c.click('[data-bionic-action="toggle-sampling"]', { pause: 750 }).catch(() => {});
+      await sleep(950);
+      await spotlight(c, "[data-bionic-model-capabilities-card]", "🧬 Bionic Per-Model Indicators & Thinking Levels", 900);
+      await clearSpotlight(c);
+      await c.click('[data-bionic-action="toggle-sampling"]', { pause: 950 }).catch(() => {});
 
       for (const tabId of ["skills", "models", "assistant"]) {
-        await c.click(`[data-bionic-subtab="${tabId}"]`, { pause: 550 }).catch(() => {});
+        await c.click(`[data-bionic-subtab="${tabId}"]`, { pause: 850 }).catch(() => {});
       }
+      await c.eval(`(() => {
+        const synthBtn = Array.from(document.querySelectorAll('button')).find(b => b.textContent && b.textContent.includes('Synthesize Selected'));
+        if (synthBtn) synthBtn.click();
+      })()`);
+      await sleep(450);
+      await c.eval(`(() => {
+        const outConsole = document.querySelector('.bionic-output-console, .bionic-md-viewer');
+        if (outConsole) outConsole.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      })()`);
+      await sleep(1100);
       await clearSpotlight(c);
     },
   },
@@ -878,18 +893,25 @@ const sceneSpecs: SceneSpec[] = [
         shortcutWay: "⌘K / Ctrl+K → 'Code Studio' · ⌘S / Ctrl+S to Save",
       });
       await c.eval(`(async () => {
+        const { state } = await import('/ui/state.js');
         const { openPower, setPowerExpanded } = await import('/ui/power.js');
-        openPower('code');
+        const codeEntry = state.entries.find(e => e.name.includes('02_Server_Config.v1')) || state.entries.find(e => e.name.endsWith('.ts') || e.name.endsWith('.md'));
+        openPower('code', codeEntry ? { open: codeEntry.path } : {});
         setPowerExpanded(true);
       })()`);
-      await sleep(700);
+      await sleep(950);
       await c.eval(`(() => {
-        const aiBtn = Array.from(document.querySelectorAll('button')).find(b => b.textContent && b.textContent.includes('AI Chat'));
-        if (aiBtn) aiBtn.click();
+        const aiBtn = document.querySelector('#code-ai-toggle-btn') || Array.from(document.querySelectorAll('button')).find(b => b.textContent && b.textContent.includes('AI Chat'));
+        if (aiBtn && !document.querySelector('.code-ai-drawer')) aiBtn.click();
       })()`);
-      await sleep(800);
-      await spotlight(c, ".code-ai-drawer, #power-body", "💻 Built-In Code Editor + Side-by-Side AI Coding Assistant", 900);
-      await showKeycaps(c, ["⌘ / Ctrl", "S"], 550);
+      await sleep(750);
+      await c.eval(`(() => {
+        const explainBtn = Array.from(document.querySelectorAll('.code-ai-quick-bar button.code-ai-chip')).find(b => b.textContent && b.textContent.includes('Explain'));
+        if (explainBtn) explainBtn.click();
+      })()`);
+      await sleep(950);
+      await spotlight(c, ".code-ai-drawer", "💻 Side-by-Side AI Coding Assistant + 1-Click Apply to Editor", 1100);
+      await showKeycaps(c, ["⌘ / Ctrl", "S"], 800);
       await clearSpotlight(c);
     },
   },
@@ -921,13 +943,14 @@ const sceneSpecs: SceneSpec[] = [
         openPower('phonon');
         setPowerExpanded(true);
       })()`);
-      await sleep(700);
-      await spotlight(c, "#phonon-voice-select", "🗣️ 38 Expressive Neural Voices (Zoey Selected)", 550);
+      await sleep(850);
+      await spotlight(c, "#phonon-voice-select", "🗣️ 38 Expressive Neural Voices (Zoey Selected)", 800);
+      await clearSpotlight(c);
       await c.eval(`(() => {
         const tp = document.querySelector('.phonon-teleprompter-box');
         if (tp) tp.scrollIntoView({ behavior: 'smooth', block: 'center' });
       })()`);
-      await sleep(500);
+      await sleep(650);
       for (const [idx, targetWordIdx] of [2, 6, 11].entries()) {
         const themes = ["midnight", "sepia", "matrix"];
         await c.eval(`(() => {
@@ -939,7 +962,7 @@ const sceneSpecs: SceneSpec[] = [
             node.className = i < wIdx ? 'phonon-word is-spoken' : i === wIdx ? 'phonon-word is-speaking' : 'phonon-word is-upcoming';
           });
         })()`);
-        await sleep(420);
+        await sleep(650);
       }
       await clearSpotlight(c);
     },
@@ -983,8 +1006,9 @@ const sceneSpecs: SceneSpec[] = [
           await renderInfo();
         }
       })()`);
-      await sleep(750);
-      await spotlight(c, "[data-note-badge]", "📝 Sticky Note Badge + Hover Tooltip on File Row", 550);
+      await sleep(950);
+      await spotlight(c, "[data-note-badge]", "📝 Sticky Note Badge + Hover Tooltip on File Row", 950);
+      await clearSpotlight(c);
 
       await c.eval(`(async () => {
         const { state } = await import('/ui/state.js');
@@ -999,10 +1023,10 @@ const sceneSpecs: SceneSpec[] = [
           await showCompareTextFiles([f1, f2]);
         }
       })()`);
-      await sleep(750);
-      await spotlight(c, '[data-diff-mode="split"]', "🔀 Switch Between Unified & Split Side-by-Side Diff", 450);
-      await c.click('[data-diff-mode="split"]', { pause: 650 }).catch(() => {});
-      await c.eval(`(() => { document.querySelectorAll('.modal-backdrop').forEach(b => b.remove()); })()`);
+      await sleep(950);
+      await spotlight(c, '[data-diff-mode="split"]', "🔀 Switch Between Unified & Split Side-by-Side Diff", 750);
+      await clearSpotlight(c);
+      await c.click('[data-diff-mode="split"]', { pause: 1400 }).catch(() => {});
       await clearSpotlight(c);
     },
   },
@@ -1023,13 +1047,14 @@ const sceneSpecs: SceneSpec[] = [
     say: "Select multiple files and press F2—or click Bulk Rename in the selection bar—to open Power Bulk Rename 2.0, with Regex capture groups, six naming case styles like kebab-case, snake_case, and camelCase, plus date and folder tokens with a live diff preview. You can also generate and verify SHA-256 checksum manifests in one click, or export a complete Folder Inventory as an ASCII directory tree, Markdown table, CSV, or JSON.",
     record: async (c) => {
       await installVisualLearnerDemoHarness(c);
+      await c.eval(`(() => { document.querySelectorAll('.modal-backdrop').forEach(b => b.remove()); })()`);
       await showVisualLearnerHud(c, {
         stepBadge: "STEP 11 / 12",
         title: "Power Bulk Rename 2.0 (`F2`), SHA-256 Checksum Verifier & Folder Inventory Exporter",
         clickWay: "Select Files → Click '✏️ Bulk Rename' · '🔐 SHA-256' · '📋 Export Inventory'",
         shortcutWay: "Select Files + Press F2 · ⌘K → 'Export Folder Inventory'",
       });
-      await showKeycaps(c, ["F2"], 550);
+      await showKeycaps(c, ["F2"], 700);
       await c.eval(`(async () => {
         const { state } = await import('/ui/state.js');
         const { selectKeys } = await import('/ui/selection.js');
@@ -1040,7 +1065,7 @@ const sceneSpecs: SceneSpec[] = [
           void renameSelection();
         }
       })()`);
-      await sleep(850);
+      await sleep(1300);
       await c.eval(`(() => { document.querySelectorAll('.modal-backdrop').forEach(b => b.remove()); })()`);
 
       await c.eval(`(async () => {
@@ -1052,7 +1077,7 @@ const sceneSpecs: SceneSpec[] = [
           if (res?.savedPath) await verifyChecksumFile(res.savedPath);
         }
       })()`);
-      await sleep(800);
+      await sleep(1300);
       await c.eval(`(() => { document.querySelectorAll('.modal-backdrop').forEach(b => b.remove()); })()`);
 
       await c.eval(`(async () => {
@@ -1060,8 +1085,7 @@ const sceneSpecs: SceneSpec[] = [
         const { showFolderInventoryDialog } = await import('/ui/ops.js');
         await showFolderInventoryDialog(currentPath());
       })()`);
-      await sleep(850);
-      await c.eval(`(() => { document.querySelectorAll('.modal-backdrop').forEach(b => b.remove()); })()`);
+      await sleep(1600);
       await clearSpotlight(c);
     },
   },
@@ -1082,33 +1106,36 @@ const sceneSpecs: SceneSpec[] = [
     say: "Finally, select any file and press Spacebar—or click Quick Look—for instant previews. On images, use the interactive Image Inspector bar or press Plus, Minus, R to rotate, H or V to flip, and cycle between checkerboard, dark, and light backdrops. On documents and macOS packages, press Command F or Control F for highlighted in-preview search, resume right where you left off, click Ask AI or Speak, and use Smart Tidy Folder with one-click Command Z undo.",
     record: async (c) => {
       await installVisualLearnerDemoHarness(c);
+      await c.eval(`(() => { document.querySelectorAll('.modal-backdrop').forEach(b => b.remove()); })()`);
       await showVisualLearnerHud(c, {
         stepBadge: "STEP 12 / 12",
         title: "Quick Look (`Spacebar`) Image Inspector, In-Preview Find (`⌘F`) & Smart Folder Tidy",
         clickWay: "Click '👁️ Quick Look' → Click Zoom / Rotate / Flip / Backdrop / Find",
         shortcutWay: "Spacebar to Open · + / - / R / H / V / 0 (Image) · ⌘F / Ctrl+F (Find)",
       });
-      await showKeycaps(c, ["Space"], 500);
+      await showKeycaps(c, ["Space"], 650);
       await c.eval(`(async () => {
         const { state } = await import('/ui/state.js');
         const { openQuickLook } = await import('/ui/quicklook.js');
         const img = state.entries.find(e => e.name.endsWith('.png'));
         if (img) await openQuickLook(img);
       })()`);
-      await sleep(550);
-      await spotlight(c, "[data-ql-img-inspector]", "🖼️ Interactive Image Inspector (+ / - / R / H / V / Backdrop)", 450);
-      await c.click("[data-ql-img-zoom-in]", { pause: 320 }).catch(() => {});
-      await c.click("[data-ql-img-rot-right]", { pause: 320 }).catch(() => {});
-      await c.click("[data-ql-img-backdrop]", { pause: 380 }).catch(() => {});
+      await sleep(750);
+      await spotlight(c, "[data-ql-img-inspector]", "🖼️ Interactive Image Inspector (+ / - / R / H / V / Backdrop)", 750);
+      await clearSpotlight(c);
+      await c.click("[data-ql-img-zoom-in]", { pause: 450 }).catch(() => {});
+      await c.click("[data-ql-img-rot-right]", { pause: 450 }).catch(() => {});
+      await c.click("[data-ql-img-backdrop]", { pause: 550 }).catch(() => {});
 
       await c.eval(`(async () => {
         const { state } = await import('/ui/state.js');
-        const { openQuickLook } = await import('/ui/quicklook.js');
+        const { openQuickLook, closeQuickLook } = await import('/ui/quicklook.js');
+        closeQuickLook();
         const docEntry = state.entries.find(e => e.name.includes('01_AI_Architecture_Guide'));
         if (docEntry) await openQuickLook(docEntry);
       })()`);
-      await sleep(550);
-      await showKeycaps(c, ["⌘ / Ctrl", "F"], 500);
+      await sleep(750);
+      await showKeycaps(c, ["⌘ / Ctrl", "F"], 650);
       await c.eval(`(() => {
         const findBtn = document.querySelector('[data-ql-find-toggle]');
         if (findBtn) findBtn.click();
@@ -1118,11 +1145,7 @@ const sceneSpecs: SceneSpec[] = [
           findInput.dispatchEvent(new Event('input', { bubbles: true }));
         }
       })()`);
-      await sleep(650);
-      await c.eval(`(async () => {
-        const { closeQuickLook } = await import('/ui/quicklook.js');
-        closeQuickLook();
-      })()`);
+      await sleep(1600);
       await clearSpotlight(c);
     },
   },
@@ -1202,7 +1225,7 @@ body{
 </div>
 <div class="frame-rim"></div>
 <div class="pills">
-  ${scene.bullets.map((b) => `<div class="pill"><span class="dot">✦</span><span>${esc(b)}</span></div>`).join("")}
+  ${scene.bullets.map((b) => `<div class="pill"><span class="dot">✦</span><span>${esc(b.replace(/`/g, ""))}</span></div>`).join("")}
 </div>
 ${
   isLast
@@ -1221,11 +1244,11 @@ body{width:1920px;height:1080px;background:transparent;font-family:-apple-system
 .top-row{display:flex;align-items:center;gap:12px;white-space:nowrap;overflow:hidden}
 .click-tag{background:rgba(16,185,129,0.20);border:1px solid rgba(16,185,129,0.65);color:#a7f3d0;font-size:14px;font-weight:800;padding:3px 10px;border-radius:7px}
 .key-tag{background:rgba(245,158,11,0.22);border:1px solid rgba(245,158,11,0.75);color:#fde68a;font-size:14px;font-weight:800;padding:3px 10px;border-radius:7px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
-.cap{color:#f8fafc;font-size:22px;font-weight:800;letter-spacing:-.01em;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cap{color:#f8fafc;font-size:21px;font-weight:800;letter-spacing:-.01em;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .right{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:5px}
 .rig{color:#0f172a;font-size:13px;font-weight:900;letter-spacing:.01em;background:#fef3c7;border:1.5px solid #f59e0b;padding:4px 12px;border-radius:8px;white-space:nowrap}
 .n{flex:none;color:#bae6fd;font-size:15px;font-weight:800;background:rgba(56,189,248,0.15);border:1.5px solid rgba(56,189,248,0.45);padding:4px 13px;border-radius:10px}
-</style></head><body><div class="strip"><div class="badge">${esc(`STEP ${String(index + 1).padStart(2, "0")} / ${totalScenes}`)}</div><div class="col"><div class="top-row"><span class="click-tag">🖱️ Click: ${esc(scene.clickWay)}</span><span class="key-tag">⌨️ Shortcut: ${esc(scene.shortcutWay)}</span></div><div class="cap">${esc(scene.bullets.join("  ·  "))}</div></div><div class="right"><div class="rig">🎙️ Visual Learner Masterclass · Both Ways Shown</div><div class="n">Step ${index + 1} of ${totalScenes}</div></div></div></body></html>`;
+</style></head><body><div class="strip"><div class="badge">${esc(`STEP ${String(index + 1).padStart(2, "0")} / ${totalScenes}`)}</div><div class="col"><div class="top-row"><span class="click-tag">🖱️ Click: ${esc(scene.clickWay)}</span><span class="key-tag">⌨️ Shortcut: ${esc(scene.shortcutWay)}</span></div><div class="cap">${esc(scene.bullets.map((b) => b.replace(/`/g, "")).join("  ·  "))}</div></div><div class="right"><div class="rig">🎙️ Visual Learner Masterclass · Both Ways Shown</div><div class="n">Step ${index + 1} of ${totalScenes}</div></div></div></body></html>`;
 }
 
 function buildCompleteTutorialMarkdown(
@@ -1389,7 +1412,9 @@ async function main() {
       await recBrowser.startRecording();
       await scene.record(recBrowser);
       await sleep(350);
-      await recBrowser.stopRecording(clipPath, join(WORK, `frames_${scene.id}`), item.seconds);
+      const actualElapsedSec = Math.max(4, (performance.now() - recBrowser.getRecordStartTime()) / 1000);
+      const targetRecSec = scene.id === "04_ask_stream_and_stop_generation" ? item.seconds : actualElapsedSec;
+      await recBrowser.stopRecording(clipPath, join(WORK, `frames_${scene.id}`), targetRecSec);
       rawClips.set(scene.id, clipPath);
     }
   } finally {
