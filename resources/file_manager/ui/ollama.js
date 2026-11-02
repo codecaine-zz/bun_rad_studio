@@ -1239,7 +1239,9 @@ export async function refreshOllamaStatus(silent = false) {
     uiState.statusData = res;
     uiState.pendingActions = Array.isArray(res.pendingActions) ? res.pendingActions : [];
     if (!uiState.selectedModel && Array.isArray(res.models) && res.models.length > 0) {
-      const chatModel = res.models.find((m) => m.badges?.includes("Chat")) || res.models[0];
+      const chatModel =
+        res.models.find((m) => m.badges?.includes("Chat") && !m.badges?.includes("Speech")) ||
+        res.models.find((m) => m.badges?.includes("Chat"));
       if (chatModel) uiState.selectedModel = chatModel.name;
     }
     syncSelectedModelCapabilitiesState();
@@ -1268,7 +1270,7 @@ async function runSmartAutoRouter(customPrompt) {
     uiState.promptText = livePrompt;
   }
   if (!livePrompt && paths.length === 0) {
-    toast("Type a plain-English request or select a file to read aloud.");
+    toast("Type a plain-English request or select a file to analyze.");
     return;
   }
   if (uiState.abortController) {
@@ -1280,14 +1282,23 @@ async function runSmartAutoRouter(customPrompt) {
   }
   const abortController = new AbortController();
   uiState.abortController = abortController;
-  const prompt = livePrompt;
+  const hasImageSel = paths.some((p) => /\.(png|jpe?g|webp|gif|bmp|heic|tiff?|avif)$/i.test(String(p || "")));
+  const prompt =
+    livePrompt ||
+    (!uiState.speakReply && paths.length > 0
+      ? hasImageSel
+        ? "Describe and analyze the selected image in detail."
+        : "Summarize and explain the selected file."
+      : "");
   uiState.loading = true;
   uiState.refusalBanner = null;
   uiState.lastAudioUrl = "";
   uiState.autoPlayedAudioUrl = "";
   uiState.routeBanner = !prompt
     ? `Reading selected file (${paths[0]}) aloud with Speech Engine (${uiState.speechModel || "auto"})...`
-    : "Routing your request to the optimal Ollama capability...";
+    : hasImageSel && !livePrompt
+      ? `Analyzing selected image (${paths[0]}) with Multimodal Vision...`
+      : "Routing your request to the optimal Ollama capability...";
   startLiveTaskTicker(
     !prompt ? "Synthesizing Speech for Selected File" : "Running Ollama AI Capability Router",
     uiState.routeBanner,
@@ -1400,15 +1411,23 @@ async function runSmartAutoRouter(customPrompt) {
 }
 
 async function runLiveStreamChat() {
-  const prompt = String(assistantTextareaEl ? assistantTextareaEl.value : uiState.promptText || "").trim();
+  const paths = selectedFilePaths();
+  const hasImageSel = paths.some((p) => /\.(png|jpe?g|webp|gif|bmp|heic|tiff?|avif)$/i.test(String(p || "")));
+  let prompt = String(assistantTextareaEl ? assistantTextareaEl.value : uiState.promptText || "").trim();
   uiState.promptText = prompt;
   if (!prompt) {
-    if (selectedFilePaths().length > 0) {
-      await runSmartAutoRouter("");
+    if (paths.length > 0) {
+      if (uiState.speakReply && !hasImageSel) {
+        await runSmartAutoRouter("");
+        return;
+      }
+      prompt = hasImageSel
+        ? "Describe and analyze the selected image in detail."
+        : "Summarize and explain the selected file.";
+    } else {
+      toast("Enter a message to stream or select a file to analyze.");
       return;
     }
-    toast("Enter a message to stream or select a file to read aloud.");
-    return;
   }
   if (uiState.abortController) {
     try {

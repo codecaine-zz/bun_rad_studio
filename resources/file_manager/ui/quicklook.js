@@ -428,7 +428,11 @@ async function renderBody(entry, mine) {
           title: "Analyze this image with AI Vision (Ollama / LM Studio Bionic)",
           onclick: () => {
             closeQuickLook();
-            openPower("ollama", { subTab: "assistant", paths: [entry.path] });
+            openPower("ollama", {
+              subTab: "assistant",
+              paths: [entry.path],
+              prompt: `Describe and analyze the image "${entry.name}" in detail.`,
+            });
           },
         }, "🤖 Ask AI"),
       );

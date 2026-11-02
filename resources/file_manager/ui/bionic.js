@@ -1397,8 +1397,16 @@ async function runBionicSmartRouter(customPrompt) {
     uiState.promptText = livePrompt;
   }
   if (!livePrompt && paths.length === 0) {
-    toast("Type a plain-English request, trigger a @skill, or select a file to read aloud / transcribe.");
+    toast("Type a plain-English request, trigger a @skill, or select a file to analyze.");
     return;
+  }
+
+  const hasImageSel = paths.some((p) => /\.(png|jpe?g|webp|gif|bmp|heic|tiff?|avif)$/i.test(String(p || "")));
+  const hasMediaSel = paths.some((p) => /\.(wav|mp3|m4a|flac|ogg|mp4|mov|webm)$/i.test(String(p || "")));
+  if (!livePrompt && paths.length > 0 && !uiState.speakReply && !hasMediaSel) {
+    livePrompt = hasImageSel
+      ? "Describe and analyze the selected image in detail."
+      : "Summarize and explain the selected file.";
   }
 
   if (uiState.abortController) {
@@ -1517,15 +1525,23 @@ async function runBionicSmartRouter(customPrompt) {
 }
 
 async function runBionicStreamChat() {
-  const prompt = String(promptTextareaEl ? promptTextareaEl.value : uiState.promptText || "").trim();
+  const paths = selectedFilePaths();
+  const hasImageSel = paths.some((p) => /\.(png|jpe?g|webp|gif|bmp|heic|tiff?|avif)$/i.test(String(p || "")));
+  let prompt = String(promptTextareaEl ? promptTextareaEl.value : uiState.promptText || "").trim();
   uiState.promptText = prompt;
   if (!prompt) {
-    if (selectedFilePaths().length > 0) {
-      await runBionicSmartRouter("");
+    if (paths.length > 0) {
+      if (uiState.speakReply && !hasImageSel) {
+        await runBionicSmartRouter("");
+        return;
+      }
+      prompt = hasImageSel
+        ? "Describe and analyze the selected image in detail."
+        : "Summarize and explain the selected file.";
+    } else {
+      toast("Enter a message to stream from LM Studio Bionic.");
       return;
     }
-    toast("Enter a message to stream from LM Studio Bionic.");
-    return;
   }
 
   if (uiState.abortController) {

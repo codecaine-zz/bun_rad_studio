@@ -1274,4 +1274,63 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
     expect(bionicJs).toContain("new AbortController()");
     expect(codeAiJs).toContain('"data-code-ai-action": "stop-generation"');
   });
+
+  test("15. Image Review & Unchecked Speak Reply Guard: never speaks out loud or reads binary JPEG bytes when reviewing images or files with speakReply=false", async () => {
+    const { writeFileSync } = await import("node:fs");
+    const jpegPath = `${tempRoot}/home/docs/5162237.jpeg`;
+    // Write realistic JPEG magic bytes + binary header
+    writeFileSync(jpegPath, Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01]));
+
+    // 1. Reviewing a .jpeg image with blank prompt or speakReply: false routes to "vision" and never triggers speech
+    const imgRouteBlank = await apiCall("ollama/route", {
+      prompt: "",
+      paths: ["docs/5162237.jpeg"],
+      speakReply: false,
+      voice: "Zoey",
+    });
+    expect(imgRouteBlank.status).toBe(200);
+    expect(imgRouteBlank.data.routedCapability).toBe("vision");
+    expect(imgRouteBlank.data.result.speechResult).toBeFalsy();
+
+    // 2. Reviewing a .jpeg image with Quick Look's Ask AI prompt routes to "vision" and attaches base64 image without reading binary bytes as text
+    const imgRouteAsk = await apiCall("ollama/route", {
+      prompt: 'Describe and analyze the image "5162237.jpeg" in detail.',
+      paths: ["docs/5162237.jpeg"],
+      speakReply: false,
+      voice: "Zoey",
+    });
+    expect(imgRouteAsk.status).toBe(200);
+    expect(imgRouteAsk.data.routedCapability).toBe("vision");
+    expect(imgRouteAsk.data.result.speechResult).toBeFalsy();
+    expect(imgRouteAsk.data.result.inspectedFiles).toContain("docs/5162237.jpeg");
+
+    // 3. Selecting a text file with speakReply: false and blank prompt or "read this file" routes to "chat", NOT "speech"
+    const textRouteNoSpeak = await apiCall("ollama/route", {
+      prompt: "",
+      paths: ["docs/crash.log"],
+      speakReply: false,
+      voice: "Zoey",
+    });
+    expect(textRouteNoSpeak.status).toBe(200);
+    expect(textRouteNoSpeak.data.routedCapability).toBe("chat");
+    expect(textRouteNoSpeak.data.result.speechResult).toBeFalsy();
+
+    const readPromptNoAloud = await apiCall("ollama/route", {
+      prompt: "Read this file and summarize the error",
+      paths: ["docs/crash.log"],
+      speakReply: false,
+      voice: "Zoey",
+    });
+    expect(readPromptNoAloud.status).toBe(200);
+    expect(readPromptNoAloud.data.routedCapability).toBe("chat");
+    expect(readPromptNoAloud.data.result.speechResult).toBeFalsy();
+
+    // 4. Calling ollama/speech directly on a binary image file is cleanly rejected with UNSUPPORTED_SPEECH_FILE
+    const speechOnImage = await apiCall("ollama/speech", {
+      filePath: "docs/5162237.jpeg",
+      voice: "Zoey",
+    });
+    expect(speechOnImage.status).toBe(400);
+    expect(speechOnImage.data.error.code).toBe("UNSUPPORTED_SPEECH_FILE");
+  });
 });

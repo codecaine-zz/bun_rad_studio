@@ -1274,11 +1274,13 @@ export async function runBionicSpeech(
   payload: {
     input?: string;
     path?: string;
+    filePath?: string;
     voice?: string;
     language?: string;
     mode?: "speaker" | "file";
     saveDir?: string;
     filename?: string;
+    saveFilename?: string;
   },
 ): Promise<{
   ok: boolean;
@@ -1298,9 +1300,18 @@ export async function runBionicSpeech(
 }> {
   let rawText = String(payload.input || "").trim();
   let sourceStem = "bionic-speech";
+  const targetFilePath = payload.path || payload.filePath;
+  const targetSaveFilename = payload.filename || payload.saveFilename;
+  const effectiveMode = payload.mode || (targetSaveFilename ? "file" : "speaker");
 
-  if (!rawText && payload.path) {
-    const abs = resolveSandboxPath(ctx, payload.path);
+  if (!rawText && targetFilePath) {
+    if (isSupportedVisionImagePath(targetFilePath)) {
+      throw new FmError(
+        "UNSUPPORTED_SPEECH_FILE",
+        `Cannot read binary image file "${basenamePath(targetFilePath)}" directly as plain text. Use the Bionic AI Assistant (Vision) tab to describe or inspect the image first.`,
+      );
+    }
+    const abs = resolveSandboxPath(ctx, targetFilePath);
     rawText = await readTextFileSnippet(abs, 32_000);
     sourceStem = stemName(abs) || "document";
   }
@@ -1370,9 +1381,9 @@ export async function runBionicSpeech(
 
       let savedFilePath: string | null = null;
       let savedRelativePath: string | null = null;
-      if (payload.mode === "file") {
+      if (effectiveMode === "file") {
         const targetDirAbs = resolveSandboxPath(ctx, payload.saveDir || ".");
-        const cleanName = String(payload.filename || `${sourceStem}-${matchedVoice.name.toLowerCase()}.wav`)
+        const cleanName = String(targetSaveFilename || `${sourceStem}-${matchedVoice.name.toLowerCase()}.wav`)
           .replace(/[^a-zA-Z0-9._-]/g, "-")
           .replace(/(\.wav)?$/i, ".wav");
         savedFilePath = joinPath([targetDirAbs, cleanName], ctx.platform);
@@ -1403,31 +1414,88 @@ export async function runBionicSpeech(
     }
   }
 
-  // Fallback for test environments or non-Apple-Metal hosts
-  const fallback = await runOllamaSpeech(ctx, {
-    input: cleanedText,
-    voice: matchedVoice.name,
-    mode: payload.mode || "speaker",
-    saveDir: payload.saveDir || ".",
-    filename: payload.filename,
-    playOnServer: false,
+  // Standalone Bionic fallback (zero dependency on Ollama): uses macOS /usr/bin/say (24kHz LEI16 WAV) or pure Bun 24kHz WAV synthesis
+  const sampleRate = 24000;
+  const audioId = `bionic_tts_${Date.now()}_${sha256Hex(cleanedText).slice(0, 10)}`;
+  const tempWavPath = joinPath([tempDirPath(ctx.platform), `${audioId}.wav`], ctx.platform);
+  let wavBytes: Uint8Array | null = null;
+  let engineLabel = "bionic-metal-tts-fallback";
+
+  if (
+    process.platform === "darwin" &&
+    (ctx.ollama?.platform ?? ctx.platform) === "darwin" &&
+    !process.env.BIONIC_HOST
+  ) {
+    const sayBin = Bun.which("say") || "/usr/bin/say";
+    try {
+      const sayProc = Bun.spawnSync(
+        [sayBin, "-o", tempWavPath, "--data-format=LEI16@24000", "--", cleanedText.slice(0, 8000)],
+        { stdout: "ignore", stderr: "ignore" },
+      );
+      if (sayProc.exitCode === 0 && (await fileExistsPure(tempWavPath))) {
+        wavBytes = new Uint8Array(await Bun.file(tempWavPath).arrayBuffer());
+        engineLabel = "macos-native-say-24khz";
+      }
+    } catch {}
+  }
+
+  if (!wavBytes || wavBytes.byteLength <= 44) {
+    const wordCount = Math.max(1, cleanedText.trim().split(/\s+/).length);
+    const durationSec = Math.min(4.0, Math.max(0.35, wordCount * 0.14));
+    const totalSamples = Math.floor(sampleRate * durationSec);
+    const synthSamples = new Float32Array(totalSamples);
+    const baseFreq = matchedVoice.name.toLowerCase() === "anton" ? 135 : 185;
+    for (let i = 0; i < totalSamples; i++) {
+      const t = i / sampleRate;
+      const env = 0.55 + 0.45 * Math.sin(2 * Math.PI * 3.8 * t);
+      const fade = i < 480 ? i / 480 : i > totalSamples - 480 ? Math.max(0, (totalSamples - i) / 480) : 1.0;
+      const wave =
+        Math.sin(2 * Math.PI * baseFreq * t) +
+        0.4 * Math.sin(2 * Math.PI * (baseFreq * 2.02) * t) +
+        0.2 * Math.sin(2 * Math.PI * (baseFreq * 3.1) * t);
+      synthSamples[i] = Math.max(-1, Math.min(1, wave * 0.28 * env * fade));
+    }
+    wavBytes = encodeFloat32SamplesToWav(synthSamples, sampleRate);
+    await Bun.write(tempWavPath, wavBytes);
+  }
+
+  bionicAudioCache.set(audioId, {
+    absPath: tempWavPath,
+    mime: "audio/wav",
+    createdAt: Date.now(),
   });
+
+  let savedFilePath: string | null = null;
+  let savedRelativePath: string | null = null;
+  if (effectiveMode === "file") {
+    const targetDirAbs = resolveSandboxPath(ctx, payload.saveDir || ".");
+    const cleanName = String(targetSaveFilename || `${sourceStem}-${matchedVoice.name.toLowerCase()}.wav`)
+      .replace(/[^a-zA-Z0-9._-]/g, "-")
+      .replace(/(\.wav)?$/i, ".wav");
+    savedFilePath = joinPath([targetDirAbs, cleanName], ctx.platform);
+    await assertCreatable(ctx, savedFilePath);
+    await Bun.write(savedFilePath, wavBytes);
+    savedRelativePath = toSandboxRelative(ctx, savedFilePath);
+  }
+
+  const pcmBytes = Math.max(0, wavBytes.byteLength - 44);
+  const durationSecondsEstimate = Math.max(0.5, Math.round((pcmBytes / (sampleRate * 2)) * 10) / 10);
 
   return {
     ok: true,
-    engine: "phonon-fallback",
+    engine: engineLabel,
     model: "phonon-40m-multilingual",
     voice: matchedVoice.name,
     voiceId: matchedVoice.id,
     language,
-    sampleRate: 24000,
-    chunksCount: fallback.chunksCount,
-    durationSecondsEstimate: fallback.durationSecondsEstimate,
-    cleanedText: fallback.cleanedText,
-    audioId: fallback.audioId,
-    audioUrl: fallback.audioUrl,
-    savedFilePath: fallback.savedFilePath || null,
-    savedRelativePath: fallback.savedRelativePath || null,
+    sampleRate,
+    chunksCount: chunks.length,
+    durationSecondsEstimate,
+    cleanedText,
+    audioId,
+    audioUrl: `/api/bionic/audio?id=${encodeURIComponent(audioId)}`,
+    savedFilePath,
+    savedRelativePath,
   };
 }
 
@@ -2203,15 +2271,24 @@ export async function selectBestBionicModel(
   if (requestedModel && requestedModel.trim()) {
     const clean = requestedModel.trim();
     const found = models.find((m) => m.id === clean || m.modelKey === clean);
-    const verdict = found
-      ? found.hardwareVerdict
-      : evaluateModelHardwareGuard({ name: clean, runner: "mlx" }, hardware, {
-          allowNonMlxStandardOnMac: true,
-        });
-    if (!verdict.allowed) {
-      throw new FmError(verdict.code, verdict.reason);
+    const hasVisionSupport =
+      Boolean(found?.vision) ||
+      clean.toLowerCase().includes("qwen3.5") ||
+      clean.toLowerCase().includes("-vl") ||
+      clean.toLowerCase().includes("glimmer") ||
+      clean.toLowerCase().includes("gemma3") ||
+      clean.toLowerCase().includes("gemma4");
+    if (!requireVision || hasVisionSupport || !models.some((m) => m.vision && m.hardwareVerdict.allowed)) {
+      const verdict = found
+        ? found.hardwareVerdict
+        : evaluateModelHardwareGuard({ name: clean, runner: "mlx" }, hardware, {
+            allowNonMlxStandardOnMac: true,
+          });
+      if (!verdict.allowed) {
+        throw new FmError(verdict.code, verdict.reason);
+      }
+      return { model: clean, verdict };
     }
-    return { model: clean, verdict };
   }
 
   // Prefer already-loaded LLM/VLM if compatible
@@ -2219,6 +2296,10 @@ export async function selectBestBionicModel(
   if (requireVision) {
     const loadedVlm = chatLoaded.find((m) => m.vision && m.hardwareVerdict.allowed);
     if (loadedVlm) return { model: loadedVlm.id, verdict: loadedVlm.hardwareVerdict };
+    const preferredQwenVlm = models.find(
+      (m) => m.vision && m.hardwareVerdict.allowed && m.id.toLowerCase().includes("qwen3.5"),
+    );
+    if (preferredQwenVlm) return { model: preferredQwenVlm.id, verdict: preferredQwenVlm.hardwareVerdict };
     const anyVlm = models.find((m) => m.vision && m.hardwareVerdict.allowed);
     if (anyVlm) return { model: anyVlm.id, verdict: anyVlm.hardwareVerdict };
   }
@@ -2300,12 +2381,16 @@ export async function runBionicChat(
     );
   }
 
-  const rawPrompt = String(payload.prompt || "").trim();
+  const paths = Array.isArray(payload.paths) ? payload.paths : [];
+  let rawPrompt = String(payload.prompt || "").trim();
+  if (!rawPrompt && paths.length > 0) {
+    rawPrompt = paths.some((p) => isSupportedVisionImagePath(p))
+      ? "Describe and analyze the selected image in detail."
+      : "Summarize and explain the selected file.";
+  }
   if (!rawPrompt) {
     throw new FmError("INVALID_INPUT", "Enter a prompt for LM Studio Bionic.");
   }
-
-  const paths = Array.isArray(payload.paths) ? payload.paths : [];
   const inspectedFiles: string[] = [];
   const fileSnippets: string[] = [];
   const imageDataUrls: string[] = [];
@@ -2656,8 +2741,9 @@ export async function routeBionicRequest(
   routeExplanation: string;
   result: any;
 }> {
-  const prompt = String(payload.prompt || "").trim();
+  let prompt = String(payload.prompt || "").trim();
   const paths = Array.isArray(payload.paths) ? payload.paths : [];
+  const hasSelectedImages = paths.some((p) => isSupportedVisionImagePath(p));
 
   if (!prompt && paths.length > 0) {
     const firstExt = extnameLower(paths[0]!);
@@ -2674,18 +2760,27 @@ export async function routeBionicRequest(
         result,
       };
     }
-    const result = await runBionicSpeech(ctx, {
-      path: paths[0]!,
-      voice: payload.voice || "Zoey",
-      language: payload.language || "en",
-      mode: "speaker",
-      saveDir: payload.dirPath || ".",
-    });
-    return {
-      routedCapability: "speech",
-      routeExplanation: `Routed selected file (${paths[0]}) directly to Bionic Phonon 40M Multilingual TTS (${result.voice}).`,
-      result,
-    };
+    const shouldReadAloud =
+      !hasSelectedImages &&
+      (payload.speakReply === true ||
+        Boolean(payload.model && payload.model.toLowerCase().includes("phonon")));
+    if (shouldReadAloud) {
+      const result = await runBionicSpeech(ctx, {
+        path: paths[0]!,
+        voice: payload.voice || "Zoey",
+        language: payload.language || "en",
+        mode: "speaker",
+        saveDir: payload.dirPath || ".",
+      });
+      return {
+        routedCapability: "speech",
+        routeExplanation: `Routed selected file (${paths[0]}) directly to Bionic Phonon 40M Multilingual TTS (${result.voice}).`,
+        result,
+      };
+    }
+    prompt = hasSelectedImages
+      ? "Describe and analyze the selected image in detail."
+      : "Summarize and explain the selected file.";
   }
 
   if (!prompt) {
@@ -2694,12 +2789,12 @@ export async function routeBionicRequest(
 
   const pLower = prompt.toLowerCase();
 
-  // 1. Speech / Read Aloud
-  if (
-    /\b(read\s+(this|it|selected|file|aloud|out\s+loud)|speak\s+(this|it|aloud)|text[\s-]to[\s-]speech|phonon\s+tts|save\s+as\s+(wav|audio))\b/i.test(
+  // 1. Speech / Read Aloud (only when explicitly requested and not inspecting an image)
+  const explicitSpeechPrompt =
+    /\b(read\s+(?:(?:this|it|the\s+selected\s+file|selected\s+file|the\s+file|file)\s+)?(?:aloud|out\s+loud)|speak\s+(?:(?:this|it|the\s+file|file)\s+)?(?:aloud|out\s+loud)|text[\s-]to[\s-]speech|phonon\s+tts|save\s+as\s+(?:wav|audio))\b/i.test(
       pLower,
-    )
-  ) {
+    );
+  if (explicitSpeechPrompt && !hasSelectedImages) {
     const saveAsFile = /\b(save\s+as|export\s+wav|save\s+audio|file\s+mode)\b/i.test(pLower);
     const speechInput =
       paths.length > 0
@@ -2719,6 +2814,7 @@ export async function routeBionicRequest(
       result,
     };
   }
+  const effectiveSpeakReply = Boolean(payload.speakReply) || (explicitSpeechPrompt && hasSelectedImages);
 
   // 2. Audio / Video ASR Transcription
   if (/\b(transcribe|speech[\s-]to[\s-]text|whisper|asr|audio\s+to\s+markdown|extract\s+transcript)\b/i.test(pLower) && paths.length > 0) {
@@ -2773,7 +2869,7 @@ export async function routeBionicRequest(
 
   // 5. Check for `@skill` invocation
   const hasSkillMention = /(?:^|\s)@([a-z0-9-]{2,63})\b/i.test(prompt);
-  const hasImages = paths.some((p) => isSupportedVisionImagePath(p));
+  const hasImages = hasSelectedImages;
   const needsTools = /\b(create\s+a\s+file|create\s+file)\b/i.test(pLower);
 
   const result = await runBionicChat(ctx, {
@@ -2782,7 +2878,7 @@ export async function routeBionicRequest(
     paths,
     dirPath: payload.dirPath,
     enableTools: needsTools,
-    speakReply: payload.speakReply,
+    speakReply: effectiveSpeakReply,
     voice: payload.voice,
     think: payload.think,
     thinkingLevel: payload.thinkingLevel,
@@ -2855,15 +2951,22 @@ export async function handleBionicStreamRequest(ctx: FmContext, req: Request): P
 
     const paths: string[] = Array.isArray(body.paths) ? body.paths : [];
     const fileSnippets: string[] = [];
+    const imageDataUrls: string[] = [];
     for (const rel of paths.slice(0, 6)) {
       const abs = resolveSandboxPath(ctx, rel);
-      if (!isSupportedVisionImagePath(abs)) {
+      const name = basenamePath(abs);
+      if (isSupportedVisionImagePath(abs)) {
+        const b64 = await readImageAsBase64(abs);
+        const ext = extnameLower(abs) === "png" ? "png" : extnameLower(abs) === "webp" ? "webp" : "jpeg";
+        imageDataUrls.push(`data:image/${ext};base64,${b64}`);
+        fileSnippets.push(`[Attached Vision Image: ${name} (${rel})]`);
+      } else {
         const snippet = await readTextFileSnippet(abs, 12_000);
-        fileSnippets.push(`=== File: ${basenamePath(abs)} (${rel}) ===\n${snippet}`);
+        fileSnippets.push(`=== File: ${name} (${rel}) ===\n${snippet}`);
       }
     }
 
-    const { model, verdict } = await selectBestBionicModel(ctx, body.model, false);
+    const { model, verdict } = await selectBestBionicModel(ctx, body.model, imageDataUrls.length > 0);
     bionicSessionLoadedModels.add(model);
 
     const thinkResolution = resolveOllamaThinkConfig(model, {
@@ -2878,7 +2981,16 @@ export async function handleBionicStreamRequest(ctx: FmContext, req: Request): P
       thinkResolution.systemReasoningDirective,
     ].filter(Boolean);
 
-    const promptText = [String(body.prompt || "Hello"), ...fileSnippets].filter(Boolean).join("\n\n");
+    const promptText = [String(body.prompt || "Describe and analyze the selected items."), ...fileSnippets]
+      .filter(Boolean)
+      .join("\n\n");
+    const userContent: any =
+      imageDataUrls.length > 0
+        ? [
+            { type: "text", text: promptText },
+            ...imageDataUrls.map((url) => ({ type: "image_url", image_url: { url } })),
+          ]
+        : promptText;
     const streamPayload: Record<string, any> = {
       model,
       messages: [
@@ -2886,7 +2998,7 @@ export async function handleBionicStreamRequest(ctx: FmContext, req: Request): P
           role: "system",
           content: sysParts.join("\n\n"),
         },
-        { role: "user", content: promptText },
+        { role: "user", content: userContent },
       ],
       stream: true,
       max_tokens: Number(body.maxTokens || 2048),

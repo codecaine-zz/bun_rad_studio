@@ -456,7 +456,18 @@ export function toSandboxRelative(ctx: FmContext, absPath: string): string {
 
 export function isSupportedVisionImagePath(filePath: string): boolean {
   const ext = extnameLower(filePath);
-  return ext === "png" || ext === "jpg" || ext === "jpeg" || ext === "webp";
+  return (
+    ext === "png" ||
+    ext === "jpg" ||
+    ext === "jpeg" ||
+    ext === "webp" ||
+    ext === "gif" ||
+    ext === "bmp" ||
+    ext === "heic" ||
+    ext === "tiff" ||
+    ext === "tif" ||
+    ext === "avif"
+  );
 }
 
 export async function readImageAsBase64(absPath: string): Promise<string> {
@@ -475,8 +486,17 @@ export async function readTextFileSnippet(absPath: string, maxChars = 24_000): P
     "oo3", "mindnode", "graffle",
     "docx", "odt", "rtf", "fb2", "pdf", "pptx", "ppsx", "odp", "xlsx", "xlsm", "ods",
   ]);
+  const binaryMediaExts = new Set([
+    "png", "jpg", "jpeg", "webp", "gif", "bmp", "heic", "tiff", "tif", "avif", "ico",
+    "mp3", "wav", "m4a", "flac", "ogg", "aac", "opus", "mp4", "mov", "webm", "mkv", "avi",
+  ]);
   const file = Bun.file(absPath);
   const isRegularFile = await file.exists();
+
+  if (isRegularFile && binaryMediaExts.has(ext)) {
+    const kindLabel = isSupportedVisionImagePath(absPath) ? "Image" : "Media";
+    return `[Binary ${kindLabel} File: ${basenamePath(absPath)} (${ext.toUpperCase()}, ${file.size.toLocaleString()} bytes)]`;
+  }
 
   if (!isRegularFile || richExts.has(ext)) {
     const richText = await extractReadableDocumentText(absPath, maxChars).catch(() => null);
@@ -4392,6 +4412,7 @@ export async function runOllamaSpeech(
     model?: string;
     input?: string;
     path?: string;
+    filePath?: string;
     voice?: string;
     mode?: "speaker" | "file";
     responseFormat?: "wav" | "pcm";
@@ -4422,8 +4443,15 @@ export async function runOllamaSpeech(
   engineNote: string;
 }> {
   let rawText = String(payload.input || "").trim();
-  if (!rawText && payload.path) {
-    const abs = resolveSandboxPath(ctx, payload.path);
+  const targetSpeechPath = payload.path || payload.filePath;
+  if (!rawText && targetSpeechPath) {
+    if (isSupportedVisionImagePath(targetSpeechPath)) {
+      throw new FmError(
+        "UNSUPPORTED_SPEECH_FILE",
+        `Cannot read binary image file "${basenamePath(targetSpeechPath)}" directly as plain text. Use the AI Assistant (Vision) tab to describe or inspect the image first.`,
+      );
+    }
+    const abs = resolveSandboxPath(ctx, targetSpeechPath);
     rawText = await readTextFileSnippet(abs, 60_000);
   }
   if (!rawText) {
@@ -4485,15 +4513,14 @@ export async function runOllamaSpeech(
 
       if (res.ok) {
         chunkBytes = new Uint8Array(await res.arrayBuffer());
-      } else if (!usedCrossPlatformTtsModel && speechCaps.phononSupported) {
-        const errBody = await res.text();
-        throw new FmError("OLLAMA_SPEECH_ERROR", `Phonon speech synthesis failed (HTTP ${res.status}): ${errBody}`);
+      } else {
+        usedCrossPlatformTtsModel = true;
+        engineNote = `Phonon /v1/audio/speech unavailable (HTTP ${res.status}); synthesized via local fallback audio engine.`;
       }
     } catch (err) {
       if (err instanceof FmError) throw err;
-      if (!usedCrossPlatformTtsModel && speechCaps.phononSupported) {
-        throw new FmError("OLLAMA_SPEECH_ERROR", `Phonon speech synthesis failed: ${(err as Error).message}`);
-      }
+      usedCrossPlatformTtsModel = true;
+      engineNote = `Phonon /v1/audio/speech unreachable; synthesized via local fallback audio engine.`;
     }
 
     if (!chunkBytes) {
@@ -5594,7 +5621,59 @@ export async function runOllamaChatOrGenerate(
       timeoutMs: 90_000,
     });
     if (!res.ok) {
-      throw new FmError("OLLAMA_CHAT_ERROR", res.data?.error || `Ollama /api/chat failed (HTTP ${res.status}).`);
+      const errMsg = String(res.data?.error || "");
+      if (
+        res.status === 0 ||
+        res.status === 404 ||
+        errMsg.toLowerCase().includes("not found") ||
+        errMsg.toLowerCase().includes("unable to connect") ||
+        errMsg.toLowerCase().includes("econnrefused")
+      ) {
+        try {
+          const { runBionicChat } = await import("./fmBionic");
+          const bionicRes = await runBionicChat(ctx, {
+            prompt: userPrompt,
+            paths,
+            speakReply,
+            voice: payload.voice,
+            think: payload.think,
+            thinkingLevel: payload.thinkingLevel,
+            thinkingBudget: payload.thinkingBudget,
+            temperature: payload.temperature,
+            topP: payload.topP,
+            topK: payload.topK,
+            minP: payload.minP,
+            repeatPenalty: payload.repeatPenalty,
+            maxTokens: payload.numPredict,
+            seed: payload.seed,
+            stop: payload.stop,
+            contextLength: enforcedNumCtx,
+            systemPrompt: payload.systemPrompt,
+            schemaPreset: payload.schemaPreset,
+            enableTools: payload.enableTools,
+          });
+          return {
+            model: bionicRes.model,
+            endpoint,
+            hardwareVerdict: bionicRes.hardwareVerdict,
+            thinkEnabled: bionicRes.thinkingEnabled,
+            thinkingMode: bionicRes.thinkingMode,
+            thinkingLevel: bionicRes.thinkingLevel,
+            thinkParam,
+            thinkingText: bionicRes.reasoningText,
+            content: bionicRes.content,
+            structuredJson: bionicRes.structuredJson,
+            enforcedNumCtx,
+            appliedOptions: optionsObj,
+            inspectedFiles: bionicRes.inspectedFiles,
+            webContextUsed,
+            webSources,
+            pendingActions: stagedActions,
+            speechResult: bionicRes.speechResult,
+          };
+        } catch {}
+      }
+      throw new FmError("OLLAMA_CHAT_ERROR", errMsg || `Ollama /api/chat failed (HTTP ${res.status}).`);
     }
     const msg = res.data?.message || {};
     const extracted = extractThinkingAndFinalContent(
@@ -5648,12 +5727,14 @@ export async function runOllamaChatOrGenerate(
 
   let speechResult: any | null = null;
   if (speakReply && content.trim()) {
-    speechResult = await runOllamaSpeech(ctx, {
-      input: content,
-      voice: payload.voice || "Zoey",
-      mode: "speaker",
-      playOnServer: false,
-    });
+    try {
+      speechResult = await runOllamaSpeech(ctx, {
+        input: content,
+        voice: payload.voice || "Zoey",
+        mode: "speaker",
+        playOnServer: false,
+      });
+    } catch {}
   }
 
   return {
@@ -5722,39 +5803,50 @@ export async function routePlainEnglishRequest(
   routeExplanation: string;
   result: any;
 }> {
-  const prompt = String(payload.prompt || "").trim();
+  let prompt = String(payload.prompt || "").trim();
   const paths = Array.isArray(payload.paths) ? payload.paths : [];
+  const hasSelectedImages = paths.some((p) => isSupportedVisionImagePath(p));
   if (!prompt) {
     if (paths.length > 0) {
-      const result = await runOllamaSpeech(ctx, {
-        model: payload.speechModel || (payload.model && isSpeechModelName(payload.model) ? payload.model : undefined),
-        path: paths[0],
-        voice: payload.voice || "Zoey",
-        mode: "speaker",
-        saveDir: payload.dirPath || ".",
-        playOnServer: false,
-      });
-      return {
-        routedCapability: "speech",
-        routeExplanation: `Routed blank prompt with selected file (${paths[0]}) directly to Speech Engine (${result.model}) to read the selected file aloud.`,
-        result,
-      };
+      const shouldReadAloud =
+        !hasSelectedImages &&
+        (payload.speakReply === true ||
+          (payload.speakReply === undefined && Boolean(payload.voice || payload.speechModel)) ||
+          Boolean(payload.model && isSpeechModelName(payload.model)));
+      if (shouldReadAloud) {
+        const result = await runOllamaSpeech(ctx, {
+          model: payload.speechModel || (payload.model && isSpeechModelName(payload.model) ? payload.model : undefined),
+          path: paths[0],
+          voice: payload.voice || "Zoey",
+          mode: "speaker",
+          saveDir: payload.dirPath || ".",
+          playOnServer: false,
+        });
+        return {
+          routedCapability: "speech",
+          routeExplanation: `Routed blank prompt with selected file (${paths[0]}) directly to Speech Engine (${result.model}) to read the selected file aloud.`,
+          result,
+        };
+      }
+      prompt = hasSelectedImages
+        ? "Describe and analyze the selected image in detail."
+        : "Summarize and explain the selected file.";
+    } else {
+      throw new FmError("INVALID_INPUT", "Please type a plain-English request or select a file for the AI assistant.");
     }
-    throw new FmError("INVALID_INPUT", "Please type a plain-English request or select a file for the AI assistant.");
   }
   const pLower = prompt.toLowerCase();
-  const hasSelectedImages = paths.some((p) => isSupportedVisionImagePath(p));
 
   // 1. Check if user explicitly asks to download/run a specific model by name so Rule C triggers politely
   const explicitModelMatch = prompt.match(/\b(?:run|use|download|pull|load)\s+([a-z0-9._-]+:[a-z0-9._-]+|[a-z0-9._-]+-\d+b)\b/i);
   const requestedModel = payload.model || (explicitModelMatch ? explicitModelMatch[1] : undefined);
 
-  // 2. Speech / Read Out Loud detection
-  if (
-    /\b(read\s+(this|it|selected|file|aloud|out\s+loud)|speak\s+(this|it|aloud)|text[\s-]to[\s-]speech|pronounce|save\s+as\s+(wav|audio))\b/i.test(
+  // 2. Speech / Read Out Loud detection (only when explicitly asking for read-aloud / TTS and not inspecting an image)
+  const explicitSpeechPrompt =
+    /\b(read\s+(?:(?:this|it|the\s+selected\s+file|selected\s+file|the\s+file|file)\s+)?(?:aloud|out\s+loud)|speak\s+(?:(?:this|it|the\s+file|file)\s+)?(?:aloud|out\s+loud)|text[\s-]to[\s-]speech|save\s+as\s+(?:wav|audio))\b/i.test(
       pLower,
-    )
-  ) {
+    );
+  if (explicitSpeechPrompt && !hasSelectedImages) {
     const saveAsFile = /\b(save\s+as|export\s+wav|save\s+audio|file\s+mode)\b/i.test(pLower);
     const speechInput =
       paths.length > 0
@@ -5775,6 +5867,7 @@ export async function routePlainEnglishRequest(
       result,
     };
   }
+  const effectiveSpeakReply = Boolean(payload.speakReply) || (explicitSpeechPrompt && hasSelectedImages);
 
   // 3. Decision / SystemOne Engine detection (yes/no probability, classify into labels, score urgency/rubric)
   if (
@@ -5892,7 +5985,7 @@ export async function routePlainEnglishRequest(
       prompt,
       paths,
       think: false,
-      speakReply: payload.speakReply,
+      speakReply: effectiveSpeakReply,
       voice: payload.voice,
     });
     return {
@@ -5906,7 +5999,7 @@ export async function routePlainEnglishRequest(
   const explicitThinkRequested =
     payload.thinkingLevel && payload.thinkingLevel !== "auto" && payload.thinkingLevel !== "off";
   const needsDeepThinking =
-    !payload.speakReply &&
+    !effectiveSpeakReply &&
     (Boolean(explicitThinkRequested) ||
       Boolean(payload.think && payload.think !== "off" && payload.think !== "auto") ||
       /\b(debug|complex|step[\s-]by[\s-]step|architecture|refactor|prove|why\s+is\s+this\s+failing|reorganize|deep\s+think)\b/i.test(
@@ -5923,7 +6016,7 @@ export async function routePlainEnglishRequest(
     thinkingLevel: payload.thinkingLevel,
     thinkingBudget: payload.thinkingBudget,
     enableTools: needsTools,
-    speakReply: payload.speakReply,
+    speakReply: effectiveSpeakReply,
     voice: payload.voice,
     numCtx: payload.numCtx,
     temperature: payload.temperature,

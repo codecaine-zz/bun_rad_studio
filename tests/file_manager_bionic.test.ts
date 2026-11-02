@@ -776,4 +776,61 @@ describe("Codecaine File Manager — Built-In LM Studio Bionic AI Studio & Agent
     expect(loadRes.json.appliedLoadConfig.kvCacheQuant).toBe("q8_0");
     expect(loadRes.json.appliedLoadConfig.ttlSeconds).toBe(900);
   });
+
+  test("12. Standalone Bionic Speech without Ollama & Auto Vision Model Selection on Image Review", async () => {
+    const { writeFileSync } = await import("node:fs");
+    const jpegPath = `${tempRoot}/home/docs/5162237.jpeg`;
+    writeFileSync(jpegPath, Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01]));
+
+    // 1. Selecting a file in LM Studio Bionic with speakReply: false and blank prompt routes to reasoning_chat, NOT speech
+    const fileRouteRes = await apiCall("bionic/route", {
+      prompt: "",
+      paths: ["docs/bionic_auth.ts"],
+      speakReply: false,
+      voice: "Zoey",
+    });
+    expect(fileRouteRes.status).toBe(200);
+    expect(fileRouteRes.json.routedCapability).toBe("reasoning_chat");
+    expect(fileRouteRes.json.result.speechResult).toBeFalsy();
+
+    // 2. Selecting a .jpeg image in LM Studio Bionic routes to "vision" and automatically selects vision-capable qwen/qwen3.5-9b even if openai/gpt-oss-20b was requested
+    const imgRouteRes = await apiCall("bionic/route", {
+      model: "openai/gpt-oss-20b",
+      prompt: "",
+      paths: ["docs/5162237.jpeg"],
+      speakReply: false,
+      voice: "Zoey",
+    });
+    expect(imgRouteRes.status).toBe(200);
+    expect(imgRouteRes.json.routedCapability).toBe("vision");
+    expect(imgRouteRes.json.result.model).toBe("qwen/qwen3.5-9b");
+    expect(imgRouteRes.json.result.speechResult).toBeFalsy();
+
+    // 3. Standalone Bionic Speech works when Phonon native addon cannot load AND Ollama is completely closed/offline
+    const prevOllamaHost = process.env.OLLAMA_HOST;
+    process.env.OLLAMA_HOST = "http://127.0.0.1:1"; // Simulate Ollama completely closed
+    try {
+      const standaloneSpeech = await apiCall("bionic/speech", {
+        input: "Standalone LM Studio Bionic speech test without Ollama open.",
+        voice: "Zoey",
+        saveDir: "docs",
+        saveFilename: "bionic_standalone.wav",
+      });
+      expect(standaloneSpeech.status).toBe(200);
+      expect(standaloneSpeech.json.ok).toBe(true);
+      expect(standaloneSpeech.json.savedRelativePath).toBe("docs/bionic_standalone.wav");
+      expect(standaloneSpeech.json.engine).not.toContain("Ollama");
+
+      // 4. Calling bionic/speech on a binary image file is cleanly rejected with UNSUPPORTED_SPEECH_FILE
+      const imgSpeechErr = await apiCall("bionic/speech", {
+        filePath: "docs/5162237.jpeg",
+        voice: "Zoey",
+      });
+      expect(imgSpeechErr.status).toBe(400);
+      expect(imgSpeechErr.json.error.code).toBe("UNSUPPORTED_SPEECH_FILE");
+    } finally {
+      if (prevOllamaHost === undefined) delete process.env.OLLAMA_HOST;
+      else process.env.OLLAMA_HOST = prevOllamaHost;
+    }
+  });
 });
