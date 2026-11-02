@@ -2261,46 +2261,65 @@ export const BIONIC_SCHEMA_PRESETS: Record<string, { name: string; schema: Recor
   },
 };
 
+const bionicFailedToLoadModels = new Set<string>();
+
 export async function selectBestBionicModel(
   ctx: FmContext,
   requestedModel?: string,
   requireVision = false,
+  excludeModels?: ReadonlySet<string>,
 ): Promise<{ model: string; verdict: HardwareGuardVerdict }> {
   const { hardware, models, loadedModels } = await listBionicModelsAndHardwareStatus(ctx);
+  const isExcluded = (id: string) => Boolean(bionicFailedToLoadModels.has(id) || excludeModels?.has(id));
+  const chatCapableModels = models.filter(
+    (m) => (m.type === "llm" || m.type === "vlm") && !isExcluded(m.id),
+  );
 
   if (requestedModel && requestedModel.trim()) {
     const clean = requestedModel.trim();
-    const found = models.find((m) => m.id === clean || m.modelKey === clean);
-    const hasVisionSupport =
-      Boolean(found?.vision) ||
-      clean.toLowerCase().includes("qwen3.5") ||
-      clean.toLowerCase().includes("-vl") ||
-      clean.toLowerCase().includes("glimmer") ||
-      clean.toLowerCase().includes("gemma3") ||
-      clean.toLowerCase().includes("gemma4");
-    if (!requireVision || hasVisionSupport || !models.some((m) => m.vision && m.hardwareVerdict.allowed)) {
-      const verdict = found
-        ? found.hardwareVerdict
-        : evaluateModelHardwareGuard({ name: clean, runner: "mlx" }, hardware, {
-            allowNonMlxStandardOnMac: true,
-          });
-      if (!verdict.allowed) {
-        throw new FmError(verdict.code, verdict.reason);
+    const isTtsOrEmbed =
+      clean.toLowerCase().includes("phonon") ||
+      clean.toLowerCase().includes("embed") ||
+      clean.toLowerCase().includes("whisper");
+    if (!isTtsOrEmbed && !isExcluded(clean)) {
+      const found = models.find((m) => m.id === clean || m.modelKey === clean);
+      const hasVisionSupport =
+        Boolean(found?.vision) ||
+        clean.toLowerCase().includes("qwen3.5") ||
+        clean.toLowerCase().includes("-vl") ||
+        clean.toLowerCase().includes("glimmer") ||
+        clean.toLowerCase().includes("gemma3") ||
+        clean.toLowerCase().includes("gemma4");
+      if (!requireVision || hasVisionSupport || !chatCapableModels.some((m) => m.vision && m.hardwareVerdict.allowed)) {
+        const verdict = found
+          ? found.hardwareVerdict
+          : evaluateModelHardwareGuard({ name: clean, runner: "mlx" }, hardware, {
+              allowNonMlxStandardOnMac: true,
+            });
+        if (!verdict.allowed) {
+          throw new FmError(verdict.code, verdict.reason);
+        }
+        return { model: clean, verdict };
       }
-      return { model: clean, verdict };
     }
   }
 
   // Prefer already-loaded LLM/VLM if compatible
-  const chatLoaded = loadedModels.filter((m) => m.type === "llm" || m.type === "vlm");
+  const chatLoaded = loadedModels.filter(
+    (m) => (m.type === "llm" || m.type === "vlm") && !isExcluded(m.id),
+  );
   if (requireVision) {
     const loadedVlm = chatLoaded.find((m) => m.vision && m.hardwareVerdict.allowed);
     if (loadedVlm) return { model: loadedVlm.id, verdict: loadedVlm.hardwareVerdict };
-    const preferredQwenVlm = models.find(
+    const preferredGlimmerVlm = chatCapableModels.find(
+      (m) => m.vision && m.hardwareVerdict.allowed && m.id.toLowerCase().includes("glimmer"),
+    );
+    if (preferredGlimmerVlm) return { model: preferredGlimmerVlm.id, verdict: preferredGlimmerVlm.hardwareVerdict };
+    const preferredQwenVlm = chatCapableModels.find(
       (m) => m.vision && m.hardwareVerdict.allowed && m.id.toLowerCase().includes("qwen3.5"),
     );
     if (preferredQwenVlm) return { model: preferredQwenVlm.id, verdict: preferredQwenVlm.hardwareVerdict };
-    const anyVlm = models.find((m) => m.vision && m.hardwareVerdict.allowed);
+    const anyVlm = chatCapableModels.find((m) => m.vision && m.hardwareVerdict.allowed);
     if (anyVlm) return { model: anyVlm.id, verdict: anyVlm.hardwareVerdict };
   }
 
@@ -2308,7 +2327,7 @@ export async function selectBestBionicModel(
     return { model: chatLoaded[0]!.id, verdict: chatLoaded[0]!.hardwareVerdict };
   }
 
-  const firstAllowed = models.find((m) => (m.type === "llm" || m.type === "vlm") && m.hardwareVerdict.allowed);
+  const firstAllowed = chatCapableModels.find((m) => m.hardwareVerdict.allowed);
   if (firstAllowed) {
     return { model: firstAllowed.id, verdict: firstAllowed.hardwareVerdict };
   }
@@ -2432,12 +2451,25 @@ export async function runBionicChat(
     }
   }
 
-  const { model, verdict } = await selectBestBionicModel(ctx, payload.model, imageDataUrls.length > 0);
+  let { model, verdict } = await selectBestBionicModel(ctx, payload.model, imageDataUrls.length > 0);
   bionicSessionLoadedModels.add(model);
+
+  const isAutoPrompt =
+    !String(payload.prompt || "").trim() ||
+    rawPrompt === "Describe and analyze the selected image in detail." ||
+    rawPrompt === "Summarize and explain the selected file.";
+
+  const effectiveThinkingLevel: ThinkingEffortChoice | undefined =
+    (imageDataUrls.length > 0 || isAutoPrompt) &&
+    payload.thinkingLevel !== "medium" &&
+    payload.thinkingLevel !== "high" &&
+    payload.thinkingLevel !== "off"
+      ? "low"
+      : payload.thinkingLevel;
 
   const thinkResolution = resolveOllamaThinkConfig(model, {
     think: payload.think,
-    thinkingLevel: payload.thinkingLevel,
+    thinkingLevel: effectiveThinkingLevel,
     thinkingBudget: payload.thinkingBudget,
     speakReply: Boolean(payload.speakReply),
   });
@@ -2465,7 +2497,14 @@ export async function runBionicChat(
       : fullUserText;
 
   const temperature = typeof payload.temperature === "number" && Number.isFinite(payload.temperature) ? payload.temperature : 0.4;
-  const maxTokens = typeof payload.maxTokens === "number" && Number.isFinite(payload.maxTokens) ? Math.round(payload.maxTokens) : 2048;
+  const requestedMaxTokens =
+    typeof payload.maxTokens === "number" && Number.isFinite(payload.maxTokens) ? Math.round(payload.maxTokens) : undefined;
+  const maxTokens =
+    imageDataUrls.length > 0 && (!requestedMaxTokens || requestedMaxTokens === 2048)
+      ? 640
+      : isAutoPrompt && (!requestedMaxTokens || requestedMaxTokens === 2048)
+        ? 640
+        : requestedMaxTokens || 2048;
 
   const requestBody: Record<string, any> = {
     model,
@@ -2521,9 +2560,14 @@ export async function runBionicChat(
   } else if (thinkResolution.thinkingMode === "toggle" || thinkResolution.thinkingMode === "always_on") {
     requestBody.enable_thinking = thinkResolution.thinkEnabled;
     chatTemplateKwargs.enable_thinking = thinkResolution.thinkEnabled;
-    if (thinkResolution.reasoningEffort) {
-      requestBody.reasoning_effort = thinkResolution.reasoningEffort;
-      chatTemplateKwargs.reasoning_effort = thinkResolution.reasoningEffort;
+    const effort =
+      thinkResolution.reasoningEffort ||
+      (effectiveThinkingLevel === "low" || effectiveThinkingLevel === "medium" || effectiveThinkingLevel === "high"
+        ? effectiveThinkingLevel
+        : undefined);
+    if (effort) {
+      requestBody.reasoning_effort = effort;
+      chatTemplateKwargs.reasoning_effort = effort;
     }
   }
   if (typeof payload.thinkingBudget === "number" && payload.thinkingBudget > 0) {
@@ -2556,21 +2600,66 @@ export async function runBionicChat(
   }
 
   // Try /api/v0/chat/completions first for rich runtime + tokens_per_second stats, fallback to /v1/chat/completions
-  let res = await fetch(`${server.baseUrl}/api/v0/chat/completions`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(requestBody),
-  });
-  if (res.status === 404) {
-    res = await fetch(`${server.baseUrl}/v1/chat/completions`, {
+  const sendCompletionRequest = async (bodyObj: Record<string, any>) => {
+    let r = await fetch(`${server.baseUrl}/api/v0/chat/completions`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(requestBody),
+      body: JSON.stringify(bodyObj),
     });
+    if (r.status === 404) {
+      r = await fetch(`${server.baseUrl}/v1/chat/completions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(bodyObj),
+      });
+    }
+    return r;
+  };
+
+  let res = await sendCompletionRequest(requestBody);
+  if (!res.ok) {
+    const firstErrText = await res.text();
+    if (/failed to load model|model.*not found|unsupported|vision/i.test(firstErrText)) {
+      bionicFailedToLoadModels.add(model);
+      const triedModels = new Set<string>([model]);
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const nextPick = await selectBestBionicModel(
+          ctx,
+          undefined,
+          imageDataUrls.length > 0 && attempt === 0,
+          triedModels,
+        );
+        if (!nextPick.model || triedModels.has(nextPick.model)) break;
+        triedModels.add(nextPick.model);
+        model = nextPick.model;
+        verdict = nextPick.verdict;
+        bionicSessionLoadedModels.add(model);
+        const retryHasVision =
+          model.toLowerCase().includes("glimmer") ||
+          model.toLowerCase().includes("qwen3.5") ||
+          model.toLowerCase().includes("-vl");
+        const retryBody: Record<string, any> = {
+          ...requestBody,
+          model,
+          messages: [
+            { role: "system", content: systemParts.join("\n\n") },
+            { role: "user", content: retryHasVision ? userContent : fullUserText },
+          ],
+        };
+        res = await sendCompletionRequest(retryBody);
+        if (res.ok) break;
+        const retryErr = await res.text();
+        if (/failed to load model/i.test(retryErr)) {
+          bionicFailedToLoadModels.add(model);
+        }
+      }
+    } else {
+      throw new FmError("BIONIC_CHAT_ERROR", firstErrText || `HTTP ${res.status}`);
+    }
   }
 
   if (!res.ok) {
-    const errText = await res.text();
+    const errText = await res.text().catch(() => "");
     throw new FmError("BIONIC_CHAT_ERROR", errText || `HTTP ${res.status}`);
   }
 
@@ -2580,8 +2669,8 @@ export async function runBionicChat(
     String(msg.content || ""),
     String(msg.reasoning || msg.reasoning_content || msg.thinking || ""),
   );
-  const content = extracted.content;
   const reasoningText = extracted.thinkingText;
+  const content = extracted.content.trim() ? extracted.content : reasoningText;
 
   let structuredJson: any = null;
   if ((payload.schemaPreset || payload.customJsonSchema) && content) {
@@ -2966,12 +3055,17 @@ export async function handleBionicStreamRequest(ctx: FmContext, req: Request): P
       }
     }
 
-    const { model, verdict } = await selectBestBionicModel(ctx, body.model, imageDataUrls.length > 0);
+    let { model, verdict } = await selectBestBionicModel(ctx, body.model, imageDataUrls.length > 0);
     bionicSessionLoadedModels.add(model);
+
+    const effectiveThinkingLevel: ThinkingEffortChoice | undefined =
+      imageDataUrls.length > 0 && (!body.thinkingLevel || body.thinkingLevel === "auto") && body.think === undefined
+        ? "low"
+        : body.thinkingLevel;
 
     const thinkResolution = resolveOllamaThinkConfig(model, {
       think: body.think,
-      thinkingLevel: body.thinkingLevel,
+      thinkingLevel: effectiveThinkingLevel,
       thinkingBudget: body.thinkingBudget,
       speakReply: Boolean(body.speakReply),
     });
@@ -2981,7 +3075,11 @@ export async function handleBionicStreamRequest(ctx: FmContext, req: Request): P
       thinkResolution.systemReasoningDirective,
     ].filter(Boolean);
 
-    const promptText = [String(body.prompt || "Describe and analyze the selected items."), ...fileSnippets]
+    const fallbackPrompt =
+      imageDataUrls.length > 0
+        ? "Describe and analyze the selected image in detail."
+        : "Summarize and explain the selected file.";
+    const promptText = [String(body.prompt || fallbackPrompt), ...fileSnippets]
       .filter(Boolean)
       .join("\n\n");
     const userContent: any =
@@ -2991,6 +3089,7 @@ export async function handleBionicStreamRequest(ctx: FmContext, req: Request): P
             ...imageDataUrls.map((url) => ({ type: "image_url", image_url: { url } })),
           ]
         : promptText;
+    const defaultMaxTokens = imageDataUrls.length > 0 ? 768 : 2048;
     const streamPayload: Record<string, any> = {
       model,
       messages: [
@@ -3001,7 +3100,7 @@ export async function handleBionicStreamRequest(ctx: FmContext, req: Request): P
         { role: "user", content: userContent },
       ],
       stream: true,
-      max_tokens: Number(body.maxTokens || 2048),
+      max_tokens: Number(body.maxTokens || defaultMaxTokens),
       temperature: typeof body.temperature === "number" ? body.temperature : 0.4,
     };
 
@@ -3050,15 +3149,44 @@ export async function handleBionicStreamRequest(ctx: FmContext, req: Request): P
       streamPayload.chat_template_kwargs = chatTemplateKwargs;
     }
 
-    const upstream = await fetch(`${server.baseUrl}/v1/chat/completions`, {
+    let upstream = await fetch(`${server.baseUrl}/v1/chat/completions`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       signal: req.signal,
       body: JSON.stringify(streamPayload),
     });
 
+    if (!upstream.ok) {
+      const firstErr = await upstream.text();
+      if (/failed to load model|model.*not found|unsupported|vision/i.test(firstErr)) {
+        bionicFailedToLoadModels.add(model);
+        const triedModels = new Set<string>([model]);
+        const nextPick = await selectBestBionicModel(ctx, undefined, imageDataUrls.length > 0, triedModels);
+        if (nextPick.model && !triedModels.has(nextPick.model)) {
+          model = nextPick.model;
+          verdict = nextPick.verdict;
+          bionicSessionLoadedModels.add(model);
+          streamPayload.model = model;
+          upstream = await fetch(`${server.baseUrl}/v1/chat/completions`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            signal: req.signal,
+            body: JSON.stringify(streamPayload),
+          });
+        }
+      } else {
+        return new Response(
+          JSON.stringify({
+            ok: false,
+            error: { code: "BIONIC_STREAM_ERROR", message: firstErr || `HTTP ${upstream.status}` },
+          }),
+          { status: 400, headers: { "Content-Type": "application/json" } },
+        );
+      }
+    }
+
     if (!upstream.ok || !upstream.body) {
-      const errText = await upstream.text();
+      const errText = await upstream.text().catch(() => "");
       return new Response(
         JSON.stringify({
           ok: false,

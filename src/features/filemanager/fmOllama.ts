@@ -475,6 +475,27 @@ export async function readImageAsBase64(absPath: string): Promise<string> {
   if (!(await file.exists())) {
     throw new FmError("FILE_NOT_FOUND", `Image file not found: ${absPath}`);
   }
+  if (process.platform === "darwin" && file.size > 120_000 && Bun.which("sips")) {
+    try {
+      const ext = extnameLower(absPath) === "png" ? "png" : "jpg";
+      const tmpOut = `${tempDirPath()}/fm_vlm_thumb_${Date.now()}_${Math.random().toString(36).slice(2, 7)}.${ext}`;
+      await Bun.write(tmpOut, file);
+      const sipsRes = Bun.spawnSync(["/usr/bin/sips", "-Z", "768", tmpOut], {
+        stdout: "ignore",
+        stderr: "ignore",
+      });
+      if (sipsRes.exitCode === 0) {
+        const resizedFile = Bun.file(tmpOut);
+        if (await resizedFile.exists()) {
+          const b64 = Buffer.from(await resizedFile.arrayBuffer()).toString("base64");
+          try {
+            Bun.spawnSync(["/bin/rm", "-f", tmpOut], { stdout: "ignore", stderr: "ignore" });
+          } catch {}
+          if (b64.length > 0) return b64;
+        }
+      }
+    } catch {}
+  }
   return Buffer.from(await file.arrayBuffer()).toString("base64");
 }
 

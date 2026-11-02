@@ -1490,6 +1490,10 @@ async function runBionicSmartRouter(customPrompt) {
           .map((m, i) => `${i + 1}. ${m.path} (${(m.similarity * 100).toFixed(1)}% match)\n   ${m.preview}`)
           .join("\n\n");
       } else {
+        if (r.model) {
+          uiState.selectedModel = r.model;
+          syncBionicSelectedModelState();
+        }
         uiState.reasoningOutput = r.reasoningText || "";
         uiState.answerOutput = r.content || "";
         uiState.structuredOutput = r.structuredJson || null;
@@ -2453,13 +2457,15 @@ function renderAssistantTab() {
                 "Qwen 2.5 Coder 7B (qwen/qwen2.5-coder-7b-instruct) — Fast Direct Output (No Thinking Overhead)",
               )
             : null,
-          ...models.map((m) =>
-            h(
-              "option",
-              { value: m.id, selected: uiState.selectedModel === m.id ? "selected" : null },
-              `${m.loaded ? "✓ LOADED: " : ""}${m.displayName} (${m.id}) — ${m.paramsString}, ~${m.estimatedRamGb} GB [${m.quantization}]`,
+          ...models
+            .filter((m) => m.type === "llm" || m.type === "vlm")
+            .map((m) =>
+              h(
+                "option",
+                { value: m.id, selected: uiState.selectedModel === m.id ? "selected" : null },
+                `${m.loaded ? "✓ LOADED: " : ""}${m.displayName} (${m.id}) — ${m.paramsString}, ~${m.estimatedRamGb} GB [${m.quantization}]`,
+              ),
             ),
-          ),
         ].filter(Boolean),
       ),
       feat.tools
