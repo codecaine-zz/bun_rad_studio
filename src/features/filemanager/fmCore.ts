@@ -106,12 +106,14 @@ export interface FmContextOptions {
   clipboard?: Partial<ClipboardHooks>;
 }
 
+const isWinHostPath = (s?: string) =>
+  process.platform === "win32" && typeof s === "string" && (/^[A-Za-z]:[\\/]/.test(s) || s.startsWith("\\"));
+
 export function createContext(options: FmContextOptions = {}): FmContext {
   const platform = options.platform ?? platformName();
   const rawHome = options.home ?? homedir();
   const p =
-    platform === "win32" ||
-    (process.platform === "win32" && (/^[A-Za-z]:[\\/]/.test(rawHome) || /^[A-Za-z]:[\\/]/.test(options.dataDir ?? "")))
+    platform === "win32" || isWinHostPath(rawHome) || isWinHostPath(options.dataDir)
       ? nodePath.win32
       : nodePath.posix;
   const home = p.resolve(rawHome);
@@ -156,13 +158,13 @@ async function defaultLaunch(command: string, args: string[], options: { windows
 export function absolutePath(ctx: FmContext, input: unknown): string {
   if (typeof input !== "string" || !input.trim()) throw new FmError("BAD_PATH", "No location was given.");
   if (input.includes("\0")) throw new FmError("BAD_PATH", "That location isn't valid.");
-  const p = ctx.platform === "win32" || (process.platform === "win32" && /^[A-Za-z]:[\\/]/.test(input)) ? nodePath.win32 : nodePath.posix;
+  const p = ctx.platform === "win32" || isWinHostPath(input) ? nodePath.win32 : nodePath.posix;
   if (!p.isAbsolute(input)) throw new FmError("BAD_PATH", "That location isn't a full path.");
   return p.resolve(input);
 }
 
 export function pathApi(ctx: Pick<FmContext, "platform"> & { home?: string; dataDir?: string }) {
-  return ctx.platform === "win32" || (process.platform === "win32" && (/^[A-Za-z]:[\\/]/.test(ctx.home ?? "") || /^[A-Za-z]:[\\/]/.test(ctx.dataDir ?? "")))
+  return ctx.platform === "win32" || isWinHostPath(ctx.home) || isWinHostPath(ctx.dataDir)
     ? nodePath.win32
     : nodePath.posix;
 }

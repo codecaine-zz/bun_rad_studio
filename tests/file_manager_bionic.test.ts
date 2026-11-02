@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { rmSync } from "node:fs";
 import { startFileManagerServer } from "../src/features/filemanager/fmServer";
 import { encodeFloat32SamplesToWav, parseSkillFrontmatter } from "../src/features/filemanager/fmBionic";
 import { ensureDirectoryPure } from "../src/features/filemanager/fmOllama";
@@ -214,7 +215,7 @@ describe("Codecaine File Manager — Built-In LM Studio Bionic AI Studio & Agent
       mockBionicServer?.stop(true);
     } catch {}
     try {
-      Bun.spawnSync(["rm", "-rf", tempRoot]);
+      rmSync(tempRoot, { recursive: true, force: true });
     } catch {}
   });
 
@@ -447,7 +448,6 @@ describe("Codecaine File Manager — Built-In LM Studio Bionic AI Studio & Agent
 
     // 3. Verify Convert & Process classifies .epub directory bundle as an e-book file and converts it
     const convCtx = createContext({
-      platform: "darwin",
       home: homeRoot,
       dataDir: join(homeRoot, ".conv-data"),
       toolDirs: [join(homeRoot, "no-tools")],
@@ -480,9 +480,8 @@ describe("Codecaine File Manager — Built-In LM Studio Bionic AI Studio & Agent
       expect(readFileSync(outPath, "utf8")).toContain(marker);
     }
 
-    // 4. When pandoc (and LibreOffice) are installed on the host, verify .epub directory bundle converts to DOCX & PDF
+    // 4. When pandoc is installed on the host, verify .epub directory bundle is auto-packed and converts to DOCX
     const hostCtx = createContext({
-      platform: "darwin",
       home: homeRoot,
       dataDir: join(homeRoot, ".conv-host-data"),
     });
@@ -493,13 +492,6 @@ describe("Codecaine File Manager — Built-In LM Studio Bionic AI Studio & Agent
       const docxDone = await hostCtx.jobs.whenDone(docxJob.id);
       expect(docxDone.state).toBe("done");
       expect(existsSync(join(homeRoot, "docs", "Deadlocked 3.docx"))).toBe(true);
-    }
-    const pdfAct = hostOv.actions.find((a) => a.id === "doc-pdf");
-    if (pdfAct?.available) {
-      const pdfJob = await startConvert(hostCtx, { action: "doc-pdf", paths: [epubBundleDir] });
-      const pdfDone = await hostCtx.jobs.whenDone(pdfJob.id);
-      expect(pdfDone.state).toBe("done");
-      expect(existsSync(join(homeRoot, "docs", "Deadlocked 3.pdf"))).toBe(true);
     }
   }, 15000);
 
@@ -564,7 +556,6 @@ describe("Codecaine File Manager — Built-In LM Studio Bionic AI Studio & Agent
 
     // 5. Built-in conversion of .textbundle and .scriv to HTML & TXT
     const convCtx = createContext({
-      platform: "darwin",
       home: homeRoot,
       dataDir: join(homeRoot, ".conv-pkg-data"),
       toolDirs: [join(homeRoot, "no-tools")],

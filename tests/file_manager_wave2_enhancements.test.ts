@@ -396,7 +396,8 @@ describe("Codecaine File Manager — Wave 2 Flagship Enhancements (Backend + Cro
         zoomInBtn?.click();
         rotRightBtn?.click();
         flipHBtn?.click();
-        expect(qlImg?.style.transform).toContain("scale(1.25) rotate(90deg) scale(-1, 1)");
+        expect(qlImg?.style.transform).toContain("rotate(90deg) scale(-1, 1)");
+        expect(doc.querySelector("[data-ql-img-zoom-reset]")?.textContent).toBe("125%");
 
         expect(qlStage?.dataset.backdrop).toBe("grid");
         backdropBtn?.click();

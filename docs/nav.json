@@ -8,7 +8,8 @@
         { "title": "Requirements", "path": "getting-started/requirements.md" },
         { "title": "Install and first launch", "path": "getting-started/install-and-first-launch.md" },
         { "title": "Update and remove", "path": "getting-started/update-and-remove.md" },
-        { "title": "Task index (I want to...)", "path": "reference/task-index.md" }
+        { "title": "Task index (I want to...)", "path": "reference/task-index.md" },
+        { "title": "AI and enhancements tutorial", "path": "AI_AND_ENHANCEMENTS_COMPLETE_TUTORIAL.md" }
       ]
     },
     {

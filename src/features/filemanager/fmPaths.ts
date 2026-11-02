@@ -12,7 +12,8 @@ export type Platform = "win32" | "darwin" | "linux";
 export const MAX_NAME_LENGTH = 255;
 
 function pathFor(platform: Platform, sample?: string) {
-  return platform === "win32" || (process.platform === "win32" && typeof sample === "string" && /^[A-Za-z]:[\\/]/.test(sample))
+  return platform === "win32" ||
+    (process.platform === "win32" && typeof sample === "string" && (/^[A-Za-z]:[\\/]/.test(sample) || sample.startsWith("\\")))
     ? nodePath.win32
     : nodePath.posix;
 }

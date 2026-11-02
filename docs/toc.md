@@ -11,6 +11,7 @@ Generated from [nav.json](nav.json): a page that is not listed there is reported
 - [Install and first launch](getting-started/install-and-first-launch.md)
 - [Update and remove](getting-started/update-and-remove.md)
 - [Task index (I want to...)](reference/task-index.md)
+- [AI and enhancements tutorial](AI_AND_ENHANCEMENTS_COMPLETE_TUTORIAL.md)
 
 ## Databases (MySQL, PostgreSQL, SQLite)
 

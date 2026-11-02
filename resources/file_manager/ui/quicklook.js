@@ -349,7 +349,8 @@ async function renderBody(entry, mine) {
         const isScrollable = boxW > availW || boxH > availH;
         stage.style.cursor = isScrollable ? "grab" : "default";
 
-        requestAnimationFrame(() => {
+        const scheduleFrame = typeof requestAnimationFrame === "function" ? requestAnimationFrame : (fn) => setTimeout(fn, 0);
+        scheduleFrame(() => {
           const newScrollW = stage.scrollWidth;
           const newScrollH = stage.scrollHeight;
           const newClientW = stage.clientWidth;
