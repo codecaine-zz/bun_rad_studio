@@ -66,6 +66,9 @@ export function checkPasswordPolicy(password: unknown, avoidNames: string[] = []
 export function generatePassphrase(words: unknown = DEFAULT_PASSPHRASE_WORDS): { passphrase: string; words: number; bits: number } {
   const n = typeof words === "number" && Number.isFinite(words) ? Math.min(MAX_PASSPHRASE_WORDS, Math.max(MIN_PASSPHRASE_WORDS, Math.round(words))) : DEFAULT_PASSPHRASE_WORDS;
   const picked: string[] = [];
-  for (let i = 0; i < n; i++) picked.push(VAULT_WORDS[randomInt(VAULT_WORDS.length)]!);
+  while (picked.length < n) {
+    const word = VAULT_WORDS[randomInt(VAULT_WORDS.length)]!;
+    if (!picked.includes(word)) picked.push(word);
+  }
   return { passphrase: picked.join("-"), words: n, bits: Math.round(n * Math.log2(VAULT_WORDS.length)) };
 }
