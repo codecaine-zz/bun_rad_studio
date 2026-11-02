@@ -490,9 +490,11 @@ export function extractQuickLookPreviewText(entry, preview, rootEl = null) {
       }
     }
   }
-  if (preview?.type === "text" && typeof preview.text === "string") {
+  if (preview?.type === "text" && typeof preview.text === "string" && preview.text) {
     return preview.text;
   }
+  const mdDom = scope?.querySelector?.(".code-md-content:not([hidden]), pre.ql-text:not([hidden]), pre.code-md-plain:not([hidden])");
+  if (mdDom?.textContent) return mdDom.textContent;
   return "";
 }
 

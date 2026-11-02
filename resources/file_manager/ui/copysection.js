@@ -41,6 +41,16 @@ const isHeading = (el) => /^H[1-6]$/.test(tag(el));
 const isTextEntry = (el) => !!el && (tag(el) === "TEXTAREA" || (tag(el) === "INPUT" && !/^(checkbox|radio|button|submit|range|color|file)$/.test(el.type)) || el.isContentEditable === true);
 const squash = (s) => String(s ?? "").replace(/\s+/g, " ").trim();
 
+function headingText(head) {
+  if (!head) return "";
+  let out = "";
+  for (const n of head.childNodes) {
+    if (n.nodeType === 1 && (n.hasAttribute("data-copy-ui") || n.tagName.toUpperCase() === "BUTTON")) continue;
+    out += n.textContent ?? "";
+  }
+  return squash(out) || squash(head.textContent);
+}
+
 function directHeading(el) {
   for (const c of el.children) {
     if (isHeading(c)) return c;
@@ -54,11 +64,16 @@ function directHeading(el) {
 }
 
 function nearestHeadingText(el) {
+  if (el.parentElement?.classList.contains("code-md-content")) {
+    for (let s = el.previousElementSibling; s; s = s.previousElementSibling) {
+      if (isHeading(s)) return headingText(s);
+    }
+  }
   for (let p = el.parentElement; p; p = p.parentElement) {
     const t = targets.get(p);
     if (t && t.info.heading) return t.info.heading;
     const head = directHeading(p);
-    if (head) return squash(head.textContent);
+    if (head) return headingText(head);
   }
   return "";
 }
@@ -68,7 +83,7 @@ function titleOf(el) {
   const explicit = el.getAttribute("data-copy");
   if (explicit && explicit !== "on") return explicit;
   const head = directHeading(el);
-  if (head) return squash(head.textContent);
+  if (head) return headingText(head);
   const caption = tag(el) === "TABLE" ? [...el.children].find((c) => tag(c) === "CAPTION") : null;
   if (caption) return squash(caption.textContent);
   const labeled = el.getAttribute("aria-labelledby")?.split(/\s+/).map((id) => document.getElementById(id)?.textContent).join(" ");
@@ -104,8 +119,16 @@ function classify(el) {
   else if (t === "UL" && el.classList.contains("detail-list")) kind = el.children.length >= 3 ? "list" : null;
   if (!kind) return null;
   const title = kind === "toast" || kind === "error" ? "" : titleOf(el) || nearestHeadingText(el) || "";
-  const heading = directHeading(el) ? squash(directHeading(el).textContent) : "";
-  return { kind, title, heading, mode: kind === "toast" ? "toast" : kind === "section" ? "host" : "bar" };
+  const heading = directHeading(el) ? headingText(directHeading(el)) : "";
+  const mode =
+    kind === "toast"
+      ? "toast"
+      : el.getAttribute("data-copy-mode") === "bar"
+        ? "bar"
+        : kind === "section"
+          ? "host"
+          : "bar";
+  return { kind, title, heading, mode };
 }
 
 /** True when the button should not be offered right now: the block is hidden or has nothing in it. */

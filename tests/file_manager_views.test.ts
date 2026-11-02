@@ -1635,12 +1635,19 @@ describe("Quick Look and copy to the clipboard", () => {
       expect(mdContent().hidden).toBe(false);
       expect(plainPre().hidden).toBe(true);
       expect($(".ql .code-md-toolbar").textContent).toContain("Outline (2)");
+      expect($(".ql .ql-copy-all-btn")?.hidden).toBe(false);
+      expect($(".ql .ql-copy-sel-btn")?.hidden).toBe(false);
+      expect($(".ql .code-md-copy-btn")?.hidden).toBe(false);
+      expect([...doc.querySelectorAll(".ql-head button")].find((b: any) => b.textContent.trim() === "Copy text")?.hidden).toBe(false);
+      expect([...doc.querySelectorAll(".ql .copy-bar")].some((b: any) => !b.hidden)).toBe(true);
 
       // Toggle to Plain text with the P key
       key(doc.activeElement ?? doc.body, "p");
       expect(mdContent().hidden).toBe(true);
       expect(plainPre().hidden).toBe(false);
       expect(plainPre().textContent).toContain("# Project Title");
+      expect($(".ql .ql-copy-all-btn")?.hidden).toBe(false);
+      expect($(".ql .code-md-copy-btn")?.hidden).toBe(false);
 
       // Toggle back to Preview with the P key
       key(doc.activeElement ?? doc.body, "p");

@@ -85,6 +85,8 @@ function setCopy(offer) {
   if (offer) {
     ql.copyBtn.textContent = offer.label;
     ql.copyBtn.title = offer.tip;
+  } else {
+    ql.copyBtn.textContent = "Copy";
   }
 }
 
@@ -452,7 +454,18 @@ async function renderBody(entry, mine) {
       return open(h("div", { class: "ql-doc" }, img, h("p", { class: "ql-note" }, "A picture of the first page, made by your computer's own Quick Look.")));
     }
     case "text": {
-      setCopy({ label: "Copy text", tip: "Put the whole text of this file on the clipboard", run: () => copyTextFile(entry) });
+      setCopy({
+        label: "Copy text",
+        tip: "Put the whole text of this file on the clipboard",
+        run: async () => {
+          const ok = await copyTextFile(entry);
+          if (!ok) {
+            await copyToClipboard(extractQuickLookPreviewText(entry, preview, ql?.body), {
+              what: `all text from ${entry.name}`,
+            });
+          }
+        },
+      });
       const ext = extensionOf(entry.name);
       const note = preview.truncated ? h("p", { class: "ql-note" }, `Showing the start of the file (${formatSize(new Blob([preview.text]).size)} of ${formatSize(preview.size)}).`) : null;
       if (TABLE_EXTS.has(ext)) {
@@ -473,9 +486,16 @@ async function renderBody(entry, mine) {
           onModeChange: (m) => { ql.mdMode = m; },
           onOpenLink: (href) => openQuickLookMarkdownLink(entry, href),
           resolveImageSrc: (src) => resolveQuickLookImageSrc(entry, src),
+          showSync: false,
         });
-        const mdBar = mdWrap.querySelector(".code-md-toolbar");
-        if (mdBar) mdBar.append(buildQuickLookCopyButtons(entry, preview, () => ql?.body, { onClose: closeQuickLook }));
+        const mdCopyHead = h(
+          "div",
+          { class: "ql-fmt-head ql-plain-copybar ql-md-copybar" },
+          h("span", { class: "ql-fmt-badge" }, "Markdown"),
+          h("span", { class: "code-grow" }),
+          buildQuickLookCopyButtons(entry, preview, () => ql?.body, { onClose: closeQuickLook }),
+        );
+        mdWrap.prepend(mdCopyHead);
         if (note) mdWrap.append(note);
         ql.foot.textContent = MD_FOOT;
         return open(mdWrap);

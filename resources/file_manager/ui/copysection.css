@@ -1,5 +1,5 @@
 /* The "Copy this section" buttons. Colors come only from the theme variables, so every theme works. */
-.copy-bar { display: inline-flex; align-items: stretch; font-size: 0.78rem; line-height: 1.2; opacity: 0; pointer-events: none; transition: opacity 0.12s; white-space: nowrap; }
+.copy-bar { display: inline-flex; align-items: stretch; font-size: 0.78rem; line-height: 1.2; opacity: 0; pointer-events: auto; transition: opacity 0.12s; white-space: nowrap; }
 .copy-bar[hidden] { display: none !important; }
 .copy-bar button, .copy-item { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--border); padding: 2px 8px; cursor: pointer; }
 .copy-main { border-radius: 6px 0 0 6px; }
@@ -10,11 +10,14 @@
 :where(.copy-host) { position: relative; }
 .copy-host > .copy-bar-host { position: absolute; top: 6px; right: 8px; z-index: 3; }
 .copy-host > :is(h1, h2, h3, h4, h5, h6) { padding-right: 8rem; }
-.copy-bar-bar { display: flex; justify-content: flex-end; margin: 0 0 2px; }
+.copy-bar-bar { display: flex; justify-content: flex-end; margin: 8px 0 0; padding: 0 0 4px; position: relative; z-index: 2; }
+.copy-bar-bar + :is(pre, table, dl, ul, ol, p, output, .table-wrap, .code-md-pre) { margin-top: 0 !important; }
 
 .copy-host:hover > .copy-bar, .copy-host:focus-within > .copy-bar,
 .copy-bar:hover, .copy-bar:focus-within,
-.copy-bar:has(+ :hover), .copy-bar:has(+ :focus-within) { opacity: 1; pointer-events: auto; }
+.copy-bar:has(+ :hover), .copy-bar:has(+ :focus-within),
+.ql-body .copy-bar, .ql-textwrap .copy-bar, .ql-md-wrap .copy-bar,
+.code-preview-body .copy-bar, .code-md-content .copy-bar, .bionic-md .copy-bar { opacity: 1; pointer-events: auto; }
 #app.focus-mode .copy-host:not(:hover) > .copy-bar-host:not(:hover):not(:focus-within),
 #app.power-max .copy-host:not(:hover) > .copy-bar-host:not(:hover):not(:focus-within),
 #app.db-studio-max .copy-host:not(:hover) > .copy-bar-host:not(:hover):not(:focus-within) { opacity: 0; pointer-events: none; }

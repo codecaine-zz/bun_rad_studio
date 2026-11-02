@@ -177,10 +177,14 @@ kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; bac
 .code-md-toc-badge { font-size: 0.75em; font-weight: 700; color: var(--muted); min-width: 2em; }
 .code-md-toc-item.active .code-md-toc-badge { color: inherit; }
 .code-md-toc-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.code-md-heading { display: flex; align-items: baseline; gap: 6px; scroll-margin-top: 48px; }
+.code-md-heading { display: flex; align-items: center; gap: 6px; scroll-margin-top: 48px; }
+.code-md-heading-title { flex: 1 1 auto; min-width: 0; }
 .code-md-heading-active { background: var(--hover); border-radius: 4px; padding-left: 4px; }
-.code-md-anchor { font: inherit; font-size: 0.85em; font-weight: 600; color: var(--muted); background: transparent; border: 0; padding: 0 3px; border-radius: 4px; cursor: pointer; opacity: 0.45; }
+.code-md-anchor { font: inherit; font-size: 0.85em; font-weight: 600; color: var(--muted); background: transparent; border: 0; padding: 0 3px; border-radius: 4px; cursor: pointer; opacity: 0.45; flex: none; }
 .code-md-heading:hover .code-md-anchor, .code-md-anchor:focus-visible { opacity: 1; color: var(--accent); background: var(--hover); }
+.code-md-sec-copy { margin-left: auto; font: inherit; font-size: 0.78rem; font-weight: 500; line-height: 1.2; color: var(--text); background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 2px 8px; cursor: pointer; opacity: 1; pointer-events: auto; flex: none; white-space: nowrap; }
+.code-md-sec-copy:hover { background: var(--hover); border-color: var(--accent); }
+.code-md-sec-copy:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .code-md-plain { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.9em; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin: 0; }
 .code-md-code { font-family: ui-monospace, Menlo, Consolas, monospace; background: var(--panel); border-radius: 4px; padding: 0 4px; }
 .code-md-pre { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; overflow: auto; }
@@ -205,7 +209,9 @@ kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; bac
 .code-md-lb-stage { flex: 1 1 auto; overflow: auto; display: flex; align-items: center; justify-content: center; padding: 16px; cursor: grab; outline: none; }
 .code-md-lb-stage:active { cursor: grabbing; }
 .code-md-lb-img { max-width: 92vw; max-height: 84vh; height: auto; border-radius: 6px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45); background: var(--bg); }
-.ql-md-wrap { padding: 12px 16px; overflow: auto; max-height: 72vh; text-align: left; }
+.ql-md-wrap { display: flex; flex-direction: column; padding: 12px 16px; overflow: hidden; height: 100%; max-height: 100%; box-sizing: border-box; text-align: left; }
+.ql-md-wrap > .ql-md-copybar, .ql-md-wrap > .code-md-toolbar, .ql-md-wrap > .code-md-toc, .ql-md-wrap > .copy-bar { flex: 0 0 auto; }
+.ql-md-wrap > .code-md-content, .ql-md-wrap > pre.ql-text { flex: 1 1 0%; min-height: 0; overflow: auto; }
 .code-preview-body blockquote { margin: 8px 0; padding: 0 12px; border-left: 3px solid var(--border); color: var(--muted); }
 .code-preview-body table { border-collapse: collapse; }
 .code-preview-body th, .code-preview-body td { border: 1px solid var(--border); padding: 4px 8px; }

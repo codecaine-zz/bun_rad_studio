@@ -905,7 +905,7 @@ body.dragging .row:not(.is-folder) { cursor: no-drop; }
 ::highlight(ql-search-active) { background-color: #f97316; color: #ffffff; }
 [data-ql-match-active="true"] { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
 .ql [hidden] { display: none !important; }
-.ql-body, .ql-doc-reader, .ql-fmt-table td, .ql-slide-card, .ql-fmt-card, .ql-log-list { user-select: text; -webkit-user-select: text; }
+.ql-body, .ql-md-wrap, .code-md-content, .code-md-plain, .ql-text, .ql-doc-reader, .ql-fmt-table td, .ql-slide-card, .ql-fmt-card, .ql-log-list { user-select: text; -webkit-user-select: text; }
 .ql-fmt-stage { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 0.5rem; overflow: auto; }
 .ql-fmt-grid { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
 .ql-fmt-grid-scroll, .ql-doc-table-wrap { flex: 1 1 auto; overflow: auto; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); }

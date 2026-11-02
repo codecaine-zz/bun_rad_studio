@@ -2,6 +2,8 @@
 // pictures are shown as text with their address in the tooltip, so nothing in a document can make the app navigate or
 // load anything. HTML is shown as colored source. JSON gets an interactive tree explorer, CSV/TSV gets a sortable
 // table, and code files get a live inspector (unsaved diff summary, outline, and TODOs).
+import { copyToClipboard, flashCopied } from "./copyclip.js";
+import { registerCopySource, scanCopySections } from "./copysection.js";
 import { h } from "./dom.js";
 import { computeLineDiff, extractSymbols, extractTodos, parseCsvTable, parseMarkdown, tokenizeText } from "./codeLogic.js";
 
@@ -355,6 +357,7 @@ function build(node, ctx) {
         const anchor = h("button", {
           type: "button",
           class: "code-md-anchor",
+          "data-copy-ui": "",
           title: `Jump to section "${meta.text}"`,
           "aria-label": `Jump to section ${meta.text}`,
           onclick: (e) => {
@@ -363,10 +366,26 @@ function build(node, ctx) {
             meta.onJump?.();
           },
         }, "#");
+        const secCopyBtn = h("button", {
+          type: "button",
+          class: "code-md-sec-copy",
+          "data-copy-ui": "",
+          title: `Copy section "${meta.text}" to the clipboard`,
+          "aria-label": `Copy section ${meta.text}`,
+          onmousedown: (e) => e.preventDefault(),
+          onclick: async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const secText = meta.getSectionText ? meta.getSectionText() : meta.text;
+            if (await copyToClipboard(secText, { what: `section "${meta.text}"` })) {
+              flashCopied(secCopyBtn, "Copied ✓");
+            }
+          },
+        }, "Copy");
         const el = h(node.tag, {
           class: "code-md-heading",
           dataset: { slug: meta.slug, line: String(meta.line) },
-        }, anchor, ...(node.children ?? []).map((c) => build(c, ctx)));
+        }, anchor, h("span", { class: "code-md-heading-title" }, ...(node.children ?? []).map((c) => build(c, ctx))), secCopyBtn);
         meta.el = el;
         return el;
       }
@@ -408,6 +427,8 @@ export function renderMarkdown(container, source, options) {
     onModeChange,
     syncScroll: initialSyncScroll = true,
     onSyncScrollChange,
+    showSync = true,
+    hideToolbarCopy = false,
     nav = true,
   } = options;
 
@@ -444,6 +465,18 @@ export function renderMarkdown(container, source, options) {
       line,
       el: null,
       onJump: () => jumpToHeadingIndex(idx, { recordHistory: true }),
+      getSectionText: () => {
+        const lines = String(source ?? "").split(/\r\n|\r|\n/);
+        const startIdx = Math.max(0, (meta.line || 1) - 1);
+        let endIdx = lines.length;
+        for (let i = idx + 1; i < headings.length; i++) {
+          if (headings[i].level <= meta.level && headings[i].line > meta.line) {
+            endIdx = Math.max(startIdx + 1, headings[i].line - 1);
+            break;
+          }
+        }
+        return lines.slice(startIdx, endIdx).join("\n").trim() || meta.text;
+      },
     };
     headings.push(meta);
     return meta;
@@ -524,6 +557,23 @@ export function renderMarkdown(container, source, options) {
   }, source || "(An empty file.)");
   plainEl.hidden = currentMode !== "plain";
   contentEl.hidden = currentMode === "plain";
+  contentEl.setAttribute("data-copy-mode", "bar");
+  registerCopySource(
+    contentEl,
+    () => ({
+      text: String(source ?? ""),
+      markdown: String(source ?? ""),
+    }),
+    "Markdown preview",
+  );
+  registerCopySource(
+    plainEl,
+    () => ({
+      text: String(source ?? ""),
+      markdown: String(source ?? ""),
+    }),
+    "Markdown plain text",
+  );
 
   const tocFilter = h("input", {
     type: "text",
@@ -650,6 +700,31 @@ export function renderMarkdown(container, source, options) {
     onclick: () => setMode("plain"),
   }, "Plain text");
 
+  const copyMdBtn = h("button", {
+    type: "button",
+    class: "code-btn code-small code-md-copy-btn",
+    "data-copy-ui": "",
+    title: "Copy Markdown content (or selected text) to the clipboard",
+    onmousedown: (e) => e.preventDefault(),
+    onclick: async () => {
+      let selText = "";
+      if (typeof window !== "undefined" && typeof window.getSelection === "function") {
+        const sel = window.getSelection();
+        if (sel && !sel.isCollapsed) {
+          const a = sel.anchorNode;
+          const f = sel.focusNode;
+          if (!a || !f || container.contains(a) || container.contains(f)) {
+            selText = sel.toString().trim();
+          }
+        }
+      }
+      const textToCopy = selText || String(source ?? "");
+      if (await copyToClipboard(textToCopy, { what: selText ? "selected Markdown text" : "Markdown content" })) {
+        flashCopied(copyMdBtn, "Copied ✓");
+      }
+    },
+  }, "📋 Copy");
+
   const modeGroup = h("span", { class: "code-md-mode-group", role: "group", "aria-label": "Markdown view mode" }, previewModeBtn, plainModeBtn);
 
   function setMode(nextMode) {
@@ -663,6 +738,7 @@ export function renderMarkdown(container, source, options) {
     }
     previewModeBtn.setAttribute("aria-pressed", String(!isPlain));
     plainModeBtn.setAttribute("aria-pressed", String(isPlain));
+    scanCopySections(container);
     onModeChange?.(currentMode);
   }
 
@@ -705,9 +781,10 @@ export function renderMarkdown(container, source, options) {
       activeIdx = bestIdx;
       updateNavState();
     }
-    const maxScroll = Math.max(0, container.scrollHeight - container.clientHeight);
+    const scrollHost = contentEl.scrollHeight > contentEl.clientHeight ? contentEl : container;
+    const maxScroll = Math.max(0, scrollHost.scrollHeight - scrollHost.clientHeight);
     if (maxScroll > 0) {
-      container.scrollTop = Math.round(maxScroll * Math.max(0, Math.min(1, ratio)));
+      scrollHost.scrollTop = Math.round(maxScroll * Math.max(0, Math.min(1, ratio)));
     }
   }
 
@@ -751,11 +828,13 @@ export function renderMarkdown(container, source, options) {
     topBtn,
     sectionLabel,
     h("span", { class: "code-grow" }),
-    syncBtn,
+    showSync !== false ? syncBtn : null,
+    !hideToolbarCopy ? copyMdBtn : null,
     modeGroup,
   );
 
   container.replaceChildren(toolbar, tocDrawer, contentEl, plainEl);
+  scanCopySections(container);
   return {
     setMode,
     getMode: () => currentMode,
