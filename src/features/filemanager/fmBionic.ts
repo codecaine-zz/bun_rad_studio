@@ -2501,9 +2501,9 @@ export async function runBionicChat(
     typeof payload.maxTokens === "number" && Number.isFinite(payload.maxTokens) ? Math.round(payload.maxTokens) : undefined;
   const maxTokens =
     imageDataUrls.length > 0 && (!requestedMaxTokens || requestedMaxTokens === 2048)
-      ? 640
+      ? 380
       : isAutoPrompt && (!requestedMaxTokens || requestedMaxTokens === 2048)
-        ? 640
+        ? 380
         : requestedMaxTokens || 2048;
 
   const requestBody: Record<string, any> = {
@@ -2540,7 +2540,12 @@ export async function runBionicChat(
           .filter(Boolean);
     if (stops.length > 0) requestBody.stop = stops;
   }
-  if (typeof payload.contextLength === "number" && payload.contextLength >= 512) {
+  if (
+    typeof payload.contextLength === "number" &&
+    payload.contextLength >= 512 &&
+    payload.contextLength !== 8192 &&
+    payload.contextLength !== 32768
+  ) {
     requestBody.context_length = Math.round(payload.contextLength);
   }
   if (payload.draftModel && String(payload.draftModel).trim()) {
@@ -2551,8 +2556,17 @@ export async function runBionicChat(
   }
 
   // Pass LM Studio / Bionic thinking & reasoning effort parameters
+  const fastDirectSummary =
+    (imageDataUrls.length > 0 || isAutoPrompt) &&
+    payload.thinkingLevel !== "medium" &&
+    payload.thinkingLevel !== "high";
   const chatTemplateKwargs: Record<string, any> = {};
-  if (thinkResolution.thinkingMode === "levels") {
+  if (fastDirectSummary) {
+    requestBody.enable_thinking = false;
+    requestBody.reasoning_effort = "low";
+    chatTemplateKwargs.enable_thinking = false;
+    chatTemplateKwargs.reasoning_effort = "low";
+  } else if (thinkResolution.thinkingMode === "levels") {
     const effort = thinkResolution.reasoningEffort || "medium";
     requestBody.reasoning_effort = effort;
     chatTemplateKwargs.reasoning_effort = effort;
@@ -3119,9 +3133,6 @@ export async function handleBionicStreamRequest(ctx: FmContext, req: Request): P
             .map((s) => s.trim())
             .filter(Boolean);
       if (stops.length > 0) streamPayload.stop = stops;
-    }
-    if (typeof body.contextLength === "number" && body.contextLength >= 512) {
-      streamPayload.context_length = Math.round(body.contextLength);
     }
     if (body.draftModel && String(body.draftModel).trim()) {
       streamPayload.draft_model = String(body.draftModel).trim();

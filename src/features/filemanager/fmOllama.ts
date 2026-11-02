@@ -5590,7 +5590,60 @@ export async function runOllamaChatOrGenerate(
       timeoutMs: 90_000,
     });
     if (!res.ok) {
-      throw new FmError("OLLAMA_GENERATE_ERROR", res.data?.error || `Ollama /api/generate failed (HTTP ${res.status}).`);
+      const errMsg = String(res.data?.error || "");
+      if (
+        res.status === 0 ||
+        res.status === 404 ||
+        errMsg.toLowerCase().includes("not found") ||
+        errMsg.toLowerCase().includes("unable to connect") ||
+        errMsg.toLowerCase().includes("econnrefused")
+      ) {
+        try {
+          const { runBionicChat } = await import("./fmBionic");
+          const bionicRes = await runBionicChat(ctx, {
+            prompt: userPrompt,
+            paths,
+            speakReply,
+            voice: payload.voice,
+            think: payload.think,
+            thinkingLevel: payload.thinkingLevel,
+            thinkingBudget: payload.thinkingBudget,
+            temperature: payload.temperature,
+            topP: payload.topP,
+            topK: payload.topK,
+            minP: payload.minP,
+            repeatPenalty: payload.repeatPenalty,
+            maxTokens: payload.numPredict && payload.numPredict !== 2048 ? payload.numPredict : undefined,
+            seed: payload.seed,
+            stop: payload.stop,
+            systemPrompt: payload.systemPrompt,
+            schemaPreset: payload.schemaPreset,
+            enableTools: payload.enableTools,
+          });
+          return {
+            model: bionicRes.model,
+            endpoint,
+            hardwareVerdict: bionicRes.hardwareVerdict,
+            thinkEnabled: bionicRes.thinkingEnabled,
+            thinkingMode: bionicRes.thinkingMode,
+            thinkingLevel: bionicRes.thinkingLevel,
+            thinkParam,
+            thinkingText: bionicRes.reasoningText,
+            content: bionicRes.content,
+            structuredJson: bionicRes.structuredJson,
+            enforcedNumCtx,
+            appliedOptions: optionsObj,
+            inspectedFiles: bionicRes.inspectedFiles,
+            webContextUsed,
+            webSources,
+            pendingActions: stagedActions,
+            speechResult: bionicRes.speechResult,
+          };
+        } catch {
+          // Fall through to OLLAMA_GENERATE_ERROR
+        }
+      }
+      throw new FmError("OLLAMA_GENERATE_ERROR", errMsg || `Ollama /api/generate failed (HTTP ${res.status}).`);
     }
     const extracted = extractThinkingAndFinalContent(
       String(res.data?.response || ""),
@@ -5665,10 +5718,9 @@ export async function runOllamaChatOrGenerate(
             topK: payload.topK,
             minP: payload.minP,
             repeatPenalty: payload.repeatPenalty,
-            maxTokens: payload.numPredict,
+            maxTokens: payload.numPredict && payload.numPredict !== 2048 ? payload.numPredict : undefined,
             seed: payload.seed,
             stop: payload.stop,
-            contextLength: enforcedNumCtx,
             systemPrompt: payload.systemPrompt,
             schemaPreset: payload.schemaPreset,
             enableTools: payload.enableTools,
@@ -5692,7 +5744,9 @@ export async function runOllamaChatOrGenerate(
             pendingActions: stagedActions,
             speechResult: bionicRes.speechResult,
           };
-        } catch {}
+        } catch {
+          // Fall through to OLLAMA_CHAT_ERROR
+        }
       }
       throw new FmError("OLLAMA_CHAT_ERROR", errMsg || `Ollama /api/chat failed (HTTP ${res.status}).`);
     }
@@ -6190,27 +6244,82 @@ export async function handleOllamaStreamRequest(ctx: FmContext, req: Request): P
       headers["Authorization"] = `Bearer ${apiKey}`;
     }
 
-    const upstream = await fetch(`${baseUrl}/api/chat`, {
-      method: "POST",
-      headers,
-      signal: req.signal,
-      body: JSON.stringify({
-        model,
-        messages,
-        stream: true,
-        ...(thinkResolution.thinkParam !== undefined ? { think: thinkResolution.thinkParam } : {}),
-        options: streamOptions,
-        ...(body.keepAlive !== undefined && body.keepAlive !== "" ? { keep_alive: body.keepAlive } : {}),
-        ...(body.format ? { format: body.format } : {}),
-      }),
-    });
+    let upstream: Response | null = null;
+    try {
+      upstream = await fetch(`${baseUrl}/api/chat`, {
+        method: "POST",
+        headers,
+        signal: req.signal,
+        body: JSON.stringify({
+          model,
+          messages,
+          stream: true,
+          ...(thinkResolution.thinkParam !== undefined ? { think: thinkResolution.thinkParam } : {}),
+          options: streamOptions,
+          ...(body.keepAlive !== undefined && body.keepAlive !== "" ? { keep_alive: body.keepAlive } : {}),
+          ...(body.format ? { format: body.format } : {}),
+        }),
+      });
+    } catch {
+      upstream = null;
+    }
 
-    if (!upstream.ok || !upstream.body) {
-      const errText = await upstream.text();
+    if (!upstream || !upstream.ok || !upstream.body) {
+      const errText = upstream ? await upstream.text() : "Unable to connect to Ollama";
+      if (
+        !upstream ||
+        upstream.status === 404 ||
+        errText.toLowerCase().includes("not found") ||
+        errText.toLowerCase().includes("unable to connect") ||
+        errText.toLowerCase().includes("econnrefused")
+      ) {
+        try {
+          const { runBionicChat } = await import("./fmBionic");
+          const bionicRes = await runBionicChat(ctx, {
+            prompt: String(body.prompt || ""),
+            paths,
+            speakReply: Boolean(body.speakReply),
+            think: body.think,
+            thinkingLevel: body.thinkingLevel,
+            thinkingBudget: body.thinkingBudget,
+            temperature: body.temperature,
+            topP: body.topP,
+            topK: body.topK,
+            minP: body.minP,
+            repeatPenalty: body.repeatPenalty,
+            maxTokens: body.numPredict && body.numPredict !== 2048 ? body.numPredict : undefined,
+            seed: body.seed,
+            stop: body.stop,
+            systemPrompt: body.systemPrompt,
+          });
+          const ndjson =
+            JSON.stringify({
+              model: bionicRes.model,
+              message: {
+                role: "assistant",
+                thinking: bionicRes.reasoningText || "",
+                content: bionicRes.content || "",
+              },
+              done: true,
+            }) + "\n";
+          return new Response(ndjson, {
+            status: 200,
+            headers: {
+              "Content-Type": "application/x-ndjson; charset=utf-8",
+              "Cache-Control": "no-cache",
+              "X-Ollama-Model": bionicRes.model,
+              "X-Ollama-Num-Ctx": String(enforcedNumCtx),
+              "X-Ollama-Safe-Budget-Gb": String(verdict.safeMemoryBudgetGb),
+            },
+          });
+        } catch {
+          // Fall through to OLLAMA_STREAM_ERROR
+        }
+      }
       return new Response(
         JSON.stringify({
           ok: false,
-          error: { code: "OLLAMA_STREAM_ERROR", message: errText || `HTTP ${upstream.status}` },
+          error: { code: "OLLAMA_STREAM_ERROR", message: errText || `HTTP ${upstream?.status || 500}` },
         }),
         { status: 400, headers: { "Content-Type": "application/json" } },
       );

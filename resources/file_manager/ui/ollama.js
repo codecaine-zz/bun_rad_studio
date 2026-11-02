@@ -2400,7 +2400,11 @@ function renderAdvancedSamplingPanel() {
 }
 
 function renderAssistantTab() {
-  const models = (uiState.statusData?.models || []).filter((m) => !m.badges?.includes("Speech") || m.badges?.includes("Chat"));
+  const models = (uiState.statusData?.models || []).filter(
+    (m) =>
+      (!m.badges?.includes("Speech") && !m.badges?.includes("Embeddings") && !m.badges?.includes("Decision")) ||
+      m.badges?.includes("Chat"),
+  );
   const voices = uiState.statusData?.phononVoices || ["default", "Zoey", "Easton", "Freya"];
   const installedModelNames = new Set(models.map((m) => m.name));
 
@@ -2493,36 +2497,6 @@ function renderAssistantTab() {
           "qwen2.5-coder:7b (Fast Direct Code & Chat — No Thinking Overhead)",
         )
       : null,
-    !installedModelNames.has("d3:latest") && !installedModelNames.has("d3")
-      ? h(
-          "option",
-          {
-            value: "d3:latest",
-            selected: uiState.selectedModel === "d3:latest" ? "selected" : null,
-          },
-          "d3:latest (SystemOne Decision Engine — Fast <5ms Yes/No, Choice & Score)",
-        )
-      : null,
-    !installedModelNames.has("phonon:latest") && !installedModelNames.has("phonon")
-      ? h(
-          "option",
-          {
-            value: "phonon:latest",
-            selected: uiState.selectedModel === "phonon:latest" ? "selected" : null,
-          },
-          "phonon:latest (Phonon TTS — 24kHz Natural Speech Synthesis)",
-        )
-      : null,
-    !installedModelNames.has("nomic-embed-text:latest") && !installedModelNames.has("nomic-embed-text")
-      ? h(
-          "option",
-          {
-            value: "nomic-embed-text:latest",
-            selected: uiState.selectedModel === "nomic-embed-text:latest" ? "selected" : null,
-          },
-          "nomic-embed-text:latest (Semantic Embeddings — Folder Search by Meaning)",
-        )
-      : null,
     ...models.map((m) =>
       h(
         "option",
@@ -2570,6 +2544,7 @@ function renderAssistantTab() {
   ].filter(Boolean);
 
   const sel = selectedFilePaths();
+  const hasImageSel = sel.some((p) => /\.(png|jpe?g|webp|gif|bmp|heic|tiff?|avif)$/i.test(String(p || "")));
   assistantTextareaEl = h(
     "textarea",
     {
@@ -2577,7 +2552,11 @@ function renderAssistantTab() {
       "aria-label": "Ollama AI Prompt Input",
       placeholder:
         sel.length > 0
-          ? `Leave blank to read selected file (${sel[0]}) aloud, or ask anything supported by ${selectedProfile.modelName} (${selectedProfile.summary})...`
+          ? hasImageSel
+            ? `Leave blank to analyze selected image (${sel[0]}), or ask anything supported by ${selectedProfile.modelName} (${selectedProfile.summary})...`
+            : uiState.speakReply
+              ? `Leave blank to read selected file (${sel[0]}) aloud, or ask anything supported by ${selectedProfile.modelName} (${selectedProfile.summary})...`
+              : `Leave blank to summarize selected file (${sel[0]}), or ask anything supported by ${selectedProfile.modelName} (${selectedProfile.summary})...`
           : `Ask anything supported by ${selectedProfile.modelName} (${selectedProfile.summary})...`,
       oninput: (e) => {
         uiState.promptText = e.target.value;
