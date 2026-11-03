@@ -5,7 +5,7 @@
 import { copyToClipboard, flashCopied } from "./copyclip.js";
 import { registerCopySource, scanCopySections } from "./copysection.js";
 import { h } from "./dom.js";
-import { applySelectedDiffHunks, computeDiffHunks, computeLineDiff, extractSymbols, extractTodos, parseCsvTable, parseMarkdown, tokenizeText } from "./codeLogic.js";
+import { applySelectedDiffHunks, computeDiffHunks, extractSymbols, extractTodos, parseCsvTable, parseMarkdown, tokenizeText } from "./codeLogic.js";
 
 const PLAIN_TAGS = new Set(["h1", "h2", "h3", "h4", "h5", "h6", "p", "blockquote", "hr", "em", "strong", "del", "thead", "tbody", "tr", "ul", "ol", "li", "table"]);
 

@@ -5,7 +5,6 @@ import { call, getToken } from "./api.js";
 import {
   applySelectedDiffHunks,
   computeDiffHunks,
-  computeLineDiff,
   locateTargetRangeInFile,
   parseMarkdown,
   tokenizeLine,
