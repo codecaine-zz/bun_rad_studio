@@ -797,11 +797,16 @@ export function getModelThinkingCapabilities(modelInput: {
     rawName.includes("granite3.3") ||
     rawName.includes("smollm3") ||
     rawName.includes("deepseek-v3") ||
+    rawName.includes("deepseek-v4") ||
+    rawName.includes("glm-5") ||
+    rawName.includes("kimi-k") ||
+    rawName.includes("reflection/beam") ||
     rawName.includes("nemotron") ||
     rawName.includes("seed-oss") ||
     rawName.includes("hunyuan") ||
     rawName.includes("mimo") ||
     rawName.includes("gemma4") ||
+    rawName.includes("gemma-4") ||
     rawName.includes("muse");
 
   if (isToggleableThinking) {
@@ -908,6 +913,10 @@ export function getModelFeatureProfile(modelInput: {
     lower.includes("llava") ||
     lower.includes("pixtral") ||
     lower.includes("minicpm-v") ||
+    lower.includes("deepseek-v4.1") ||
+    lower.includes("glm-5.3-flash") ||
+    lower.includes("kimi-k3") ||
+    lower.includes("muse-spark") ||
     base === "clef" ||
     base === "clef-flash";
   const isTools =
@@ -924,7 +933,11 @@ export function getModelFeatureProfile(modelInput: {
         lower.includes("llama3") ||
         lower.includes("mistral") ||
         lower.includes("gemma4") ||
-        lower.includes("glm")));
+        lower.includes("glm") ||
+        lower.includes("deepseek-v4") ||
+        lower.includes("kimi") ||
+        lower.includes("muse") ||
+        lower.includes("reflection/beam")));
   const isCode = isChat;
   const isStructuredJson = isChat;
   const isWebSearch = isChat;
@@ -5613,7 +5626,7 @@ export async function runOllamaChatOrGenerate(
             topK: payload.topK,
             minP: payload.minP,
             repeatPenalty: payload.repeatPenalty,
-            maxTokens: payload.numPredict && payload.numPredict !== 2048 ? payload.numPredict : undefined,
+            maxTokens: payload.numPredict && payload.numPredict !== 2048 && payload.numPredict !== 16384 ? payload.numPredict : undefined,
             seed: payload.seed,
             stop: payload.stop,
             systemPrompt: payload.systemPrompt,
@@ -5718,7 +5731,7 @@ export async function runOllamaChatOrGenerate(
             topK: payload.topK,
             minP: payload.minP,
             repeatPenalty: payload.repeatPenalty,
-            maxTokens: payload.numPredict && payload.numPredict !== 2048 ? payload.numPredict : undefined,
+            maxTokens: payload.numPredict && payload.numPredict !== 2048 && payload.numPredict !== 16384 ? payload.numPredict : undefined,
             seed: payload.seed,
             stop: payload.stop,
             systemPrompt: payload.systemPrompt,
@@ -6287,7 +6300,7 @@ export async function handleOllamaStreamRequest(ctx: FmContext, req: Request): P
             topK: body.topK,
             minP: body.minP,
             repeatPenalty: body.repeatPenalty,
-            maxTokens: body.numPredict && body.numPredict !== 2048 ? body.numPredict : undefined,
+            maxTokens: body.numPredict && body.numPredict !== 2048 && body.numPredict !== 16384 ? body.numPredict : undefined,
             seed: body.seed,
             stop: body.stop,
             systemPrompt: body.systemPrompt,
@@ -6325,7 +6338,31 @@ export async function handleOllamaStreamRequest(ctx: FmContext, req: Request): P
       );
     }
 
-    return new Response(upstream.body, {
+    const upstreamBody = upstream.body;
+    const proxiedStream = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        const reader = upstreamBody.getReader();
+        try {
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            if (value) controller.enqueue(value);
+          }
+          controller.close();
+        } catch (streamErr) {
+          controller.error(streamErr);
+        } finally {
+          reader.releaseLock();
+        }
+      },
+      cancel() {
+        try {
+          void upstreamBody.cancel();
+        } catch {}
+      },
+    });
+
+    return new Response(proxiedStream, {
       status: 200,
       headers: {
         "Content-Type": "application/x-ndjson; charset=utf-8",

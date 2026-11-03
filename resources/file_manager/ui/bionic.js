@@ -27,7 +27,7 @@ const uiState = {
   topK: 40,
   minP: 0.05,
   repeatPenalty: 1.1,
-  maxTokens: 2048,
+  maxTokens: 16384,
   seed: "",
   stopSequences: "",
   draftModel: "",
@@ -128,6 +128,8 @@ function resolveEffectiveBionicModelId(modelName) {
   if (loadedChat?.id) return loadedChat.id;
   const anyChat = models.find((m) => m.type === "llm" || m.type === "vlm");
   if (anyChat?.id) return anyChat.id;
+  const cloudModels = uiState.statusData?.cloudModels || [];
+  if (cloudModels.length > 0 && cloudModels[0]?.id) return cloudModels[0].id;
   return "openai/gpt-oss-20b";
 }
 
@@ -181,16 +183,22 @@ function getBionicModelThinkingCapabilities(modelName) {
     lower.includes("qwen3") ||
     lower.includes("lfm3") ||
     lower.includes("glm-4.5") ||
+    lower.includes("glm-5") ||
     lower.includes("glm-z1") ||
     lower.includes("cogito") ||
     lower.includes("granite3") ||
     lower.includes("smollm3") ||
     lower.includes("deepseek-v3") ||
+    lower.includes("deepseek-v4") ||
+    lower.includes("kimi-k") ||
+    lower.includes("reflection/beam") ||
+    lower.includes("muse-spark") ||
     lower.includes("nemotron") ||
     lower.includes("seed-oss") ||
     lower.includes("hunyuan") ||
     lower.includes("mimo") ||
     lower.includes("gemma4") ||
+    lower.includes("gemma-4") ||
     lower.includes("muse")
   ) {
     return {
@@ -202,7 +210,7 @@ function getBionicModelThinkingCapabilities(modelName) {
       supportsThinkingBudget: true,
       badgeLabel: "Thinking Toggle: On / Off",
       description:
-        "Hybrid thinking model (qwen3.5, glm-4.5, cogito, etc.): toggle thinking On or Off (enable_thinking).",
+        "Hybrid thinking model (qwen3.5, DeepSeek-V4, GLM-5, Kimi-K3, Beam-1.0, etc.): toggle thinking On or Off (enable_thinking).",
     };
   }
   return {
@@ -229,6 +237,14 @@ function getBionicModelFeatureProfile(modelName) {
   const isEmbedding = found?.type === "embedding" || lower.includes("embed") || lower.includes("bge-");
   const isTts = found?.type === "tts" || lower.includes("phonon");
   const isChat = !isEmbedding && !isTts;
+  const isCloud =
+    Boolean(found?.isCloud) ||
+    found?.format === "cloud" ||
+    lower.includes("deepseek-v4") ||
+    lower.includes("glm-5") ||
+    lower.includes("kimi-k3") ||
+    lower.includes("muse-spark") ||
+    lower.includes("reflection/beam");
   const isVision =
     Boolean(found?.vision) ||
     found?.type === "vlm" ||
@@ -238,12 +254,17 @@ function getBionicModelFeatureProfile(modelName) {
     lower.includes("qwen3.5") ||
     lower.includes("gemma3") ||
     lower.includes("gemma4") ||
+    lower.includes("deepseek-v4.1") ||
+    lower.includes("glm-5.3-flash") ||
+    lower.includes("kimi-k3") ||
+    lower.includes("muse-spark") ||
     lower.includes("llava") ||
     lower.includes("pixtral") ||
     lower.includes("minicpm-v");
   const isTools =
     isChat &&
     (Boolean(found?.trainedForToolUse) ||
+      isCloud ||
       (!lower.includes("deepseek-r1") &&
         !lower.includes("qwq") &&
         (lower.includes("gpt-oss") ||
@@ -253,10 +274,23 @@ function getBionicModelFeatureProfile(modelName) {
           lower.includes("gemma4") ||
           lower.includes("llama") ||
           lower.includes("mistral") ||
+          lower.includes("deepseek-v4") ||
+          lower.includes("kimi") ||
+          lower.includes("beam") ||
+          lower.includes("muse") ||
           lower.includes("glm"))));
 
   const indicators = [];
   const useCases = [];
+
+  if (isCloud) {
+    indicators.push({
+      id: "cloud",
+      icon: "☁️",
+      label: "Zero-RAM Bionic Cloud",
+      description: "Runs on LM Studio Bionic Cloud with 0 GB local RAM impact and up to 262K context.",
+    });
+  }
 
   if (isTts) {
     indicators.push({
@@ -366,6 +400,7 @@ function getBionicModelFeatureProfile(modelName) {
       structuredJson: isChat,
       embeddings: isEmbedding,
       tts: isTts,
+      cloud: isCloud,
     },
     thinkingCapabilities: thinkingCaps,
   };
@@ -436,7 +471,7 @@ function buildBionicSamplingPayload() {
     topK: Number(uiState.topK),
     minP: Number(uiState.minP),
     repeatPenalty: Number(uiState.repeatPenalty),
-    maxTokens: Number(uiState.maxTokens) || 2048,
+    maxTokens: Number(uiState.maxTokens) || 16384,
     draftModel: String(uiState.draftModel || "").trim() || undefined,
     ttlSeconds: Number(uiState.ttlSeconds) > 0 ? Number(uiState.ttlSeconds) : undefined,
     systemPrompt: String(uiState.customSystemPrompt || "").trim() || undefined,
@@ -580,13 +615,13 @@ function createAudioPlayerEl(audioUrl) {
 function createBadgeEl(badge) {
   const bLower = String(badge || "").toLowerCase();
   const extra =
-    bLower.includes("mlx") || bLower.includes("loaded")
+    bLower.includes("mlx") || bLower.includes("loaded") || bLower.includes("bionic cloud") || bLower.includes("zero local ram")
       ? " badge-mlx"
       : bLower.includes("speech") || bLower.includes("tts")
         ? " badge-speech"
         : bLower.includes("vision")
           ? " badge-vision"
-          : bLower.includes("reasoning") || bLower.includes("tools")
+          : bLower.includes("reasoning") || bLower.includes("tools") || bLower.includes("thinking")
             ? " badge-decision"
             : "";
   return h("span", { class: `ollama-cap-badge${extra}` }, badge);
@@ -709,7 +744,7 @@ function buildSyntaxHighlightedCodePre(codeText, langRaw) {
     role: "region",
     "aria-label": `${langRaw || lang} code snippet`,
   });
-  const maxLines = Math.min(lines.length, 2500);
+  const maxLines = Math.min(lines.length, 10000);
   for (let i = 0; i < maxLines; i++) {
     const tokens = lines[i] || [];
     const textCell = h("span", { class: "bionic-md-code-text" });
@@ -1600,27 +1635,37 @@ async function runBionicStreamChat() {
     const decoder = new TextDecoder();
     let buffer = "";
 
+    const processSseLine = (line) => {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith("data:")) return;
+      const payloadStr = trimmed.slice(5).trim();
+      if (!payloadStr || payloadStr === "[DONE]") return;
+      try {
+        const pkt = JSON.parse(payloadStr);
+        const delta = pkt?.choices?.[0]?.delta || {};
+        if (delta.reasoning || delta.reasoning_content) {
+          uiState.reasoningOutput += delta.reasoning || delta.reasoning_content;
+        }
+        if (delta.content) {
+          uiState.answerOutput += delta.content;
+        }
+      } catch {}
+    };
+
     while (true) {
       const { value, done } = await reader.read();
-      if (done) break;
+      if (done) {
+        buffer += decoder.decode();
+        if (buffer.trim()) {
+          for (const line of buffer.split("\n")) processSseLine(line);
+        }
+        break;
+      }
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split("\n");
       buffer = lines.pop() || "";
       for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed.startsWith("data:")) continue;
-        const payloadStr = trimmed.slice(5).trim();
-        if (!payloadStr || payloadStr === "[DONE]") continue;
-        try {
-          const pkt = JSON.parse(payloadStr);
-          const delta = pkt?.choices?.[0]?.delta || {};
-          if (delta.reasoning || delta.reasoning_content) {
-            uiState.reasoningOutput += delta.reasoning || delta.reasoning_content;
-          }
-          if (delta.content) {
-            uiState.answerOutput += delta.content;
-          }
-        } catch {}
+        processSseLine(line);
       }
       renderBionicPanel();
     }
@@ -1757,6 +1802,16 @@ function renderHeroBanner() {
       ),
     );
   }
+  const cloudCount = st?.cloudModels?.length || 0;
+  if (cloudCount > 0) {
+    pills.push(
+      h(
+        "span",
+        { class: "ollama-pill is-cloud" },
+        `☁️ ${cloudCount} Bionic Cloud Models (0 GB RAM)`,
+      ),
+    );
+  }
 
   return h("div", { class: "ollama-hero-banner" }, [
     h("div", { class: "ollama-hero-left" }, [
@@ -1869,12 +1924,17 @@ function renderHeroBanner() {
 function renderModeTabs() {
   const skillCount = uiState.statusData?.skills?.length || 8;
   const modelCount = uiState.statusData?.models?.length || 0;
+  const cloudCount = uiState.statusData?.cloudModels?.length || 0;
+  const modelsLabel =
+    cloudCount > 0
+      ? `5. Models (${modelCount} Local + ${cloudCount} Cloud), Metal Engines & Hardware Guard`
+      : `5. Models (${modelCount}), Metal Engines & Hardware Guard`;
   const tabs = [
     { id: "assistant", label: "1. Bionic AI & @Skills Router" },
     { id: "skills", label: `2. Agent Skills (${skillCount}) & Bionic Projects` },
     { id: "speech_asr", label: "3. Phonon 40M TTS & Whisper ASR" },
     { id: "meaning", label: "4. Embeddings & Meaning Search (/v1/embeddings)" },
-    { id: "models", label: `5. Models (${modelCount}), Metal Engines & Hardware Guard` },
+    { id: "models", label: modelsLabel },
   ];
 
   return h(
@@ -2140,7 +2200,7 @@ function renderBionicAdvancedSamplingPanel() {
               uiState.topK = 40;
               uiState.minP = 0.05;
               uiState.repeatPenalty = 1.1;
-              uiState.maxTokens = 2048;
+              uiState.maxTokens = 16384;
               uiState.seed = "";
               uiState.stopSequences = "";
               uiState.draftModel = "";
@@ -2258,7 +2318,7 @@ function renderBionicAdvancedSamplingPanel() {
             style: "width:82px;",
             step: "256",
             min: "64",
-            max: "65536",
+            max: "131072",
             value: String(uiState.maxTokens),
             oninput: (e) => {
               uiState.maxTokens = Number(e.target.value);
@@ -2329,7 +2389,9 @@ function renderBionicAdvancedSamplingPanel() {
 
 function renderAssistantTab() {
   const models = (uiState.statusData?.models || []).filter((m) => m.type === "llm" || m.type === "vlm");
+  const cloudModels = uiState.statusData?.cloudModels || [];
   const modelIds = new Set(models.map((m) => m.id));
+  const cloudIds = new Set(cloudModels.map((m) => m.id));
   const skills = uiState.statusData?.skills || [];
   const voices = uiState.statusData?.tts?.voices || [];
   const selectedProfile = getBionicModelFeatureProfile(uiState.selectedModel);
@@ -2379,6 +2441,9 @@ function renderAssistantTab() {
     h("div", { class: "ollama-card-title" }, [
       h("span", {}, "Conversational Bionic AI Assistant, @Skill Injector & Metal Capability Router"),
       h("span", { class: "ollama-pill is-mlx" }, "Apple Silicon MLX / oMLX / Splash + Phonon 40M"),
+      cloudModels.length > 0
+        ? h("span", { class: "ollama-pill is-cloud" }, `☁️ ${cloudModels.length} Bionic Cloud Models`)
+        : null,
       h(
         "button",
         {
@@ -2396,6 +2461,40 @@ function renderAssistantTab() {
       ),
     ]),
     renderBionicSelectedModelCapabilitiesCard(selectedProfile),
+    !uiState.compactControls && !uiState.outputExpanded && cloudModels.length > 0
+      ? h(
+          "div",
+          {
+            class: "ollama-quick-prompts",
+            "data-bionic-cloud-bar": "true",
+            role: "group",
+            "aria-label": "Quick-select Bionic Cloud Models (0 GB Local RAM)",
+          },
+          [
+            h("span", { class: "ollama-pill is-cloud" }, "☁️ Bionic Cloud Models (0 GB RAM):"),
+            ...cloudModels.map((cm) => {
+              const active = (uiState.selectedModel || "").toLowerCase() === cm.id.toLowerCase();
+              return h(
+                "button",
+                {
+                  type: "button",
+                  class: `ollama-quick-chip${active ? " is-active" : ""}`,
+                  "data-bionic-cloud-chip": cm.id,
+                  "aria-pressed": String(active),
+                  title: `Select Bionic Cloud Model ${cm.displayName} (${cm.id}) — 0 GB Local RAM, ${(cm.maxContextLength || 256000).toLocaleString()} context${cm.vision ? ", Vision VLM" : ""}`,
+                  onclick: () => {
+                    uiState.selectedModel = cm.id;
+                    syncBionicSelectedModelState();
+                    toast(`Selected Bionic Cloud Model: ${cm.displayName} (${cm.id})`);
+                    renderBionicPanel();
+                  },
+                },
+                `☁️ ${cm.displayName}${cm.vision ? " 👁" : ""}${active ? " ✓" : ""}`,
+              );
+            }),
+          ],
+        )
+      : null,
     h(
       "div",
       { class: "ollama-quick-prompts" },
@@ -2428,29 +2527,29 @@ function renderAssistantTab() {
           },
         },
         [
-          h("option", { value: "", selected: !uiState.selectedModel ? "selected" : null }, "Auto-Select Best Loaded MLX Model"),
-          !modelIds.has("openai/gpt-oss-20b")
+          h("option", { value: "", selected: !uiState.selectedModel ? "selected" : null }, "Auto-Select Best Loaded MLX / Cloud Model"),
+          !modelIds.has("openai/gpt-oss-20b") && !cloudIds.has("openai/gpt-oss-20b")
             ? h(
                 "option",
                 { value: "openai/gpt-oss-20b", selected: uiState.selectedModel === "openai/gpt-oss-20b" ? "selected" : null },
                 "OpenAI gpt-oss 20B (openai/gpt-oss-20b) — Multi-Level Reasoning: Low / Medium / High [MXFP4]",
               )
             : null,
-          !modelIds.has("qwen/qwen3.5-9b")
+          !modelIds.has("qwen/qwen3.5-9b") && !cloudIds.has("qwen/qwen3.5-9b")
             ? h(
                 "option",
                 { value: "qwen/qwen3.5-9b", selected: uiState.selectedModel === "qwen/qwen3.5-9b" ? "selected" : null },
                 "Qwen 3.5 9B MLX (qwen/qwen3.5-9b) — Hybrid Thinking Toggle: On / Off + Vision",
               )
             : null,
-          !modelIds.has("deepseek/deepseek-r1-0528-qwen3-8b")
+          !modelIds.has("deepseek/deepseek-r1-0528-qwen3-8b") && !cloudIds.has("deepseek/deepseek-r1-0528-qwen3-8b")
             ? h(
                 "option",
                 { value: "deepseek/deepseek-r1-0528-qwen3-8b", selected: uiState.selectedModel === "deepseek/deepseek-r1-0528-qwen3-8b" ? "selected" : null },
                 "DeepSeek-R1 8B (deepseek/deepseek-r1-0528-qwen3-8b) — Always-On Chain-of-Thought Reasoning",
               )
             : null,
-          !modelIds.has("qwen/qwen2.5-coder-7b-instruct")
+          !modelIds.has("qwen/qwen2.5-coder-7b-instruct") && !cloudIds.has("qwen/qwen2.5-coder-7b-instruct")
             ? h(
                 "option",
                 { value: "qwen/qwen2.5-coder-7b-instruct", selected: uiState.selectedModel === "qwen/qwen2.5-coder-7b-instruct" ? "selected" : null },
@@ -2466,6 +2565,13 @@ function renderAssistantTab() {
                 `${m.loaded ? "✓ LOADED: " : ""}${m.displayName} (${m.id}) — ${m.paramsString}, ~${m.estimatedRamGb} GB [${m.quantization}]`,
               ),
             ),
+          ...cloudModels.map((cm) =>
+            h(
+              "option",
+              { value: cm.id, selected: uiState.selectedModel === cm.id ? "selected" : null },
+              `☁️ BIONIC CLOUD: ${cm.displayName} (${cm.id}) — 0 GB Local RAM, ${Math.round((cm.maxContextLength || 256000) / 1000)}K Ctx${cm.vision ? " + Vision VLM" : ""}`,
+            ),
+          ),
         ].filter(Boolean),
       ),
       feat.tools
@@ -3510,6 +3616,90 @@ function renderModelsAndEnginesTab() {
         ]);
       }),
     ),
+    cloudModels.length > 0
+      ? h("div", { class: "ollama-card-title" }, [
+          h("span", {}, `☁️ Bionic Cloud Models (${cloudModels.length}) — Zero Local RAM Footprint`),
+          h("span", { class: "ollama-pill is-cloud" }, "Up to 262K Context • Thinking Toggle • Vision VLM • Tool Use"),
+        ])
+      : null,
+    cloudModels.length > 0
+      ? h(
+          "div",
+          { class: "ollama-model-grid" },
+          cloudModels.map((cm) => {
+            const profile = cm.featureProfile || getBionicModelFeatureProfile(cm.id);
+            const indicators = profile.indicators || [];
+            const useCases = profile.useCases || [];
+            const isSelected = (uiState.selectedModel || "").toLowerCase() === cm.id.toLowerCase();
+            return h("div", { class: "ollama-model-card", "data-bionic-cloud-card": cm.id }, [
+              h("div", { class: "ollama-row" }, [
+                h("strong", {}, `☁️ ${cm.displayName}`),
+                h("span", { class: "ollama-pill is-cloud" }, `Max Ctx: ${(cm.maxContextLength || 256000).toLocaleString()}`),
+                isSelected ? h("span", { class: "ollama-pill is-mlx" }, "✓ Active in Studio") : null,
+              ]),
+              h("div", { class: "ollama-badge-row" }, (cm.badges || []).map(createBadgeEl)),
+              indicators.length > 0
+                ? h(
+                    "div",
+                    { class: "ollama-row", style: "flex-wrap:wrap;gap:4px;margin:2px 0;" },
+                    indicators.map((ind) =>
+                      h(
+                        "span",
+                        {
+                          class: "ollama-pill is-mlx",
+                          "data-bionic-model-indicator": ind.id,
+                          title: ind.description || ind.label,
+                          style: "font-size:10.5px;padding:1px 6px;",
+                        },
+                        `${ind.icon} ${ind.label}`,
+                      ),
+                    ),
+                  )
+                : null,
+              useCases.length > 0
+                ? h(
+                    "div",
+                    { class: "ollama-model-use-cases" },
+                    `What you can use it for: ${useCases.slice(0, 3).join(" • ")}`,
+                  )
+                : null,
+              h(
+                "div",
+                {},
+                `ID: ${cm.id} | RAM: 0 GB Local (Bionic Cloud) | Format: ${(cm.format || "cloud").toUpperCase()}`,
+              ),
+              h("div", { class: "ollama-row" }, [
+                h(
+                  "button",
+                  {
+                    type: "button",
+                    class: `ollama-btn is-mini${isSelected ? " is-primary" : ""}`,
+                    "data-bionic-action": "select-cloud-model",
+                    "data-bionic-model-id": cm.id,
+                    onclick: () => {
+                      uiState.selectedModel = cm.id;
+                      syncBionicSelectedModelState();
+                      uiState.subTab = "assistant";
+                      toast(`Selected Bionic Cloud Model in Studio: ${cm.displayName} (${cm.id})`);
+                      renderBionicPanel();
+                    },
+                  },
+                  isSelected ? "✓ Selected in Studio" : "✓ Select Model in Studio",
+                ),
+                h(
+                  "button",
+                  {
+                    type: "button",
+                    class: "ollama-btn is-mini",
+                    onclick: (e) => void copyBionicText(cm.id, cm.id, e.currentTarget),
+                  },
+                  "📋 Copy Model ID",
+                ),
+              ]),
+            ]);
+          }),
+        )
+      : null,
     h("div", { class: "ollama-card-title" }, [
       h("span", {}, `Installed LM Studio Bionic Metal Engine Backends (${backends.length})`),
     ]),
@@ -3527,27 +3717,6 @@ function renderModelsAndEnginesTab() {
         ]),
       ),
     ),
-    cloudModels.length > 0
-      ? h("div", { class: "ollama-card-title" }, [
-          h("span", {}, `Bionic Cloud Models (${cloudModels.length}) — Zero Local RAM Footprint`),
-        ])
-      : null,
-    cloudModels.length > 0
-      ? h(
-          "div",
-          { class: "ollama-model-grid" },
-          cloudModels.map((cm) =>
-            h("div", { class: "ollama-model-card" }, [
-              h("div", { class: "ollama-row" }, [
-                h("strong", {}, cm.displayName),
-                h("span", { class: "ollama-pill is-cloud" }, `Max Ctx: ${cm.maxContextLength.toLocaleString()}`),
-              ]),
-              h("div", { class: "ollama-badge-row" }, (cm.badges || []).map(createBadgeEl)),
-              h("div", {}, `Model ID: ${cm.id}`),
-            ]),
-          ),
-        )
-      : null,
   ]);
 }
 

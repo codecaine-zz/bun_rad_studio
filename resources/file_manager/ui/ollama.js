@@ -25,7 +25,7 @@ const uiState = {
   topK: 40,
   minP: 0.0,
   repeatPenalty: 1.1,
-  numPredict: 2048,
+  numPredict: 16384,
   seed: "",
   stopSequences: "",
   keepAlive: "5m",
@@ -190,11 +190,16 @@ export function getClientModelThinkingCapabilities(modelName, statusModels = [])
     lower.includes("granite3.3") ||
     lower.includes("smollm3") ||
     lower.includes("deepseek-v3") ||
+    lower.includes("deepseek-v4") ||
+    lower.includes("glm-5") ||
+    lower.includes("kimi-k") ||
+    lower.includes("reflection/beam") ||
     lower.includes("nemotron") ||
     lower.includes("seed-oss") ||
     lower.includes("hunyuan") ||
     lower.includes("mimo") ||
     lower.includes("gemma4") ||
+    lower.includes("gemma-4") ||
     lower.includes("muse")
   ) {
     return {
@@ -239,7 +244,9 @@ export function getClientModelFeatureProfile(modelName, statusModels = []) {
   const isEmbedding = badges.has("embeddings") || lower.includes("embed") || lower.includes("bge-");
   const isChat = !isPhonon && !isEmbedding && (!isDecision || badges.has("chat"));
   const isVision =
+    Boolean(found?.vision) ||
     badges.has("vision") ||
+    badges.has("vision vlm") ||
     lower.includes("-vl") ||
     lower.includes("_vl") ||
     lower.includes("omni") ||
@@ -248,8 +255,13 @@ export function getClientModelFeatureProfile(modelName, statusModels = []) {
     lower.includes("gemma4") ||
     lower.includes("llava") ||
     lower.includes("pixtral") ||
-    lower.includes("minicpm-v");
+    lower.includes("minicpm-v") ||
+    lower.includes("deepseek-v4.1") ||
+    lower.includes("glm-5.3-flash") ||
+    lower.includes("kimi-k3") ||
+    lower.includes("muse-spark");
   const isTools =
+    Boolean(found?.trainedForToolUse) ||
     badges.has("tools") ||
     (isChat &&
       !lower.includes("deepseek-r1") &&
@@ -262,11 +274,21 @@ export function getClientModelFeatureProfile(modelName, statusModels = []) {
         lower.includes("llama3") ||
         lower.includes("mistral") ||
         lower.includes("gemma4") ||
-        lower.includes("glm")));
+        lower.includes("glm") ||
+        lower.includes("deepseek-v4") ||
+        lower.includes("kimi") ||
+        lower.includes("muse") ||
+        lower.includes("reflection/beam")));
   const isCode = isChat;
   const isStructuredJson = isChat;
   const isWebSearch = isChat;
-  const isCloud = badges.has("cloud") || lower.endsWith(":cloud") || lower.includes("-cloud");
+  const isCloud =
+    Boolean(found?.isCloud) ||
+    found?.type === "cloud" ||
+    badges.has("cloud") ||
+    badges.has("bionic cloud") ||
+    lower.endsWith(":cloud") ||
+    lower.includes("-cloud");
   const isMlx = badges.has("mlx") || lower.includes("mlx") || lower.includes("mxfp");
 
   const indicators = [];
@@ -433,7 +455,7 @@ function buildSamplingPayload() {
     topK: Number(uiState.topK),
     minP: Number(uiState.minP),
     repeatPenalty: Number(uiState.repeatPenalty),
-    numPredict: Number(uiState.numPredict) || 2048,
+    numPredict: Number(uiState.numPredict) || 16384,
     keepAlive: uiState.keepAlive || undefined,
     systemPrompt: String(uiState.customSystemPrompt || "").trim() || undefined,
   };
@@ -1494,7 +1516,21 @@ async function runLiveStreamChat() {
 
     while (true) {
       const { value, done } = await reader.read();
-      if (done) break;
+      if (done) {
+        buffer += decoder.decode();
+        if (buffer.trim()) {
+          for (const line of buffer.split("\n")) {
+            const trimmed = line.trim();
+            if (!trimmed) continue;
+            try {
+              const pkt = JSON.parse(trimmed);
+              if (pkt.message?.thinking) uiState.thinkingOutput += pkt.message.thinking;
+              if (pkt.message?.content) uiState.answerOutput += pkt.message.content;
+            } catch {}
+          }
+        }
+        break;
+      }
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split("\n");
       buffer = lines.pop() || "";
@@ -2213,7 +2249,7 @@ function renderAdvancedSamplingPanel() {
               uiState.topK = 40;
               uiState.minP = 0.0;
               uiState.repeatPenalty = 1.1;
-              uiState.numPredict = 2048;
+              uiState.numPredict = 16384;
               uiState.seed = "";
               uiState.stopSequences = "";
               uiState.keepAlive = "5m";
@@ -2330,7 +2366,7 @@ function renderAdvancedSamplingPanel() {
             style: "width:82px;",
             step: "256",
             min: "64",
-            max: "65536",
+            max: "131072",
             value: String(uiState.numPredict),
             oninput: (e) => {
               uiState.numPredict = Number(e.target.value);

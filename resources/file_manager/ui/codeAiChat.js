@@ -145,11 +145,25 @@ export function createCodeAiChat(ctx) {
     };
   }
 
+  function getCombinedBionicModels(bionicStatus) {
+    const localModels = Array.isArray(bionicStatus?.models)
+      ? bionicStatus.models.filter((m) => m.type === "llm" || m.type === "vlm")
+      : [];
+    const cloudModels = Array.isArray(bionicStatus?.cloudModels) ? bionicStatus.cloudModels : [];
+    const seen = new Set(localModels.map((m) => m.id));
+    const merged = [...localModels];
+    for (const cm of cloudModels) {
+      if (cm?.id && !seen.has(cm.id)) {
+        seen.add(cm.id);
+        merged.push(cm);
+      }
+    }
+    return merged;
+  }
+
   function resolveCodeChatActiveProfile() {
     const isBionic = state.engine === "bionic";
-    const bionicModels = Array.isArray(state.bionicStatus?.models)
-      ? state.bionicStatus.models.filter((m) => m.type === "llm" || m.type === "vlm")
-      : [];
+    const bionicModels = getCombinedBionicModels(state.bionicStatus);
     const ollamaModels = Array.isArray(state.ollamaStatus?.models) ? state.ollamaStatus.models : [];
     const activeModelName = isBionic
       ? state.bionicModel || "openai/gpt-oss-20b"
@@ -212,7 +226,7 @@ export function createCodeAiChat(ctx) {
 
     if (bRes.status === "fulfilled" && bRes.value) {
       state.bionicStatus = bRes.value;
-      const models = Array.isArray(bRes.value.models) ? bRes.value.models : [];
+      const models = getCombinedBionicModels(bRes.value);
       if (!state.bionicModel && models.length > 0) {
         const loadedChat = models.find((m) => m.loaded && (m.type === "llm" || m.type === "vlm"));
         const anyChat = models.find((m) => m.type === "llm" || m.type === "vlm") || models[0];
@@ -399,7 +413,7 @@ export function createCodeAiChat(ctx) {
       "aria-label": `${displayLang} code snippet`,
     });
 
-    const maxLines = Math.min(lines.length, 2000);
+    const maxLines = Math.min(lines.length, 10000);
     for (let i = 0; i < maxLines; i++) {
       const tokens = lines[i] || [];
       const textCell = h("span", { class: "bionic-md-code-text" });
@@ -717,6 +731,7 @@ export function createCodeAiChat(ctx) {
         model: state.bionicModel || undefined,
         prompt: fullPrompt,
         paths: [],
+        maxTokens: 16384,
         think: thinkArgs.think,
         thinkingLevel: thinkArgs.thinkingLevel,
       }),
@@ -733,6 +748,7 @@ export function createCodeAiChat(ctx) {
           paths: [],
           dirPath: ctx.getWorkspace?.() || "/",
           skill: profile.features?.tools && state.selectedSkill ? state.selectedSkill : undefined,
+          maxTokens: 16384,
           think: thinkArgs.think,
           thinkingLevel: thinkArgs.thinkingLevel,
         },
@@ -754,27 +770,41 @@ export function createCodeAiChat(ctx) {
     let rawAccum = "";
     let explicitReasoning = "";
 
+    const processBionicSseLine = (line) => {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith("data:")) return;
+      const payloadStr = trimmed.slice(5).trim();
+      if (!payloadStr || payloadStr === "[DONE]") return;
+      try {
+        const pkt = JSON.parse(payloadStr);
+        const delta = pkt?.choices?.[0]?.delta || {};
+        if (delta.reasoning || delta.reasoning_content) {
+          explicitReasoning += delta.reasoning || delta.reasoning_content;
+        }
+        if (delta.content) {
+          rawAccum += delta.content;
+        }
+      } catch {}
+    };
+
     while (true) {
       const { value, done } = await reader.read();
-      if (done) break;
+      if (done) {
+        buffer += decoder.decode();
+        if (buffer.trim()) {
+          for (const line of buffer.split("\n")) processBionicSseLine(line);
+        }
+        const split = splitThinkBlocks(rawAccum);
+        assistantMsg.reasoning = [explicitReasoning, split.reasoning].filter(Boolean).join("\n\n");
+        assistantMsg.content = split.content;
+        renderThreadOnly();
+        break;
+      }
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split("\n");
       buffer = lines.pop() || "";
       for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed.startsWith("data:")) continue;
-        const payloadStr = trimmed.slice(5).trim();
-        if (!payloadStr || payloadStr === "[DONE]") continue;
-        try {
-          const pkt = JSON.parse(payloadStr);
-          const delta = pkt?.choices?.[0]?.delta || {};
-          if (delta.reasoning || delta.reasoning_content) {
-            explicitReasoning += delta.reasoning || delta.reasoning_content;
-          }
-          if (delta.content) {
-            rawAccum += delta.content;
-          }
-        } catch {}
+        processBionicSseLine(line);
       }
       const split = splitThinkBlocks(rawAccum);
       assistantMsg.reasoning = [explicitReasoning, split.reasoning].filter(Boolean).join("\n\n");
@@ -795,6 +825,7 @@ export function createCodeAiChat(ctx) {
         model: state.ollamaModel || undefined,
         prompt: fullPrompt,
         paths: [],
+        numPredict: 16384,
         think: thinkArgs.think,
         thinkingLevel: thinkArgs.thinkingLevel,
       }),
@@ -808,6 +839,7 @@ export function createCodeAiChat(ctx) {
           model: state.ollamaModel || undefined,
           prompt: fullPrompt,
           paths: [],
+          numPredict: 16384,
           think: thinkArgs.think,
           thinkingLevel: thinkArgs.thinkingLevel,
         },
@@ -828,24 +860,38 @@ export function createCodeAiChat(ctx) {
     let rawAccum = "";
     let explicitThinking = "";
 
+    const processOllamaLine = (line) => {
+      const trimmed = line.trim();
+      if (!trimmed) return;
+      try {
+        const pkt = JSON.parse(trimmed);
+        if (pkt.message?.thinking) {
+          explicitThinking += pkt.message.thinking;
+        }
+        if (pkt.message?.content) {
+          rawAccum += pkt.message.content;
+        }
+      } catch {}
+    };
+
     while (true) {
       const { value, done } = await reader.read();
-      if (done) break;
+      if (done) {
+        buffer += decoder.decode();
+        if (buffer.trim()) {
+          for (const line of buffer.split("\n")) processOllamaLine(line);
+        }
+        const split = splitThinkBlocks(rawAccum);
+        assistantMsg.reasoning = [explicitThinking, split.reasoning].filter(Boolean).join("\n\n");
+        assistantMsg.content = split.content;
+        renderThreadOnly();
+        break;
+      }
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split("\n");
       buffer = lines.pop() || "";
       for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed) continue;
-        try {
-          const pkt = JSON.parse(trimmed);
-          if (pkt.message?.thinking) {
-            explicitThinking += pkt.message.thinking;
-          }
-          if (pkt.message?.content) {
-            rawAccum += pkt.message.content;
-          }
-        } catch {}
+        processOllamaLine(line);
       }
       const split = splitThinkBlocks(rawAccum);
       assistantMsg.reasoning = [explicitThinking, split.reasoning].filter(Boolean).join("\n\n");
@@ -960,9 +1006,7 @@ export function createCodeAiChat(ctx) {
     const ollamaOnline = Boolean(state.ollamaStatus?.daemon?.running);
     const currentOnline = isBionic ? bionicOnline : ollamaOnline;
 
-    const bionicModels = Array.isArray(state.bionicStatus?.models)
-      ? state.bionicStatus.models.filter((m) => m.type === "llm" || m.type === "vlm")
-      : [];
+    const bionicModels = getCombinedBionicModels(state.bionicStatus);
     const ollamaModels = Array.isArray(state.ollamaStatus?.models) ? state.ollamaStatus.models : [];
     const skills = Array.isArray(state.bionicStatus?.skills) ? state.bionicStatus.skills : [];
 
@@ -1137,7 +1181,9 @@ export function createCodeAiChat(ctx) {
                       value: m.id,
                       selected: m.id === state.bionicModel ? "selected" : null,
                     },
-                    `${m.loaded ? "🟢 " : ""}${m.displayName || m.id} (${m.format.toUpperCase()})`,
+                    m.isCloud || m.format === "cloud"
+                      ? `☁️ ${m.displayName || m.id} (BIONIC CLOUD • 0 GB RAM)`
+                      : `${m.loaded ? "🟢 " : ""}${m.displayName || m.id} (${(m.format || "mlx").toUpperCase()})`,
                   ),
                 ),
           )

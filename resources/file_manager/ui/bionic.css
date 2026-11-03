@@ -476,7 +476,8 @@
   flex-direction: column;
   padding: 8px 0;
   margin: 0;
-  max-block-size: 420px;
+  max-block-size: min(680px, 72vh);
+  resize: vertical;
   overflow-x: auto;
   overflow-y: auto;
   overscroll-behavior: contain;

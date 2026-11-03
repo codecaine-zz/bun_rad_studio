@@ -573,6 +573,68 @@ export function listInstalledBionicBackends(ctx?: FmContext): {
 // 5. Model Inventory (`lms ls --json`, `lms ps --json`, `/api/v0/models`, & Bionic Cloud Models)
 // ---------------------------------------------------------------------------------------------------------------
 
+export const DEFAULT_BIONIC_CLOUD_MODELS: Array<{
+  modelIdentifier: string;
+  label: string;
+  maxContextLength: number;
+  vision: boolean;
+}> = [
+  {
+    modelIdentifier: "deepseek-ai/DeepSeek-V4.1-Flash",
+    label: "DeepSeek V4.1 Flash",
+    maxContextLength: 1_000_000,
+    vision: true,
+  },
+  {
+    modelIdentifier: "deepseek-ai/DeepSeek-V4-Flash-0731",
+    label: "DeepSeek V4 Flash",
+    maxContextLength: 500_000,
+    vision: false,
+  },
+  {
+    modelIdentifier: "deepseek-ai/DeepSeek-V4-Pro",
+    label: "DeepSeek V4 Pro",
+    maxContextLength: 262_144,
+    vision: false,
+  },
+  {
+    modelIdentifier: "zai-org/GLM-5.2",
+    label: "GLM-5.2",
+    maxContextLength: 256_000,
+    vision: false,
+  },
+  {
+    modelIdentifier: "zai-org/GLM-5.3",
+    label: "GLM-5.3",
+    maxContextLength: 500_000,
+    vision: false,
+  },
+  {
+    modelIdentifier: "zai-org/GLM-5.3-Flash",
+    label: "GLM-5.3-Flash",
+    maxContextLength: 1_000_000,
+    vision: true,
+  },
+  {
+    modelIdentifier: "moonshotai/Kimi-K3",
+    label: "Kimi K3",
+    maxContextLength: 250_000,
+    vision: true,
+  },
+  {
+    modelIdentifier: "meta-models/muse-spark-open",
+    label: "Muse Spark Open",
+    maxContextLength: 1_048_576,
+    vision: true,
+  },
+  {
+    modelIdentifier: "reflection/Beam-1.0",
+    label: "Reflection Beam",
+    maxContextLength: 200_000,
+    vision: false,
+  },
+];
+
 export async function listBionicModelsAndHardwareStatus(ctx: FmContext): Promise<{
   hardware: OllamaHardwareSpecs;
   models: BionicModelInfo[];
@@ -781,57 +843,100 @@ export async function listBionicModelsAndHardwareStatus(ctx: FmContext): Promise
   const loadedModels = models.filter((m) => m.loaded);
 
   // Also parse Bionic Cloud Models from ~/.lmstudio/apps/bionic/.internal/ng-cloud-models.json
+  // and ~/.lmstudio/apps/bionic/.internal/cloud-account.json, with built-in catalog fallback.
   const cloudModels: BionicModelInfo[] = [];
-  const cloudJsonPath = joinPath([lmHome, "apps", "bionic", ".internal", "ng-cloud-models.json"], ctx.platform);
-  const rawCloud = readTextFileSyncPure(cloudJsonPath);
-  if (rawCloud) {
-    try {
-      const parsed = JSON.parse(rawCloud);
-      if (Array.isArray(parsed?.payload)) {
-        for (const cm of parsed.payload) {
-          if (!cm?.modelIdentifier) continue;
-          const id = String(cm.modelIdentifier);
-          const badges = ["Bionic Cloud", "Chat", "Reasoning"];
-          if (cm.vision) badges.push("Vision VLM");
-          const verdict = evaluateModelHardwareGuard({ name: `${id}:cloud` }, hardware);
-          cloudModels.push({
-            id,
-            modelKey: id,
-            displayName: String(cm.label || id),
-            type: "cloud",
-            publisher: id.split("/")[0] || "bionic-cloud",
-            architecture: "cloud",
-            format: "cloud",
-            quantization: "FP16 Cloud",
-            paramsString: "Cloud",
-            parameterBillions: 0,
-            sizeBytes: 0,
-            sizeGb: 0,
-            estimatedRamGb: 0,
-            maxContextLength: Number(cm.maxContextLength || 256000),
-            loadedContextLength: null,
-            loaded: false,
-            vision: Boolean(cm.vision),
-            trainedForToolUse: true,
-            reasoningCapable: true,
-            isMlx: false,
-            isCloud: true,
-            badges,
-            thinkingCapabilities: getModelThinkingCapabilities({
-              name: id,
-              capabilities: ["thinking"],
-            }),
-            featureProfile: getModelFeatureProfile({
-              name: id,
-              capabilities: ["completion", "tools", "thinking", ...(cm.vision ? ["vision"] : [])],
-              isMlx: false,
-              isCloud: true,
-            }),
-            hardwareVerdict: verdict,
-          });
+  const rawCloudSpecs = new Map<
+    string,
+    { modelIdentifier: string; label?: string; maxContextLength?: number; vision?: boolean }
+  >();
+
+  const osHome = process.env.HOME || process.env.USERPROFILE || "/Users/codecaine";
+  const osLmHome = joinPath([osHome, ".lmstudio"], ctx.platform);
+  const candidateLmHomes = [...new Set([lmHome, osLmHome].filter(Boolean))];
+
+  for (const baseLmHome of candidateLmHomes) {
+    const cloudJsonPath = joinPath([baseLmHome, "apps", "bionic", ".internal", "ng-cloud-models.json"], ctx.platform);
+    const cloudAccountPath = joinPath([baseLmHome, "apps", "bionic", ".internal", "cloud-account.json"], ctx.platform);
+    for (const candidatePath of [cloudJsonPath, cloudAccountPath]) {
+      let rawText = "";
+      try {
+        const f = Bun.file(candidatePath);
+        if (await f.exists()) {
+          rawText = await f.text();
         }
+      } catch {}
+      if (!rawText) {
+        rawText = readTextFileSyncPure(candidatePath);
       }
-    } catch {}
+      if (!rawText) continue;
+      try {
+        const parsed = JSON.parse(rawText);
+        const list = Array.isArray(parsed?.payload)
+          ? parsed.payload
+          : Array.isArray(parsed?.payload?.models)
+            ? parsed.payload.models
+            : [];
+        for (const cm of list) {
+          if (cm && typeof cm.modelIdentifier === "string" && cm.modelIdentifier.trim()) {
+            const id = cm.modelIdentifier.trim();
+            if (!rawCloudSpecs.has(id)) {
+              rawCloudSpecs.set(id, cm);
+            }
+          }
+        }
+      } catch {}
+    }
+  }
+
+  for (const fallbackCm of DEFAULT_BIONIC_CLOUD_MODELS) {
+    if (!rawCloudSpecs.has(fallbackCm.modelIdentifier)) {
+      rawCloudSpecs.set(fallbackCm.modelIdentifier, fallbackCm);
+    }
+  }
+
+  for (const cm of rawCloudSpecs.values()) {
+    const id = String(cm.modelIdentifier).trim();
+    if (!id) continue;
+    const vision = Boolean(cm.vision);
+    const badges = ["Bionic Cloud", "Zero Local RAM", "Chat", "Reasoning"];
+    if (vision) badges.push("Vision VLM");
+    badges.push("Tools");
+    const verdict = evaluateModelHardwareGuard({ name: `${id}:cloud`, runner: "cloud" }, hardware);
+    cloudModels.push({
+      id,
+      modelKey: id,
+      displayName: String(cm.label || id),
+      type: "cloud",
+      publisher: id.split("/")[0] || "bionic-cloud",
+      architecture: "cloud",
+      format: "cloud",
+      quantization: "FP16 Cloud",
+      paramsString: "Cloud",
+      parameterBillions: 0,
+      sizeBytes: 0,
+      sizeGb: 0,
+      estimatedRamGb: 0,
+      maxContextLength: Number(cm.maxContextLength || 256000),
+      loadedContextLength: null,
+      loaded: false,
+      vision,
+      trainedForToolUse: true,
+      reasoningCapable: true,
+      isMlx: false,
+      isCloud: true,
+      badges,
+      thinkingCapabilities: getModelThinkingCapabilities({
+        name: id,
+        capabilities: ["thinking"],
+      }),
+      featureProfile: getModelFeatureProfile({
+        name: id,
+        capabilities: ["completion", "tools", "thinking", "cloud", ...(vision ? ["vision"] : [])],
+        isMlx: false,
+        isCloud: true,
+      }),
+      hardwareVerdict: verdict,
+    });
   }
 
   return {
@@ -863,7 +968,24 @@ export async function loadBionicModel(
     throw new FmError("INVALID_INPUT", "Model identifier is required to load into Metal RAM.");
   }
 
-  const { hardware, models } = await listBionicModelsAndHardwareStatus(ctx);
+  const { hardware, models, cloudModels } = await listBionicModelsAndHardwareStatus(ctx);
+  const existingCloud = cloudModels.find((m) => m.id === modelKey || m.modelKey === modelKey);
+  if (existingCloud) {
+    return {
+      ok: true,
+      model: modelKey,
+      status: "cloud_ready",
+      output: `${existingCloud.displayName} (${modelKey}) is a Bionic Cloud model (0 GB local Metal RAM required).`,
+      appliedLoadConfig: {
+        contextLength: payload.contextLength ?? existingCloud.maxContextLength ?? 256000,
+        ttlSeconds: payload.ttlSeconds ?? 0,
+        gpuOffload: "max",
+        flashAttention: true,
+        kvCacheQuant: "f16",
+      },
+      hardwareVerdict: existingCloud.hardwareVerdict,
+    };
+  }
   const existing = models.find((m) => m.id === modelKey || m.modelKey === modelKey);
   const verdict = existing
     ? existing.hardwareVerdict
@@ -891,10 +1013,9 @@ export async function loadBionicModel(
     };
   }
 
-  const args = ["load", modelKey, "-y"];
-  if (typeof payload.contextLength === "number" && payload.contextLength >= 512) {
-    args.push("--context-length", String(payload.contextLength));
-  }
+  const effectiveCtxLength =
+    typeof payload.contextLength === "number" && payload.contextLength >= 512 ? payload.contextLength : 32768;
+  const args = ["load", modelKey, "-y", "--context-length", String(effectiveCtxLength)];
   if (typeof payload.ttlSeconds === "number" && payload.ttlSeconds > 0) {
     args.push("--ttl", String(payload.ttlSeconds));
   }
@@ -2269,7 +2390,7 @@ export async function selectBestBionicModel(
   requireVision = false,
   excludeModels?: ReadonlySet<string>,
 ): Promise<{ model: string; verdict: HardwareGuardVerdict }> {
-  const { hardware, models, loadedModels } = await listBionicModelsAndHardwareStatus(ctx);
+  const { hardware, models, loadedModels, cloudModels } = await listBionicModelsAndHardwareStatus(ctx);
   const isExcluded = (id: string) => Boolean(bionicFailedToLoadModels.has(id) || excludeModels?.has(id));
   const chatCapableModels = models.filter(
     (m) => (m.type === "llm" || m.type === "vlm") && !isExcluded(m.id),
@@ -2282,14 +2403,20 @@ export async function selectBestBionicModel(
       clean.toLowerCase().includes("embed") ||
       clean.toLowerCase().includes("whisper");
     if (!isTtsOrEmbed && !isExcluded(clean)) {
-      const found = models.find((m) => m.id === clean || m.modelKey === clean);
+      const found =
+        models.find((m) => m.id === clean || m.modelKey === clean) ||
+        cloudModels.find((m) => m.id === clean || m.modelKey === clean);
       const hasVisionSupport =
         Boolean(found?.vision) ||
         clean.toLowerCase().includes("qwen3.5") ||
         clean.toLowerCase().includes("-vl") ||
         clean.toLowerCase().includes("glimmer") ||
         clean.toLowerCase().includes("gemma3") ||
-        clean.toLowerCase().includes("gemma4");
+        clean.toLowerCase().includes("gemma4") ||
+        clean.toLowerCase().includes("deepseek-v4.1") ||
+        clean.toLowerCase().includes("glm-5.3-flash") ||
+        clean.toLowerCase().includes("kimi-k3") ||
+        clean.toLowerCase().includes("muse-spark");
       if (!requireVision || hasVisionSupport || !chatCapableModels.some((m) => m.vision && m.hardwareVerdict.allowed)) {
         const verdict = found
           ? found.hardwareVerdict
@@ -2500,11 +2627,11 @@ export async function runBionicChat(
   const requestedMaxTokens =
     typeof payload.maxTokens === "number" && Number.isFinite(payload.maxTokens) ? Math.round(payload.maxTokens) : undefined;
   const maxTokens =
-    imageDataUrls.length > 0 && (!requestedMaxTokens || requestedMaxTokens === 2048)
+    imageDataUrls.length > 0 && (!requestedMaxTokens || requestedMaxTokens === 2048 || requestedMaxTokens === 16384)
       ? 380
-      : isAutoPrompt && (!requestedMaxTokens || requestedMaxTokens === 2048)
+      : isAutoPrompt && (!requestedMaxTokens || requestedMaxTokens === 2048 || requestedMaxTokens === 16384)
         ? 380
-        : requestedMaxTokens || 2048;
+        : requestedMaxTokens || 16384;
 
   const requestBody: Record<string, any> = {
     model,
@@ -2630,13 +2757,20 @@ export async function runBionicChat(
     return r;
   };
 
+  const initialRequestedModel = model;
   let res = await sendCompletionRequest(requestBody);
   if (!res.ok) {
     const firstErrText = await res.text();
-    if (/failed to load model|model.*not found|unsupported|vision/i.test(firstErrText)) {
-      bionicFailedToLoadModels.add(model);
+    if (
+      /failed to load model|model.*not found|no models loaded|invalid model identifier|multiple models are loaded|unable to download or load|unsupported|vision/i.test(
+        firstErrText,
+      )
+    ) {
+      if (/failed to load model/i.test(firstErrText)) {
+        bionicFailedToLoadModels.add(model);
+      }
       const triedModels = new Set<string>([model]);
-      for (let attempt = 0; attempt < 2; attempt++) {
+      for (let attempt = 0; attempt < 3; attempt++) {
         const nextPick = await selectBestBionicModel(
           ctx,
           undefined,
@@ -2651,7 +2785,15 @@ export async function runBionicChat(
         const retryHasVision =
           model.toLowerCase().includes("glimmer") ||
           model.toLowerCase().includes("qwen3.5") ||
+          model.toLowerCase().includes("gemma3") ||
+          model.toLowerCase().includes("gemma4") ||
           model.toLowerCase().includes("-vl");
+        const retryThink = resolveOllamaThinkConfig(model, {
+          think: payload.think,
+          thinkingLevel: effectiveThinkingLevel,
+          thinkingBudget: payload.thinkingBudget,
+          speakReply: Boolean(payload.speakReply),
+        });
         const retryBody: Record<string, any> = {
           ...requestBody,
           model,
@@ -2660,11 +2802,24 @@ export async function runBionicChat(
             { role: "user", content: retryHasVision ? userContent : fullUserText },
           ],
         };
+        if ( !fastDirectSummary && (retryThink.thinkingMode === "toggle" || retryThink.thinkingMode === "always_on") ) {
+          retryBody.enable_thinking = retryThink.thinkEnabled;
+          retryBody.chat_template_kwargs = {
+            ...(retryBody.chat_template_kwargs || {}),
+            enable_thinking: retryThink.thinkEnabled,
+          };
+        }
         res = await sendCompletionRequest(retryBody);
         if (res.ok) break;
         const retryErr = await res.text();
         if (/failed to load model/i.test(retryErr)) {
           bionicFailedToLoadModels.add(model);
+        } else if (/no models loaded|just-in-time.*disabled|model.*not found|invalid model identifier/i.test(retryErr)) {
+          try {
+            await loadBionicModel(ctx, { model, contextLength: payload.contextLength || 32768, force: true });
+            res = await sendCompletionRequest(retryBody);
+            if (res.ok) break;
+          } catch {}
         }
       }
     } else {
@@ -3103,7 +3258,7 @@ export async function handleBionicStreamRequest(ctx: FmContext, req: Request): P
             ...imageDataUrls.map((url) => ({ type: "image_url", image_url: { url } })),
           ]
         : promptText;
-    const defaultMaxTokens = imageDataUrls.length > 0 ? 768 : 2048;
+    const defaultMaxTokens = imageDataUrls.length > 0 ? 4096 : 16384;
     const streamPayload: Record<string, any> = {
       model,
       messages: [
@@ -3169,21 +3324,63 @@ export async function handleBionicStreamRequest(ctx: FmContext, req: Request): P
 
     if (!upstream.ok) {
       const firstErr = await upstream.text();
-      if (/failed to load model|model.*not found|unsupported|vision/i.test(firstErr)) {
-        bionicFailedToLoadModels.add(model);
+      if (
+        /failed to load model|model.*not found|no models loaded|invalid model identifier|multiple models are loaded|unable to download or load|unsupported|vision/i.test(
+          firstErr,
+        )
+      ) {
+        if (/failed to load model/i.test(firstErr)) {
+          bionicFailedToLoadModels.add(model);
+        }
         const triedModels = new Set<string>([model]);
-        const nextPick = await selectBestBionicModel(ctx, undefined, imageDataUrls.length > 0, triedModels);
-        if (nextPick.model && !triedModels.has(nextPick.model)) {
+        for (let attempt = 0; attempt < 3; attempt++) {
+          const nextPick = await selectBestBionicModel(
+            ctx,
+            undefined,
+            imageDataUrls.length > 0 && attempt === 0,
+            triedModels,
+          );
+          if (!nextPick.model || triedModels.has(nextPick.model)) break;
+          triedModels.add(nextPick.model);
           model = nextPick.model;
           verdict = nextPick.verdict;
           bionicSessionLoadedModels.add(model);
           streamPayload.model = model;
+          const retryThink = resolveOllamaThinkConfig(model, {
+            think: body.think,
+            thinkingLevel: effectiveThinkingLevel,
+            thinkingBudget: body.thinkingBudget,
+            speakReply: Boolean(body.speakReply),
+          });
+          if (retryThink.thinkingMode === "toggle" || retryThink.thinkingMode === "always_on") {
+            streamPayload.enable_thinking = retryThink.thinkEnabled;
+            streamPayload.chat_template_kwargs = {
+              ...(streamPayload.chat_template_kwargs || {}),
+              enable_thinking: retryThink.thinkEnabled,
+            };
+          }
           upstream = await fetch(`${server.baseUrl}/v1/chat/completions`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             signal: req.signal,
             body: JSON.stringify(streamPayload),
           });
+          if (upstream.ok) break;
+          const retryErr = await upstream.text();
+          if (/failed to load model/i.test(retryErr)) {
+            bionicFailedToLoadModels.add(model);
+          } else if (/no models loaded|just-in-time.*disabled|model.*not found|invalid model identifier/i.test(retryErr)) {
+            try {
+              await loadBionicModel(ctx, { model, contextLength: body.contextLength || 32768, force: true });
+              upstream = await fetch(`${server.baseUrl}/v1/chat/completions`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                signal: req.signal,
+                body: JSON.stringify(streamPayload),
+              });
+              if (upstream.ok) break;
+            } catch {}
+          }
         }
       } else {
         return new Response(
@@ -3207,7 +3404,31 @@ export async function handleBionicStreamRequest(ctx: FmContext, req: Request): P
       );
     }
 
-    return new Response(upstream.body, {
+    const upstreamBody = upstream.body;
+    const proxiedStream = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        const reader = upstreamBody.getReader();
+        try {
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            if (value) controller.enqueue(value);
+          }
+          controller.close();
+        } catch (streamErr) {
+          controller.error(streamErr);
+        } finally {
+          reader.releaseLock();
+        }
+      },
+      cancel() {
+        try {
+          void upstreamBody.cancel();
+        } catch {}
+      },
+    });
+
+    return new Response(proxiedStream, {
       status: 200,
       headers: {
         "Content-Type": "text/event-stream; charset=utf-8",
@@ -3438,7 +3659,7 @@ export async function runBionicSynthesize(
       const chatRes = await runBionicChat(ctx, {
         model: payload.model,
         prompt: `${promptHeader}\n\n${combinedDocs}`,
-        maxTokens: 2048,
+        maxTokens: 8192,
       });
       if (chatRes.content && chatRes.content.trim()) {
         const corpusTable = [

@@ -100,6 +100,20 @@ describe("Codecaine File Manager — Built-In LM Studio Bionic AI Studio & Agent
         }
 
         if (url.pathname === "/api/v0/chat/completions" || url.pathname === "/v1/chat/completions") {
+          const userMsgText = JSON.stringify(body?.messages || []);
+          if (body?.model === "reflection/Beam-1.0" && userMsgText.includes("SIMULATE_NO_MODELS_LOADED")) {
+            return Response.json(
+              {
+                error: {
+                  message: "No models loaded. Please load a model in the developer page or use the 'lms load' command.",
+                  type: "invalid_request_error",
+                  param: "model",
+                  code: null,
+                },
+              },
+              { status: 400 },
+            );
+          }
           if (body?.stream) {
             const sse = [
               `data: ${JSON.stringify({ choices: [{ delta: { reasoning: "Analyzing file context... " } }] })}\n\n`,
@@ -749,6 +763,7 @@ describe("Codecaine File Manager — Built-In LM Studio Bionic AI Studio & Agent
     const sentQwen = qwenReqs[qwenReqs.length - 1]!.body;
     expect(sentQwen.enable_thinking).toBe(false);
     expect(sentQwen.chat_template_kwargs.enable_thinking).toBe(false);
+    expect(sentQwen.max_tokens).toBe(16384);
 
     // 4. Verify bionic/load supports gpuOffload, flashAttention, kvCacheQuant, and ttlSeconds
     const loadRes = await apiCall("bionic/load", {
@@ -823,5 +838,68 @@ describe("Codecaine File Manager — Built-In LM Studio Bionic AI Studio & Agent
       if (prevOllamaHost === undefined) delete process.env.OLLAMA_HOST;
       else process.env.OLLAMA_HOST = prevOllamaHost;
     }
+  });
+
+  test("13. LM Studio Bionic Cloud Models Discovery, Feature Profiles & Cloud Inference Chat", async () => {
+    const statusRes = await apiCall("bionic/status", {});
+    expect(statusRes.status).toBe(200);
+    const cloudModels = statusRes.json.cloudModels;
+    expect(Array.isArray(cloudModels)).toBe(true);
+    expect(cloudModels.length).toBeGreaterThanOrEqual(9);
+
+    const cloudIds = cloudModels.map((cm: any) => cm.id);
+    expect(cloudIds).toContain("deepseek-ai/DeepSeek-V4.1-Flash");
+    expect(cloudIds).toContain("deepseek-ai/DeepSeek-V4-Pro");
+    expect(cloudIds).toContain("zai-org/GLM-5.3");
+    expect(cloudIds).toContain("zai-org/GLM-5.3-Flash");
+    expect(cloudIds).toContain("moonshotai/Kimi-K3");
+    expect(cloudIds).toContain("meta-models/muse-spark-open");
+    expect(cloudIds).toContain("reflection/Beam-1.0");
+
+    const dsFlash = cloudModels.find((cm: any) => cm.id === "deepseek-ai/DeepSeek-V4.1-Flash");
+    expect(dsFlash.isCloud).toBe(true);
+    expect(dsFlash.format).toBe("cloud");
+    expect(dsFlash.vision).toBe(true);
+    expect(dsFlash.estimatedRamGb).toBe(0);
+    expect(dsFlash.hardwareVerdict.allowed).toBe(true);
+    expect(dsFlash.hardwareVerdict.isCloud).toBe(true);
+    expect(dsFlash.thinkingCapabilities.thinkingMode).toBe("toggle");
+    expect(dsFlash.featureProfile.features.vision).toBe(true);
+    expect(dsFlash.featureProfile.features.tools).toBe(true);
+    expect(dsFlash.featureProfile.indicators.map((i: any) => i.id)).toContain("cloud");
+
+    const chatRes = await apiCall("bionic/chat", {
+      model: "reflection/Beam-1.0",
+      prompt: "Explain Bionic Cloud zero local RAM inference.",
+      thinkingLevel: "on",
+    });
+    expect(chatRes.status).toBe(200);
+    expect(chatRes.json.model).toBe("reflection/Beam-1.0");
+    expect(chatRes.json.thinkingMode).toBe("toggle");
+    expect(chatRes.json.thinkingEnabled).toBe(true);
+
+    // Verify automatic JIT fallback when local HTTP server (:1235) returns "No models loaded" for reflection/Beam-1.0
+    const fallbackChatRes = await apiCall("bionic/chat", {
+      model: "reflection/Beam-1.0",
+      prompt: "SIMULATE_NO_MODELS_LOADED: test Beam fallback to local MLX model",
+      thinkingLevel: "on",
+    });
+    expect(fallbackChatRes.status).toBe(200);
+    expect(fallbackChatRes.json.model).toBe("openai/gpt-oss-20b");
+    expect(fallbackChatRes.json.content).toContain("Bionic MLX response");
+
+    const fallbackStreamRes = await fetch(`${fmUrl}/api/bionic/stream`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-FM-Token": fmToken,
+      },
+      body: JSON.stringify({
+        model: "reflection/Beam-1.0",
+        prompt: "SIMULATE_NO_MODELS_LOADED: stream Beam fallback",
+      }),
+    });
+    expect(fallbackStreamRes.status).toBe(200);
+    expect(fallbackStreamRes.headers.get("X-Bionic-Model")).toBe("openai/gpt-oss-20b");
   });
 });
