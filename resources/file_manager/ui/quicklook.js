@@ -282,7 +282,7 @@ async function renderBody(entry, mine) {
         role: "region",
         "aria-label": `Interactive image stage for ${entry.name}`,
         dataset: { qlImgStage: "", backdrop: backdropMode },
-        style: "display: flex; overflow: auto; flex: 1 1 0%; min-height: 0; min-width: 0; width: 100%; height: 100%; position: relative; z-index: 1; clip-path: inset(0); padding: 16px; box-sizing: border-box; background-image: linear-gradient(45deg, rgba(148,163,184,0.14) 25%, transparent 25%), linear-gradient(-45deg, rgba(148,163,184,0.14) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, rgba(148,163,184,0.14) 75%), linear-gradient(-45deg, transparent 75%, rgba(148,163,184,0.14) 75%); background-size: 16px 16px; background-position: 0 0, 0 8px, 8px -8px, -8px 0;",
+        style: "display: flex; overflow: auto; flex: 1 1 0%; min-height: 0; min-width: 0; width: 100%; height: 100%; position: relative; z-index: 1; clip-path: inset(0); padding: 16px; box-sizing: border-box;",
       });
 
       const canvasWrap = h("div", {

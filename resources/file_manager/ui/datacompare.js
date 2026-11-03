@@ -125,7 +125,14 @@ export async function showCompareTextFiles(entries) {
 
   let viewMode = "unified"; // "unified" | "split"
   let changesOnly = false;
-  const diffHost = h("div", { class: "text-diff-host", dataset: { textDiffHost: "" }, style: "max-height: 55vh; overflow: auto; border: 1px solid var(--border, #334155); border-radius: 6px; font-family: var(--mono, monospace); font-size: 12px;" });
+  const diffHost = h("div", {
+    class: "text-diff-host",
+    tabindex: "0",
+    role: "region",
+    "aria-label": `Text comparison between ${r.left.name} and ${r.right.name}`,
+    dataset: { textDiffHost: "" },
+    style: "max-height: 55vh; overflow: auto; border: 1px solid var(--border, #334155); border-radius: 6px; font-family: var(--mono, monospace); font-size: 12px;",
+  });
 
   function renderDiffTable() {
     clear(diffHost);
@@ -135,58 +142,83 @@ export async function showCompareTextFiles(entries) {
       return;
     }
     if (viewMode === "unified") {
+      const thead = h("thead", {},
+        h("tr", { style: "position: sticky; top: 0; background: var(--panel, #1e293b); border-bottom: 1px solid var(--border, #334155); z-index: 1;" },
+          h("th", { scope: "col", style: "width: 42px; text-align: right; padding: 4px 6px; color: var(--muted);" }, "L"),
+          h("th", { scope: "col", style: "width: 42px; text-align: right; padding: 4px 6px; color: var(--muted);" }, "R"),
+          h("th", { scope: "col", style: "width: 18px; text-align: center; padding: 4px;" }, "±"),
+          h("th", { scope: "col", style: "text-align: left; padding: 4px 8px; color: var(--muted);" }, `${r.left.name} ↔ ${r.right.name}`),
+        ),
+      );
       const tbody = h("tbody", {});
       for (const row of filtered) {
         const bg = row.type === "add" ? "rgba(34, 197, 94, 0.14)" : row.type === "del" ? "rgba(239, 68, 68, 0.14)" : "transparent";
         const prefix = row.type === "add" ? "+" : row.type === "del" ? "-" : " ";
+        const signColor = row.type === "add" ? "var(--good, #16a34a)" : row.type === "del" ? "var(--danger, #dc2626)" : "inherit";
         tbody.append(
           h("tr", { class: `diff-row diff-${row.type}`, style: `background: ${bg};` },
-            h("td", { style: "width: 42px; text-align: right; padding: 2px 6px; opacity: 0.55; user-select: none; border-right: 1px solid rgba(148,163,184,0.2);" }, String(row.leftLine ?? "")),
-            h("td", { style: "width: 42px; text-align: right; padding: 2px 6px; opacity: 0.55; user-select: none; border-right: 1px solid rgba(148,163,184,0.2);" }, String(row.rightLine ?? "")),
-            h("td", { style: "width: 18px; text-align: center; padding: 2px 4px; font-weight: 700; user-select: none;" }, prefix),
+            h("td", { style: "width: 42px; text-align: right; padding: 2px 6px; opacity: 0.65; user-select: none; border-right: 1px solid rgba(148,163,184,0.2);" }, String(row.leftLine ?? "")),
+            h("td", { style: "width: 42px; text-align: right; padding: 2px 6px; opacity: 0.65; user-select: none; border-right: 1px solid rgba(148,163,184,0.2);" }, String(row.rightLine ?? "")),
+            h("td", { style: `width: 18px; text-align: center; padding: 2px 4px; font-weight: 700; user-select: none; color: ${signColor};` }, prefix),
             h("td", { style: "padding: 2px 8px; white-space: pre-wrap; word-break: break-word;" }, row.text || " "),
           ),
         );
       }
-      diffHost.append(h("table", { style: "width: 100%; border-collapse: collapse;" }, tbody));
+      diffHost.append(h("table", { style: "width: 100%; border-collapse: collapse;" }, thead, tbody));
     } else {
-      const splitRows = buildSplitRows(filtered);
+      // Build split rows from unfiltered r.rows FIRST so deletions and additions stay paired within their own hunks!
+      const allSplitRows = buildSplitRows(r.rows);
+      const splitRows = changesOnly ? allSplitRows.filter((sr) => sr.leftType !== "same" || sr.rightType !== "same") : allSplitRows;
+      const thead = h("thead", {},
+        h("tr", { style: "position: sticky; top: 0; background: var(--panel, #1e293b); border-bottom: 1px solid var(--border, #334155); z-index: 1;" },
+          h("th", { scope: "col", style: "width: 38px; text-align: right; padding: 4px 6px; color: var(--muted);" }, "L"),
+          h("th", { scope: "col", style: "width: 45%; text-align: left; padding: 4px 8px; color: var(--muted);" }, `Left: ${r.left.name}`),
+          h("th", { scope: "col", style: "width: 38px; text-align: right; padding: 4px 6px; color: var(--muted);" }, "R"),
+          h("th", { scope: "col", style: "width: 45%; text-align: left; padding: 4px 8px; color: var(--muted);" }, `Right: ${r.right.name}`),
+        ),
+      );
       const tbody = h("tbody", {});
       for (const sr of splitRows) {
-        const bgL = sr.leftType === "del" ? "rgba(239, 68, 68, 0.14)" : sr.leftType === "empty" ? "rgba(148, 163, 184, 0.06)" : "transparent";
-        const bgR = sr.rightType === "add" ? "rgba(34, 197, 94, 0.14)" : sr.rightType === "empty" ? "rgba(148, 163, 184, 0.06)" : "transparent";
+        const bgL = sr.leftType === "del" ? "rgba(239, 68, 68, 0.14)" : sr.leftType === "empty" ? "rgba(148, 163, 184, 0.1)" : "transparent";
+        const bgR = sr.rightType === "add" ? "rgba(34, 197, 94, 0.14)" : sr.rightType === "empty" ? "rgba(148, 163, 184, 0.1)" : "transparent";
         tbody.append(
           h("tr", { class: "diff-split-row" },
-            h("td", { style: `width: 38px; text-align: right; padding: 2px 6px; opacity: 0.55; user-select: none; background: ${bgL}; border-right: 1px solid rgba(148,163,184,0.2);` }, String(sr.leftLine ?? "")),
+            h("td", { style: `width: 38px; text-align: right; padding: 2px 6px; opacity: 0.65; user-select: none; background: ${bgL}; border-right: 1px solid rgba(148,163,184,0.2);` }, String(sr.leftLine ?? "")),
             h("td", { style: `width: 45%; padding: 2px 8px; white-space: pre-wrap; word-break: break-word; background: ${bgL}; border-right: 1px solid rgba(148,163,184,0.3);` }, sr.leftText || " "),
-            h("td", { style: `width: 38px; text-align: right; padding: 2px 6px; opacity: 0.55; user-select: none; background: ${bgR}; border-right: 1px solid rgba(148,163,184,0.2);` }, String(sr.rightLine ?? "")),
+            h("td", { style: `width: 38px; text-align: right; padding: 2px 6px; opacity: 0.65; user-select: none; background: ${bgR}; border-right: 1px solid rgba(148,163,184,0.2);` }, String(sr.rightLine ?? "")),
             h("td", { style: `width: 45%; padding: 2px 8px; white-space: pre-wrap; word-break: break-word; background: ${bgR};` }, sr.rightText || " "),
           ),
         );
       }
-      diffHost.append(h("table", { style: "width: 100%; border-collapse: collapse; table-layout: fixed;" }, tbody));
+      diffHost.append(h("table", { style: "width: 100%; border-collapse: collapse; table-layout: fixed;" }, thead, tbody));
     }
   }
 
   const unifiedBtn = h("button", {
     type: "button",
     class: "btn primary",
+    "aria-pressed": "true",
     dataset: { diffMode: "unified" },
     onclick: () => {
       viewMode = "unified";
       unifiedBtn.classList.add("primary");
+      unifiedBtn.setAttribute("aria-pressed", "true");
       splitBtn.classList.remove("primary");
+      splitBtn.setAttribute("aria-pressed", "false");
       renderDiffTable();
     },
   }, "Unified view");
   const splitBtn = h("button", {
     type: "button",
     class: "btn",
+    "aria-pressed": "false",
     dataset: { diffMode: "split" },
     onclick: () => {
       viewMode = "split";
       splitBtn.classList.add("primary");
+      splitBtn.setAttribute("aria-pressed", "true");
       unifiedBtn.classList.remove("primary");
+      unifiedBtn.setAttribute("aria-pressed", "false");
       renderDiffTable();
     },
   }, "Side-by-side split");

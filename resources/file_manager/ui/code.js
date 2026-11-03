@@ -869,7 +869,25 @@ function mount(root) {
       previewExtra.append(h("button", { type: "button", class: "btn code-small", disabled: !d.path, title: "Open this file in your web browser. Save first to see your latest changes.", onclick: () => (isDirty(d) ? toast("Save the file first so the browser shows your latest changes.") : call("open", { path: d.path }).catch((e) => toast(e.message, { kind: "error" }))) }, "Open in browser"));
     } else {
       previewTitle.textContent = "Live Inspector";
-      renderCodeInspectorPreview(previewBody, d, { onGoLine: (l, c) => ed()?.goTo(l, c), onOpenDiff: () => commands.run("diffSaved") });
+      renderCodeInspectorPreview(previewBody, d, {
+        onGoLine: (l, c) => ed()?.goTo(l, c),
+        onOpenDiff: () => commands.run("diffSaved"),
+        onDiscardHunk: (nextText, hunk) => {
+          const e = ed();
+          if (!e || d.readOnly) return;
+          docs.snapshot(d, `Before Discard Hunk #${hunk.number}`);
+          const sel = e.getSelection ? e.getSelection() : { start: 0, end: 0 };
+          const clamped = Math.max(0, Math.min(sel.start ?? 0, nextText.length));
+          e.apply({
+            from: 0,
+            to: e.getText().length,
+            insert: nextText,
+            selStart: clamped,
+            selEnd: clamped,
+          });
+          toast(`Discarded Hunk #${hunk.number} in ${d.name} (History snapshot saved).`, { kind: "success" });
+        },
+      });
     }
   }
 

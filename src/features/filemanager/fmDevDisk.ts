@@ -245,11 +245,16 @@ async function fullHash(abs: string, signal: { cancelled: boolean }): Promise<st
     const hash = createHash("sha256");
     const buf = Buffer.alloc(1024 * 1024);
     let pos = 0;
+    let lastYield = Date.now();
     while (!signal.cancelled) {
       const { bytesRead } = await h.read(buf, 0, buf.length, pos);
-      if (bytesRead === 0) break;
+      if (signal.cancelled || bytesRead === 0) break;
       hash.update(buf.subarray(0, bytesRead));
       pos += bytesRead;
+      if (Date.now() - lastYield >= 12) {
+        await tick();
+        lastYield = Date.now();
+      }
     }
     return signal.cancelled ? null : hash.digest("hex");
   } catch {
@@ -289,6 +294,7 @@ export async function runDupes(job: DevJob, o: { minBytes: number; vendored: boo
     }
     const byQuick = new Map<string, string[]>();
     for (const rel of list) {
+      if (job.cancelled) break outer;
       const q = await quickHash(nodePath.join(job.root, rel), size);
       if (q) byQuick.set(q, [...(byQuick.get(q) ?? []), rel]);
     }
@@ -296,11 +302,13 @@ export async function runDupes(job: DevJob, o: { minBytes: number; vendored: boo
       if (same.length < 2) continue;
       const byFull = new Map<string, string[]>();
       for (const rel of same) {
+        if (job.cancelled) break outer;
         if (hashedBytes + size > DUPE_MAX_HASH_BYTES) {
           stoppedBy = "bytes";
           break outer;
         }
         const f = await fullHash(nodePath.join(job.root, rel), job);
+        if (job.cancelled) break outer;
         hashedBytes += size;
         if (f) byFull.set(f, [...(byFull.get(f) ?? []), rel]);
         if (Date.now() > deadline) {

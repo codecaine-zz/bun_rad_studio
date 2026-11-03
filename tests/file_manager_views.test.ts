@@ -2233,11 +2233,39 @@ describe("the review dialog, Compare, Projects and duplicate cleanup", () => {
     buttonNamed("Verify them now").click();
     await waitFor(() => /identical/i.test(doc.querySelector(".compare-chips")!.textContent ?? "") && doc.querySelectorAll(".compare-table tbody tr").length === 4 && !doc.querySelector(".compare-table")!.textContent!.includes("not verified") && doc.querySelector(".compare-note")!.hasAttribute("hidden"));
     expect(doc.querySelector(".compare-note")!.hasAttribute("hidden")).toBe(true);
+    expect((buttonNamed("Compare") as any).disabled).toBe(false);
+    expect((doc.querySelector(".compare-progress") as any).hidden).toBe(true);
     const chip: any = [...doc.querySelectorAll(".compare-chip")].find((c: any) => c.textContent.startsWith("Different"));
     chip.click();
     await waitFor(() => doc.querySelectorAll(".compare-table tbody tr").length === 1);
     expect(doc.querySelector(".compare-table tbody tr")!.children[1].textContent).toBe("diff.txt");
     expect((doc.querySelector(".compare-chip.g-different") as any).getAttribute("aria-pressed")).toBe("true");
+  });
+
+  test("Compare: pressing the Cancel button during a large compare stops it and resets the buttons and progress bar", async () => {
+    const bigL = join(lab, "cmp-big-left");
+    const bigR = join(lab, "cmp-big-right");
+    const chunk = "z".repeat(3_000_000);
+    for (let i = 0; i < 30; i++) {
+      put(join(bigL, `big_${i}.bin`), chunk);
+      put(join(bigR, `big_${i}.bin`), chunk);
+    }
+    setValue(doc.querySelector("#compare-left"), bigL);
+    setValue(doc.querySelector("#compare-right"), bigR);
+    const modeSel = doc.querySelector('.compare-pane select[aria-label="How carefully to compare"]') as any;
+    modeSel.value = "verified";
+    const cmpBtn = buttonNamed("Compare") as any;
+    expect(cmpBtn.disabled).toBe(false);
+    cmpBtn.click();
+    await waitFor(() => {
+      const cancelBtn = [...doc.querySelectorAll(".compare-pane button")].find((b: any) => b.textContent.trim() === "Cancel") as any;
+      return cancelBtn && !cancelBtn.hidden;
+    });
+    const cancelBtn = [...doc.querySelectorAll(".compare-pane button")].find((b: any) => b.textContent.trim() === "Cancel") as any;
+    cancelBtn.click();
+    await waitFor(() => !cmpBtn.disabled && cancelBtn.hidden);
+    expect((doc.querySelector(".compare-progress") as any).hidden).toBe(true);
+    expect(doc.querySelector(".compare-pane .dev-status")!.textContent).toMatch(/Cancelled part-way|cannot be compared/);
   });
 
   test("Projects: save the layout, the secret check refuses a password in a command, open and delete", async () => {

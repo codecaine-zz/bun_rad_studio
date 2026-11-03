@@ -11,8 +11,9 @@ import { saveSettings, visibleEntries } from "./nav.js";
 import { octalOf, symbolicOf } from "./permsModel.js";
 import { copyPathOf } from "./ops.js";
 import { openPower } from "./power.js";
+import { inTrash } from "./pane.js";
 import { selectedEntries } from "./selection.js";
-import { emit, inTrash, on, state } from "./state.js";
+import { emit, on, state } from "./state.js";
 import { quickMediaBlock } from "./mediaQuick.js";
 import { renderRichInfoSummary } from "./quicklookFormat.js";
 import { editNoteDialog, noteForPath, setNoteForPath } from "./tags.js";
@@ -253,7 +254,7 @@ export async function renderInfo() {
     }, iconForEntry(e)),
     h("h2", { class: "info-name" }, e.name),
     h("dl", { class: "info-facts" },
-      ...fact("Type", e.label), ...fact("Size", e.isDir && !isDocumentPackageEntry(e) ? "" : formatSize(e.size)), ...fact(inTrash() ? "Deleted" : "Modified", formatDate(e.mtimeMs)),
+      ...fact("Type", e.label), ...fact("Size", e.isDir && !isDocumentPackageEntry(e) && !e.folderSizeCalculated ? "" : formatSize(e.size)), ...fact(inTrash() ? "Deleted" : "Modified", formatDate(e.mtimeMs)),
       ...fact("Permissions", !inTrash() && typeof e.mode === "number" ? `${symbolicOf(e.mode)} (${octalOf(e.mode)})` : ""),
       ...fact(inTrash() ? "Was in" : "Where", inTrash() ? e.where : state.search ? e.folder : baseName(state.location.path, state.sep))),
     quickActionsStrip([e]),

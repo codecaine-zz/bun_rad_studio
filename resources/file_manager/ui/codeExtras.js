@@ -1048,10 +1048,10 @@ export function inspectTokenAtCaret(text, start, end) {
 
 /**
  * Computes a unified diff between `oldText` and `newText` with `context` surrounding lines.
- * Returns { diff, added, removed, identical, hunks }.
+ * Returns { diff, added, removed, identical, hunks, ops }.
  */
 export function computeLineDiff(oldText, newText, { oldLabel = "Saved", newLabel = "Current", context = 3 } = {}) {
-  if (oldText === newText) return { diff: "", added: 0, removed: 0, identical: true, hunks: [] };
+  if (oldText === newText) return { diff: "", added: 0, removed: 0, identical: true, hunks: [], ops: [] };
   const a = String(oldText).split("\n");
   const b = String(newText).split("\n");
 
@@ -1128,19 +1128,409 @@ export function computeLineDiff(oldText, newText, { oldLabel = "Saved", newLabel
 
   const outLines = [`--- ${oldLabel}`, `+++ ${newLabel}`];
   const hunks = [];
-  for (const r of ranges) {
+  ranges.forEach((r, idx) => {
     const slice = ops.slice(r.lo, r.hi + 1);
     const firstOld = slice.find((x) => x.oldLine !== null)?.oldLine ?? 1;
     const firstNew = slice.find((x) => x.newLine !== null)?.newLine ?? 1;
     const oldCount = slice.filter((x) => x.type !== "+").length;
     const newCount = slice.filter((x) => x.type !== "-").length;
+    const hunkAdded = slice.filter((x) => x.type === "+").length;
+    const hunkRemoved = slice.filter((x) => x.type === "-").length;
     const header = `@@ -${firstOld},${oldCount} +${firstNew},${newCount} @@`;
     outLines.push(header);
     for (const s of slice) outLines.push(`${s.type}${s.line}`);
-    hunks.push({ header, newStart: firstNew, lines: slice });
+    hunks.push({
+      id: idx,
+      number: idx + 1,
+      header,
+      oldStart: firstOld,
+      oldCount,
+      newStart: firstNew,
+      newCount,
+      added: hunkAdded,
+      removed: hunkRemoved,
+      lines: slice,
+    });
+  });
+
+  return { diff: outLines.join("\n") + "\n", added, removed, identical: false, hunks, ops };
+}
+
+/**
+ * Computes granular, independently selectable diff hunks between `oldText` and `newText`.
+ * Unlike standard unified diff (which merges changes within `2 * context` lines), `mergeGap = 0`
+ * keeps distinct edit blocks separated by even 1 unchanged line as independent hunks so a useful
+ * refactor and an unrelated change in the same function can be accepted or rejected separately.
+ */
+export function computeDiffHunks(
+  oldText,
+  newText,
+  { oldLabel = "Current", newLabel = "Proposed", context = 2, mergeGap = 0 } = {},
+) {
+  const rawOld = String(oldText ?? "").replace(/\r\n/g, "\n");
+  const rawNew = String(newText ?? "").replace(/\r\n/g, "\n");
+  const preserveTrailingNewline = rawOld.endsWith("\n") && !rawNew.endsWith("\n") && rawNew.length > 0;
+  const normOld = rawOld;
+  const normNew = preserveTrailingNewline ? `${rawNew}\n` : rawNew;
+  if (normOld === normNew) {
+    return { diff: "", added: 0, removed: 0, identical: true, hunks: [], ops: [] };
+  }
+  const base = computeLineDiff(normOld, normNew, { oldLabel, newLabel, context });
+  const ops = base.ops || [];
+  if (!ops.length) {
+    return { diff: "", added: 0, removed: 0, identical: true, hunks: [], ops: [] };
   }
 
-  return { diff: outLines.join("\n") + "\n", added, removed, identical: false, hunks };
+  // Group changed ops (- / +) into discrete change blocks separated by > mergeGap unchanged lines
+  // (also merging across a single blank unchanged line so blank lines inside a replaced block don't split syntax)
+  const changeBlocks = [];
+  for (let idx = 0; idx < ops.length; idx++) {
+    if (ops[idx].type === " ") continue;
+    const prev = changeBlocks[changeBlocks.length - 1];
+    if (prev) {
+      const gap = idx - prev.changeHi - 1;
+      const singleBlankBridge =
+        gap === 1 && ops[prev.changeHi + 1].type === " " && ops[prev.changeHi + 1].line.trim() === "";
+      if (gap <= mergeGap || singleBlankBridge) {
+        prev.changeHi = idx;
+        continue;
+      }
+    }
+    changeBlocks.push({ changeLo: idx, changeHi: idx });
+  }
+
+  const outLines = [`--- ${oldLabel}`, `+++ ${newLabel}`];
+  const hunks = [];
+
+  for (let k = 0; k < changeBlocks.length; k++) {
+    const block = changeBlocks[k];
+    const minCtxLo = k > 0 ? changeBlocks[k - 1].changeHi + 1 : 0;
+    const maxCtxHi = k + 1 < changeBlocks.length ? changeBlocks[k + 1].changeLo - 1 : ops.length - 1;
+    const ctxLo = Math.max(minCtxLo, block.changeLo - context);
+    const ctxHi = Math.min(maxCtxHi, block.changeHi + context);
+    const slice = ops.slice(ctxLo, ctxHi + 1);
+    const changeSlice = ops.slice(block.changeLo, block.changeHi + 1);
+
+    let fallbackOld = 1;
+    let fallbackNew = 1;
+    for (let p = ctxLo - 1; p >= 0; p--) {
+      if (fallbackOld === 1 && ops[p].oldLine !== null) fallbackOld = ops[p].oldLine + 1;
+      if (fallbackNew === 1 && ops[p].newLine !== null) fallbackNew = ops[p].newLine + 1;
+      if (fallbackOld !== 1 && fallbackNew !== 1) break;
+    }
+
+    const firstOld = slice.find((x) => x.oldLine !== null)?.oldLine ?? fallbackOld;
+    const firstNew = slice.find((x) => x.newLine !== null)?.newLine ?? fallbackNew;
+    const changeOldStart = changeSlice.find((x) => x.oldLine !== null)?.oldLine ?? firstOld;
+    const changeNewStart = changeSlice.find((x) => x.newLine !== null)?.newLine ?? firstNew;
+    const oldCount = slice.filter((x) => x.type !== "+").length;
+    const newCount = slice.filter((x) => x.type !== "-").length;
+    const hunkAdded = changeSlice.filter((x) => x.type === "+").length;
+    const hunkRemoved = changeSlice.filter((x) => x.type === "-").length;
+    const header = `@@ -${firstOld},${oldCount} +${firstNew},${newCount} @@`;
+    const previewLine =
+      changeSlice.find((x) => x.type === "+" && x.line.trim().length > 0)?.line.trim() ||
+      changeSlice.find((x) => x.line.trim().length > 0)?.line.trim() ||
+      "";
+    const kind = hunkAdded > 0 && hunkRemoved > 0 ? "modify" : hunkAdded > 0 ? "add" : "delete";
+
+    outLines.push(header);
+    for (const s of slice) outLines.push(`${s.type}${s.line}`);
+
+    hunks.push({
+      id: k,
+      number: k + 1,
+      kind,
+      header,
+      oldStart: firstOld,
+      oldCount,
+      newStart: firstNew,
+      newCount,
+      changeOldStart,
+      changeNewStart,
+      added: hunkAdded,
+      removed: hunkRemoved,
+      changeLo: block.changeLo,
+      changeHi: block.changeHi,
+      ctxLo,
+      ctxHi,
+      preview: previewLine.slice(0, 72),
+      lines: slice,
+    });
+  }
+
+  return {
+    diff: outLines.join("\n") + "\n",
+    added: base.added,
+    removed: base.removed,
+    identical: false,
+    hunks,
+    ops,
+  };
+}
+
+/**
+ * Reconstructs the text resulting from applying ONLY `selectedHunkIds` (an Array, Set, or single number of 0-based hunk IDs)
+ * from the diff between `oldText` and `newText`, keeping unselected hunks untouched from `oldText`.
+ */
+export function applySelectedDiffHunks(oldText, newText, selectedHunkIds, options = {}) {
+  const rawOld = String(oldText ?? "").replace(/\r\n/g, "\n");
+  const rawNew = String(newText ?? "").replace(/\r\n/g, "\n");
+  const preserveTrailingNewline = rawOld.endsWith("\n") && !rawNew.endsWith("\n") && rawNew.length > 0;
+  const normOld = rawOld;
+  const normNew = preserveTrailingNewline ? `${rawNew}\n` : rawNew;
+  const diffRes = computeDiffHunks(normOld, normNew, options);
+  if (diffRes.identical || diffRes.hunks.length === 0) {
+    return {
+      text: normOld,
+      appliedCount: 0,
+      appliedHunkIds: [],
+      totalHunks: 0,
+      added: 0,
+      removed: 0,
+      hunks: [],
+    };
+  }
+
+  const selectedSet = new Set(
+    typeof selectedHunkIds === "number"
+      ? [selectedHunkIds]
+      : selectedHunkIds && typeof selectedHunkIds[Symbol.iterator] === "function"
+        ? Array.from(selectedHunkIds, (id) => Number(id))
+        : [],
+  );
+
+  const opOwner = new Int32Array(diffRes.ops.length).fill(-1);
+  for (const hunk of diffRes.hunks) {
+    for (let idx = hunk.changeLo; idx <= hunk.changeHi; idx++) {
+      opOwner[idx] = hunk.id;
+    }
+  }
+
+  const outLines = [];
+  let appliedAdded = 0;
+  let appliedRemoved = 0;
+
+  for (let idx = 0; idx < diffRes.ops.length; idx++) {
+    const op = diffRes.ops[idx];
+    if (op.type === " ") {
+      outLines.push(op.line);
+      continue;
+    }
+    const owner = opOwner[idx];
+    const accepted = owner >= 0 && selectedSet.has(owner);
+    if (accepted) {
+      if (op.type === "+") {
+        outLines.push(op.line);
+        appliedAdded++;
+      } else if (op.type === "-") {
+        appliedRemoved++;
+      }
+    } else if (op.type === "-") {
+      outLines.push(op.line);
+    }
+  }
+
+  const appliedHunkIds = diffRes.hunks.filter((h) => selectedSet.has(h.id)).map((h) => h.id);
+  return {
+    text: outLines.join("\n"),
+    appliedCount: appliedHunkIds.length,
+    appliedHunkIds,
+    totalHunks: diffRes.hunks.length,
+    added: appliedAdded,
+    removed: appliedRemoved,
+    hunks: diffRes.hunks,
+  };
+}
+
+function countLineBracesOutsideStrings(line) {
+  let delta = 0;
+  let sawOpen = false;
+  let inQuote = "";
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    const next = line[i + 1];
+    if (inQuote) {
+      if (ch === "\\") {
+        i++;
+      } else if (ch === inQuote) {
+        inQuote = "";
+      }
+      continue;
+    }
+    if (ch === "/" && next === "/") break;
+    if (ch === "'" || ch === '"' || ch === "`") {
+      inQuote = ch;
+      continue;
+    }
+    if (ch === "{") {
+      delta++;
+      sawOpen = true;
+    } else if (ch === "}") {
+      delta--;
+    }
+  }
+  return { delta, sawOpen };
+}
+
+/**
+ * Resolves the target range in `fileText` for a proposed AI code block:
+ * - If `selectionInfo?.hasSelection`, targets the active selection.
+ * - Else if `proposedCode` matches a specific function/class/sub-block inside a larger `fileText`, targets that sub-block.
+ * - Else if `proposedCode` is a short partial snippet in a large file that does not match the file's structure, returns `mode: "snippet"` so it isn't diffed as a destructive whole-file wipe.
+ * - Otherwise targets the full `fileText`.
+ */
+export function locateTargetRangeInFile(fileText, proposedCode, selectionInfo = null) {
+  const rawFile = String(fileText ?? "");
+  const normFile = rawFile.replace(/\r\n/g, "\n");
+  const normProp = String(proposedCode ?? "").replace(/\r\n/g, "\n").replace(/^\n+/, "").replace(/\n+$/, "");
+
+  if (selectionInfo?.hasSelection && selectionInfo.end > selectionInfo.start) {
+    return {
+      mode: "selection",
+      baseText: String(selectionInfo.text ?? "").replace(/\r\n/g, "\n"),
+      from: selectionInfo.start,
+      to: selectionInfo.end,
+      startLine: selectionInfo.startLine || 1,
+      endLine: selectionInfo.endLine || 1,
+    };
+  }
+
+  const fileLines = normFile.split("\n");
+  const propLines = normProp.split("\n");
+
+  if (rawFile.trim() && propLines.length >= 2 && fileLines.length >= propLines.length + 1) {
+    // Skip leading comment/JSDoc lines in propLines to locate the primary declaration or anchor line
+    let firstCodeIdx = 0;
+    let inBlockComment = false;
+    for (let i = 0; i < propLines.length; i++) {
+      const t = propLines[i].trim();
+      if (!t) continue;
+      if (inBlockComment) {
+        if (t.includes("*/")) inBlockComment = false;
+        continue;
+      }
+      if (t.startsWith("//")) continue;
+      if (t.startsWith("/*")) {
+        if (!t.includes("*/")) inBlockComment = true;
+        continue;
+      }
+      firstCodeIdx = i;
+      break;
+    }
+    const firstNonEmpty = propLines[firstCodeIdx]?.trim() || propLines.find((l) => l.trim().length > 0)?.trim() || "";
+    const lastNonEmpty = [...propLines].reverse().find((l) => l.trim().length > 0)?.trim() || "";
+    const declRe = /^(?:export\s+)?(?:default\s+)?(?:async\s+)?(?:function\*?|class|const|let|var|interface|type|enum|def|fn|pub\s+fn|func)\s+([A-Za-z_$][\w$]*)/;
+    const methodRe = /^(?:(?:public|private|protected|static|async|get|set)\s+)*([A-Za-z_$][\w$]*)\s*\([^;]*\)\s*(?::\s*[^{]+)?\{/;
+    const propDeclMatch = declRe.exec(firstNonEmpty) || methodRe.exec(firstNonEmpty);
+
+    const candidates = [];
+    for (let i = 0; i < fileLines.length; i++) {
+      const fl = fileLines[i].trim();
+      if (!fl) continue;
+      if (firstNonEmpty.length >= 4 && fl === firstNonEmpty) {
+        candidates.push(i);
+      } else if (propDeclMatch) {
+        const fm = declRe.exec(fl) || methodRe.exec(fl);
+        if (fm && fm[1] === propDeclMatch[1]) candidates.push(i);
+      }
+    }
+
+    if (candidates.length >= 1) {
+      const caretLine = selectionInfo?.startLine || 1;
+      candidates.sort((a, b) => Math.abs(a + 1 - caretLine) - Math.abs(b + 1 - caretLine));
+      let sIdx = candidates[0];
+      let eIdx = -1;
+
+      // Strategy A: Brace depth matching for brace-delimited blocks
+      const opensBraceNearStart = fileLines.slice(sIdx, Math.min(fileLines.length, sIdx + 3)).some((l) => l.includes("{"));
+      if (opensBraceNearStart && lastNonEmpty.endsWith("}")) {
+        let depth = 0;
+        let sawOpen = false;
+        for (let i = sIdx; i < fileLines.length; i++) {
+          const { delta, sawOpen: lineOpened } = countLineBracesOutsideStrings(fileLines[i]);
+          if (lineOpened) sawOpen = true;
+          depth += delta;
+          if (sawOpen && depth <= 0) {
+            eIdx = i;
+            break;
+          }
+        }
+      }
+
+      // Strategy B: Matching closing line within a reasonable window
+      if (eIdx < 0 && lastNonEmpty.length >= 1) {
+        const maxScan = Math.min(fileLines.length - 1, sIdx + Math.max(propLines.length * 2, propLines.length + 12));
+        for (let i = sIdx + 1; i <= maxScan; i++) {
+          if (fileLines[i].trim() === lastNonEmpty) {
+            eIdx = i;
+            break;
+          }
+        }
+      }
+
+      // Include matching leading comment lines if propLines had leading comments
+      if (firstCodeIdx > 0 && sIdx > 0) {
+        while (sIdx > 0) {
+          const prevTrim = fileLines[sIdx - 1].trim();
+          if (prevTrim.startsWith("//") || prevTrim.startsWith("/*") || prevTrim.startsWith("*") || prevTrim.endsWith("*/")) {
+            sIdx--;
+          } else {
+            break;
+          }
+        }
+      }
+
+      if (eIdx > sIdx && (sIdx > 0 || eIdx < fileLines.length - 1)) {
+        const rawLines = rawFile.split("\n");
+        let from = 0;
+        for (let i = 0; i < sIdx; i++) from += rawLines[i].length + 1;
+        let to = from;
+        for (let i = sIdx; i <= eIdx; i++) {
+          to += rawLines[i].length + (i < eIdx ? 1 : 0);
+        }
+        return {
+          mode: "subblock",
+          baseText: fileLines.slice(sIdx, eIdx + 1).join("\n"),
+          from,
+          to,
+          startLine: sIdx + 1,
+          endLine: eIdx + 1,
+        };
+      }
+    }
+
+    // If no subblock matched and the proposed snippet is much shorter than the file without sharing top/bottom lines,
+    // treat it as a standalone snippet to insert at cursor rather than wiping the whole file.
+    const firstFileLine = fileLines.find((l) => l.trim().length > 0)?.trim() || "";
+    const lastFileLine = [...fileLines].reverse().find((l) => l.trim().length > 0)?.trim() || "";
+    if (
+      fileLines.length >= 12 &&
+      propLines.length < fileLines.length * 0.5 &&
+      firstNonEmpty !== firstFileLine &&
+      lastNonEmpty !== lastFileLine
+    ) {
+      const caretOffset = selectionInfo?.start ?? 0;
+      const caretLine = selectionInfo?.startLine || 1;
+      return {
+        mode: "snippet",
+        baseText: "",
+        from: caretOffset,
+        to: caretOffset,
+        startLine: caretLine,
+        endLine: caretLine,
+      };
+    }
+  }
+
+  return {
+    mode: "file",
+    baseText: normFile,
+    from: 0,
+    to: rawFile.length,
+    startLine: 1,
+    endLine: fileLines.length,
+  };
 }
 
 /**

@@ -20,18 +20,32 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 export function runJob(startOp, body, onProgress) {
   let id = null;
   let cancelNow = false;
+  let wake = null;
+  const waitPoll = (ms) =>
+    new Promise((r) => {
+      const timer = setTimeout(() => {
+        wake = null;
+        r();
+      }, ms);
+      wake = () => {
+        clearTimeout(timer);
+        wake = null;
+        r();
+      };
+    });
+  const sendCancel = () => (id ? call("dev/job/cancel", { id }).catch(() => {}) : Promise.resolve());
   const promise = (async () => {
     const started = await call(startOp, body);
     id = started.id;
-    if (cancelNow) await call("dev/job/cancel", { id }).catch(() => {});
+    if (cancelNow) await sendCancel();
     let since = 0;
     for (;;) {
       const p = await call("dev/job/poll", { id, since });
       since = p.seq;
       if (p.state === "failed") throw new ApiError(p.error?.message ?? "The scan failed.", p.error?.code ?? "FAILED", 400);
       if (p.state !== "running") return { id, state: p.state, result: p.result, elapsedMs: p.elapsedMs };
-      if (!p.unchanged) onProgress?.(p.progress ?? {}, p.elapsedMs);
-      await sleep(pollMs);
+      if (!p.unchanged && !cancelNow) onProgress?.(p.progress ?? {}, p.elapsedMs);
+      await waitPoll(cancelNow ? Math.min(pollMs, 25) : pollMs);
     }
   })();
   return {
@@ -39,9 +53,15 @@ export function runJob(startOp, body, onProgress) {
     get id() {
       return id;
     },
+    get cancelled() {
+      return cancelNow;
+    },
     cancel() {
       cancelNow = true;
-      return id ? call("dev/job/cancel", { id }).catch(() => {}) : Promise.resolve();
+      const req = sendCancel();
+      req.finally(() => wake?.());
+      wake?.();
+      return req;
     },
   };
 }

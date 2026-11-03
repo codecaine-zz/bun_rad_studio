@@ -102,12 +102,14 @@ export async function reviewPlan(request, { applyLabel = "" } = {}) {
     initialFocus: plan.canApply && !plan.needsApproval ? undefined : filterSelect,
   });
   const applyButton = [...dlg.el.querySelectorAll(".btn")].find((b) => b.classList.contains("primary"));
+  const cancelButton = [...dlg.el.querySelectorAll(".btn")].find((b) => !b.classList.contains("primary"));
 
   function sync() {
-    const count = live().length;
-    const ok = count > 0 && (!plan.needsApproval || approve.checked) && (!needsPermanent || permanent.checked);
+    const liveCount = live().length;
+    const totalCount = liveCount + (plan.itemsOmitted || 0);
+    const ok = liveCount > 0 && (!plan.needsApproval || approve.checked) && (!needsPermanent || permanent.checked);
     applyButton.disabled = !ok;
-    applyButton.textContent = (applyLabel || (danger ? "Approve and apply" : "Apply")) + (count ? ` (${plural(count, "item")})` : "");
+    applyButton.textContent = (applyLabel || (danger ? "Approve and apply" : "Apply")) + (liveCount ? ` (${plural(totalCount, "item")})` : "");
   }
   function draw() {
     const rows = shown();
@@ -121,11 +123,13 @@ export async function reviewPlan(request, { applyLabel = "" } = {}) {
     applyButton.addEventListener("click", async (e) => {
       e.stopImmediatePropagation();
       applyButton.disabled = true;
+      if (cancelButton) cancelButton.disabled = true;
       try {
         const res = await call("plan/apply", { id: plan.id, approved: plan.needsApproval ? approve.checked : undefined, confirmPermanent: needsPermanent ? permanent.checked : undefined, exclude: [...excluded] });
         dlg.close("applied");
         resolve(res);
       } catch (err) {
+        if (cancelButton) cancelButton.disabled = false;
         dlg.setError(err instanceof ApiError ? err.message : "That couldn't be started. Nothing was changed.");
         sync();
       }

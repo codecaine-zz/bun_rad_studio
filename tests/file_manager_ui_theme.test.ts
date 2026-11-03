@@ -226,5 +226,21 @@ describe("accessibility basics in the stylesheet", () => {
     expect(studioPolishTs).toContain(":user-invalid");
     expect(studioPolishTs).toContain("text-wrap: balance");
     expect(studioPolishTs).toContain("text-wrap: pretty");
+
+    // 7. Code Editor AI Chat front-and-centre Diff & Per-Hunk Review before Apply
+    const codeAiChatJs = readFileSync(join(ui, "codeAiChat.js"), "utf8");
+    const codePreviewJs = readFileSync(join(ui, "codePreview.js"), "utf8");
+    const codeCss = readFileSync(join(ui, "code.css"), "utf8");
+    expect(codeAiChatJs).toContain("computeDiffHunks");
+    expect(codeAiChatJs).toContain("applySelectedDiffHunks");
+    expect(codeAiChatJs).toContain("locateTargetRangeInFile");
+    expect(codeAiChatJs).toContain('"data-ai-apply-selected-hunks"');
+    expect(codeAiChatJs).toContain('"data-ai-accept-hunk"');
+    expect(codeAiChatJs).toContain('"data-ai-hunk-check"');
+    expect(codeAiChatJs).toContain('"data-ai-view-mode"');
+    expect(codePreviewJs).toContain("onDiscardHunk");
+    expect(codeCss).toContain(".code-ai-diff-review");
+    expect(codeCss).toContain(".code-ai-hunk-card");
+    expect(codeCss).toContain(".code-ai-hunk-checkbox");
   });
 });

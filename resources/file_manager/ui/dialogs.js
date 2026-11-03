@@ -57,7 +57,7 @@ export function openDialog({ title, body, buttons = [{ label: "OK", primary: tru
   }
 
   function focusables() {
-    return [...dialog.querySelectorAll("button, input, select, textarea, [tabindex]:not([tabindex='-1'])")].filter((el) => !el.disabled && !el.hidden && el.offsetParent !== null);
+    return [...dialog.querySelectorAll("button, input, select, textarea, a[href], summary, [tabindex]:not([tabindex='-1'])")].filter((el) => !el.disabled && !el.hidden && !el.closest("[hidden]") && el.offsetParent !== null);
   }
 
   function onKey(e) {
@@ -92,7 +92,7 @@ export function openDialog({ title, body, buttons = [{ label: "OK", primary: tru
   }
   document.addEventListener("keydown", onKey, true);
   backdrop.addEventListener("mousedown", (e) => {
-    if (e.target === backdrop) close(null);
+    if (e.button === 0 && e.target === backdrop) close(null);
   });
   backdrop.addEventListener("wheel", (e) => {
     const dy = e.deltaY;

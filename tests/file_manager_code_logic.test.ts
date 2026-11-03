@@ -1145,4 +1145,98 @@ describe("built-in developer power tools (codeExtras)", () => {
     expect(d.diff).toContain("+B");
     expect(d.diff).toContain("+d");
   });
+
+  test("computeDiffHunks and applySelectedDiffHunks separate a useful refactor from an unrelated change in the same function", () => {
+    const original = [
+      "export function calculateCart(items) {",
+      "  let subtotal = 0;",
+      "  for (let i = 0; i < items.length; i++) {",
+      "    subtotal += items[i].price * items[i].qty;",
+      "  }",
+      "  const tax = subtotal * 0.0825;",
+      "  return { subtotal, tax, total: subtotal + tax };",
+      "}",
+    ].join("\n");
+
+    const aiProposed = [
+      "export function calculateCart(items) {",
+      "  const subtotal = items.reduce((sum, item) => sum + item.price * item.qty, 0);",
+      "  const tax = subtotal * 0.0825;",
+      "  console.log('DEBUG cart subtotal:', subtotal);",
+      "  return { subtotal, tax, total: subtotal + tax };",
+      "}",
+    ].join("\n");
+
+    const diff = L.computeDiffHunks(original, aiProposed);
+    expect(diff.identical).toBe(false);
+    // Hunk #1 is the reduce() refactor; Hunk #2 is the unrelated console.log addition
+    expect(diff.hunks.length).toBe(2);
+    expect(diff.hunks[0].removed).toBe(4);
+    expect(diff.hunks[0].added).toBe(1);
+    expect(diff.hunks[1].removed).toBe(0);
+    expect(diff.hunks[1].added).toBe(1);
+
+    // Accept ONLY Hunk #0 (useful refactor) and skip Hunk #1 (unrelated console.log)
+    const onlyRefactor = L.applySelectedDiffHunks(original, aiProposed, [0]);
+    expect(onlyRefactor.appliedCount).toBe(1);
+    expect(onlyRefactor.totalHunks).toBe(2);
+    expect(onlyRefactor.text).toBe(
+      [
+        "export function calculateCart(items) {",
+        "  const subtotal = items.reduce((sum, item) => sum + item.price * item.qty, 0);",
+        "  const tax = subtotal * 0.0825;",
+        "  return { subtotal, tax, total: subtotal + tax };",
+        "}",
+      ].join("\n"),
+    );
+
+    // Accept ONLY Hunk #1 and skip Hunk #0
+    const onlyDebug = L.applySelectedDiffHunks(original, aiProposed, [1]);
+    expect(onlyDebug.appliedCount).toBe(1);
+    expect(onlyDebug.text).toContain("for (let i = 0; i < items.length; i++)");
+    expect(onlyDebug.text).toContain("console.log('DEBUG cart subtotal:', subtotal);");
+
+    // Accept both hunks -> matches aiProposed
+    const both = L.applySelectedDiffHunks(original, aiProposed, [0, 1]);
+    expect(both.appliedCount).toBe(2);
+    expect(both.text).toBe(aiProposed);
+
+    // Accept 0 hunks -> preserves original
+    const none = L.applySelectedDiffHunks(original, aiProposed, []);
+    expect(none.appliedCount).toBe(0);
+    expect(none.text).toBe(original);
+  });
+
+  test("locateTargetRangeInFile automatically isolates a target function sub-block inside a larger file", () => {
+    const fullFile = [
+      "import { formatCurrency } from './money.js';",
+      "",
+      "export function calculateCart(items) {",
+      "  let subtotal = 0;",
+      "  for (let i = 0; i < items.length; i++) {",
+      "    subtotal += items[i].price * items[i].qty;",
+      "  }",
+      "  const tax = subtotal * 0.0825;",
+      "  return { subtotal, tax, total: subtotal + tax };",
+      "}",
+      "",
+      "export function clearCart() {",
+      "  return [];",
+      "}",
+    ].join("\n");
+
+    const proposedSnippet = [
+      "export function calculateCart(items) {",
+      "  const subtotal = items.reduce((sum, item) => sum + item.price * item.qty, 0);",
+      "  const tax = subtotal * 0.0825;",
+      "  return { subtotal, tax, total: subtotal + tax };",
+      "}",
+    ].join("\n");
+
+    const target = L.locateTargetRangeInFile(fullFile, proposedSnippet, { hasSelection: false, startLine: 1 });
+    expect(target.mode).toBe("subblock");
+    expect(target.startLine).toBe(3);
+    expect(target.endLine).toBe(10);
+    expect(fullFile.slice(target.from, target.to)).toBe(target.baseText);
+  });
 });

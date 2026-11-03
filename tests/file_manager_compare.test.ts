@@ -221,6 +221,24 @@ suite("symbolic links, unreadable folders, ignore rules, limits", () => {
     expect(entries.filter((e) => e.category === "identical" && e.verified).length + unfinished.length).toBe(40);
   });
 
+  test("cancelling during a large folder scan yields to the event loop and stops immediately", async () => {
+    const box = sandbox();
+    for (let d = 0; d < 12; d++) {
+      for (let f = 0; f < 80; f++) {
+        put(join(box.left, `dir_${d}`, `file_${f}.txt`), "a");
+        put(join(box.right, `dir_${d}`, `file_${f}.txt`), "b");
+      }
+    }
+    const { id } = await op<{ id: string }>("compare/start", box.ctx, { left: box.left, right: box.right, mode: "quick" });
+    const job = findDevJob(box.ctx, id, ["compare"]);
+    while (job.state === "running" && Number(job.progress.leftItems ?? 0) < 10) await new Promise((r) => setTimeout(r, 1));
+    job.cancelled = true;
+    await waitFor(job);
+    expect(job.state).toBe("cancelled");
+    const summary = job.result as CompareSummary;
+    expect(summary.cancelled).toBe(true);
+  });
+
   test("results can be filtered and paged", async () => {
     const box = sandbox();
     for (let i = 0; i < 5; i++) put(join(box.left, `file${i}.txt`), "x");

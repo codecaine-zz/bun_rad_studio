@@ -307,4 +307,4 @@ export async function eachItem<T, R>(items: T[], fn: (item: T) => Promise<R>, de
 }
 
 /** Yields to the event loop, so long scans don't freeze the server. */
-export const tick = () => new Promise<void>((resolve) => setImmediate(resolve));
+export const tick = () => new Promise<void>((resolve) => setTimeout(resolve, 0));

@@ -21,7 +21,12 @@ export function createDisk(env) {
   let seq = 0;
   let last = null;
   const run = btn("Scan disk usage", "Measure the folder: what is big, what can be rebuilt, what is empty. Nothing is changed.", () => start(), { primary: true });
-  const cancel = btn("Cancel", "Stop the scan.", () => job?.cancel());
+  const cancel = btn("Cancel", "Stop the scan.", () => {
+    if (!job) return;
+    cancel.disabled = true;
+    status.set("Stopping…");
+    job.cancel();
+  }, { danger: true });
   cancel.hidden = true;
   const dupes = createDupes(env);
 
@@ -64,8 +69,10 @@ export function createDisk(env) {
   async function start() {
     const root = env.getRoot();
     if (!root) return status.set("Choose a folder first.", true);
+    if (job) job.cancel();
     const mine = ++seq;
     run.disabled = true;
+    cancel.disabled = false;
     cancel.hidden = false;
     status.set("Measuring…");
     try {
@@ -82,6 +89,7 @@ export function createDisk(env) {
     } finally {
       if (mine === seq) {
         run.disabled = false;
+        cancel.disabled = false;
         cancel.hidden = true;
         job = null;
       }

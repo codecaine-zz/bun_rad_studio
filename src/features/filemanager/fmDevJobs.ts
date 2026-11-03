@@ -65,6 +65,11 @@ export function startDevJob(ctx: FmContext, kind: DevJobKind, root: string, run:
       job.state = job.cancelled ? "cancelled" : "done";
     },
     (err) => {
+      if (job.cancelled || (err instanceof FmError && err.code === "CANCELLED")) {
+        job.state = "cancelled";
+        job.error = null;
+        return;
+      }
       job.state = "failed";
       job.error = err instanceof FmError ? { code: err.code, message: err.message } : { code: "FAILED", message: String((err as Error)?.message ?? err).slice(0, 300) };
     },

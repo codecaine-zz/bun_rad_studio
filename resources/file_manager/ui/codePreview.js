@@ -5,7 +5,7 @@
 import { copyToClipboard, flashCopied } from "./copyclip.js";
 import { registerCopySource, scanCopySections } from "./copysection.js";
 import { h } from "./dom.js";
-import { computeLineDiff, extractSymbols, extractTodos, parseCsvTable, parseMarkdown, tokenizeText } from "./codeLogic.js";
+import { applySelectedDiffHunks, computeDiffHunks, computeLineDiff, extractSymbols, extractTodos, parseCsvTable, parseMarkdown, tokenizeText } from "./codeLogic.js";
 
 const PLAIN_TAGS = new Set(["h1", "h2", "h3", "h4", "h5", "h6", "p", "blockquote", "hr", "em", "strong", "del", "thead", "tbody", "tr", "ul", "ol", "li", "table"]);
 
@@ -977,8 +977,13 @@ export function renderCsvPreview(container, text) {
 }
 
 /** Live Inspector for code files: unsaved diff hunks, outline symbols, and TODO tasks. */
-export function renderCodeInspectorPreview(container, doc, { onGoLine, onOpenDiff } = {}) {
-  const diff = computeLineDiff(doc.savedText ?? "", doc.text ?? "", { oldLabel: `${doc.name} (saved)`, newLabel: `${doc.name} (current)` });
+export function renderCodeInspectorPreview(container, doc, { onGoLine, onOpenDiff, onDiscardHunk } = {}) {
+  const diff = computeDiffHunks(doc.savedText ?? "", doc.text ?? "", {
+    oldLabel: `${doc.name} (saved)`,
+    newLabel: `${doc.name} (current)`,
+    context: 2,
+    mergeGap: 0,
+  });
   const symbols = extractSymbols(doc.text, doc.lang);
   const todos = extractTodos(doc.text);
 
@@ -993,7 +998,22 @@ export function renderCodeInspectorPreview(container, doc, { onGoLine, onOpenDif
           h("p", { class: "code-hint" }, `+${diff.added} added · −${diff.removed} removed across ${diff.hunks.length} ${diff.hunks.length === 1 ? "hunk" : "hunks"}`),
           ...diff.hunks.slice(0, 12).map((hunk) =>
             h("div", { class: "code-pv-hunk" },
-              h("button", { type: "button", class: "code-res-line", title: `Jump to line ${hunk.newStart}`, onclick: () => onGoLine?.(hunk.newStart, 1) }, h("code", {}, hunk.header)),
+              h("div", { class: "code-pv-card-head" },
+                h("button", { type: "button", class: "code-res-line", title: `Jump to line ${hunk.changeNewStart || hunk.newStart}`, onclick: () => onGoLine?.(hunk.changeNewStart || hunk.newStart, 1) }, h("code", {}, `Hunk #${hunk.number} · ${hunk.header}`)),
+                onDiscardHunk && !doc.readOnly
+                  ? h("button", {
+                      type: "button",
+                      class: "code-btn code-small",
+                      "data-discard-hunk": String(hunk.id),
+                      title: `Discard only Hunk #${hunk.number} and keep your other unsaved edits`,
+                      onclick: () => {
+                        const keepIds = diff.hunks.filter((x) => x.id !== hunk.id).map((x) => x.id);
+                        const next = applySelectedDiffHunks(doc.savedText ?? "", doc.text ?? "", keepIds, { context: 2, mergeGap: 0 });
+                        onDiscardHunk(next.text, hunk);
+                      },
+                    }, "↩ Discard Hunk")
+                  : null,
+              ),
               ...hunk.lines.filter((l) => l.type !== " ").slice(0, 6).map((l) =>
                 h("div", { class: `code-pv-line ${l.type === "+" ? "code-t-inserted" : "code-t-deleted"}` }, `${l.type}${l.line}`),
               ),

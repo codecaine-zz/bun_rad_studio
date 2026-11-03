@@ -28,7 +28,7 @@
  */
 import { promises as fsp } from "fs";
 import * as nodePath from "path";
-import { absolutePath, lstatOrNull, pathApi, type FmContext, type FmHandler } from "./fmCore";
+import { absolutePath, lstatOrNull, pathApi, tick, type FmContext, type FmHandler } from "./fmCore";
 import { findDevJob, setProgress, startDevJob, type DevJob } from "./fmDevJobs";
 import type { Cancellable } from "./fmDevWalk";
 import { ignoreSetFromText, isIgnored, type IgnoreSet } from "./fmDevIgnore";
@@ -41,6 +41,7 @@ export const COMPARE_MAX_IGNORE_LINES = 200;
 const CHUNK = 1024 * 1024;
 /** FAT and some network disks store times in 2-second steps. */
 const TIME_TOLERANCE_MS = 2000;
+const compareNatural = new Intl.Collator("en", { numeric: true }).compare;
 
 export type CompareCategory = "onlyLeft" | "onlyRight" | "different" | "identical" | "cannot";
 export type CompareMode = "quick" | "verified";
@@ -97,6 +98,7 @@ async function scanSide(root: string, ignore: IgnoreSet[], job: DevJob, label: "
   const entries = new Map<string, ScanEntry>();
   const unreadable = new Map<string, string>();
   const queue: Array<{ abs: string; relPath: string; depth: number }> = [{ abs: root, relPath: "", depth: 0 }];
+  let lastYield = Date.now();
   while (queue.length) {
     if (job.cancelled) break;
     const { abs, relPath, depth } = queue.pop()!;
@@ -118,6 +120,7 @@ async function scanSide(root: string, ignore: IgnoreSet[], job: DevJob, label: "
         entries.set(r, { kind: "other", size: 0, mtimeMs: 0, error: describeFsError(err, "read that").message });
         continue;
       }
+      if (job.cancelled) break;
       const kind: EntryKind = st.isSymbolicLink() ? "link" : st.isDirectory() ? "dir" : st.isFile() ? "file" : "other";
       if (isIgnored(ignore, full, kind === "dir")) continue;
       if (entries.size >= COMPARE_MAX_ENTRIES) throw new FmError("TOO_BIG", `The ${label} folder has more than ${COMPARE_MAX_ENTRIES.toLocaleString("en-US")} items. Compare a smaller folder, or add ignore rules.`);
@@ -130,9 +133,18 @@ async function scanSide(root: string, ignore: IgnoreSet[], job: DevJob, label: "
         if (depth + 1 > COMPARE_MAX_DEPTH) unreadable.set(r, `Folders are nested more than ${COMPARE_MAX_DEPTH} levels deep here, so this one was not looked into.`);
         else queue.push({ abs: full, relPath: r, depth: depth + 1 });
       }
+      if (Date.now() - lastYield >= 12) {
+        setProgress(job, { phase: "scanning", [`${label}Items`]: entries.size });
+        await tick();
+        lastYield = Date.now();
+        if (job.cancelled) break;
+      }
     }
     setProgress(job, { phase: "scanning", [`${label}Items`]: entries.size });
-    await Promise.resolve();
+    if (Date.now() - lastYield >= 12) {
+      await tick();
+      lastYield = Date.now();
+    }
   }
   return { entries, unreadable };
 }
@@ -147,13 +159,20 @@ export async function sameContent(a: string, b: string, job: Cancellable, onByte
     try {
       const bufA = Buffer.allocUnsafe(CHUNK);
       const bufB = Buffer.allocUnsafe(CHUNK);
+      let lastYield = Date.now();
       while (true) {
         if (job.cancelled) return "cancelled";
         const [ra, rb] = await Promise.all([fa.read(bufA, 0, CHUNK, null), fb.read(bufB, 0, CHUNK, null)]);
+        if (job.cancelled) return "cancelled";
         if (ra.bytesRead !== rb.bytesRead) return false;
         if (ra.bytesRead === 0) return true;
         if (!bufA.subarray(0, ra.bytesRead).equals(bufB.subarray(0, rb.bytesRead))) return false;
         onBytes(ra.bytesRead);
+        if (Date.now() - lastYield >= 12) {
+          await tick();
+          lastYield = Date.now();
+          if (job.cancelled) return "cancelled";
+        }
       }
     } finally {
       await fb.close();
@@ -169,6 +188,7 @@ interface CompareData {
 }
 
 function ancestorUnreadable(unreadable: Map<string, string>, relPath: string): string | null {
+  if (unreadable.size === 0) return null;
   for (const [dir, reason] of unreadable) {
     if (dir === "" || relPath === dir || relPath.startsWith(`${dir}/`)) return reason;
   }
@@ -178,11 +198,16 @@ function ancestorUnreadable(unreadable: Map<string, string>, relPath: string): s
 async function runCompare(job: DevJob, left: string, right: string, ignoreLines: string[], mode: CompareMode): Promise<CompareSummary> {
   const sets = (root: string) => (ignoreLines.length ? [ignoreSetFromText(root.replace(/\\/g, "/"), ignoreLines.join("\n"))] : []);
   const [l, r] = await Promise.all([scanSide(left, sets(left), job, "left"), scanSide(right, sets(right), job, "right")]);
-  if (job.cancelled) {
+  const cancelledSummary = (): CompareSummary => {
     job.data = { left, right, entries: [] } satisfies CompareData;
     return { left, right, mode, counts: { onlyLeft: 0, onlyRight: 0, different: 0, identical: 0, cannot: 0 }, unverifiedIdentical: 0, ignore: ignoreLines, cancelled: true, scannedLeft: l.entries.size, scannedRight: r.entries.size };
+  };
+  if (job.cancelled) return cancelledSummary();
+  const all = [...new Set([...l.entries.keys(), ...r.entries.keys()])].sort(compareNatural);
+  if (all.length > 2000) {
+    await tick();
+    if (job.cancelled) return cancelledSummary();
   }
-  const all = [...new Set([...l.entries.keys(), ...r.entries.keys()])].sort((a, b) => a.localeCompare(b, "en", { numeric: true }));
   const entries: CompareEntry[] = [];
   const toVerify: Array<{ entry: CompareEntry; a: string; b: string }> = [];
   const hasChild = (side: Map<string, ScanEntry>) => {
@@ -197,7 +222,14 @@ async function runCompare(job: DevJob, left: string, right: string, ignoreLines:
     entries.push(entry);
     return entry;
   };
+  let lastClassifyYield = Date.now();
   for (const relPath of all) {
+    if (job.cancelled) return cancelledSummary();
+    if (Date.now() - lastClassifyYield >= 12) {
+      await tick();
+      lastClassifyYield = Date.now();
+      if (job.cancelled) return cancelledSummary();
+    }
     const a = l.entries.get(relPath);
     const b = r.entries.get(relPath);
     if (a?.error || b?.error) { make(relPath, "cannot", a, b, "unreadable", false, a?.error ?? b?.error ?? "It could not be read."); continue; }
@@ -249,6 +281,7 @@ async function runCompare(job: DevJob, left: string, right: string, ignoreLines:
   let bytesDone = 0;
   const bytesTotal = toVerify.reduce((t, v) => t + (v.entry.left?.size ?? 0), 0);
   setProgress(job, { phase: "verifying", filesDone: 0, filesTotal: toVerify.length, bytesDone: 0, bytesTotal });
+  let lastVerifyYield = Date.now();
   for (let i = 0; i < toVerify.length; i++) {
     const { entry, a, b } = toVerify[i]!;
     if (job.cancelled) {
@@ -257,14 +290,25 @@ async function runCompare(job: DevJob, left: string, right: string, ignoreLines:
       break;
     }
     try {
-      const result = await sameContent(a, b, job, (n) => { bytesDone += n; });
-      if (result === "cancelled") { Object.assign(entry, { category: "cannot", basis: "cancelled", verified: false, note: "Not compared: the comparison was cancelled before this file." }); cancelled = true; continue; }
+      const result = await sameContent(a, b, job, (n) => {
+        bytesDone += n;
+        setProgress(job, { filesDone: i, bytesDone });
+      });
+      if (result === "cancelled" || job.cancelled) {
+        cancelled = true;
+        for (const rest of toVerify.slice(i)) Object.assign(rest.entry, { category: "cannot", basis: "cancelled", verified: false, note: "Not compared: the comparison was cancelled before this file." });
+        break;
+      }
       if (result) entry.note = "The contents are identical (compared byte by byte).";
       else Object.assign(entry, { category: "different", note: "The contents are different (same size)." });
     } catch (err) {
       Object.assign(entry, { category: "cannot", basis: "unreadable", verified: false, note: describeFsError(err, "read that file").message });
     }
     setProgress(job, { filesDone: i + 1, bytesDone });
+    if (Date.now() - lastVerifyYield >= 12) {
+      await tick();
+      lastVerifyYield = Date.now();
+    }
   }
   cancelled = cancelled || job.cancelled;
   const counts: Record<CompareCategory, number> = { onlyLeft: 0, onlyRight: 0, different: 0, identical: 0, cannot: 0 };

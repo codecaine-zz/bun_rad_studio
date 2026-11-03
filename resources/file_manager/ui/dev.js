@@ -39,14 +39,19 @@ function mount(root) {
 
   async function normalize() {
     const text = rootInput.value.trim();
-    if (!text) return;
+    if (!text) return false;
     try {
       const res = await call("typedpath", { text, cwd: currentPath() || state.home });
-      if (!res.exists || !res.isDir) return status.set(`“${text}” isn't a folder that exists.`, true);
+      if (!res.exists || !res.isDir) {
+        status.set(`“${text}” isn't a folder that exists.`, true);
+        return false;
+      }
       rootInput.value = res.path;
       status.set("");
+      return true;
     } catch (err) {
       status.set(errorText(err, "That location isn't valid."), true);
+      return false;
     }
   }
 
@@ -108,7 +113,7 @@ function mount(root) {
   rootInput.addEventListener("keydown", async (e) => {
     if (e.key !== "Enter") return;
     e.preventDefault();
-    await normalize();
+    if (!(await normalize())) return;
     const s = section(active);
     (s.start ?? s.load)?.call(s);
   });

@@ -36,7 +36,12 @@ export function createStats(env) {
   const docs = checkbox("dev-docs", "Treat doc comments as comments", "Count documentation comments (like /// in Rust or docstrings in Python) as comments instead of code. Only the built-in counter can do this.", true);
   const excludes = h("input", { type: "text", id: "dev-excludes", class: "dev-excludes", spellcheck: "false", autocomplete: "off", placeholder: "*.min.js, docs/**", title: "Patterns to leave out, separated by commas, like .gitignore lines. Example: *.min.js, vendor/" });
   const run = btn("Count code", "Count the lines of code, comments and blanks in this folder. Nothing is changed.", () => start(), { primary: true });
-  const cancel = btn("Cancel", "Stop counting.", () => job?.cancel());
+  const cancel = btn("Cancel", "Stop counting.", () => {
+    if (!job) return;
+    cancel.disabled = true;
+    status.set("Stopping…");
+    job.cancel();
+  }, { danger: true });
   cancel.hidden = true;
   const engineLine = h("p", { class: "dev-engine-line", role: "status" });
   const switchBtn = btn("Count again with the other counter", "Run the same count with the other program, to compare.", () => switchEngine());
@@ -92,8 +97,10 @@ export function createStats(env) {
     const body = options(forceEngine);
     if (!body.root) return status.set("Choose a folder first: type its location above or press “Use current folder”.", true);
     await loadMeta();
+    if (job) job.cancel();
     const mine = ++seq;
     run.disabled = true;
+    cancel.disabled = false;
     cancel.hidden = false;
     switchBtn.hidden = true;
     status.set("Counting…");
@@ -109,6 +116,7 @@ export function createStats(env) {
     } finally {
       if (mine === seq) {
         run.disabled = false;
+        cancel.disabled = false;
         cancel.hidden = true;
         job = null;
       }

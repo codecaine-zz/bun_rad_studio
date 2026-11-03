@@ -30,19 +30,25 @@
 
 /* Compare */
 .compare-pane { display: flex; flex-direction: column; gap: 0.6rem; }
-.compare-folders { display: grid; gap: 0.5rem; }
+.compare-folders { display: grid; grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr)); gap: 0.6rem; }
 .compare-path { flex: 1; min-width: 12rem; }
 .compare-ignore { width: 100%; min-height: 4.5rem; font-family: ui-monospace, monospace; }
-.compare-progress { width: 100%; }
-.compare-progress[hidden] { display: none; }
+.compare-progress { width: 100%; height: 0.55rem; accent-color: var(--accent); border-radius: 999px; }
+.compare-progress[hidden], .compare-actions[hidden], .compare-note[hidden], .compare-empty[hidden] { display: none !important; }
 .compare-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
-.compare-chip { border: 1px solid var(--border); background: var(--panel); color: var(--text); border-radius: 1rem; padding: 0.15rem 0.7rem; cursor: pointer; }
-.compare-chip.on { background: var(--selected); color: var(--selected-text); border-color: var(--accent); }
+.compare-chip { font: inherit; font-size: 0.85rem; font-variant-numeric: tabular-nums; border: 1px solid var(--border); background: var(--panel); color: var(--text); border-radius: 1rem; padding: 0.2rem 0.75rem; cursor: pointer; transition: background 0.12s ease, border-color 0.12s ease; }
+.compare-chip:hover { background: var(--hover); }
+.compare-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.compare-chip.g-different { border-color: color-mix(in oklab, var(--accent) 45%, var(--border)); }
+.compare-chip.g-cannot { border-color: color-mix(in oklab, var(--danger) 55%, var(--border)); }
+.compare-chip.on { background: var(--selected); color: var(--selected-text); border-color: var(--accent); font-weight: 600; }
 .compare-table td, .compare-table th { vertical-align: top; }
 .compare-table tr.g-different td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
 .compare-table tr.g-cannot td:first-child { box-shadow: inset 3px 0 0 var(--danger); }
 .compare-actions { display: grid; gap: 0.4rem; }
 .compare-note { margin: 0; }
+.compare-help > summary { cursor: pointer; font-weight: 600; font-size: 0.88rem; color: var(--muted); user-select: none; }
+.compare-help > summary:hover { color: var(--text); }
 .compare-help ul { margin: 0.3rem 0 0; padding-left: 1.2rem; }
 
 /* Projects */

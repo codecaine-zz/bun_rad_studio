@@ -15,7 +15,12 @@ export function createDupes(env) {
   const min = h("select", { id: "dev-dupes-min", title: "Ignore files smaller than this, so tiny files don't flood the list." }, SIZES.map(([label, v]) => h("option", { value: String(v) }, label)));
   const vendored = checkbox("dev-dupes-vendored", "Include node_modules, target, dist, build", "Also compare files inside these folders. They hold a lot of legitimate copies, so they are left out by default.", false);
   const run = btn("Find duplicates", "Look for files with identical content in this folder. Nothing is changed or deleted.", () => start(), { primary: true });
-  const cancel = btn("Cancel", "Stop the search.", () => job?.cancel());
+  const cancel = btn("Cancel", "Stop the search.", () => {
+    if (!job) return;
+    cancel.disabled = true;
+    status.set("Stopping…");
+    job.cancel();
+  }, { danger: true });
   cancel.hidden = true;
   let job = null;
   let seq = 0;
@@ -81,8 +86,10 @@ export function createDupes(env) {
   async function start() {
     const root = env.getRoot();
     if (!root) return status.set("Choose a folder first.", true);
+    if (job) job.cancel();
     const mine = ++seq;
     run.disabled = true;
+    cancel.disabled = false;
     cancel.hidden = false;
     out.replaceChildren();
     status.set("Looking for duplicates…");
@@ -93,13 +100,14 @@ export function createDupes(env) {
       const r = done.result;
       if (!r) return status.set("Cancelled.");
       render(r);
-      status.set(`${plural(r.groupCount, "group")} of duplicates, ${formatSize(r.totalWasted)} could be freed (${seconds(r.elapsedMs)}).${r.stoppedBy ? ` Stopped at the limit for ${r.stoppedBy}.` : ""}`, false);
+      status.set(`${done.state === "cancelled" ? "Stopped early. " : ""}${plural(r.groupCount, "group")} of duplicates, ${formatSize(r.totalWasted)} could be freed (${seconds(r.elapsedMs)}).${r.stoppedBy ? ` Stopped at the limit for ${r.stoppedBy}.` : ""}`, false);
       announce(status.el.textContent);
     } catch (err) {
       if (mine === seq) status.set(errorText(err, "The search didn't work."), true);
     } finally {
       if (mine === seq) {
         run.disabled = false;
+        cancel.disabled = false;
         cancel.hidden = true;
         job = null;
       }

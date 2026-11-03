@@ -36,8 +36,9 @@ registerPowerTab({
   id: "compare", label: "Compare", icon: "🆚", tip: "Compare two folders and copy the differences you choose, one way, with a preview first",
   mount(root) {
     root.classList.add("compare-pane");
-    const left = h("input", { type: "text", class: "find-input compare-path", id: "compare-left", spellcheck: "false", autocomplete: "off", "aria-label": "Left folder", title: "The first folder. Type or paste a location, or press Choose." });
-    const right = h("input", { type: "text", class: "find-input compare-path", id: "compare-right", spellcheck: "false", autocomplete: "off", "aria-label": "Right folder", title: "The second folder. Type or paste a location, or press Choose." });
+    const onPathKey = (e) => { if (e.key === "Enter") { e.preventDefault(); start(); } };
+    const left = h("input", { type: "text", class: "find-input compare-path", id: "compare-left", spellcheck: "false", autocomplete: "off", "aria-label": "Left folder", title: "The first folder. Type or paste a location, or press Choose.", onkeydown: onPathKey });
+    const right = h("input", { type: "text", class: "find-input compare-path", id: "compare-right", spellcheck: "false", autocomplete: "off", "aria-label": "Right folder", title: "The second folder. Type or paste a location, or press Choose.", onkeydown: onPathKey });
     const ignore = h("textarea", { class: "find-input compare-ignore", rows: "4", spellcheck: "false", "aria-label": "Ignore rules", title: "One rule per line, like a .gitignore file: node_modules/ (a folder), *.log (a pattern), /build (only at the top). Ignored items are left out of everything." }, DEFAULT_IGNORE);
     const mode = h("select", { class: "find-input", "aria-label": "How carefully to compare", title: "Quick compares size and date only. Verified reads every pair of same-size files, which is the only way to be sure they are identical." },
       h("option", { value: "quick" }, "Quick: size and date"),
@@ -47,9 +48,10 @@ registerPowerTab({
     const chips = h("div", { class: "compare-chips", role: "group", "aria-label": "Show one group" });
     const search = h("input", { type: "search", class: "find-input", placeholder: "Filter by name", "aria-label": "Filter the list by name", title: "Show only paths that contain this text", oninput: () => { query = search.value; reload(); } });
     const table = h("table", { class: "pw-table compare-table", "aria-label": "Differences between the two folders" });
+    const emptyNote = h("p", { class: "pw-hint compare-empty", hidden: true }, "No items match this filter.");
     const more = btn("Show more", "Load the next part of the list", () => load(false));
     more.hidden = true;
-    const direction = h("select", { class: "find-input", "aria-label": "Which way to copy", title: "Copying only ever adds or replaces files in the folder you copy TO. It never deletes anything.", onchange: () => paint() },
+    const direction = h("select", { class: "find-input", "aria-label": "Which way to copy", title: "Copying only ever adds or replaces files in the folder you copy TO. It never deletes anything.", onchange: () => { picked.clear(); paint(); } },
       h("option", { value: "toRight" }, "Copy to the right →"),
       h("option", { value: "toLeft" }, "← Copy to the left"));
     const replaceBox = h("input", { type: "checkbox", id: "compare-replace", title: "Also copy over files that exist on both sides but differ. The old file goes to the Recycle Bin first." });
@@ -69,14 +71,17 @@ registerPowerTab({
     let rows = [];
     let total = 0;
     const picked = new Set();
-    let seq = 0;
+    let runSeq = 0;
+    let loadSeq = 0;
+    let lastCopyJobId = null;
 
     const usable = (e) => copyable(e, direction.value);
 
     function paintChips() {
       const counts = summary?.counts ?? {};
+      const totalAll = GROUPS.reduce((sum, [id]) => sum + (counts[id] ?? 0), 0);
       chips.replaceChildren(
-        h("button", { type: "button", class: `compare-chip${category === "" ? " on" : ""}`, "aria-pressed": String(category === ""), onclick: () => setCategory("") }, "All"),
+        h("button", { type: "button", class: `compare-chip${category === "" ? " on" : ""}`, "aria-pressed": String(category === ""), onclick: () => setCategory("") }, summary ? `All: ${num(totalAll)}` : "All"),
         ...GROUPS.map(([id, label, tip]) => h("button", { type: "button", class: `compare-chip g-${id}${category === id ? " on" : ""}`, "aria-pressed": String(category === id), title: tip, onclick: () => setCategory(id) }, `${label}: ${num(counts[id] ?? 0)}`)));
     }
     function setCategory(id) {
@@ -94,25 +99,28 @@ registerPowerTab({
           h("td", {}, e.note, e.category === "identical" && !e.verified ? h("strong", {}, " (not verified)") : null));
       }));
       table.replaceChildren(head, body);
+      emptyNote.hidden = !compareId || rows.length > 0;
       more.hidden = rows.length >= total;
-      const to = direction.value === "toRight" ? "right" : "left";
-      copy.textContent = `Copy the selected to the ${to}…`;
       countNote();
     }
-    const countNote = () => { copy.disabled = picked.size === 0; };
+    const countNote = () => {
+      const to = direction.value === "toRight" ? "right" : "left";
+      copy.textContent = `Copy the selected to the ${to}…${picked.size ? ` (${num(picked.size)})` : ""}`;
+      copy.disabled = picked.size === 0;
+    };
 
     async function load(fresh) {
       if (!compareId) return;
-      const mine = ++seq;
+      const mine = ++loadSeq;
       try {
         const res = await call("compare/entries", { id: compareId, category: category || undefined, query: query || undefined, offset: fresh ? 0 : rows.length, limit: PAGE });
-        if (mine !== seq) return;
+        if (mine !== loadSeq) return;
         rows = fresh ? res.entries : [...rows, ...res.entries];
         total = res.total;
         paint();
         announce(`${plural(total, "item")} shown.`);
       } catch (err) {
-        status.set(errorText(err, "The list couldn't be loaded."), true);
+        if (mine === loadSeq) status.set(errorText(err, "The list couldn't be loaded."), true);
       }
     }
     const reload = () => load(true);
@@ -122,11 +130,27 @@ registerPowerTab({
       if (dir) input.value = dir;
     }
 
+    function stopCompare() {
+      if (!job) return;
+      cancel.disabled = true;
+      status.set("Stopping comparison…");
+      job.cancel();
+    }
+
     async function start(forceMode) {
       if (!left.value.trim() || !right.value.trim()) return status.set("Choose both folders first.", true);
       if (forceMode) mode.value = forceMode;
-      const mine = ++seq;
+      if (job) job.cancel();
+      const mine = ++runSeq;
+      ++loadSeq;
+      compareId = null;
+      summary = null;
+      rows = [];
+      total = 0;
+      more.hidden = true;
+      emptyNote.hidden = true;
       run.disabled = true;
+      cancel.disabled = false;
       cancel.hidden = false;
       bar.hidden = false;
       bar.removeAttribute("value");
@@ -134,32 +158,35 @@ registerPowerTab({
       verifyNote.hidden = true;
       table.replaceChildren();
       picked.clear();
+      paintChips();
       status.set("Looking at both folders…");
       try {
         job = runJob("compare/start", { left: left.value.trim(), right: right.value.trim(), mode: mode.value, ignore: ignore.value.split("\n") }, (p) => {
-          if (mine !== seq) return;
+          if (mine !== runSeq) return;
           if (p.phase === "verifying") {
             status.set(`Reading files to be sure: ${num(p.filesDone ?? 0)} of ${num(p.filesTotal ?? 0)} (${formatSize(p.bytesDone ?? 0)} of ${formatSize(p.bytesTotal ?? 0)})…`);
             if (p.bytesTotal) { bar.max = p.bytesTotal; bar.value = p.bytesDone ?? 0; }
           } else status.set(`Listing files… ${num(p.leftItems ?? 0)} on the left, ${num(p.rightItems ?? 0)} on the right`);
         });
         const done = await job.promise;
-        if (mine !== seq) return;
+        if (mine !== runSeq) return;
         summary = done.result;
         compareId = done.id;
         category = "";
         paintChips();
         const c = summary.counts;
-        status.set(`${summary.cancelled ? "Cancelled part-way. " : ""}${num(c.onlyLeft)} only on the left, ${num(c.onlyRight)} only on the right, ${num(c.different)} different, ${num(c.identical)} identical, ${num(c.cannot)} cannot be compared (${seconds(done.elapsedMs)}).`, summary.cancelled || c.cannot > 0);
+        const cancelled = summary.cancelled || done.state === "cancelled";
+        status.set(`${cancelled ? "Cancelled part-way. " : ""}${num(c.onlyLeft)} only on the left, ${num(c.onlyRight)} only on the right, ${num(c.different)} different, ${num(c.identical)} identical, ${num(c.cannot)} cannot be compared (${seconds(done.elapsedMs)}).`, cancelled || c.cannot > 0);
         verifyNote.hidden = !summary.unverifiedIdentical;
         verifyNote.replaceChildren(`${plural(summary.unverifiedIdentical, "file")} listed as identical only because the size and date match. Their contents were not read. `, btn("Verify them now", "Run the comparison again, reading every pair of same-size files", () => start("verified")));
         actions.hidden = false;
         await reload();
       } catch (err) {
-        if (mine === seq) status.set(errorText(err, "The comparison didn't work."), true);
+        if (mine === runSeq) status.set(errorText(err, "The comparison didn't work."), true);
       } finally {
-        if (mine === seq) {
+        if (mine === runSeq) {
           run.disabled = false;
+          cancel.disabled = false;
           cancel.hidden = true;
           bar.hidden = true;
           job = null;
@@ -173,17 +200,37 @@ registerPowerTab({
         const { plan } = await call("compare/plan", { id: compareId, direction: direction.value, paths: [...picked], replace: replaceBox.checked });
         // The server already built this preview; showing it again through the shared dialog keeps one way of approving changes.
         const outcome = await reviewPlan({ type: "existing", id: plan.id });
-        if (outcome.applied) picked.clear();
+        if (outcome.applied) {
+          picked.clear();
+          lastCopyJobId = outcome.job?.id ?? null;
+          paint();
+        }
       } catch (err) {
         toast(err instanceof ApiError ? err.message : "The preview couldn't be made.", { kind: "error" });
       }
     }
 
     const run = btn("Compare", "Compare the two folders. Nothing is changed.", () => start(), { primary: true });
-    const cancel = btn("Cancel", "Stop the comparison. Items not reached are listed under Cannot compare.", () => job?.cancel());
+    const cancel = btn("Cancel", "Stop the comparison. Items not reached are listed under Cannot compare.", () => stopCompare(), { danger: true });
     cancel.hidden = true;
-    const swap = btn("⇄ Swap sides", "Exchange the left and right folders", () => { [left.value, right.value] = [right.value, left.value]; });
-    on("fileop-done", (j) => { if (state.planJobs.has(j.id) && compareId && !actions.hidden) status.set("The copy finished. Press Compare to see what is different now."); });
+    const swap = btn("⇄ Swap sides", "Exchange the left and right folders", () => {
+      [left.value, right.value] = [right.value, left.value];
+      if (compareId) {
+        compareId = null;
+        summary = null;
+        rows = [];
+        total = 0;
+        picked.clear();
+        actions.hidden = true;
+        verifyNote.hidden = true;
+        more.hidden = true;
+        emptyNote.hidden = true;
+        table.replaceChildren();
+        paintChips();
+        status.set("Sides swapped. Press Compare to check these folders.");
+      }
+    });
+    on("fileop-done", (j) => { if ((j.id === lastCopyJobId || state.planJobs.has(j.id)) && compareId && !actions.hidden) status.set("The copy finished. Press Compare to see what is different now."); });
 
     root.append(
       h("section", { class: "pw-card", "aria-label": "Folders to compare" },
@@ -203,7 +250,7 @@ registerPowerTab({
             h("li", {}, "A folder that can't be read is 'Cannot compare', and so is everything below it. It is never reported as missing."),
             h("li", {}, "A file on one side and a folder on the other is 'Different' and is never copied over."))),
       ),
-      h("section", { class: "pw-card", "aria-label": "Results" }, chips, verifyNote, h("div", { class: "pw-row" }, search), actions, h("div", { class: "pw-table-wrap" }, table), more),
+      h("section", { class: "pw-card", "aria-label": "Results" }, chips, verifyNote, h("div", { class: "pw-row" }, search), actions, emptyNote, h("div", { class: "pw-table-wrap" }, table), more),
     );
     paintChips();
     return {

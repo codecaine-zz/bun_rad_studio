@@ -16,7 +16,12 @@ export function createTodo(env) {
   const gitignore = checkbox("dev-todo-gitignore", "Respect .gitignore", "Skip files the project's .gitignore files list.", true);
   const hidden = checkbox("dev-todo-hidden", "Include hidden files", "Also look in files and folders whose names start with a dot.", false);
   const run = btn("Find markers", "Search the text files in this folder for the marker words. Nothing is changed.", () => start(), { primary: true });
-  const cancel = btn("Cancel", "Stop the search.", () => job?.cancel());
+  const cancel = btn("Cancel", "Stop the search.", () => {
+    if (!job) return;
+    cancel.disabled = true;
+    status.set("Stopping…");
+    job.cancel();
+  }, { danger: true });
   cancel.hidden = true;
   const exportRow = h("div", { class: "pw-row", hidden: true },
     field("Export as", h("select", { id: "dev-todo-format", title: "CSV opens in a spreadsheet, JSON is for programs, Markdown is a table." }, h("option", { value: "csv" }, "CSV"), h("option", { value: "json" }, "JSON"), h("option", { value: "md" }, "Markdown table"))),
@@ -66,8 +71,10 @@ export function createTodo(env) {
     const root = env.getRoot();
     if (!root) return status.set("Choose a folder first.", true);
     const list = tags.value.split(",").map((s) => s.trim()).filter(Boolean);
+    if (job) job.cancel();
     const mine = ++seq;
     run.disabled = true;
+    cancel.disabled = false;
     cancel.hidden = false;
     exportRow.hidden = true;
     status.set("Searching…");
@@ -79,13 +86,14 @@ export function createTodo(env) {
       last = { id: done.id, result: done.result };
       render(done.result);
       exportRow.hidden = false;
-      status.set(`${plural(done.result.items.length, "marker")} in ${plural(done.result.filesWithHits, "file")} (looked at ${num(done.result.filesScanned)} text files in ${seconds(done.result.elapsedMs)}).`);
+      status.set(`${done.state === "cancelled" ? "Stopped early. " : ""}${plural(done.result.items.length, "marker")} in ${plural(done.result.filesWithHits, "file")} (looked at ${num(done.result.filesScanned)} text files in ${seconds(done.result.elapsedMs)}).`);
       announce(status.el.textContent);
     } catch (err) {
       if (mine === seq) status.set(errorText(err, "The search didn't work."), true);
     } finally {
       if (mine === seq) {
         run.disabled = false;
+        cancel.disabled = false;
         cancel.hidden = true;
         job = null;
       }

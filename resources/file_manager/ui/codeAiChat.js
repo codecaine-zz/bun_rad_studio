@@ -2,7 +2,15 @@
 // Provides multi-turn streaming chat, automatic active-file & selection context, quick code actions
 // (Explain, Refactor, Find Bugs, Write Tests, Add Docs), and 1-click Insert / Replace / Diff / Copy on code blocks.
 import { call, getToken } from "./api.js";
-import { computeLineDiff, parseMarkdown, tokenizeText } from "./codeLogic.js";
+import {
+  applySelectedDiffHunks,
+  computeDiffHunks,
+  computeLineDiff,
+  locateTargetRangeInFile,
+  parseMarkdown,
+  tokenizeLine,
+  tokenizeText,
+} from "./codeLogic.js";
 import { clear, h } from "./dom.js";
 import { getClientModelFeatureProfile } from "./ollama.js";
 
@@ -113,6 +121,7 @@ export function createCodeAiChat(ctx) {
     statusLoading: false,
     promptText: "",
     messages: [],
+    codeCardStates: new Map(),
     abortController: null,
   };
 
@@ -341,20 +350,34 @@ export function createCodeAiChat(ctx) {
   }
 
   function diffCodeWithEditor(codeText, langHint = "") {
-    const clean = String(codeText ?? "");
+    const clean = String(codeText ?? "")
+      .replace(/\r\n/g, "\n")
+      .replace(/^\n+/, "")
+      .replace(/\n+$/, "");
     const d = ctx.getDoc?.();
     if (!d) {
       ctx.docs?.openView?.("AI Code Preview", clean, langHint || "javascript");
       return;
     }
     const selInfo = activeSelectionInfo();
-    const baseText = selInfo.hasSelection ? selInfo.text : d.text;
-    const baseLabel = selInfo.hasSelection
-      ? `${d.name} (Lines ${selInfo.startLine}–${selInfo.endLine})`
-      : d.name;
-    const diffRes = computeLineDiff(baseText, clean, {
+    const target = locateTargetRangeInFile(d.text, clean, selInfo);
+    const baseText =
+      target.mode === "snippet"
+        ? selInfo.hasSelection
+          ? selInfo.text
+          : d.text
+        : target.baseText;
+    const baseLabel =
+      target.mode === "selection"
+        ? `${d.name} (Lines ${target.startLine}–${target.endLine})`
+        : target.mode === "subblock"
+          ? `${d.name} (Lines ${target.startLine}–${target.endLine})`
+          : d.name;
+    const diffRes = computeDiffHunks(baseText, clean, {
       oldLabel: baseLabel,
       newLabel: "AI Suggestion",
+      context: 3,
+      mergeGap: 0,
     });
     if (diffRes.identical) {
       ctx.toast?.("AI code block is identical to your current code.");
@@ -398,7 +421,22 @@ export function createCodeAiChat(ctx) {
     return "plain";
   }
 
-  function renderCodeBlockCard(codeText, rawLang) {
+  function renderTokenizedSpan(lang, lineStr) {
+    const span = h("span", { class: "bionic-md-code-text" });
+    const tokens = tokenizeLine(lang, lineStr || "").tokens || [];
+    if (tokens.length === 0) {
+      span.append(document.createTextNode(lineStr || " "));
+    } else {
+      for (const t of tokens) {
+        span.append(
+          t.type ? h("span", { class: `code-t-${t.type}` }, t.text) : document.createTextNode(t.text),
+        );
+      }
+    }
+    return span;
+  }
+
+  function renderCodeBlockCard(codeText, rawLang, cardKey = "") {
     const cleanCode = String(codeText ?? "")
       .replace(/\r\n/g, "\n")
       .replace(/^\n+/, "")
@@ -406,39 +444,201 @@ export function createCodeAiChat(ctx) {
     const lang = resolveCodeLang(rawLang, cleanCode);
     const displayLang = (rawLang || lang || "code").toUpperCase();
     const lines = tokenizeText(lang, cleanCode.length > 200_000 ? cleanCode.slice(0, 200_000) : cleanCode);
-    const bodyEl = h("div", {
-      class: `bionic-md-code-body${state.codeWrap ? " is-wrapped" : ""}`,
-      tabindex: "0",
-      role: "region",
-      "aria-label": `${displayLang} code snippet`,
-    });
 
-    const maxLines = Math.min(lines.length, 10000);
-    for (let i = 0; i < maxLines; i++) {
-      const tokens = lines[i] || [];
-      const textCell = h("span", { class: "bionic-md-code-text" });
-      if (tokens.length === 0) {
-        textCell.append(document.createTextNode(" "));
-      } else {
-        for (const t of tokens) {
-          textCell.append(
-            t.type ? h("span", { class: `code-t-${t.type}` }, t.text) : document.createTextNode(t.text),
-          );
+    const effectiveKey = cardKey || `${lang}:${cleanCode.length}:${cleanCode.slice(0, 120)}`;
+
+    function computeOrGetCardState(forceRediff = false) {
+      let cs = state.codeCardStates.get(effectiveKey);
+      const d = ctx.getDoc?.();
+      const canDiffDoc = Boolean(d && d.kind !== "diff" && String(d.text ?? "").trim().length > 0);
+
+      if (
+        !cs ||
+        forceRediff ||
+        cs.cleanCode !== cleanCode ||
+        (!state.loading && cs.wasStreaming) ||
+        (canDiffDoc && cs.docId !== d.id && cs.acceptedHunkIds.size === 0 && !cs.userToggled)
+      ) {
+        if (canDiffDoc) {
+          const selInfo = activeSelectionInfo();
+          const target = locateTargetRangeInFile(d.text, cleanCode, selInfo);
+          const isSnippet = target.mode === "snippet";
+          const targetLabel =
+            target.mode === "selection"
+              ? `${d.name} · Selection L${target.startLine}–${target.endLine}`
+              : target.mode === "subblock"
+                ? `${d.name} · Lines ${target.startLine}–${target.endLine}`
+                : isSnippet
+                  ? `${d.name} · Insert at L${target.startLine}`
+                  : `${d.name} (L1–${target.endLine})`;
+          const diffRes = isSnippet
+            ? { identical: false, added: 0, removed: 0, hunks: [], diff: "", ops: [] }
+            : computeDiffHunks(target.baseText, cleanCode, {
+                oldLabel: targetLabel,
+                newLabel: "AI Proposed",
+                context: 2,
+                mergeGap: 0,
+              });
+          const hasHunks = !isSnippet && !diffRes.identical && diffRes.hunks.length > 0;
+          cs = {
+            cardKey: effectiveKey,
+            cleanCode,
+            docId: d.id,
+            docName: d.name,
+            targetMode: target.mode,
+            targetLabel,
+            originalBaseText: target.baseText,
+            lastAppliedText: target.baseText,
+            targetFrom: target.from,
+            targetTo: target.to,
+            lastAppliedLen: target.to - target.from,
+            startLine: target.startLine,
+            endLine: target.endLine,
+            diffRes,
+            selectedHunkIds: new Set(diffRes.hunks.map((h) => h.id)),
+            acceptedHunkIds: new Set(),
+            userToggled: false,
+            // Front-and-centre diff preview before Apply whenever there are hunks!
+            viewMode: hasHunks ? "diff" : "code",
+            wasStreaming: Boolean(state.loading),
+          };
+        } else {
+          cs = {
+            cardKey: effectiveKey,
+            cleanCode,
+            docId: d?.id ?? 0,
+            docName: d?.name || "",
+            targetMode: "cursor",
+            targetLabel: "",
+            originalBaseText: "",
+            lastAppliedText: "",
+            targetFrom: 0,
+            targetTo: 0,
+            lastAppliedLen: 0,
+            startLine: 1,
+            endLine: 1,
+            diffRes: { identical: false, added: 0, removed: 0, hunks: [], diff: "", ops: [] },
+            selectedHunkIds: new Set(),
+            acceptedHunkIds: new Set(),
+            userToggled: false,
+            viewMode: "code",
+            wasStreaming: Boolean(state.loading),
+          };
         }
+        state.codeCardStates.set(effectiveKey, cs);
       }
-      bodyEl.append(
-        h("div", { class: "bionic-md-code-row" }, [
-          h("span", { class: "bionic-md-code-ln", "aria-hidden": "true" }, String(i + 1)),
-          textCell,
-        ]),
-      );
+      return cs;
     }
 
-    const selInfo = activeSelectionInfo();
-    const insertLabel = selInfo.hasSelection ? "⤓ Replace Selection" : "⤓ Insert at Cursor";
+    function buildRawCodeBody() {
+      const bodyEl = h("div", {
+        class: `bionic-md-code-body${state.codeWrap ? " is-wrapped" : ""}`,
+        tabindex: "0",
+        role: "region",
+        "aria-label": `${displayLang} code snippet`,
+      });
+      const maxLines = Math.min(lines.length, 10000);
+      for (let i = 0; i < maxLines; i++) {
+        const tokens = lines[i] || [];
+        const textCell = h("span", { class: "bionic-md-code-text" });
+        if (tokens.length === 0) {
+          textCell.append(document.createTextNode(" "));
+        } else {
+          for (const t of tokens) {
+            textCell.append(
+              t.type ? h("span", { class: `code-t-${t.type}` }, t.text) : document.createTextNode(t.text),
+            );
+          }
+        }
+        bodyEl.append(
+          h("div", { class: "bionic-md-code-row" }, [
+            h("span", { class: "bionic-md-code-ln", "aria-hidden": "true" }, String(i + 1)),
+            textCell,
+          ]),
+        );
+      }
+      return bodyEl;
+    }
 
-    return h("div", { class: "bionic-md-code-card code-ai-code-card" }, [
-      h("div", { class: "bionic-md-code-bar" }, [
+    function applyHunkSetToEditor(cs, hunkIdsToApply, snapshotLabel, toastMsg) {
+      let d = ctx.getDoc?.();
+      if (!d || d.kind === "diff") {
+        d = ctx.docs?.newUntitled?.();
+      }
+      const e = ctx.getEditor?.();
+      if (!d || !e) {
+        ctx.toast?.("Open an editable file tab first.", { kind: "error" });
+        return false;
+      }
+      if (d.readOnly) {
+        ctx.toast?.("Current file is read-only.", { kind: "error" });
+        return false;
+      }
+
+      const applied = applySelectedDiffHunks(cs.originalBaseText, cleanCode, hunkIdsToApply, {
+        context: 2,
+        mergeGap: 0,
+      });
+
+      ctx.docs?.snapshot?.(d, snapshotLabel);
+      const curDocText = e.getText();
+      let safeFrom = Math.max(0, Math.min(cs.targetFrom, curDocText.length));
+      let safeTo = Math.max(safeFrom, Math.min(safeFrom + cs.lastAppliedLen, curDocText.length));
+
+      // If lines above cs.targetFrom were edited manually, relocate the expected block before splicing
+      const expectedPrev = cs.lastAppliedText ?? cs.originalBaseText ?? "";
+      if (expectedPrev && curDocText.slice(safeFrom, safeTo) !== expectedPrev) {
+        const relocatedIdx = curDocText.indexOf(expectedPrev);
+        if (relocatedIdx !== -1) {
+          safeFrom = relocatedIdx;
+          safeTo = relocatedIdx + expectedPrev.length;
+        }
+      }
+
+      // Update card state BEFORE e.apply() because e.apply() synchronously triggers onSelect -> aiChat.updateContext()
+      cs.userToggled = true;
+      cs.targetFrom = safeFrom;
+      cs.lastAppliedLen = applied.text.length;
+      cs.lastAppliedText = applied.text;
+      cs.acceptedHunkIds = new Set(applied.appliedHunkIds);
+      cs.selectedHunkIds = new Set(applied.appliedHunkIds);
+
+      e.apply({
+        from: safeFrom,
+        to: safeTo,
+        insert: applied.text,
+        selStart: safeFrom,
+        selEnd: safeFrom,
+      });
+      e.focus();
+      ctx.toast?.(
+        toastMsg ||
+          `Applied ${applied.appliedCount}/${applied.totalHunks} ${applied.appliedCount === 1 ? "hunk" : "hunks"} to ${d.name} (snapshot saved in History).`,
+        { kind: "success" },
+      );
+      return true;
+    }
+
+    const cardEl = h("div", {
+      class: "bionic-md-code-card code-ai-code-card",
+      dataset: { cardKey: effectiveKey },
+    });
+
+    function refreshCardDom() {
+      const cs = computeOrGetCardState(false);
+      const hunks = cs.diffRes?.hunks || [];
+      const totalHunks = hunks.length;
+      const hasHunks = !cs.diffRes?.identical && totalHunks > 0;
+      const selectedCount = cs.selectedHunkIds.size;
+      const acceptedCount = cs.acceptedHunkIds.size;
+      const selInfo = activeSelectionInfo();
+      const insertLabel = selInfo.hasSelection ? "⤓ Replace Selection" : "⤓ Insert at Cursor";
+
+      cardEl.classList.toggle("has-diff-review", hasHunks);
+      cardEl.classList.toggle("is-diff-view", hasHunks && cs.viewMode === "diff");
+
+      // 1. Card Header Bar (Diff & Hunk controls front and centre)
+      const barEl = h("div", { class: "bionic-md-code-bar code-ai-card-bar" }, [
         h("div", { class: "bionic-md-code-meta" }, [
           h("span", { class: "bionic-md-code-lang" }, displayLang),
           h(
@@ -446,64 +646,460 @@ export function createCodeAiChat(ctx) {
             { class: "ollama-pill" },
             `${lines.length} ${lines.length === 1 ? "line" : "lines"}`,
           ),
+          hasHunks
+            ? h(
+                "span",
+                {
+                  class: "code-ai-diff-stats-pill",
+                  title: `Proposed edit has +${cs.diffRes.added} added and −${cs.diffRes.removed} removed lines across ${totalHunks} ${totalHunks === 1 ? "hunk" : "hunks"}`,
+                },
+                [
+                  h("span", { class: "code-ai-stat-hunks" }, `⇄ ${totalHunks} ${totalHunks === 1 ? "hunk" : "hunks"}`),
+                  h("span", { class: "code-ai-stat-add" }, `+${cs.diffRes.added}`),
+                  h("span", { class: "code-ai-stat-del" }, `−${cs.diffRes.removed}`),
+                ],
+              )
+            : cs.diffRes?.identical && cs.originalBaseText
+              ? h("span", { class: "ollama-pill code-ai-identical-pill" }, "✓ Identical to editor")
+              : null,
+          hasHunks && cs.targetLabel
+            ? h(
+                "button",
+                {
+                  type: "button",
+                  class: "code-ai-target-pill",
+                  title: `Comparing against ${cs.targetLabel}. Click to jump editor to line ${cs.startLine}.`,
+                  onclick: () => {
+                    const ed = ctx.getEditor?.();
+                    ed?.goTo?.(cs.startLine || 1, 1);
+                    ed?.focus?.();
+                  },
+                },
+                `🎯 ${cs.targetLabel}`,
+              )
+            : null,
+          hasHunks
+            ? h(
+                "div",
+                {
+                  class: "code-ai-view-switch",
+                  role: "tablist",
+                  "aria-label": "Toggle between Diff Review and Raw Code",
+                },
+                [
+                  h(
+                    "button",
+                    {
+                      type: "button",
+                      role: "tab",
+                      class: `code-ai-view-tab${cs.viewMode === "diff" ? " is-active" : ""}`,
+                      "aria-selected": String(cs.viewMode === "diff"),
+                      "data-ai-view-mode": "diff",
+                      title: "Inspect diff and accept/reject individual hunks before applying",
+                      onclick: () => {
+                        cs.viewMode = "diff";
+                        refreshCardDom();
+                      },
+                    },
+                    `⇄ Diff & Hunks (${totalHunks})`,
+                  ),
+                  h(
+                    "button",
+                    {
+                      type: "button",
+                      role: "tab",
+                      class: `code-ai-view-tab${cs.viewMode === "code" ? " is-active" : ""}`,
+                      "aria-selected": String(cs.viewMode === "code"),
+                      "data-ai-view-mode": "code",
+                      title: "View the full proposed code block",
+                      onclick: () => {
+                        cs.viewMode = "code";
+                        refreshCardDom();
+                      },
+                    },
+                    "📄 Proposed Code",
+                  ),
+                ],
+              )
+            : null,
         ]),
         h("div", { class: "bionic-md-code-actions" }, [
-          h(
-            "button",
-            {
-              type: "button",
-              class: "ollama-btn is-mini is-primary",
-              title: selInfo.hasSelection
-                ? "Replace the highlighted selection in the active editor with this code block (saves a History snapshot first)"
-                : "Insert this code block at the cursor in the active editor (saves a History snapshot first)",
-              onclick: () => insertCodeIntoEditor(cleanCode, "cursor"),
-            },
-            insertLabel,
-          ),
+          hasHunks
+            ? h(
+                "button",
+                {
+                  type: "button",
+                  class: "ollama-btn is-mini is-primary code-ai-apply-hunks-btn",
+                  "data-ai-apply-selected-hunks": "true",
+                  disabled: selectedCount === 0 && acceptedCount === 0 ? "disabled" : null,
+                  title:
+                    selectedCount === 0 && acceptedCount > 0
+                      ? "Revert applied hunks back to the original code"
+                      : `Apply the ${selectedCount} checked ${selectedCount === 1 ? "hunk" : "hunks"} (out of ${totalHunks}) to ${cs.docName || "the editor"} (saves a History snapshot first)`,
+                  onclick: () => {
+                    cs.userToggled = true;
+                    if (selectedCount === 0 && acceptedCount > 0) {
+                      applyHunkSetToEditor(
+                        cs,
+                        [],
+                        `Before AI Revert Hunks`,
+                        `Reverted AI hunks in ${cs.docName || "editor"}.`,
+                      );
+                    } else {
+                      applyHunkSetToEditor(
+                        cs,
+                        cs.selectedHunkIds,
+                        `Before AI Apply Hunks (${selectedCount}/${totalHunks})`,
+                        `Applied ${selectedCount}/${totalHunks} selected ${selectedCount === 1 ? "hunk" : "hunks"} to ${cs.docName || "editor"} (History snapshot saved).`,
+                      );
+                    }
+                    refreshCardDom();
+                  },
+                },
+                selectedCount === 0 && acceptedCount > 0
+                  ? `↩ Revert Applied (${acceptedCount})`
+                  : `✓ Apply Selected ${selectedCount === 1 ? "Hunk" : "Hunks"} (${selectedCount}/${totalHunks})`,
+              )
+            : h(
+                "button",
+                {
+                  type: "button",
+                  class: "ollama-btn is-mini is-primary",
+                  title: selInfo.hasSelection
+                    ? "Replace the highlighted selection in the active editor with this code block (saves a History snapshot first)"
+                    : "Insert this code block at the cursor in the active editor (saves a History snapshot first)",
+                  onclick: () => insertCodeIntoEditor(cleanCode, "cursor"),
+                },
+                insertLabel,
+              ),
+          hasHunks
+            ? h(
+                "button",
+                {
+                  type: "button",
+                  class: "ollama-btn is-mini",
+                  "data-ai-apply-all": "true",
+                  title: `Accept all ${totalHunks} hunks (apply whole proposed edit) to ${cs.docName || "editor"}`,
+                  onclick: () => {
+                    cs.userToggled = true;
+                    cs.selectedHunkIds = new Set(hunks.map((x) => x.id));
+                    applyHunkSetToEditor(
+                      cs,
+                      cs.selectedHunkIds,
+                      "Before AI Apply Whole Edit",
+                      `Applied all ${totalHunks} hunks to ${cs.docName || "editor"} (History snapshot saved).`,
+                    );
+                    refreshCardDom();
+                  },
+                },
+                "📄 Apply Whole Edit",
+              )
+            : h(
+                "button",
+                {
+                  type: "button",
+                  class: "ollama-btn is-mini",
+                  title: "Replace the entire active file with this code block (saves a History snapshot first)",
+                  onclick: () => insertCodeIntoEditor(cleanCode, "file"),
+                },
+                "📄 Apply File",
+              ),
           h(
             "button",
             {
               type: "button",
               class: "ollama-btn is-mini",
-              title: "Compare this code block against your active selection or file in a Diff tab",
+              "data-ai-open-diff-tab": "true",
+              title: "Open unified diff in a full editor tab",
               onclick: () => diffCodeWithEditor(cleanCode, lang),
             },
-            "⇄ Diff",
+            "⇄ Diff Tab",
           ),
           h(
             "button",
             {
               type: "button",
               class: "ollama-btn is-mini",
-              title: "Replace the entire active file with this code block (saves a History snapshot first)",
-              onclick: () => insertCodeIntoEditor(cleanCode, "file"),
+              "data-ai-copy-code": "true",
+              title:
+                hasHunks && selectedCount > 0 && selectedCount < totalHunks
+                  ? `Copy code with only the ${selectedCount} selected ${selectedCount === 1 ? "hunk" : "hunks"} applied`
+                  : "Copy code block to clipboard",
+              onclick: (e) => {
+                if (hasHunks && selectedCount > 0 && selectedCount < totalHunks) {
+                  const partial = applySelectedDiffHunks(cs.originalBaseText, cleanCode, cs.selectedHunkIds, {
+                    context: 2,
+                    mergeGap: 0,
+                  });
+                  void copyCodeText(
+                    partial.text,
+                    `${displayLang} (${selectedCount}/${totalHunks} hunks)`,
+                    e.currentTarget,
+                  );
+                } else {
+                  void copyCodeText(cleanCode, `${displayLang} code block`, e.currentTarget);
+                }
+              },
             },
-            "📄 Apply File",
-          ),
-          h(
-            "button",
-            {
-              type: "button",
-              class: "ollama-btn is-mini",
-              title: "Copy code block to clipboard",
-              onclick: (e) => void copyCodeText(cleanCode, `${displayLang} code block`, e.currentTarget),
-            },
-            "📋 Copy",
+            hasHunks && selectedCount > 0 && selectedCount < totalHunks
+              ? `📋 Copy (${selectedCount}/${totalHunks})`
+              : "📋 Copy",
           ),
         ]),
-      ]),
-      bodyEl,
-    ]);
+      ]);
+
+      // 2. Front-and-Centre Diff & Hunk Review Body (when hasHunks && viewMode === "diff")
+      if (hasHunks && cs.viewMode === "diff") {
+        const hunkToolbar = h("div", { class: "code-ai-hunk-toolbar" }, [
+          h("div", { class: "code-ai-hunk-toolbar-info" }, [
+            h(
+              "span",
+              { class: "code-ai-hunk-guide" },
+              "Review diff before Apply — uncheck unrelated changes or accept individual hunks:",
+            ),
+            h(
+              "span",
+              { class: "code-ai-hunk-counter" },
+              `${selectedCount} of ${totalHunks} selected`,
+            ),
+            acceptedCount > 0
+              ? h(
+                  "span",
+                  { class: "code-ai-hunk-applied-pill" },
+                  `✓ ${acceptedCount}/${totalHunks} applied in editor`,
+                )
+              : null,
+          ]),
+          h("div", { class: "code-ai-hunk-bulk-actions" }, [
+            h(
+              "button",
+              {
+                type: "button",
+                class: "ollama-btn is-mini",
+                "data-ai-hunks-all": "true",
+                title: "Select all hunks for Apply",
+                onclick: () => {
+                  cs.userToggled = true;
+                  cs.selectedHunkIds = new Set(hunks.map((x) => x.id));
+                  refreshCardDom();
+                },
+              },
+              `☑ All (${totalHunks})`,
+            ),
+            h(
+              "button",
+              {
+                type: "button",
+                class: "ollama-btn is-mini",
+                "data-ai-hunks-none": "true",
+                title: "Deselect all hunks",
+                onclick: () => {
+                  cs.userToggled = true;
+                  cs.selectedHunkIds.clear();
+                  refreshCardDom();
+                },
+              },
+              "☐ None",
+            ),
+            totalHunks > 1
+              ? h(
+                  "button",
+                  {
+                    type: "button",
+                    class: "ollama-btn is-mini",
+                    "data-ai-hunks-invert": "true",
+                    title: "Invert hunk selection",
+                    onclick: () => {
+                      cs.userToggled = true;
+                      const next = new Set();
+                      for (const hk of hunks) {
+                        if (!cs.selectedHunkIds.has(hk.id)) next.add(hk.id);
+                      }
+                      cs.selectedHunkIds = next;
+                      refreshCardDom();
+                    },
+                  },
+                  "⇄ Invert",
+                )
+              : null,
+            h(
+              "button",
+              {
+                type: "button",
+                class: "ollama-btn is-mini",
+                "data-ai-rediff": "true",
+                title: "Re-compare this AI code block against your current editor selection or file",
+                onclick: () => {
+                  computeOrGetCardState(true);
+                  refreshCardDom();
+                },
+              },
+              "↻ Re-diff",
+            ),
+          ]),
+        ]);
+
+        const hunkCards = hunks.map((hunk) => {
+          const isSelected = cs.selectedHunkIds.has(hunk.id);
+          const isAccepted = cs.acceptedHunkIds.has(hunk.id);
+          const oldEndLine = hunk.oldStart + Math.max(0, hunk.oldCount - 1);
+          const lineRangeLabel =
+            hunk.oldCount > 1 ? `Lines ${hunk.oldStart}–${oldEndLine}` : `Line ${hunk.oldStart}`;
+
+          const diffRows = hunk.lines.map((op) => {
+            const rowKind = op.type === "+" ? "is-add" : op.type === "-" ? "is-del" : "is-ctx";
+            const absOld =
+              op.oldLine !== null ? (cs.startLine > 1 ? cs.startLine + op.oldLine - 1 : op.oldLine) : "";
+            const absNew =
+              op.newLine !== null ? (cs.startLine > 1 ? cs.startLine + op.newLine - 1 : op.newLine) : "";
+            return h("div", { class: `code-ai-diff-row ${rowKind}` }, [
+              h(
+                "span",
+                { class: "code-ai-diff-ln is-old", "aria-hidden": "true" },
+                absOld !== "" ? String(absOld) : "",
+              ),
+              h(
+                "span",
+                { class: "code-ai-diff-ln is-new", "aria-hidden": "true" },
+                absNew !== "" ? String(absNew) : "",
+              ),
+              h("span", { class: "code-ai-diff-sign", "aria-hidden": "true" }, op.type),
+              renderTokenizedSpan(lang, op.line),
+            ]);
+          });
+
+          return h(
+            "section",
+            {
+              class: `code-ai-hunk-card${isSelected ? " is-selected" : " is-excluded"}${isAccepted ? " is-accepted" : ""}`,
+              "data-ai-hunk-id": String(hunk.id),
+            },
+            [
+              h("div", { class: "code-ai-hunk-head" }, [
+                h(
+                  "label",
+                  {
+                    class: "code-ai-hunk-toggle",
+                    title: isSelected
+                      ? `Hunk #${hunk.number} is included in "Apply Selected Hunks". Uncheck to skip this hunk.`
+                      : `Hunk #${hunk.number} is skipped. Check to include it in "Apply Selected Hunks".`,
+                  },
+                  [
+                    h("input", {
+                      type: "checkbox",
+                      class: "code-ai-hunk-checkbox",
+                      "data-ai-hunk-check": String(hunk.id),
+                      checked: isSelected ? "checked" : null,
+                      onchange: (e) => {
+                        cs.userToggled = true;
+                        if (e.target.checked) cs.selectedHunkIds.add(hunk.id);
+                        else cs.selectedHunkIds.delete(hunk.id);
+                        refreshCardDom();
+                      },
+                    }),
+                    h("span", { class: "code-ai-hunk-title" }, `Hunk #${hunk.number}`),
+                  ],
+                ),
+                h(
+                  "button",
+                  {
+                    type: "button",
+                    class: "code-ai-hunk-loc",
+                    "data-ai-jump-line": String(cs.startLine > 1 ? cs.startLine + hunk.oldStart - 1 : hunk.oldStart),
+                    title: `Jump active editor to ${lineRangeLabel} (${hunk.header})`,
+                    onclick: () => {
+                      const targetLine = cs.startLine > 1 ? cs.startLine + hunk.oldStart - 1 : hunk.oldStart;
+                      const ed = ctx.getEditor?.();
+                      ed?.goTo?.(targetLine, 1);
+                      ed?.focus?.();
+                    },
+                  },
+                  `${lineRangeLabel} · ${hunk.header} ↗`,
+                ),
+                h("span", { class: "code-ai-hunk-deltas" }, [
+                  h("span", { class: "code-ai-delta-add" }, `+${hunk.added}`),
+                  h("span", { class: "code-ai-delta-del" }, `−${hunk.removed}`),
+                ]),
+                h(
+                  "span",
+                  {
+                    class: `code-ai-hunk-status-pill ${
+                      isAccepted ? "is-accepted" : isSelected ? "is-included" : "is-skipped"
+                    }`,
+                  },
+                  isAccepted ? "✓ Applied" : isSelected ? "Included" : "Skipped",
+                ),
+                h("span", { class: "code-grow" }),
+                h(
+                  "button",
+                  {
+                    type: "button",
+                    class: `ollama-btn is-mini ${isAccepted ? "is-active" : "is-primary"} code-ai-accept-hunk-btn`,
+                    "data-ai-accept-hunk": String(hunk.id),
+                    title: isAccepted
+                      ? `Revert Hunk #${hunk.number} in ${cs.docName || "the editor"}`
+                      : `Accept and apply ONLY Hunk #${hunk.number} to ${cs.docName || "the editor"} right now (saves History snapshot)`,
+                    onclick: () => {
+                      cs.userToggled = true;
+                      const nextAccepted = new Set(cs.acceptedHunkIds);
+                      const reverting = nextAccepted.has(hunk.id);
+                      if (reverting) {
+                        nextAccepted.delete(hunk.id);
+                        cs.selectedHunkIds.delete(hunk.id);
+                      } else {
+                        nextAccepted.add(hunk.id);
+                        cs.selectedHunkIds.add(hunk.id);
+                      }
+                      applyHunkSetToEditor(
+                        cs,
+                        nextAccepted,
+                        reverting
+                          ? `Before AI Revert Hunk #${hunk.number}`
+                          : `Before AI Accept Hunk #${hunk.number}`,
+                        reverting
+                          ? `Reverted Hunk #${hunk.number} in ${cs.docName || "editor"}.`
+                          : `Accepted Hunk #${hunk.number} (${lineRangeLabel}) in ${cs.docName || "editor"} (History snapshot saved).`,
+                      );
+                      refreshCardDom();
+                    },
+                  },
+                  isAccepted ? `↩ Revert Hunk #${hunk.number}` : `✓ Accept Hunk #${hunk.number}`,
+                ),
+              ]),
+              h(
+                "div",
+                { class: `code-ai-hunk-lines${state.codeWrap ? " is-wrapped" : ""}` },
+                diffRows,
+              ),
+            ],
+          );
+        });
+
+        const diffReviewBody = h("div", { class: "code-ai-diff-review" }, [
+          hunkToolbar,
+          h("div", { class: "code-ai-hunk-list" }, hunkCards),
+        ]);
+
+        cardEl.replaceChildren(barEl, diffReviewBody);
+        return;
+      }
+
+      // 3. Raw Code Body
+      cardEl.replaceChildren(barEl, buildRawCodeBody());
+    }
+
+    refreshCardDom();
+    return cardEl;
   }
 
-  function renderAstNode(node) {
+  function renderAstNode(node, ctxMeta = { msgKey: "", blockIdx: 0 }) {
     if (!node) return document.createTextNode("");
     switch (node.tag) {
       case "#text":
         return document.createTextNode(node.text || "");
       case "#inline": {
         const frag = document.createDocumentFragment();
-        for (const c of node.children || []) frag.append(renderAstNode(c));
+        for (const c of node.children || []) frag.append(renderAstNode(c, ctxMeta));
         return frag;
       }
       case "br":
@@ -512,8 +1108,11 @@ export function createCodeAiChat(ctx) {
         return h("hr");
       case "code":
         return h("code", { class: "bionic-md-inline-code" }, node.text || "");
-      case "pre":
-        return renderCodeBlockCard(node.text || "", node.lang || "");
+      case "pre": {
+        const idx = ctxMeta.blockIdx++;
+        const cardKey = `${ctxMeta.msgKey || "msg"}:block:${idx}`;
+        return renderCodeBlockCard(node.text || "", node.lang || "", cardKey);
+      }
       case "a": {
         const href = String(node.href || "").trim();
         return h(
@@ -524,37 +1123,37 @@ export function createCodeAiChat(ctx) {
             target: "_blank",
             rel: "noopener noreferrer",
           },
-          (node.children || []).map((c) => renderAstNode(c)),
+          (node.children || []).map((c) => renderAstNode(c, ctxMeta)),
         );
       }
       case "blockquote":
         return h(
           "blockquote",
           { class: "bionic-md-blockquote" },
-          (node.children || []).map((c) => renderAstNode(c)),
+          (node.children || []).map((c) => renderAstNode(c, ctxMeta)),
         );
       case "ul":
-        return h("ul", {}, (node.children || []).map((c) => renderAstNode(c)));
+        return h("ul", {}, (node.children || []).map((c) => renderAstNode(c, ctxMeta)));
       case "ol":
         return h(
           "ol",
           { start: node.start > 1 ? String(node.start) : null },
-          (node.children || []).map((c) => renderAstNode(c)),
+          (node.children || []).map((c) => renderAstNode(c, ctxMeta)),
         );
       case "li":
-        return h("li", {}, (node.children || []).map((c) => renderAstNode(c)));
+        return h("li", {}, (node.children || []).map((c) => renderAstNode(c, ctxMeta)));
       case "table": {
         const theadNode = (node.children || []).find((c) => c.tag === "thead");
         const tbodyNode = (node.children || []).find((c) => c.tag === "tbody");
         const thEls = (theadNode?.children?.[0]?.children || []).map((th) =>
-          h("th", {}, (th.children || []).map((c) => renderAstNode(c))),
+          h("th", {}, (th.children || []).map((c) => renderAstNode(c, ctxMeta))),
         );
         const trEls = (tbodyNode?.children || []).map((tr) =>
           h(
             "tr",
             {},
             (tr.children || []).map((td) =>
-              h("td", {}, (td.children || []).map((c) => renderAstNode(c))),
+              h("td", {}, (td.children || []).map((c) => renderAstNode(c, ctxMeta))),
             ),
           ),
         );
@@ -570,24 +1169,25 @@ export function createCodeAiChat(ctx) {
           return h(
             node.tag,
             { class: `bionic-md-heading bionic-md-${node.tag}` },
-            (node.children || []).map((c) => renderAstNode(c)),
+            (node.children || []).map((c) => renderAstNode(c, ctxMeta)),
           );
         }
         const safeTag = ["p", "strong", "em", "del", "span", "div"].includes(node.tag) ? node.tag : "span";
         return h(
           safeTag,
           {},
-          (node.children || []).map((c) => renderAstNode(c)),
+          (node.children || []).map((c) => renderAstNode(c, ctxMeta)),
         );
       }
     }
   }
 
-  function renderMarkdownBody(rawText) {
+  function renderMarkdownBody(rawText, msgKey = "") {
     const clean = String(rawText ?? "").trim();
     if (!clean) return h("div", { class: "code-ai-empty-msg" }, "…");
     const { nodes } = parseMarkdown(clean);
-    const out = (nodes || []).map((n) => renderAstNode(n));
+    const ctxMeta = { msgKey: msgKey || "msg", blockIdx: 0 };
+    const out = (nodes || []).map((n) => renderAstNode(n, ctxMeta));
     return h("div", { class: "bionic-md-viewer code-ai-md-body" }, out);
   }
 
@@ -922,7 +1522,7 @@ export function createCodeAiChat(ctx) {
     });
   }
 
-  function renderMessageCard(msg) {
+  function renderMessageCard(msg, idx = 0) {
     if (msg.role === "user") {
       return h("div", { class: "code-ai-msg is-user" }, [
         h("div", { class: "code-ai-msg-head" }, [
@@ -962,7 +1562,7 @@ export function createCodeAiChat(ctx) {
         ? h("div", { class: "code-ai-err" }, `⚠ ${msg.error}`)
         : msg.streaming && !msg.content && !msg.reasoning
           ? h("div", { class: "code-ai-streaming" }, "⚡ Thinking & streaming tokens…")
-          : renderMarkdownBody(msg.content),
+          : renderMarkdownBody(msg.content, `msg-${msg.id ?? idx}`),
     ]);
   }
 
@@ -975,7 +1575,7 @@ export function createCodeAiChat(ctx) {
           h(
             "p",
             { class: "code-ai-welcome-sub" },
-            "Ask questions about your active file, highlight lines to refactor or debug, and insert or diff generated code blocks with 1 click.",
+            "Ask questions about your active file, highlight lines to refactor or debug, and review inline diffs or accept individual hunks with 1 click.",
           ),
           d
             ? h("div", { class: "code-ai-welcome-file" }, `📄 Active tab: ${d.name} (${d.lang || "text"})`)
@@ -983,7 +1583,7 @@ export function createCodeAiChat(ctx) {
         ]),
       ];
     }
-    return state.messages.map((m) => renderMessageCard(m));
+    return state.messages.map((m, idx) => renderMessageCard(m, idx));
   }
 
   function renderThreadOnly() {
@@ -999,6 +1599,7 @@ export function createCodeAiChat(ctx) {
   function render() {
     const savedDraft = promptInputEl ? promptInputEl.value : state.promptText;
     const hadFocus = promptInputEl && document.activeElement === promptInputEl;
+    const prevScrollTop = threadContainerEl ? threadContainerEl.scrollTop : 0;
     clear(root);
 
     const isBionic = state.engine === "bionic";
@@ -1136,6 +1737,7 @@ export function createCodeAiChat(ctx) {
           disabled: state.messages.length === 0 ? "disabled" : null,
           onclick: () => {
             state.messages = [];
+            state.codeCardStates.clear();
             render();
           },
         },
@@ -1473,16 +2075,28 @@ export function createCodeAiChat(ctx) {
     ]);
 
     root.append(head, modelBar, modelCapabilitiesBar, quickBar, threadContainerEl, composer);
+    if (threadContainerEl && prevScrollTop > 0) {
+      threadContainerEl.scrollTop = prevScrollTop;
+    }
     if (hadFocus && promptInputEl) {
       promptInputEl.focus();
     }
   }
 
-  return {
+  let lastCtxKey = "";
+  let msgSeq = 0;
+
+  const controller = {
     el: root,
     refreshEngines,
     updateContext() {
-      if (!root.hidden) render();
+      if (root.hidden) return;
+      const d = ctx.getDoc?.();
+      const sel = activeSelectionInfo();
+      const nextKey = `${d?.id ?? 0}:${d?.name ?? ""}:${sel.hasSelection ? `${sel.start}-${sel.end}` : "nosel"}`;
+      if (nextKey === lastCtxKey) return;
+      lastCtxKey = nextKey;
+      render();
     },
     focusInput() {
       if (!state.bionicStatus && !state.ollamaStatus) {
@@ -1499,5 +2113,25 @@ export function createCodeAiChat(ctx) {
       const selInfo = activeSelectionInfo();
       void sendPrompt(q.buildPrompt(selInfo.hasSelection));
     },
+    pushMessage(msg) {
+      if (!msg || typeof msg !== "object") return;
+      state.messages.push({
+        id: msg.id ?? ++msgSeq,
+        role: msg.role || "assistant",
+        engine: msg.engine || state.engine,
+        model: msg.model || (state.engine === "bionic" ? state.bionicModel : state.ollamaModel) || "local-llm",
+        reasoning: msg.reasoning || "",
+        content: String(msg.content ?? ""),
+        contextBadge: msg.contextBadge || "",
+        streaming: false,
+        error: msg.error || "",
+      });
+      render();
+    },
+    getMessages() {
+      return state.messages;
+    },
   };
+  root._aiChatController = controller;
+  return controller;
 }
