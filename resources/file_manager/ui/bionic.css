@@ -659,3 +659,12 @@
   }
 }
 
+.bionic-md-viewer :is(h1, h2, h3, h4) {
+  text-wrap: balance;
+}
+
+.bionic-md-viewer :is(p, li, blockquote) {
+  text-wrap: pretty;
+}
+
+

@@ -37,7 +37,7 @@ export function fileRow({ what, accepts, onPick, idPrefix }) {
       toast(err instanceof ApiError ? err.message : err.message, { kind: "error" });
     }
   };
-  typed.addEventListener("keydown", (e) => { if (e.key === "Enter") openTyped(); });
+  typed.addEventListener("keydown", (e) => { if (e.isComposing || e.keyCode === 229) return; if (e.key === "Enter") openTyped(); });
   const el = h("div", { class: "pw-card st-filecard" },
     h("div", { class: "pw-row" },
       h("span", { class: "st-file-label" }, "Editing:"), name,

@@ -142,4 +142,89 @@ describe("accessibility basics in the stylesheet", () => {
     expect(studioPolishTs).toContain("applyFmTheme(e.data.fmTheme)");
     expect(studioPolishTs).toContain("fm-db-studio-theme");
   });
+
+  test("modern web guidance UI enhancements: IME-safe Enter submit, typography balance/pretty, Quick Look 1:1 & Bionic Vision, and Details Quick Actions", () => {
+    const rootDir = join(import.meta.dir, "..");
+    const ui = join(rootDir, "resources", "file_manager", "ui");
+
+    // 1. Typography legibility (text-wrap: balance & text-wrap: pretty) and skip-link :focus-visible
+    expect(css).toContain("text-wrap: balance");
+    expect(css).toContain("text-wrap: pretty");
+    expect(css).toContain(".skip-link:focus-visible");
+    expect(css).toContain(".info-quick-actions");
+    expect(css).toContain(".info-qa-btn");
+
+    const bionicCss = readFileSync(join(ui, "bionic.css"), "utf8");
+    expect(bionicCss).toContain("text-wrap: balance");
+    expect(bionicCss).toContain("text-wrap: pretty");
+
+    // 2. Reduced-motion damping on .ollama-spinner
+    const ollamaCss = readFileSync(join(ui, "ollama.css"), "utf8");
+    expect(ollamaCss).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.ollama-spinner/);
+
+    // 3. IME-safe Enter composition guards (e.isComposing || e.keyCode === 229) & prompt history recall
+    for (const file of [
+      "ollama.js",
+      "bionic.js",
+      "codeAiChat.js",
+      "codeFindBar.js",
+      "quicklookFormat.js",
+      "findUi.js",
+      "findPicker.js",
+      "sdform.js",
+      "codePanels.js",
+      "serveForm.js",
+      "studioCommon.js",
+      "net.js",
+      "ip.js",
+      "iptools.js",
+      "subs.js",
+      "fileinfoHash.js",
+      "crypto_color.js",
+      "vaultEncrypt.js",
+      "vaultDecrypt.js",
+      "permsPanel.js",
+      "tasks.js",
+      "cliUtils.js",
+    ]) {
+      const src = readFileSync(join(ui, file), "utf8");
+      expect(src, file).toContain("e.isComposing || e.keyCode === 229");
+    }
+    const ollamaJs = readFileSync(join(ui, "ollama.js"), "utf8");
+    const bionicJs = readFileSync(join(ui, "bionic.js"), "utf8");
+    expect(ollamaJs).toContain("lastSubmittedPrompt");
+    expect(bionicJs).toContain("lastSubmittedPrompt");
+    expect(ollamaJs).toContain('"data-ollama-subtab"');
+
+    // 4. Quick Look Image Inspector 1:1 actual size, 2D panning stage, double-click zoom, wheel zoom, and Ask Bionic Vision
+    const qlJs = readFileSync(join(ui, "quicklook.js"), "utf8");
+    expect(qlJs).toContain("qlImgActual");
+    expect(qlJs).toContain("qlImgAskBionic");
+    expect(qlJs).toContain('"1": "[data-ql-img-actual]"');
+    expect(qlJs).toContain("Interactive image stage for");
+    expect(css).toContain("scroll-axis-lock: none");
+    expect(css).toContain("overscroll-behavior: contain");
+    expect(css).toContain("accent-color: var(--accent)");
+    expect(css).toContain(":user-invalid");
+    expect(ollamaCss).toContain("field-sizing: content");
+
+    // 5. Details Panel Quick Actions strip & Floating Selection Bar AI actions
+    const infoJs = readFileSync(join(ui, "info.js"), "utf8");
+    expect(infoJs).toContain("info-quick-actions");
+    expect(infoJs).toContain('infoAction: "quicklook"');
+    expect(infoJs).toContain('infoAction: "ask-ai"');
+    expect(infoJs).toContain('infoAction: "ask-bionic"');
+    expect(infoJs).toContain('infoAction: "read-aloud"');
+
+    const quickbarJs = readFileSync(join(ui, "quickbar.js"), "utf8");
+    expect(quickbarJs).toContain('addAct("ollama"');
+    expect(quickbarJs).toContain('addAct("bionic"');
+
+    // 6. Shared Database Studio polish (studioPolish.ts)
+    const studioPolishTs = readFileSync(join(rootDir, "src", "shared", "studioPolish.ts"), "utf8");
+    expect(studioPolishTs).toContain("accent-color: var(--cyan)");
+    expect(studioPolishTs).toContain(":user-invalid");
+    expect(studioPolishTs).toContain("text-wrap: balance");
+    expect(studioPolishTs).toContain("text-wrap: pretty");
+  });
 });

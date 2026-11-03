@@ -9,8 +9,10 @@ import { mayHavePhotoDetails, photoStrip } from "./fileinfoPhoto.js";
 import { $, clear, h, iconForEntry } from "./dom.js";
 import { saveSettings, visibleEntries } from "./nav.js";
 import { octalOf, symbolicOf } from "./permsModel.js";
+import { copyPathOf } from "./ops.js";
+import { openPower } from "./power.js";
 import { selectedEntries } from "./selection.js";
-import { inTrash, on, state } from "./state.js";
+import { emit, inTrash, on, state } from "./state.js";
 import { quickMediaBlock } from "./mediaQuick.js";
 import { renderRichInfoSummary } from "./quicklookFormat.js";
 import { editNoteDialog, noteForPath, setNoteForPath } from "./tags.js";
@@ -21,6 +23,117 @@ let sequence = 0;
 
 function fact(label, value) {
   return value ? [h("dt", {}, label), h("dd", {}, value)] : [];
+}
+
+function quickActionsStrip(items) {
+  if (!Array.isArray(items) || items.length === 0 || inTrash()) return null;
+  if (items.length === 1) {
+    const e = items[0];
+    const paths = [e.path];
+    return h(
+      "div",
+      { class: "info-quick-actions", dataset: { infoQuickActions: "" }, role: "group", "aria-label": "Quick actions for selected item" },
+      h(
+        "button",
+        {
+          type: "button",
+          class: "btn info-qa-btn",
+          dataset: { infoAction: "quicklook" },
+          title: "Preview this item right here without opening another program (Space)",
+          onclick: () => emit("quicklook-open", e),
+        },
+        "👁️ Quick Look",
+      ),
+      h(
+        "button",
+        {
+          type: "button",
+          class: "btn info-qa-btn",
+          dataset: { infoAction: "copy-path" },
+          title: "Copy the full path of this item to the clipboard",
+          onclick: () => void copyPathOf([e]),
+        },
+        "📋 Copy Path",
+      ),
+      !e.isDir
+        ? h(
+            "button",
+            {
+              type: "button",
+              class: "btn info-qa-btn",
+              dataset: { infoAction: "ask-ai" },
+              title: "Analyze or summarize this file with Ollama AI",
+              onclick: () => openPower("ollama", { subTab: "assistant", paths }),
+            },
+            "🤖 Ask AI",
+          )
+        : null,
+      !e.isDir
+        ? h(
+            "button",
+            {
+              type: "button",
+              class: "btn info-qa-btn",
+              dataset: { infoAction: "ask-bionic" },
+              title: "Analyze this file with LM Studio Bionic AI Studio",
+              onclick: () => openPower("bionic", { subTab: "assistant", paths }),
+            },
+            "🧬 Ask Bionic",
+          )
+        : null,
+      !e.isDir && looksLikeText(e.name)
+        ? h(
+            "button",
+            {
+              type: "button",
+              class: "btn info-qa-btn",
+              dataset: { infoAction: "read-aloud" },
+              title: "Read this file aloud using AI Speech TTS",
+              onclick: () => openPower("ollama", { subTab: "speech", paths }),
+            },
+            "🔊 Read Aloud",
+          )
+        : null,
+    );
+  }
+  const paths = items.map((x) => x.path);
+  return h(
+    "div",
+    { class: "info-quick-actions", dataset: { infoQuickActions: "" }, role: "group", "aria-label": "Quick actions for selected items" },
+    h(
+      "button",
+      {
+        type: "button",
+        class: "btn info-qa-btn",
+        dataset: { infoAction: "copy-path" },
+        title: "Copy the full paths of all selected items",
+        onclick: () => void copyPathOf(items),
+      },
+      "📋 Copy Paths",
+    ),
+    h(
+      "button",
+      {
+        type: "button",
+        class: "btn info-qa-btn",
+        dataset: { infoAction: "ask-ai" },
+        title: "Analyze all selected items with Ollama AI",
+        onclick: () => openPower("ollama", { subTab: "assistant", paths }),
+      },
+      `🤖 Ask AI (${items.length})`,
+    ),
+    h(
+      "button",
+      {
+        type: "button",
+        class: "btn info-qa-btn",
+        dataset: { infoAction: "ask-bionic" },
+        title: "Synthesize or compare all selected items with LM Studio Bionic",
+        onclick: () => openPower("bionic", { subTab: "assistant", paths, synthesize: true, mode: "compare" }),
+      },
+      `🧬 Bionic (${items.length})`,
+    ),
+  );
 }
 
 function noteBlock(entry) {
@@ -123,6 +236,7 @@ export async function renderInfo() {
       h("div", { class: "info-icon", "aria-hidden": "true" }, "🗂️"),
       h("h2", { class: "info-name" }, `${items.length} items selected`),
       h("dl", { class: "info-facts" }, ...fact("Folders", String(items.length - files.length)), ...fact("Files", String(files.length)), ...fact("Size of files", formatSize(files.reduce((n, e) => n + e.size, 0)))),
+      quickActionsStrip(items),
       h("button", { type: "button", class: "btn", onclick: () => showProperties(items.map((e) => e.path)) }, "Properties…"),
       h("button", { type: "button", class: "btn fi-more", title: "A summary of everything selected: total size, kinds of files and dates", onclick: () => showMoreInfo(items.map((e) => e.path)) }, "More info…"),
       quickMediaBlock(items),
@@ -142,6 +256,7 @@ export async function renderInfo() {
       ...fact("Type", e.label), ...fact("Size", e.isDir && !isDocumentPackageEntry(e) ? "" : formatSize(e.size)), ...fact(inTrash() ? "Deleted" : "Modified", formatDate(e.mtimeMs)),
       ...fact("Permissions", !inTrash() && typeof e.mode === "number" ? `${symbolicOf(e.mode)} (${octalOf(e.mode)})` : ""),
       ...fact(inTrash() ? "Was in" : "Where", inTrash() ? e.where : state.search ? e.folder : baseName(state.location.path, state.sep))),
+    quickActionsStrip([e]),
     noteBlock(e),
     inTrash() || e.isDir ? null : verdictBlock(e.path, e.name),
     inTrash() ? null : h("button", { type: "button", class: "btn", onclick: () => showProperties([e.path]) }, "Properties…"),

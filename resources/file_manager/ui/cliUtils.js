@@ -67,6 +67,7 @@ function mount(root) {
     spellcheck: "false",
     autocomplete: "off",
     onkeydown: (e) => {
+      if (e.isComposing || e.keyCode === 229) return;
       if (e.key === "Enter") {
         e.preventDefault();
         const targetTool =

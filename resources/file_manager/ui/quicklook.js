@@ -278,6 +278,9 @@ async function renderBody(entry, mine) {
 
       const stage = h("div", {
         class: "ql-image-stage ql-bg-grid",
+        tabindex: "0",
+        role: "region",
+        "aria-label": `Interactive image stage for ${entry.name}`,
         dataset: { qlImgStage: "", backdrop: backdropMode },
         style: "display: flex; overflow: auto; flex: 1 1 0%; min-height: 0; min-width: 0; width: 100%; height: 100%; position: relative; z-index: 1; clip-path: inset(0); padding: 16px; box-sizing: border-box; background-image: linear-gradient(45deg, rgba(148,163,184,0.14) 25%, transparent 25%), linear-gradient(-45deg, rgba(148,163,184,0.14) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, rgba(148,163,184,0.14) 75%), linear-gradient(-45deg, transparent 75%, rgba(148,163,184,0.14) 75%); background-size: 16px 16px; background-position: 0 0, 0 8px, 8px -8px, -8px 0;",
       });
@@ -310,6 +313,17 @@ async function renderBody(entry, mine) {
         },
       });
 
+      function computeFitScale() {
+        const natW = img.naturalWidth || 640;
+        const natH = img.naturalHeight || 480;
+        const availW = Math.max(120, (stage.clientWidth || 800) - 32);
+        const availH = Math.max(120, (stage.clientHeight || 520) - 32);
+        const isRot90 = Math.abs(rot % 180) === 90;
+        return isRot90
+          ? Math.min(availW / natH, availH / natW, 1)
+          : Math.min(availW / natW, availH / natH, 1);
+      }
+
       function applyTransform(resetCenter = false) {
         const pct = Math.round(zoom * 100);
         zoomLabelBtn.textContent = zoom === 1 && rot === 0 && flipX === 1 && flipY === 1 ? "100% (Fit)" : `${pct}%`;
@@ -333,9 +347,7 @@ async function renderBody(entry, mine) {
         const isRot90 = Math.abs(rot % 180) === 90;
 
         // Fit scale so 100% (Fit) fits nicely inside the stage without exceeding 1:1 natural pixels unless zoomed
-        const fitScale = isRot90
-          ? Math.min(availW / natH, availH / natW, 1)
-          : Math.min(availW / natW, availH / natH, 1);
+        const fitScale = computeFitScale();
 
         const targetW = Math.max(24, Math.round(natW * fitScale * zoom));
         const targetH = Math.max(24, Math.round(natH * fitScale * zoom));
@@ -397,6 +409,20 @@ async function renderBody(entry, mine) {
       };
       stage.addEventListener("mouseup", stopPan);
       stage.addEventListener("mouseleave", stopPan);
+      stage.addEventListener("dblclick", (ev) => {
+        ev.preventDefault();
+        zoom = zoom === 1 ? 2 : 1;
+        applyTransform();
+      });
+      stage.addEventListener("wheel", (ev) => {
+        if (ev.ctrlKey || ev.metaKey) {
+          ev.preventDefault();
+          ev.stopPropagation();
+          const stepDelta = ev.deltaY < 0 ? 0.25 : -0.25;
+          zoom = Math.min(8, Math.max(0.25, +(zoom + stepDelta).toFixed(2)));
+          applyTransform();
+        }
+      }, { passive: false });
 
       function applyBackdrop(mode) {
         backdropMode = mode;
@@ -412,7 +438,18 @@ async function renderBody(entry, mine) {
         h("span", { class: "code-grow" }),
         h("button", { type: "button", class: "btn ql-mini-btn", dataset: { qlImgZoomOut: "" }, title: "Zoom out (−)", onclick: () => { zoom = Math.max(0.25, +(zoom - 0.25).toFixed(2)); applyTransform(); } }, "−"),
         zoomLabelBtn,
-        h("button", { type: "button", class: "btn ql-mini-btn", dataset: { qlImgZoomIn: "" }, title: "Zoom in (+)", onclick: () => { zoom = Math.min(4, +(zoom + 0.25).toFixed(2)); applyTransform(); } }, "+"),
+        h("button", { type: "button", class: "btn ql-mini-btn", dataset: { qlImgZoomIn: "" }, title: "Zoom in (+)", onclick: () => { zoom = Math.min(8, +(zoom + 0.25).toFixed(2)); applyTransform(); } }, "+"),
+        h("button", {
+          type: "button",
+          class: "btn ql-mini-btn",
+          dataset: { qlImgActual: "" },
+          title: "Actual pixel size 1:1 (Shortcut: 1)",
+          onclick: () => {
+            const fit = computeFitScale();
+            zoom = Math.min(8, Math.max(0.25, +(1 / Math.max(0.05, fit)).toFixed(2)));
+            applyTransform();
+          },
+        }, "1:1"),
         h("button", { type: "button", class: "btn ql-mini-btn", dataset: { qlImgRotLeft: "" }, title: "Rotate 90° counter-clockwise (⇧R)", onclick: () => { rot = (rot - 90) % 360; applyTransform(); } }, "↶"),
         h("button", { type: "button", class: "btn ql-mini-btn", dataset: { qlImgRotRight: "" }, title: "Rotate 90° clockwise (R)", onclick: () => { rot = (rot + 90) % 360; applyTransform(); } }, "↷"),
         h("button", { type: "button", class: "btn ql-mini-btn", dataset: { qlImgFlipH: "" }, title: "Flip horizontally (H)", onclick: () => { flipX *= -1; applyTransform(); } }, "⇄"),
@@ -421,14 +458,14 @@ async function renderBody(entry, mine) {
           type: "button",
           class: "btn ql-mini-btn",
           dataset: { qlImgBackdrop: "" },
-          title: "Cycle transparency backdrop (Checkerboard Grid / Dark / Light)",
+          title: "Cycle transparency backdrop (Checkerboard Grid / Dark / Light — Shortcut: B)",
           onclick: () => applyBackdrop(backdropMode === "grid" ? "dark" : backdropMode === "dark" ? "light" : "grid"),
         }, "🏁 Backdrop"),
         h("button", {
           type: "button",
           class: "btn ql-mini-btn",
           dataset: { qlImgAskAi: "" },
-          title: "Analyze this image with AI Vision (Ollama / LM Studio Bionic)",
+          title: "Analyze this image with Ollama AI Vision",
           onclick: () => {
             closeQuickLook();
             openPower("ollama", {
@@ -438,6 +475,20 @@ async function renderBody(entry, mine) {
             });
           },
         }, "🤖 Ask AI"),
+        h("button", {
+          type: "button",
+          class: "btn ql-mini-btn",
+          dataset: { qlImgAskBionic: "" },
+          title: "Analyze this image with LM Studio Bionic Vision VLM",
+          onclick: () => {
+            closeQuickLook();
+            openPower("bionic", {
+              subTab: "assistant",
+              paths: [entry.path],
+              prompt: `Describe and analyze the image "${entry.name}" in detail.`,
+            });
+          },
+        }, "🧬 Ask Bionic"),
       );
 
       canvasWrap.append(img);
@@ -672,6 +723,7 @@ function onKey(e) {
       "-": "[data-ql-img-zoom-out]",
       "_": "[data-ql-img-zoom-out]",
       "0": "[data-ql-img-zoom-reset]",
+      "1": "[data-ql-img-actual]",
       "r": "[data-ql-img-rot-right]",
       "R": e.shiftKey ? "[data-ql-img-rot-left]" : "[data-ql-img-rot-right]",
       "h": "[data-ql-img-flip-h]",

@@ -116,8 +116,8 @@ export function buildToolkit({ view, getTarget, getToken, openLink }) {
   });
   const inBlock = toolBtn("✔ Is it in this block?", "Checks whether the test address is inside the CIDR block typed in the box at the top.", "ip/incidr", () => ({ cidr: getTarget(), ip: testIp.value }));
   const split = toolBtn("✂ Split block", "Cuts the CIDR block at the top into smaller blocks of the size chosen on the left.", "ip/split", () => ({ cidr: getTarget(), prefix: prefix.value === "" ? null : Number(prefix.value) }));
-  testIp.addEventListener("keydown", (e) => e.key === "Enter" && inBlock.click());
-  prefix.addEventListener("keydown", (e) => e.key === "Enter" && split.click());
+  testIp.addEventListener("keydown", (e) => { if (e.isComposing || e.keyCode === 229) return; if (e.key === "Enter") inBlock.click(); });
+  prefix.addEventListener("keydown", (e) => { if (e.isComposing || e.keyCode === 229) return; if (e.key === "Enter") split.click(); });
 
   return h("div", { class: "pw-card ip-toolkit" },
     h("h3", {}, "Toolkit"),

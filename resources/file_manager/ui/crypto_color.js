@@ -45,6 +45,7 @@ export function buildColorCards(env) {
     env.log("Color converter", `${r.rows.length} forms`);
   }, { primary: true });
   text.input.addEventListener("keydown", (e) => {
+    if (e.isComposing || e.keyCode === 229) return;
     if (e.key === "Enter") {
       e.preventDefault();
       show.click();

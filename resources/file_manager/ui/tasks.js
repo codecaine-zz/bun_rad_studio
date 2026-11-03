@@ -122,6 +122,7 @@ function mountTasks(root) {
   viewSelect.addEventListener("change", () => renderTable());
   intervalSelect.addEventListener("change", () => syncTimer());
   portInput.addEventListener("keydown", (e) => {
+    if (e.isComposing || e.keyCode === 229) return;
     if (e.key === "Enter") {
       e.preventDefault();
       killByPort();

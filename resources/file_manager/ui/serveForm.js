@@ -44,8 +44,8 @@ export function buildServeForm({ onStart, onFolderChange, onUseCurrent }) {
   const message = h("p", { class: "pw-status serve-message", role: "status" });
   const go = h("button", { type: "button", class: "pw-btn serve-go", title: "Start the server and show it in the list above", onclick: () => onStart() }, "Start server");
   folder.addEventListener("change", () => onFolderChange(folder.value.trim()));
-  folder.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); onStart(); } });
-  port.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); onStart(); } });
+  folder.addEventListener("keydown", (e) => { if (e.isComposing || e.keyCode === 229) return; if (e.key === "Enter") { e.preventDefault(); onStart(); } });
+  port.addEventListener("keydown", (e) => { if (e.isComposing || e.keyCode === 229) return; if (e.key === "Enter") { e.preventDefault(); onStart(); } });
 
   const el = h("section", { class: "pw-card serve-form", "aria-label": "Start a new server" },
     h("h3", {}, "Start a new server"),

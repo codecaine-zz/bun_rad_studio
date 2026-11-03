@@ -51,8 +51,8 @@ export function createSearchPanel({ getRoot, getHidden, onOpen }) {
       busy = false;
     }
   }
-  q.addEventListener("keydown", (e) => e.key === "Enter" && run());
-  include.addEventListener("keydown", (e) => e.key === "Enter" && run());
+  q.addEventListener("keydown", (e) => { if (e.isComposing || e.keyCode === 229) return; if (e.key === "Enter") run(); });
+  include.addEventListener("keydown", (e) => { if (e.isComposing || e.keyCode === 229) return; if (e.key === "Enter") run(); });
   const el = h("div", { class: "code-panel" }, h("div", { class: "code-panel-head" }, q, h("div", { class: "code-row-tools" }, toggle("Aa", "Match upper and lower case exactly", "caseSensitive"), toggle("ab", "Match whole words only", "wholeWord"), toggle(".*", "Treat the text as a regular expression", "regex"), btn("Search", "Search all files in the folder", run, "primary")), include), status, results);
   return { el, show: () => q.focus(), focusWith(text) { if (text) q.value = text; q.focus(); q.select(); }, run };
 }

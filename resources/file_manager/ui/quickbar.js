@@ -683,6 +683,12 @@ export function renderSelectionBar() {
       openPower("phonon", { paths: readableTts.map((x) => x.path) }),
     );
   }
+  addAct("ollama", "🤖", items.length > 1 ? `Ask AI (${items.length})` : "Ask AI", "Inspect, summarize, or analyze selected items in Ollama AI Assistant", () =>
+    openPower("ollama", { paths: items.map((x) => x.path) }),
+  );
+  addAct("bionic", "🧬", items.length > 1 ? `Ask Bionic (${items.length})` : "Ask Bionic", "Analyze, synthesize, or run @Skills on selected items in LM Studio Bionic", () =>
+    openPower("bionic", { paths: items.map((x) => x.path) }),
+  );
   const archives = extractableEntries(items);
   if (archives.length > 0 && !left.search) {
     addAct("extract", "📦", "Extract", "Extract archive contents into this folder", () => ops.extractSelection(items));

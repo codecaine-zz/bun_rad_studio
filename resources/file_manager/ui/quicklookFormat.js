@@ -218,6 +218,7 @@ export function ensureQuickLookFindBar(hostEl) {
 
   input.addEventListener("input", runSearch);
   input.addEventListener("keydown", (e) => {
+    if (e.isComposing || e.keyCode === 229) return;
     if (e.key === "Enter") {
       e.preventDefault();
       e.stopPropagation();

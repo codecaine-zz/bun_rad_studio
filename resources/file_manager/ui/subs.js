@@ -426,6 +426,7 @@ function mount(root) {
   ui.onlyLive.addEventListener("change", paint);
   ui.domain.addEventListener("input", () => { clearMessage(); syncPermission(); });
   ui.domain.addEventListener("keydown", (e) => {
+    if (e.isComposing || e.keyCode === 229) return;
     if (e.key === "Enter") {
       e.preventDefault();
       run();

@@ -61,6 +61,7 @@ function mount(root) {
   };
 
   target.addEventListener("keydown", (e) => {
+    if (e.isComposing || e.keyCode === 229) return;
     if (e.key === "Enter") {
       e.preventDefault();
       lookup(target.value);

@@ -33,6 +33,7 @@ export function hashSection(path, { onChange } = {}) {
 
   input.addEventListener("input", () => (compare.disabled = !input.value.trim() || !rows.length));
   input.addEventListener("keydown", (e) => {
+    if (e.isComposing || e.keyCode === 229) return;
     if (e.key === "Enter" && !compare.disabled) {
       e.preventDefault();
       check();

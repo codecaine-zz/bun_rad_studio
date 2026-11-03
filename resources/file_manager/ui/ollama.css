@@ -947,7 +947,8 @@
     transition: none;
   }
   .ollama-status-pulse,
-  .ollama-progress-fill {
+  .ollama-progress-fill,
+  .ollama-spinner {
     animation: none;
   }
 }

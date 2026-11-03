@@ -19,7 +19,7 @@ export async function pickFolder({ title, start = "", confirmLabel = "Choose thi
   const pathBox = h("textarea", {
     rows: "1", class: "find-input find-picker-path", spellcheck: "false", autocomplete: "off", "aria-label": "Folder location",
     title: "Type or paste a folder location (for example ~/Documents) and press Enter to go there",
-    onkeydown: (e) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); go(pathBox.value.trim()); } },
+    onkeydown: (e) => { if (e.isComposing || e.keyCode === 229) return; if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); go(pathBox.value.trim()); } },
   });
   const message = (text) => list.replaceChildren(h("li", { class: "pw-hint" }, text));
 

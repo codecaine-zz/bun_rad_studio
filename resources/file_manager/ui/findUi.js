@@ -14,7 +14,7 @@ export function textInput({ value = "", placeholder = "", tip, label, type = "te
   const input = h("input", {
     type, class: `find-input${width ? ` find-w-${width}` : ""}`, value, placeholder, title: tip, "aria-label": label,
     spellcheck: "false", autocomplete: "off", autocapitalize: "off",
-    onkeydown: onenter ? (e) => { if (e.key === "Enter") { e.preventDefault(); onenter(e); } } : null,
+    onkeydown: onenter ? (e) => { if (e.isComposing || e.keyCode === 229) return; if (e.key === "Enter") { e.preventDefault(); onenter(e); } } : null,
     oninput,
   });
   return input;

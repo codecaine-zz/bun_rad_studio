@@ -34,6 +34,7 @@ const uiState = {
   useWebSearch: false,
   schemaPreset: "",
   promptText: "",
+  lastSubmittedPrompt: "",
   routeBanner: "",
   thinkingOutput: "",
   answerOutput: "",
@@ -1291,6 +1292,9 @@ async function runSmartAutoRouter(customPrompt) {
   if (customPrompt === undefined) {
     uiState.promptText = livePrompt;
   }
+  if (livePrompt) {
+    uiState.lastSubmittedPrompt = livePrompt;
+  }
   if (!livePrompt && paths.length === 0) {
     toast("Type a plain-English request or select a file to analyze.");
     return;
@@ -1437,6 +1441,9 @@ async function runLiveStreamChat() {
   const hasImageSel = paths.some((p) => /\.(png|jpe?g|webp|gif|bmp|heic|tiff?|avif)$/i.test(String(p || "")));
   let prompt = String(assistantTextareaEl ? assistantTextareaEl.value : uiState.promptText || "").trim();
   uiState.promptText = prompt;
+  if (prompt) {
+    uiState.lastSubmittedPrompt = prompt;
+  }
   if (!prompt) {
     if (paths.length > 0) {
       if (uiState.speakReply && !hasImageSel) {
@@ -1914,17 +1921,34 @@ function renderModeTabs() {
   return h(
     "div",
     { class: "ollama-mode-nav", role: "tablist", "aria-label": "Ollama AI Modes" },
-    tabs.map((t) =>
+    tabs.map((t, idx) =>
       h(
         "button",
         {
           type: "button",
           role: "tab",
+          "data-ollama-subtab": t.id,
           "aria-selected": String(uiState.subTab === t.id),
+          tabindex: uiState.subTab === t.id ? "0" : "-1",
           class: `ollama-mode-btn${uiState.subTab === t.id ? " is-active" : ""}`,
           onclick: () => {
             uiState.subTab = t.id;
             renderOllamaPanel();
+          },
+          onkeydown: (e) => {
+            if (e.key === "ArrowRight" || e.key === "ArrowLeft" || e.key === "Home" || e.key === "End") {
+              e.preventDefault();
+              const nextIdx =
+                e.key === "Home"
+                  ? 0
+                  : e.key === "End"
+                    ? tabs.length - 1
+                    : (idx + (e.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+              uiState.subTab = tabs[nextIdx].id;
+              renderOllamaPanel();
+              const btns = rootContainer?.querySelectorAll(".ollama-mode-nav [role='tab']");
+              btns?.[nextIdx]?.focus?.();
+            }
           },
         },
         t.label,
@@ -2600,6 +2624,26 @@ function renderAssistantTab() {
       onchange: (e) => {
         uiState.promptText = e.target.value;
       },
+      onkeydown: (e) => {
+        if (e.isComposing || e.keyCode === 229) return;
+        if (e.key === "Enter" && (!e.shiftKey || e.metaKey || e.ctrlKey)) {
+          e.preventDefault();
+          void runSmartAutoRouter();
+          return;
+        }
+        if (e.key === "ArrowUp" && !String(e.target?.value || "").trim() && uiState.lastSubmittedPrompt) {
+          e.preventDefault();
+          uiState.promptText = uiState.lastSubmittedPrompt;
+          if (e.target) e.target.value = uiState.lastSubmittedPrompt;
+          return;
+        }
+        if (e.key === "Escape" && (uiState.outputFullscreen || uiState.outputExpanded)) {
+          e.preventDefault();
+          uiState.outputFullscreen = false;
+          uiState.outputExpanded = false;
+          renderOllamaPanel();
+        }
+      },
     },
     uiState.promptText,
   );
@@ -2608,6 +2652,7 @@ function renderAssistantTab() {
     h("div", { class: "ollama-card-title" }, [
       h("span", {}, "Conversational AI Assistant & Automatic Capability Router"),
       h("span", { class: "ollama-pill is-mlx" }, "Zero-JSON Plain English Mode"),
+      h("span", { class: "ollama-pill", "data-ollama-kbd-hint": "true", title: "Press Enter (or Cmd/Ctrl+Enter) to submit, Shift+Enter for a newline, Up Arrow in an empty prompt to recall your last prompt, or Esc to exit fullscreen" }, "⌨️ Enter to send • Shift+Enter newline • ↑ recall"),
       h(
         "button",
         {
@@ -3130,6 +3175,7 @@ function renderSpeechTab() {
     "textarea",
     {
       class: "ollama-textarea",
+      "aria-label": "Text to synthesize with Ollama speech or text-to-audio LLM",
       placeholder:
         sel.length > 0
           ? `Leave blank to read selected file (${sel[0]}) aloud, or type custom text with dates like 10/28 and **markdown**...`
@@ -3139,6 +3185,13 @@ function renderSpeechTab() {
       },
       onchange: (e) => {
         uiState.speechText = e.target.value;
+      },
+      onkeydown: (e) => {
+        if (e.isComposing || e.keyCode === 229) return;
+        if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+          e.preventDefault();
+          if (!uiState.loading) void runSpeechRequest(false);
+        }
       },
     },
     uiState.speechText,
@@ -3368,6 +3421,39 @@ function renderSpeechTab() {
 }
 
 function renderMeaningAndWebTab() {
+  const runMeaningSearch = async () => {
+    if (!uiState.meaningQuery.trim()) return;
+    uiState.loading = true;
+    renderOllamaPanel();
+    try {
+      const res = await call("ollama/semanticSearch", {
+        query: uiState.meaningQuery,
+        dirPath: currentFolderRel(),
+      });
+      uiState.meaningMatches = res.matches || [];
+    } catch (e) {
+      toast(e.message, { kind: "error" });
+    } finally {
+      uiState.loading = false;
+      renderOllamaPanel();
+    }
+  };
+  const runWebQuery = async () => {
+    if (!uiState.webQuery.trim()) return;
+    uiState.loading = true;
+    renderOllamaPanel();
+    try {
+      const isUrl = /^https?:\/\//i.test(uiState.webQuery.trim());
+      uiState.webResult = isUrl
+        ? await call("ollama/webFetch", { url: uiState.webQuery.trim() })
+        : await call("ollama/webSearch", { query: uiState.webQuery.trim() });
+    } catch (e) {
+      toast(e.message, { kind: "error" });
+    } finally {
+      uiState.loading = false;
+      renderOllamaPanel();
+    }
+  };
   return h("div", { class: "ollama-card" }, [
     h("div", { class: "ollama-card-title" }, [
       h("span", {}, "Semantic Meaning Search (POST /api/embed) & Live Web Search (32,000+ num_ctx)"),
@@ -3375,10 +3461,18 @@ function renderMeaningAndWebTab() {
     h("div", { class: "ollama-row" }, [
       h("input", {
         class: "ollama-input",
+        "aria-label": "Semantic meaning search query",
         placeholder: "Search active folder by meaning (e.g., 'where is the database login or token verification logic')...",
         value: uiState.meaningQuery,
         oninput: (e) => {
           uiState.meaningQuery = e.target.value;
+        },
+        onkeydown: (e) => {
+          if (e.isComposing || e.keyCode === 229) return;
+          if (e.key === "Enter" && !uiState.loading) {
+            e.preventDefault();
+            void runMeaningSearch();
+          }
         },
       }),
       h(
@@ -3386,23 +3480,7 @@ function renderMeaningAndWebTab() {
         {
           type: "button",
           class: "ollama-btn is-primary",
-          onclick: async () => {
-            if (!uiState.meaningQuery.trim()) return;
-            uiState.loading = true;
-            renderOllamaPanel();
-            try {
-              const res = await call("ollama/semanticSearch", {
-                query: uiState.meaningQuery,
-                dirPath: currentFolderRel(),
-              });
-              uiState.meaningMatches = res.matches || [];
-            } catch (e) {
-              toast(e.message, { kind: "error" });
-            } finally {
-              uiState.loading = false;
-              renderOllamaPanel();
-            }
-          },
+          onclick: () => void runMeaningSearch(),
         },
         "Search Folder by Meaning (/api/embed)",
       ),
@@ -3468,10 +3546,18 @@ function renderMeaningAndWebTab() {
     h("div", { class: "ollama-row" }, [
       h("input", {
         class: "ollama-input",
+        "aria-label": "Web search query or URL to fetch",
         placeholder: "Web search query or URL to fetch...",
         value: uiState.webQuery,
         oninput: (e) => {
           uiState.webQuery = e.target.value;
+        },
+        onkeydown: (e) => {
+          if (e.isComposing || e.keyCode === 229) return;
+          if (e.key === "Enter" && !uiState.loading) {
+            e.preventDefault();
+            void runWebQuery();
+          }
         },
       }),
       h(
@@ -3479,22 +3565,7 @@ function renderMeaningAndWebTab() {
         {
           type: "button",
           class: "ollama-btn",
-          onclick: async () => {
-            if (!uiState.webQuery.trim()) return;
-            uiState.loading = true;
-            renderOllamaPanel();
-            try {
-              const isUrl = /^https?:\/\//i.test(uiState.webQuery.trim());
-              uiState.webResult = isUrl
-                ? await call("ollama/webFetch", { url: uiState.webQuery.trim() })
-                : await call("ollama/webSearch", { query: uiState.webQuery.trim() });
-            } catch (e) {
-              toast(e.message, { kind: "error" });
-            } finally {
-              uiState.loading = false;
-              renderOllamaPanel();
-            }
-          },
+          onclick: () => void runWebQuery(),
         },
         "Run Web Search / Fetch",
       ),
@@ -3544,10 +3615,18 @@ function renderModelsAndAccountTab() {
     h("div", { class: "ollama-row" }, [
       h("input", {
         class: "ollama-input",
+        "aria-label": "Model name to pull with Hardware Guard",
         placeholder: "Pull model (e.g. qwen3.5:4b, lfm3-omni:latest, qwen3.5:latest, lfm3:latest, nimble, llama3:70b)...",
         value: uiState.pullModelName,
         oninput: (e) => {
           uiState.pullModelName = e.target.value;
+        },
+        onkeydown: (e) => {
+          if (e.isComposing || e.keyCode === 229) return;
+          if (e.key === "Enter" && !uiState.loading) {
+            e.preventDefault();
+            e.currentTarget.parentElement?.querySelector("button.ollama-btn.is-primary")?.click();
+          }
         },
       }),
       h(
@@ -4044,6 +4123,17 @@ export function mountOllamaTool(container) {
       suiteEl.setAttribute("data-theme-palette", nextPalette);
     }
   });
+  const onEscapeFullscreen = (e) => {
+    if (e.key === "Escape" && rootContainer && !rootContainer.hidden && uiState.outputFullscreen) {
+      e.preventDefault();
+      e.stopPropagation();
+      uiState.outputFullscreen = false;
+      renderOllamaPanel();
+    }
+  };
+  if (typeof document !== "undefined" && typeof document.addEventListener === "function") {
+    document.addEventListener("keydown", onEscapeFullscreen);
+  }
   return {
     show(opts) {
       if (opts?.subTab) uiState.subTab = opts.subTab;
@@ -4060,6 +4150,9 @@ export function mountOllamaTool(container) {
     dispose() {
       offSelection?.();
       offTheme?.();
+      if (typeof document !== "undefined" && typeof document.removeEventListener === "function") {
+        document.removeEventListener("keydown", onEscapeFullscreen);
+      }
     },
   };
 }

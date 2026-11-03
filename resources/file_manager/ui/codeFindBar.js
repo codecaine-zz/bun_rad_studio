@@ -151,6 +151,7 @@ export function createFindBar({ getEditor, toast, onClose }) {
 
   find.addEventListener("input", () => refresh(true));
   find.addEventListener("keydown", (e) => {
+    if (e.isComposing || e.keyCode === 229) return;
     if (e.key === "Enter") {
       e.preventDefault();
       step(e.shiftKey ? -1 : 1);
@@ -160,6 +161,7 @@ export function createFindBar({ getEditor, toast, onClose }) {
     }
   });
   repl.addEventListener("keydown", (e) => {
+    if (e.isComposing || e.keyCode === 229) return;
     if (e.key === "Enter") {
       e.preventDefault();
       if (e.ctrlKey || e.metaKey) replaceEverything();

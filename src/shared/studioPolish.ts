@@ -38,8 +38,11 @@ export const STUDIO_POLISH_STYLE = `
       --font-mono: ui-monospace, "SF Mono", SFMono-Regular, "JetBrains Mono", "Cascadia Mono", Menlo, Consolas, "Liberation Mono", monospace;
     }
     html { -webkit-text-size-adjust: 100%; }
-    body { font-size: var(--sc-fs-sm); line-height: 1.45; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+    body { font-size: var(--sc-fs-sm); line-height: 1.45; accent-color: var(--cyan); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
     ::selection { background: color-mix(in srgb, var(--cyan) 35%, transparent); }
+    input:not([type="range"]):user-invalid, textarea:user-invalid { border-color: var(--rose) !important; }
+    h1, h2, h3, h4, .modal-title, .brand-title { text-wrap: balance; }
+    p, .crud-hint { text-wrap: pretty; }
 
     /* Scrollbars that follow the theme */
     * { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--text-main) 30%, transparent) transparent; }

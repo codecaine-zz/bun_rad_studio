@@ -37,6 +37,7 @@ const uiState = {
   schemaPreset: "",
   selectedSkill: "",
   promptText: "",
+  lastSubmittedPrompt: "",
   routeBanner: "",
   reasoningOutput: "",
   answerOutput: "",
@@ -1431,6 +1432,9 @@ async function runBionicSmartRouter(customPrompt) {
   if (customPrompt === undefined) {
     uiState.promptText = livePrompt;
   }
+  if (livePrompt) {
+    uiState.lastSubmittedPrompt = livePrompt;
+  }
   if (!livePrompt && paths.length === 0) {
     toast("Type a plain-English request, trigger a @skill, or select a file to analyze.");
     return;
@@ -1568,6 +1572,9 @@ async function runBionicStreamChat() {
   const hasImageSel = paths.some((p) => /\.(png|jpe?g|webp|gif|bmp|heic|tiff?|avif)$/i.test(String(p || "")));
   let prompt = String(promptTextareaEl ? promptTextareaEl.value : uiState.promptText || "").trim();
   uiState.promptText = prompt;
+  if (prompt) {
+    uiState.lastSubmittedPrompt = prompt;
+  }
   if (!prompt) {
     if (paths.length > 0) {
       if (uiState.speakReply && !hasImageSel) {
@@ -1959,10 +1966,14 @@ function renderModeTabs() {
             renderBionicPanel();
           },
           onkeydown: (e) => {
-            if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+            if (e.key === "ArrowRight" || e.key === "ArrowLeft" || e.key === "Home" || e.key === "End") {
               e.preventDefault();
-              const delta = e.key === "ArrowRight" ? 1 : -1;
-              const nextIdx = (idx + delta + tabs.length) % tabs.length;
+              const nextIdx =
+                e.key === "Home"
+                  ? 0
+                  : e.key === "End"
+                    ? tabs.length - 1
+                    : (idx + (e.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
               uiState.subTab = tabs[nextIdx].id;
               renderBionicPanel();
               const btns = rootContainer?.querySelectorAll(".ollama-mode-nav [role='tab']");
@@ -2433,6 +2444,29 @@ function renderAssistantTab() {
       oninput: (e) => {
         uiState.promptText = e.target.value;
       },
+      onchange: (e) => {
+        uiState.promptText = e.target.value;
+      },
+      onkeydown: (e) => {
+        if (e.isComposing || e.keyCode === 229) return;
+        if (e.key === "Enter" && (!e.shiftKey || e.metaKey || e.ctrlKey)) {
+          e.preventDefault();
+          void runBionicSmartRouter();
+          return;
+        }
+        if (e.key === "ArrowUp" && !String(e.target?.value || "").trim() && uiState.lastSubmittedPrompt) {
+          e.preventDefault();
+          uiState.promptText = uiState.lastSubmittedPrompt;
+          if (e.target) e.target.value = uiState.lastSubmittedPrompt;
+          return;
+        }
+        if (e.key === "Escape" && (uiState.outputFullscreen || uiState.outputExpanded)) {
+          e.preventDefault();
+          uiState.outputFullscreen = false;
+          uiState.outputExpanded = false;
+          renderBionicPanel();
+        }
+      },
     },
     uiState.promptText,
   );
@@ -2441,6 +2475,7 @@ function renderAssistantTab() {
     h("div", { class: "ollama-card-title" }, [
       h("span", {}, "Conversational Bionic AI Assistant, @Skill Injector & Metal Capability Router"),
       h("span", { class: "ollama-pill is-mlx" }, "Apple Silicon MLX / oMLX / Splash + Phonon 40M"),
+      h("span", { class: "ollama-pill", "data-bionic-kbd-hint": "true", title: "Press Enter (or Cmd/Ctrl+Enter) to submit, Shift+Enter for a newline, Up Arrow in an empty prompt to recall your last prompt, or Esc to exit fullscreen" }, "⌨️ Enter to send • Shift+Enter newline • ↑ recall"),
       cloudModels.length > 0
         ? h("span", { class: "ollama-pill is-cloud" }, `☁️ ${cloudModels.length} Bionic Cloud Models`)
         : null,
@@ -3014,6 +3049,13 @@ function renderSpeechAndAsrTab() {
       oninput: (e) => {
         uiState.speechText = e.target.value;
       },
+      onkeydown: (e) => {
+        if (e.isComposing || e.keyCode === 229) return;
+        if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && !uiState.loading) {
+          e.preventDefault();
+          e.currentTarget.parentElement?.querySelector("button.ollama-btn.is-primary")?.click();
+        }
+      },
     },
     uiState.speechText,
   );
@@ -3247,6 +3289,13 @@ function renderMeaningTab() {
         oninput: (e) => {
           uiState.meaningQuery = e.target.value;
         },
+        onkeydown: (e) => {
+          if (e.isComposing || e.keyCode === 229) return;
+          if (e.key === "Enter" && !uiState.loading) {
+            e.preventDefault();
+            e.currentTarget.parentElement?.querySelector("button.ollama-btn.is-primary")?.click();
+          }
+        },
       }),
       h(
         "button",
@@ -3358,6 +3407,13 @@ function renderModelsAndEnginesTab() {
         value: uiState.hubModelQuery,
         oninput: (e) => {
           uiState.hubModelQuery = e.target.value;
+        },
+        onkeydown: (e) => {
+          if (e.isComposing || e.keyCode === 229) return;
+          if (e.key === "Enter" && !uiState.loading) {
+            e.preventDefault();
+            e.currentTarget.parentElement?.querySelector("button.ollama-btn.is-primary")?.click();
+          }
         },
       }),
       h(
@@ -3845,6 +3901,17 @@ export function mountBionicTool(container) {
     }
     renderBionicPanel();
   };
+  const onEscapeFullscreen = (e) => {
+    if (e.key === "Escape" && rootContainer && !rootContainer.hidden && uiState.outputFullscreen) {
+      e.preventDefault();
+      e.stopPropagation();
+      uiState.outputFullscreen = false;
+      renderBionicPanel();
+    }
+  };
+  if (typeof document !== "undefined" && typeof document.addEventListener === "function") {
+    document.addEventListener("keydown", onEscapeFullscreen);
+  }
   return {
     show(opts) {
       applyOpts(opts || {});
@@ -3854,6 +3921,9 @@ export function mountBionicTool(container) {
     },
     dispose() {
       offSelection?.();
+      if (typeof document !== "undefined" && typeof document.removeEventListener === "function") {
+        document.removeEventListener("keydown", onEscapeFullscreen);
+      }
     },
   };
 }

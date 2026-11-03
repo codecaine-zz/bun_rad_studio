@@ -62,6 +62,7 @@ export function buildForm(info, actions) {
   }
   for (const input of [find.input, replace.input, flags.input, exts.input, exclude.input]) {
     input.addEventListener("keydown", (e) => {
+      if (e.isComposing || e.keyCode === 229) return;
       if (e.key === "Enter") {
         e.preventDefault();
         actions.onEnter();
