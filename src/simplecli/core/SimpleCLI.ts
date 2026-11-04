@@ -8,7 +8,9 @@ import { Prompts } from './prompts.ts';
 import { Pipeline } from './pipeline.ts';
 import { ConfigStore } from './config.ts';
 import { NamespacedRedis, type NamespacedRedisOptions } from './redis.ts';
+import { BackendClient } from './client.ts';
 import { Sys } from '../sys/index.ts';
+import { Stdlib } from '../stdlib/index.ts';
 import {
   LogLevel,
   type LogLevelName,
@@ -22,6 +24,9 @@ import {
   type FilePickerOptions,
   type OutputFormat,
   type ShellType,
+  type BackendClientOptions,
+  type BackendResponse,
+  type RequestOptions,
 } from './types.ts';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -38,6 +43,7 @@ export class SimpleCLI {
   public silentMode: boolean = false;
   public logger: Logger;
   public config: ConfigStore;
+  public http: BackendClient;
   private state: Record<string, string> = {};
   private flagsDef: Map<string, FlagOption> = new Map();
   private flagsVal: Map<string, any> = new Map();
@@ -51,6 +57,7 @@ export class SimpleCLI {
     this.version = version;
     this.logger = new Logger(LogLevel.INFO, undefined, this.noColor);
     this.config = new ConfigStore(this.appName);
+    this.http = new BackendClient();
   }
 
   public static new(appName: string): SimpleCLI {
@@ -195,21 +202,6 @@ export class SimpleCLI {
   }
 
   public suggestMatch(input: string, choices: string[], maxDistance: number = 3): string | undefined {
-    const levenshtein = (a: string, b: string): number => {
-      const m = a.length;
-      const n = b.length;
-      const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
-      for (let i = 0; i <= m; i++) dp[i]![0] = i;
-      for (let j = 0; j <= n; j++) dp[0]![j] = j;
-      for (let i = 1; i <= m; i++) {
-        for (let j = 1; j <= n; j++) {
-          const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-          dp[i]![j] = Math.min(dp[i - 1]![j]! + 1, dp[i]![j - 1]! + 1, dp[i - 1]![j - 1]! + cost);
-        }
-      }
-      return dp[m]![n]!;
-    };
-
     let bestMatch: string | undefined;
     let minDistance = Infinity;
     const lowerInput = input.toLowerCase();
@@ -217,8 +209,8 @@ export class SimpleCLI {
     for (const choice of choices) {
       const lowerChoice = choice.toLowerCase();
       const strippedChoice = lowerChoice.replace(/(_cli|-cli)$/, '');
-      const distDirect = levenshtein(lowerInput, lowerChoice);
-      const distStripped = levenshtein(lowerInput, strippedChoice);
+      const distDirect = Stdlib.levenshteinDistance(lowerInput, lowerChoice);
+      const distStripped = Stdlib.levenshteinDistance(lowerInput, strippedChoice);
       const dist = Math.min(distDirect, distStripped);
       const effectiveMaxDist = Math.max(maxDistance, Math.floor(strippedChoice.length / 2));
 
@@ -998,9 +990,9 @@ export class SimpleCLI {
   public saveState(filePath: string): void {
     const dir = dirname(filePath);
     if (!existsSync(dir)) {
-      mkdirSync(dir, { recursive: true });
+      mkdirSync(dir, { recursive: true, mode: 0o700 });
     }
-    writeFileSync(filePath, JSON.stringify(this.state, null, 2), 'utf8');
+    writeFileSync(filePath, JSON.stringify(this.state, null, 2), { encoding: 'utf8', mode: 0o600 });
   }
 
   public loadState(filePath: string): void {
@@ -1284,6 +1276,102 @@ complete -F _${this.appName.toLowerCase()}_completions ${this.appName.toLowerCas
 
   public serveStatic(directory: string, port: number = 3000, hostname: string = '127.0.0.1'): any {
     return Sys.serveStatic(directory, port, hostname);
+  }
+
+  public serveJson(
+    routesOrHandler: Record<string, any> | ((req: Request) => any),
+    port: number = 3000,
+    hostname: string = '127.0.0.1'
+  ): any {
+    return Sys.serveJson(routesOrHandler, port, hostname);
+  }
+
+  public waitForPort(host: string, port: number, timeoutMs: number = 10000, intervalMs: number = 200): Promise<boolean> {
+    return Sys.waitForPort(host, port, timeoutMs, intervalMs);
+  }
+
+  public waitForHttp(
+    url: string,
+    timeoutMs: number = 10000,
+    intervalMs: number = 250,
+    expectedStatus?: number
+  ): Promise<boolean> {
+    return Sys.waitForHttp(url, timeoutMs, intervalMs, expectedStatus);
+  }
+
+  // ===========================================================================
+  // Backend & REST API Client Ergonomics
+  // ===========================================================================
+
+  public api(baseUrlOrOptions?: string | BackendClientOptions): BackendClient {
+    return new BackendClient(baseUrlOrOptions);
+  }
+
+  public client(baseUrlOrOptions?: string | BackendClientOptions): BackendClient {
+    return new BackendClient(baseUrlOrOptions);
+  }
+
+  public httpGet(url: string, headers: Record<string, string> = {}): Promise<string> {
+    return Stdlib.httpGet(url, headers);
+  }
+
+  public httpPost(url: string, body: string | object, headers: Record<string, string> = {}): Promise<string> {
+    return Stdlib.httpPost(url, body, headers);
+  }
+
+  public httpRequest<T = any>(
+    method: string,
+    url: string,
+    body?: string | object,
+    headersOrOptions: Record<string, string> | RequestOptions = {}
+  ): Promise<BackendResponse<T>> {
+    return Stdlib.httpRequest<T>(method, url, body, headersOrOptions);
+  }
+
+  public httpGetJson<T = any>(
+    url: string,
+    headersOrOptions?: Record<string, string> | RequestOptions
+  ): Promise<T> {
+    return Stdlib.httpGetJson<T>(url, headersOrOptions);
+  }
+
+  public httpPostJson<T = any>(
+    url: string,
+    body?: any,
+    headersOrOptions?: Record<string, string> | RequestOptions
+  ): Promise<T> {
+    return Stdlib.httpPostJson<T>(url, body, headersOrOptions);
+  }
+
+  public httpPutJson<T = any>(
+    url: string,
+    body?: any,
+    headersOrOptions?: Record<string, string> | RequestOptions
+  ): Promise<T> {
+    return Stdlib.httpPutJson<T>(url, body, headersOrOptions);
+  }
+
+  public httpPatchJson<T = any>(
+    url: string,
+    body?: any,
+    headersOrOptions?: Record<string, string> | RequestOptions
+  ): Promise<T> {
+    return Stdlib.httpPatchJson<T>(url, body, headersOrOptions);
+  }
+
+  public httpDeleteJson<T = any>(
+    url: string,
+    headersOrOptions?: Record<string, string> | RequestOptions
+  ): Promise<T> {
+    return Stdlib.httpDeleteJson<T>(url, headersOrOptions);
+  }
+
+  public downloadFile(
+    url: string,
+    destPath: string,
+    onProgress?: (downloaded: number, total: number) => void
+  ): Promise<string> {
+    return Stdlib.downloadFile(url, destPath, onProgress);
   }
 
   // ===========================================================================

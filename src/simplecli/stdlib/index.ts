@@ -2,10 +2,59 @@
  * Extended Standard Library for Bun: Cryptography, HTTP, Data Structures, Math/Stats, String Metrics, and Validation
  */
 
-import { type SimpleHttpResponse, type SimpleURL } from '../core/types.ts';
+import {
+  type BackendClientOptions,
+  type BackendResponse,
+  type GraphQLResult,
+  type RequestOptions,
+  type SimpleHttpResponse,
+  type SimpleURL,
+  type UploadFileInput,
+} from '../core/types.ts';
+import {
+  BackendClient,
+  buildQueryString,
+  parseQueryString,
+  type ParsedCurlClientRequest,
+} from '../core/client.ts';
 import * as crypto from 'node:crypto';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+
+function normalizeStdlibRequestOptions(
+  headersOrOptions?: Record<string, string> | RequestOptions,
+  extraBody?: any
+): RequestOptions {
+  if (!headersOrOptions) {
+    return extraBody !== undefined ? { body: extraBody } : {};
+  }
+  const optionKeys = new Set([
+    'headers',
+    'query',
+    'body',
+    'timeoutMs',
+    'retries',
+    'retryDelayMs',
+    'throwOnError',
+    'cacheTtlMs',
+    'fallback',
+    'signal',
+    'vars',
+  ]);
+  const keys = Object.keys(headersOrOptions);
+  const isRequestOpts = keys.some((k) => optionKeys.has(k));
+  if (isRequestOpts) {
+    const opts = { ...(headersOrOptions as RequestOptions) };
+    if (extraBody !== undefined && opts.body === undefined) {
+      opts.body = extraBody;
+    }
+    return opts;
+  }
+  return {
+    headers: headersOrOptions as Record<string, string>,
+    ...(extraBody !== undefined ? { body: extraBody } : {}),
+  };
+}
 
 export class Stdlib {
   // ===========================================================================
@@ -147,8 +196,18 @@ export class Stdlib {
   }
 
   // ===========================================================================
-  // 2. HTTP Client & File Downloads
+  // 2. HTTP Client, Backend API Ergonomics & File Downloads
   // ===========================================================================
+
+  private static _defaultClient: BackendClient = new BackendClient();
+
+  public static createClient(baseUrlOrOptions?: string | BackendClientOptions): BackendClient {
+    return new BackendClient(baseUrlOrOptions);
+  }
+
+  public static createApiClient(baseUrlOrOptions?: string | BackendClientOptions): BackendClient {
+    return new BackendClient(baseUrlOrOptions);
+  }
 
   public static async httpGet(url: string, headers: Record<string, string> = {}): Promise<string> {
     const res = await fetch(url, { headers });
@@ -166,56 +225,135 @@ export class Stdlib {
     return res.text();
   }
 
-  public static async httpRequest(method: string, url: string, body?: string | object, headers: Record<string, string> = {}): Promise<SimpleHttpResponse> {
-    const isJson = typeof body === 'object' && body !== null;
-    const payload = isJson ? JSON.stringify(body) : (body as string | undefined);
-    const reqHeaders: Record<string, string> = {
-      ...(isJson ? { 'Content-Type': 'application/json' } : {}),
-      ...headers,
-    };
+  public static async httpRequest<T = any>(
+    method: string,
+    url: string,
+    body?: string | object,
+    headersOrOptions: Record<string, string> | RequestOptions = {}
+  ): Promise<BackendResponse<T>> {
+    const opts = normalizeStdlibRequestOptions(headersOrOptions, body);
+    return Stdlib._defaultClient.request<T>(method, url, opts);
+  }
 
-    const res = await fetch(url, {
-      method: method.toUpperCase(),
-      body: ['GET', 'HEAD'].includes(method.toUpperCase()) ? undefined : payload,
-      headers: reqHeaders,
+  public static async httpGetJson<T = any>(
+    url: string,
+    headersOrOptions?: Record<string, string> | RequestOptions
+  ): Promise<T> {
+    return Stdlib._defaultClient.getJson<T>(url, normalizeStdlibRequestOptions(headersOrOptions));
+  }
+
+  public static async httpPostJson<T = any>(
+    url: string,
+    body?: any,
+    headersOrOptions?: Record<string, string> | RequestOptions
+  ): Promise<T> {
+    return Stdlib._defaultClient.postJson<T>(url, body, normalizeStdlibRequestOptions(headersOrOptions));
+  }
+
+  public static async httpPutJson<T = any>(
+    url: string,
+    body?: any,
+    headersOrOptions?: Record<string, string> | RequestOptions
+  ): Promise<T> {
+    return Stdlib._defaultClient.putJson<T>(url, body, normalizeStdlibRequestOptions(headersOrOptions));
+  }
+
+  public static async httpPatchJson<T = any>(
+    url: string,
+    body?: any,
+    headersOrOptions?: Record<string, string> | RequestOptions
+  ): Promise<T> {
+    return Stdlib._defaultClient.patchJson<T>(url, body, normalizeStdlibRequestOptions(headersOrOptions));
+  }
+
+  public static async httpDeleteJson<T = any>(
+    url: string,
+    headersOrOptions?: Record<string, string> | RequestOptions
+  ): Promise<T> {
+    return Stdlib._defaultClient.deleteJson<T>(url, normalizeStdlibRequestOptions(headersOrOptions));
+  }
+
+  public static async httpHead(
+    url: string,
+    headersOrOptions?: Record<string, string> | RequestOptions
+  ): Promise<Record<string, string>> {
+    const res = await Stdlib._defaultClient.head(url, normalizeStdlibRequestOptions(headersOrOptions));
+    return res.headers;
+  }
+
+  public static async httpPostForm<T = any>(
+    url: string,
+    fields: Record<string, string | number | boolean>,
+    headersOrOptions?: Record<string, string> | RequestOptions
+  ): Promise<BackendResponse<T>> {
+    return Stdlib._defaultClient.postForm<T>(url, fields, normalizeStdlibRequestOptions(headersOrOptions));
+  }
+
+  public static async httpUpload<T = any>(
+    url: string,
+    files: Record<string, UploadFileInput>,
+    fields: Record<string, string | number | boolean> = {},
+    headersOrOptions?: Record<string, string> | RequestOptions
+  ): Promise<BackendResponse<T>> {
+    return Stdlib._defaultClient.upload<T>(url, files, fields, normalizeStdlibRequestOptions(headersOrOptions));
+  }
+
+  public static async httpRetry<T = any>(
+    method: string,
+    url: string,
+    options: RequestOptions = {}
+  ): Promise<BackendResponse<T>> {
+    return Stdlib._defaultClient.request<T>(method, url, {
+      retries: options.retries ?? 3,
+      retryDelayMs: options.retryDelayMs ?? 200,
+      ...options,
     });
+  }
 
-    const resBody = await res.text();
-    const respHeaders: Record<string, string> = {};
-    res.headers.forEach((val, key) => { respHeaders[key] = val; });
+  public static async graphql<T = any>(
+    url: string,
+    query: string,
+    variables?: Record<string, any>,
+    headersOrOptions?: Record<string, string> | RequestOptions
+  ): Promise<GraphQLResult<T>> {
+    return Stdlib._defaultClient.graphql<T>(
+      query,
+      variables,
+      undefined,
+      url,
+      normalizeStdlibRequestOptions(headersOrOptions)
+    );
+  }
 
-    return {
-      statusCode: res.status,
-      body: resBody,
-      url: res.url,
-      headers: respHeaders,
-    };
+  public static buildQuery(params: Record<string, any>): string {
+    return buildQueryString(params);
+  }
+
+  public static parseQuery(queryStr: string): Record<string, string> {
+    return parseQueryString(queryStr);
+  }
+
+  public static buildUrl(
+    baseUrl: string,
+    pathOrQuery?: string | Record<string, any>,
+    query?: Record<string, any>
+  ): string {
+    if (typeof pathOrQuery === 'object' && pathOrQuery !== null) {
+      return new BackendClient(baseUrl).resolveUrl('', pathOrQuery);
+    }
+    return new BackendClient(baseUrl).resolveUrl(pathOrQuery || '', query);
+  }
+
+  public static toCurl(method: string, url: string, options: RequestOptions = {}): string {
+    return Stdlib._defaultClient.toCurl(method, url, options);
+  }
+
+  public static fromCurl(curlCommand: string): ParsedCurlClientRequest {
+    return BackendClient.fromCurl(curlCommand);
   }
 
   public static async downloadFile(url: string, destPath: string, onProgress?: (downloaded: number, total: number) => void): Promise<string> {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP Download failed with status ${res.status}: ${res.statusText}`);
-
-    const total = parseInt(res.headers.get('content-length') || '0', 10);
-    const destDir = path.dirname(destPath);
-    if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
-
-    const fileStream = fs.createWriteStream(destPath);
-    const reader = res.body?.getReader();
-    if (!reader) throw new Error('Response body reader not available');
-
-    let downloaded = 0;
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      if (value) {
-        fileStream.write(Buffer.from(value));
-        downloaded += value.length;
-        if (onProgress) onProgress(downloaded, total);
-      }
-    }
-    fileStream.end();
-    return destPath;
+    return Stdlib._defaultClient.download(url, destPath, onProgress);
   }
 
   public static parseUrl(urlStr: string): SimpleURL {
@@ -319,23 +457,37 @@ export class Stdlib {
   // ===========================================================================
 
   public static levenshteinDistance(a: string, b: string): number {
+    if (a === b) return 0;
+    if (a.length === 0) return b.length;
+    if (b.length === 0) return a.length;
+
+    // Ensure b is the shorter string for O(min(m, n)) memory
+    if (a.length < b.length) {
+      const tmp = a;
+      a = b;
+      b = tmp;
+    }
+
     const m = a.length;
     const n = b.length;
-    const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
-
-    for (let i = 0; i <= m; i++) dp[i]![0] = i;
-    for (let j = 0; j <= n; j++) dp[0]![j] = j;
+    const row = new Int32Array(n + 1);
+    for (let j = 0; j <= n; j++) row[j] = j;
 
     for (let i = 1; i <= m; i++) {
+      let prevDiag = row[0]!;
+      row[0] = i;
+      const charA = a.charCodeAt(i - 1);
       for (let j = 1; j <= n; j++) {
-        if (a[i - 1] === b[j - 1]) {
-          dp[i]![j] = dp[i - 1]![j - 1]!;
-        } else {
-          dp[i]![j] = 1 + Math.min(dp[i - 1]![j]!, dp[i]![j - 1]!, dp[i - 1]![j - 1]!);
-        }
+        const temp = row[j]!;
+        const cost = charA === b.charCodeAt(j - 1) ? 0 : 1;
+        const del = row[j]! + 1;
+        const ins = row[j - 1]! + 1;
+        const sub = prevDiag + cost;
+        row[j] = del < ins ? (del < sub ? del : sub) : (ins < sub ? ins : sub);
+        prevDiag = temp;
       }
     }
-    return dp[m]![n]!;
+    return row[n]!;
   }
 
   public static jaroWinklerSimilarity(s1: string, s2: string): number {
@@ -515,7 +667,7 @@ export class Stdlib {
 
   public static csvParse(csvText: string, delimiter: string = ','): string[][] {
     const rows: string[][] = [];
-    const lines = csvText.split('\n').filter(l => l.trim().length > 0);
+    const lines = csvText.replace(/\r\n/g, '\n').split('\n').filter(l => l.trim().length > 0);
 
     for (const line of lines) {
       const row: string[] = [];

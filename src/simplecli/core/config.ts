@@ -48,9 +48,9 @@ export class ConfigStore {
   public save(): void {
     const dir = dirname(this.configPath);
     if (!existsSync(dir)) {
-      mkdirSync(dir, { recursive: true });
+      mkdirSync(dir, { recursive: true, mode: 0o700 });
     }
-    writeFileSync(this.configPath, JSON.stringify(this.data, null, 2), 'utf8');
+    writeFileSync(this.configPath, JSON.stringify(this.data, null, 2), { encoding: 'utf8', mode: 0o600 });
   }
 
   public get(key: string): any;
@@ -101,15 +101,19 @@ export class ConfigStore {
   public delete(key: string): boolean {
     if (key.includes('.')) {
       const parts = key.split('.');
+      if (parts.some((p) => p === '__proto__' || p === 'constructor' || p === 'prototype')) {
+        return false;
+      }
       let curr: any = this.data;
       for (let i = 0; i < parts.length - 1; i++) {
         const p = parts[i] || '';
-        if (curr[p] === undefined) return false;
+        if (curr[p] === undefined || curr[p] === null) return false;
         curr = curr[p];
       }
       const lastKey = parts[parts.length - 1] || '';
       delete curr[lastKey];
     } else {
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') return false;
       delete this.data[key];
     }
     this.save();

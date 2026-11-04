@@ -472,6 +472,8 @@ function wireStatusButton() {
     button.setAttribute("aria-pressed", String(open));
     button.title = `${open ? "Hide" : "Show"} the terminal${hintOf("terminal.toggle")}`;
     button.querySelector(".status-terminal-key").textContent = labelOf("terminal.toggle");
+    const closeBtn = $("#terminal-close");
+    if (closeBtn) closeBtn.title = `Hide the terminal${hintOf("terminal.toggle")}. It keeps running.`;
   };
   button.addEventListener("click", toggleTerminal);
   on("terminal", paint);
@@ -539,7 +541,7 @@ export function wireTerminal() {
   syncTerminalExpandButton();
   wireResizer();
   window.addEventListener("resize", () => state.terminalOpen && applyHeight());
-  // The terminal keys (Ctrl+`, Cmd/Ctrl+Alt+T, and Cmd/Ctrl+Alt+V unless changed in Settings) work everywhere, also while typing in the terminal.
+  // The terminal keys (Cmd+J / Ctrl+J, Ctrl+`, Cmd/Ctrl+Alt+T, and Cmd/Ctrl+Alt+V unless changed in Settings) work everywhere, also while typing in the terminal.
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && !e.defaultPrevented && isTerminalExpanded() && !e.target?.closest?.(".term-host") && !document.querySelector(".modal-backdrop")) {
       e.preventDefault();

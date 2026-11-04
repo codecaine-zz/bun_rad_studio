@@ -50,9 +50,12 @@ describe("the table of shortcuts", () => {
     expect(defaultsFor(action("nav.address"), "darwin")).toEqual(["Mod+L"]);
   });
   test("the terminal has shortcuts for toggle, open here, and paste", () => {
-    expect(defaultsFor(action("terminal.toggle"), "darwin")).toEqual(["Ctrl+`"]);
+    expect(defaultsFor(action("terminal.toggle"), "darwin")).toEqual(["Mod+J", "Ctrl+`"]);
+    expect(defaultsFor(action("terminal.toggle"), "linux")).toEqual(["Mod+J", "Ctrl+`"]);
     expect(defaultsFor(action("terminal.here"), "linux")).toEqual(["Mod+Alt+T"]);
     expect(defaultsFor(action("terminal.paste"), "linux")).toEqual(["Mod+Alt+V"]);
+    expect(formatShortcut("Mod+J", "darwin")).toBe("⌘J");
+    expect(formatShortcut("Mod+J", "linux")).toBe("Ctrl+J");
     expect(formatShortcut("Mod+Alt+T", "darwin")).toBe("⌘⌥T");
     expect(formatShortcut("Mod+Alt+T", "linux")).toBe("Ctrl+Alt+T");
     expect(formatShortcut("Mod+Alt+V", "darwin")).toBe("⌘⌥V");

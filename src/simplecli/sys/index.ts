@@ -150,7 +150,37 @@ export class Sys {
     };
   }
 
+  private static execAsync(command: string, cwd?: string): Promise<[string, number]> {
+    return new Promise((resolve) => {
+      try {
+        const proc = spawn(command, {
+          shell: true,
+          cwd: cwd || process.cwd(),
+          env: process.env,
+        });
+        let stdout = '';
+        let stderr = '';
+        proc.stdout?.on('data', (d) => {
+          stdout += d.toString();
+        });
+        proc.stderr?.on('data', (d) => {
+          stderr += d.toString();
+        });
+        proc.on('close', (code) => {
+          const out = stdout.trim() || stderr.trim();
+          resolve([out, code ?? 0]);
+        });
+        proc.on('error', (err) => {
+          resolve([err.message || String(err), 1]);
+        });
+      } catch (err: any) {
+        resolve([err?.message || String(err), 1]);
+      }
+    });
+  }
+
   public static async execParallel(commands: string[], concurrency: number = 4): Promise<[string, number][]> {
+    if (commands.length === 0) return [];
     const results: [string, number][] = new Array(commands.length);
     let index = 0;
 
@@ -158,11 +188,13 @@ export class Sys {
       while (index < commands.length) {
         const i = index++;
         const cmd = commands[i];
-        if (cmd) results[i] = Sys.exec(cmd);
+        if (cmd !== undefined) {
+          results[i] = await Sys.execAsync(cmd);
+        }
       }
     };
 
-    const workers = Array.from({ length: Math.min(concurrency, commands.length) }, () => worker());
+    const workers = Array.from({ length: Math.max(1, Math.min(concurrency, commands.length)) }, () => worker());
     await Promise.all(workers);
     return results;
   }
@@ -720,23 +752,21 @@ export class Sys {
 
   public static async checkPort(host: string, port: number, timeoutMs: number = 1000): Promise<boolean> {
     return new Promise((resolve) => {
+      let settled = false;
       const socket = new net.Socket();
       socket.setTimeout(timeoutMs);
 
-      socket.on('connect', () => {
+      const finish = (ok: boolean) => {
+        if (settled) return;
+        settled = true;
+        socket.removeAllListeners();
         socket.destroy();
-        resolve(true);
-      });
+        resolve(ok);
+      };
 
-      socket.on('timeout', () => {
-        socket.destroy();
-        resolve(false);
-      });
-
-      socket.on('error', () => {
-        socket.destroy();
-        resolve(false);
-      });
+      socket.once('connect', () => finish(true));
+      socket.once('timeout', () => finish(false));
+      socket.once('error', () => finish(false));
 
       socket.connect(port, host);
     });
@@ -764,6 +794,50 @@ export class Sys {
 
     await Promise.all(Array.from({ length: concurrency }, () => worker()));
     return openPorts.sort((a, b) => a - b);
+  }
+
+  public static async waitForPort(
+    host: string,
+    port: number,
+    timeoutMs: number = 10000,
+    intervalMs: number = 200
+  ): Promise<boolean> {
+    const deadline = Date.now() + Math.max(0, timeoutMs);
+    while (Date.now() <= deadline) {
+      const open = await Sys.checkPort(host, port, Math.min(Math.max(100, intervalMs * 2), 1000));
+      if (open) return true;
+      if (Date.now() + intervalMs > deadline) break;
+      await Sys.sleep(intervalMs);
+    }
+    return false;
+  }
+
+  public static async waitForHttp(
+    url: string,
+    timeoutMs: number = 10000,
+    intervalMs: number = 250,
+    expectedStatus?: number
+  ): Promise<boolean> {
+    const deadline = Date.now() + Math.max(0, timeoutMs);
+    while (Date.now() <= deadline) {
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), Math.min(2000, Math.max(250, timeoutMs)));
+        try {
+          const res = await fetch(url, { signal: controller.signal });
+          if (expectedStatus !== undefined ? res.status === expectedStatus : res.ok) {
+            return true;
+          }
+        } finally {
+          clearTimeout(timer);
+        }
+      } catch {
+        // Keep polling until deadline
+      }
+      if (Date.now() + intervalMs > deadline) break;
+      await Sys.sleep(intervalMs);
+    }
+    return false;
   }
 
   // ===========================================================================
@@ -1220,7 +1294,12 @@ export class Sys {
         hostname,
         fetch(req: Request) {
           const url = new URL(req.url);
-          let reqPath = decodeURIComponent(url.pathname);
+          let reqPath: string;
+          try {
+            reqPath = decodeURIComponent(url.pathname);
+          } catch {
+            return new Response('Bad Request', { status: 400 });
+          }
           if (reqPath.includes('\0')) return new Response('Bad Request', { status: 400 });
           if (reqPath.endsWith('/')) reqPath += 'index.html';
           const target = path.resolve(fullDir, '.' + (reqPath.startsWith('/') ? reqPath : '/' + reqPath));
@@ -1233,6 +1312,137 @@ export class Sys {
       });
     }
     throw new Error('sys.serveStatic requires Bun runtime.');
+  }
+
+  /**
+   * Instant zero-config JSON REST & mock API server on `127.0.0.1` by default.
+   * Accepts a route dictionary (e.g. `{ "/health": { ok: true }, "POST /users": async (req) => ... }`)
+   * or a handler function `(req) => any`.
+   */
+  public static serveJson(
+    routesOrHandler: Record<string, any> | ((req: Request) => any),
+    port: number = 3000,
+    hostname: string = '127.0.0.1'
+  ): any {
+    const corsHeaders: Record<string, string> = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-API-Key, Accept',
+    };
+
+    const toJsonResponse = (payload: any, status: number = 200, extraHeaders: Record<string, string> = {}): Response => {
+      if (payload instanceof Response) return payload;
+      return new Response(JSON.stringify(payload ?? null), {
+        status,
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          ...corsHeaders,
+          ...extraHeaders,
+        },
+      });
+    };
+
+    const safeDecode = (val: string): string => {
+      try {
+        return decodeURIComponent(val);
+      } catch {
+        return val;
+      }
+    };
+
+    const matchPattern = (patternPath: string, actualPath: string): Record<string, string> | null => {
+      if (patternPath === '*' || patternPath === actualPath) return {};
+      const patParts = patternPath.split('/').filter(Boolean);
+      const actParts = actualPath.split('/').filter(Boolean);
+      if (patParts.length !== actParts.length) return null;
+      const params: Record<string, string> = {};
+      for (let i = 0; i < patParts.length; i++) {
+        const p = patParts[i]!;
+        const a = actParts[i]!;
+        if (p.startsWith(':')) {
+          const paramKey = p.slice(1);
+          if (paramKey && paramKey !== '__proto__' && paramKey !== 'constructor' && paramKey !== 'prototype') {
+            params[paramKey] = safeDecode(a);
+          }
+        } else if (p !== a) {
+          return null;
+        }
+      }
+      return params;
+    };
+
+    const hasOwn = (obj: object, key: string): boolean => Object.prototype.hasOwnProperty.call(obj, key);
+
+    return Sys.serve({
+      port,
+      hostname,
+      fetch: async (req: Request) => {
+        if (req.method === 'OPTIONS') {
+          return new Response(null, { status: 204, headers: corsHeaders });
+        }
+
+        try {
+          if (typeof routesOrHandler === 'function') {
+            const out = await routesOrHandler(req);
+            return toJsonResponse(out);
+          }
+
+          const url = new URL(req.url);
+          const pathname = url.pathname;
+          if (pathname.includes('\0')) {
+            return toJsonResponse({ error: 'Bad Request' }, 400);
+          }
+          const method = req.method.toUpperCase();
+
+          // 1. Exact method + path or exact path (using hasOwn to prevent Object.prototype property invocation)
+          const exactMethodKey = `${method} ${pathname}`;
+          if (hasOwn(routesOrHandler, exactMethodKey)) {
+            const target = routesOrHandler[exactMethodKey];
+            const out = typeof target === 'function' ? await target(req, {}) : target;
+            return toJsonResponse(out);
+          }
+          if (hasOwn(routesOrHandler, pathname)) {
+            const target = routesOrHandler[pathname];
+            const out = typeof target === 'function' ? await target(req, {}) : target;
+            return toJsonResponse(out);
+          }
+
+          // 2. Parameterized route matching (e.g., "GET /users/:id" or "/users/:id")
+          for (const [rawKey, target] of Object.entries(routesOrHandler)) {
+            if (rawKey === '*') continue;
+            const spaceIdx = rawKey.indexOf(' ');
+            let routeMethod = '*';
+            let routePath = rawKey;
+            if (spaceIdx > 0) {
+              routeMethod = rawKey.slice(0, spaceIdx).trim().toUpperCase();
+              routePath = rawKey.slice(spaceIdx + 1).trim();
+            }
+            if (routeMethod !== '*' && routeMethod !== method) continue;
+            const params = matchPattern(routePath, pathname);
+            if (params !== null) {
+              (req as any).params = params;
+              const out = typeof target === 'function' ? await target(req, params) : target;
+              return toJsonResponse(out);
+            }
+          }
+
+          // 3. Wildcard fallback
+          if (hasOwn(routesOrHandler, '*')) {
+            const target = routesOrHandler['*'];
+            const out = typeof target === 'function' ? await target(req, {}) : target;
+            return toJsonResponse(out);
+          }
+
+          return toJsonResponse({ error: 'Not Found', method, path: pathname }, 404);
+        } catch (err: any) {
+          const isSyntax = err instanceof SyntaxError;
+          return toJsonResponse(
+            { error: isSyntax ? 'Invalid JSON payload' : (err?.message || 'Internal Server Error') },
+            isSyntax ? 400 : 500
+          );
+        }
+      },
+    });
   }
 
   // ===========================================================================

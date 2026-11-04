@@ -9,6 +9,7 @@ export * from './core/prompts.ts';
 export * from './core/pipeline.ts';
 export * from './core/config.ts';
 export * from './core/redis.ts';
+export * from './core/client.ts';
 export * from './core/SimpleCLI.ts';
 export * from './sys/index.ts';
 export * from './stdlib/index.ts';

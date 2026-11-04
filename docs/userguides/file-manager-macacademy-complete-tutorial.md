@@ -317,7 +317,7 @@ Click **`Tools ▸ Git Source Control…`** (or the Git branch badge `#status-gi
 
 ## Chapter 20 — Built-in Terminal Drawer & Split Terminal (`33:50`)
 
-Press **`` Ctrl+` ``** (or click **`Tools ▸ Terminal Drawer`**) to slide up the **Integrated Shell Terminal** anchored to your current directory:
+Press **`⌘J`** (macOS) / **`Ctrl+J`** (Windows/Linux) or **`` Ctrl+` ``** (or click **`Tools ▸ Terminal Drawer`**) to slide up the **Integrated Shell Terminal** anchored to your current directory:
 - Run any shell command (`ls -la`, `git status`, `bun test`, etc.) with full stdout/stderr streaming.
 - Open multiple terminal tabs or split terminals side by side without leaving your file browser.
 
@@ -507,5 +507,5 @@ A dedicated 8-lesson deep dive into the **MySQL Studio** inside the File Manager
 | `⌘C` / `⌘X` / `⌘V` | Copy / Cut / Paste Files |
 | `⌘⇧Z` | Compress Selection to `.zip` Archive |
 | `⌘⇧E` | Extract Selected `.zip` / `.tar` Archive Here |
-| `` Ctrl+` `` | Toggle Integrated Terminal Drawer |
+| `⌘J` / `` Ctrl+` `` | Toggle Integrated Terminal Drawer |
 | `?` | Open Keyboard Shortcuts Reference Modal |

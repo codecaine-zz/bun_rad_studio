@@ -30,7 +30,7 @@ export const KEYMAP = {
   duplicateUp: ["Shift+Alt+ArrowUp"],
   format: ["Alt+Shift+F"],
   deleteLine: ["Mod+Shift+K"],
-  joinLines: ["Mod+J"],
+  joinLines: ["Alt+J"],
   selectLine: ["Mod+L"],
   wrap: ["Alt+Z"],
   zen: ["Mod+Alt+Z"],

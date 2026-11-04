@@ -528,7 +528,30 @@ app.config.set("region", "us-east-1");
 const region = app.config.get("region", "us-west-2");
 
 // Namespaced Redis helper (automatically prefixes keys with "<namespace>:")
-const cache = app.redis("sentinel");
+// Falls back to a fast in-memory store automatically if Redis is unreachable,
+// or pass `{ inMemory: true }` for explicit zero-dependency local caching.
+const cache = app.redis("sentinel", { fallbackToMemory: true });
+await cache.connect();
+
+// String & JSON key-value operations with optional TTL (seconds)
+await cache.set("status", "healthy", 60);
+await cache.setJson("metrics", { cpu: 14.2, memPct: 41.0 }, 120);
+const metrics = await cache.getJson<{ cpu: number; memPct: number }>("metrics");
+
+// Cache-aside helper: returns cached JSON value or computes & stores it with TTL
+const summary = await cache.getOrSet(
+  "daily_summary",
+  async () => ({ generatedAt: Date.now(), activeNodes: 12 }),
+  300
+);
+
+// Atomic counters, hashes, lists, pub/sub & namespace cleanup
+const hits = await cache.incr("requests_total");
+await cache.hset("node:1", "status", "ready");
+const nodeHash = await cache.hgetall("node:1");
+await cache.lpush("jobs", JSON.stringify({ id: 1 }));
+const nextJob = await cache.rpop("jobs");
+await cache.close();
 ```
 
 ---
@@ -625,6 +648,10 @@ const reachable = await sys.pingCheck("8.8.8.8", 2000);
 const portOpen = await sys.checkPort("127.0.0.1", 5432, 1000);
 const openPorts = await sys.portScan("127.0.0.1", 3000, 3010, 500);
 const addresses = await sys.dnsLookup("example.com");
+
+// Poll until a local or remote TCP port or HTTP health endpoint is ready
+const dbReady = await sys.waitForPort("127.0.0.1", 5432, 10_000);
+const apiReady = await sys.waitForHttp("http://127.0.0.1:3000/health", 10_000);
 ```
 
 ---
@@ -663,23 +690,248 @@ sys.openUrl("https://bun.sh");
 
 ## 15. HTTP Client, Micro Server & REST APIs
 
+`SimpleCLI` includes a full-featured, zero-dependency **Backend Client API** (`BackendClient` / `ApiClient`, `ResourceClient`, `app.api()`, `app.http`, and `stdlib` HTTP shorthands) alongside instant local JSON mock & static servers (`sys.serveJson`, `sys.serveStatic`, `sys.serve`).
+
+### Quick One-Liner HTTP & JSON Shorthands
+
+Use `app.httpGetJson` / `stdlib.httpGetJson` and companion verb helpers when you want typed JSON or text in a single line:
+
 ```ts
-import { stdlib, sys } from "../src/simplecli";
+import { SimpleCLI, stdlib } from "../src/simplecli";
 
-// Simple GET and POST helpers
-const body = await stdlib.httpGet("https://httpbin.org/get");
-const postResp = await stdlib.httpPost("https://httpbin.org/post", { event: "deploy" });
+const app = SimpleCLI.new("SyncTool");
 
-// Full HTTP request with status code and headers
-const response = await stdlib.httpRequest("PUT", "https://httpbin.org/put", { ok: true });
-
-// Stream file download with progress callback
-await stdlib.downloadFile("https://example.com/archive.tar.gz", "/tmp/archive.tar.gz", (dl, total) => {
-  app.progressBar(dl, total, "Downloading");
+// Direct unwrapped JSON helpers (automatically serialize objects & parse JSON responses)
+const users = await app.httpGetJson<{ id: number; name: string }[]>("https://api.example.com/users", {
+  query: { active: true },
+  fallback: [], // returned if the endpoint is unreachable or returns non-2xx
 });
 
+const created = await app.httpPostJson("https://api.example.com/users", {
+  name: "Ada Lovelace",
+  role: "admin",
+});
+
+const updated = await stdlib.httpPatchJson("https://api.example.com/users/1", { role: "principal" });
+const deleted = await stdlib.httpDeleteJson("https://api.example.com/users/1");
+
+// Raw text & full response metadata helpers
+const rawText = await stdlib.httpGet("https://httpbin.org/get");
+const postText = await stdlib.httpPost("https://httpbin.org/post", { event: "deploy" });
+const response = await stdlib.httpRequest("PUT", "https://httpbin.org/put", { ok: true });
+const headers = await stdlib.httpHead("https://httpbin.org/get");
+
+// Automatic exponential-backoff retry helper
+const resilient = await stdlib.httpRetry("GET", "https://api.example.com/status", {
+  retries: 3,
+  retryDelayMs: 200,
+});
+
+// URL & query-string builders
+const url = stdlib.buildUrl("https://api.example.com/v1", "/search", { q: "bun", limit: 20 });
+const qs = stdlib.buildQuery({ page: 2, tag: ["cli", "rad"] }); // "?page=2&tag=cli&tag=rad"
+const parsedQs = stdlib.parseQuery(qs);
+```
+
+### Fluent `BackendClient` / `ApiClient`
+
+Create a reusable backend client via `app.api(baseUrl)`, `createApiClient(baseUrl)`, or `new BackendClient(options)` with chainable auth, headers, retries, timeouts, response caching, rate limiting, and template variables:
+
+```ts
+import { createApiClient } from "../src/simplecli";
+
+const api = createApiClient("https://api.example.com/v1")
+  .withBearer("my-secret-token")           // or .withBasicAuth("user", "password") / .withApiKey("my-api-key")
+  .setHeader("X-Client", "SentinelCLI")
+  .setQueryParam("env", "production")
+  .setTimeout(10_000)
+  .setRetries(3, 200)                      // retries on network errors & 408/425/429/5xx with Honor Retry-After
+  .enableCache(30_000, 256)                // in-memory TTL cache for GET requests
+  .setRateLimit(50, 1000)                  // client-side token window (50 req / sec)
+  .setVars({ org: "acme-corp" });          // interpolates {{org}}, {{$uuid}}, {{$timestamp}}, {{$isoTimestamp}}
+
+// Create a scoped child client that inherits auth, retries, and interceptors
+const orgApi = api.scope("/orgs/{{org}}");
+```
+
+### Unwrapped Data, Fallbacks & Non-Throwing `try*` Calls
+
+Choose between unwrapped data (`getJson`), full response envelopes (`get`), or non-throwing Rust/Go-style safe result objects (`tryGet`):
+
+```ts
+interface ServiceNode {
+  id: string;
+  healthy: boolean;
+}
+
+// 1. Unwrapped data (throws BackendApiError on non-2xx unless `fallback` is provided)
+const nodes = await api.getJson<ServiceNode[]>("/nodes", {
+  query: { region: "us-east-1" },
+  fallback: [],
+});
+
+// 2. Full BackendResponse<T> envelope (.ok, .status, .data, .headers, .durationMs, .attempts, .cached)
+const res = await api.post<ServiceNode>("/nodes", { id: "node-7", healthy: true });
+if (res.ok) {
+  app.success(`Created ${res.data.id} in ${res.durationMs} ms (request-id=${res.header("x-request-id")})`);
+}
+
+// 3. Non-throwing `try*` helpers (never throw on network timeouts or 4xx/5xx status codes)
+const safe = await api.tryGet<ServiceNode>("/nodes/node-7");
+if (!safe.ok) {
+  app.warn(`Could not fetch node (${safe.statusCode}): ${safe.error}`);
+} else {
+  app.info(`Node healthy: ${safe.data?.healthy}`);
+}
+```
+
+### Zero-Boilerplate CRUD Resource Client (`api.resource<T>()`)
+
+Bind a typed REST resource collection path once and call `.list()`, `.get()`, `.create()`, `.update()`, `.patch()`, `.remove()`, or custom sub-resource `.action()`:
+
+```ts
+interface UserRecord {
+  id: number;
+  name: string;
+  role: string;
+}
+
+const users = api.resource<UserRecord, number>("/users");
+
+const allUsers = await users.list({ role: "engineer" });             // GET /users?role=engineer
+const singleUser = await users.get(42);                              // GET /users/42
+const newUser = await users.create({ name: "Grace", role: "admin" }); // POST /users
+const replaced = await users.update(42, { name: "Grace H.", role: "admin" }); // PUT /users/42
+const patched = await users.patch(42, { role: "staff" });            // PATCH /users/42
+const Triggered = await users.action(42, "promote", { level: 5 });   // POST /users/42/promote
+const wasDeleted = await users.remove(42);                           // DELETE /users/42
+```
+
+### Request, Response & Error Interceptors
+
+Attach middleware hooks for request signing, correlation IDs, structured audit logging, or central error reporting:
+
+```ts
+api
+  .useRequestInterceptor((ctx) => {
+    ctx.headers["X-Correlation-ID"] = "req-{{$uuid}}";
+    return ctx;
+  })
+  .useResponseInterceptor((response, ctx) => {
+    app.debug(`${ctx.method} ${ctx.url} -> ${response.status} (${response.durationMs} ms)`);
+    return response;
+  })
+  .onError((err, ctx) => {
+    app.error(`API failure on ${ctx.method} ${ctx.url}: ${err.message}`);
+  });
+```
+
+### GraphQL, Auto-Pagination & Streaming (SSE / NDJSON)
+
+```ts
+// GraphQL query & mutation execution
+const gql = await api.graphql<{ repository: { stargazerCount: number } }>(
+  `query RepoStars($owner: String!, $name: String!) {
+     repository(owner: $owner, name: $name) { stargazerCount }
+   }`,
+  { owner: "oven-sh", name: "bun" }
+);
+
+// Auto-pagination generator & collector (supports "page", "offset", "cursor", and RFC 5988 "link" modes)
+for await (const pageBatch of api.paginate<UserRecord>("/users", { mode: "page", pageSize: 100 })) {
+  app.info(`Processed batch of ${pageBatch.length} users`);
+}
+const everyUser = await api.fetchAllPages<UserRecord>("/users", { mode: "cursor", pageSize: 100 });
+
+// Server-Sent Events (SSE) & NDJSON line streaming
+await api.streamSse("/events", (event) => {
+  app.info(`SSE [${event.event}]:`, event.json() ?? event.data);
+});
+
+await api.streamJsonLines<{ ts: number; msg: string }>("/logs/stream", (entry) => {
+  app.println(`[${entry.ts}] ${entry.msg}`);
+});
+```
+
+### Multipart File Uploads, Form Posts & Progress Downloads
+
+```ts
+// URL-encoded form submission (application/x-www-form-urlencoded)
+await api.postForm("/oauth/token", {
+  grant_type: "client_credentials",
+  scope: "read:metrics",
+});
+
+// Multipart file upload (accepts file paths, Uint8Array, Blob, or { data, filename, contentType })
+await api.upload(
+  "/releases/upload",
+  {
+    archive: "./dist/release.tar.gz",
+    metadata: {
+      data: JSON.stringify({ version: "2.1.0" }),
+      filename: "metadata.json",
+      contentType: "application/json",
+    },
+  },
+  { channel: "stable" }
+);
+
+// Stream file download with progress callback
+await api.download("/releases/latest.tar.gz", "/tmp/archive.tar.gz", (dl, total) => {
+  app.progressBar(dl, total, "Downloading");
+});
+```
+
+### Health Checks, Readiness Probes, Batching, Benchmarking & cURL
+
+```ts
+// Health check & readiness polling
+const health = await api.healthCheck("/health");
+const isReady = await api.waitForReady("/health", 10_000, 250);
+const probeReport = await api.probeEndpoints(["/health", "/ready", "/metrics"]);
+
+// Concurrent batch requests
+const batchResponses = await api.batch([
+  { method: "GET", path: "/users/1" },
+  { method: "GET", path: "/users/2" },
+], 4);
+
+// Built-in endpoint load / latency benchmark (reports RPS, min, avg, p50, p95, p99, max)
+const bench = await api.benchmark("/health", { requests: 50, concurrency: 10 });
+app.table(
+  ["RPS", "Success %", "p50 (ms)", "p95 (ms)", "p99 (ms)"],
+  [[bench.rps, bench.successRate, bench.p50Ms, bench.p95Ms, bench.p99Ms]]
+);
+
+// Export any request to a reproducible cURL command or import a cURL command into a BackendClient
+const curlCmd = api.toCurl("POST", "/users", { body: { name: "Ada" } });
+const imported = BackendClient.fromCurl(curlCmd);
+const replayRes = await imported.execute();
+```
+
+### Instant Zero-Config JSON Mock Server & Static Server
+
+Spin up a local REST mock server or microservice in one call with `app.serveJson` / `sys.serveJson` (binds to `127.0.0.1` by default for security, with automatic CORS and `:param` route matching):
+
+```ts
+import { sys } from "../src/simplecli";
+
+// Declarative route table supporting static JSON values, dynamic :params, and async handlers
+const mockApi = sys.serveJson({
+  "/health": { ok: true, service: "local-mock" },
+  "GET /users": [{ id: 1, name: "Ada" }],
+  "GET /users/:id": (_req: Request, params: Record<string, string>) => ({
+    id: Number(params.id),
+    name: `User ${params.id}`,
+  }),
+  "POST /users": async (req: Request) => {
+    const body = (await req.json()) as Record<string, any>;
+    return { id: 2, ...body };
+  },
+}, 3000, "127.0.0.1");
+
 // Instant static file server or custom micro HTTP server via Bun.serve
-const server = sys.serveStatic("./public", 3000, "127.0.0.1");
+const staticServer = sys.serveStatic("./public", 3001, "127.0.0.1");
 ```
 
 ---
@@ -833,7 +1085,20 @@ const manPage = app.generateManPage();
 | `Prompts` | `class` | `src/simplecli/core/prompts.ts` | Interactive terminal prompt, menu, fuzzy selector, and form engine |
 | `Pipeline` | `class` | `src/simplecli/core/pipeline.ts` | Multi-step sequential task runner with timing and status reporting |
 | `ConfigStore` | `class` | `src/simplecli/core/config.ts` | Persistent JSON configuration store in user home config directory |
-| `NamespacedRedis` | `class` | `src/simplecli/core/redis.ts` | Key-prefixed Redis client wrapper with in-memory fallback |
+| `NamespacedRedis` | `class` | `src/simplecli/core/redis.ts` | Key-prefixed Redis client wrapper with automatic in-memory fallback and `getOrSet` cache-aside |
+| `InMemoryRedisClient` | `class` | `src/simplecli/core/redis.ts` | Zero-dependency in-memory Redis-compatible store with TTL expiration |
+| `BackendClient` / `ApiClient` | `class` | `src/simplecli/core/client.ts` | Fluent REST, GraphQL, SSE, multipart upload, pagination, cURL, and benchmark client |
+| `ResourceClient<T, ID>` | `class` | `src/simplecli/core/client.ts` | Zero-boilerplate CRUD wrapper (`list`, `get`, `create`, `update`, `patch`, `remove`, `action`) |
+| `BackendApiError<T>` | `class` | `src/simplecli/core/client.ts` | Rich HTTP error carrying `.statusCode`, `.data`, `.body`, `.headers`, and `.url` |
+| `BackendResponse<T>` | `interface` | `src/simplecli/core/types.ts` | Typed HTTP response envelope extending `SimpleHttpResponse` with `.ok`, `.data`, `.durationMs`, `.header()` |
+| `BackendClientOptions` | `interface` | `src/simplecli/core/types.ts` | Configuration options for `BackendClient` / `createApiClient` |
+| `RequestOptions` | `interface` | `src/simplecli/core/types.ts` | Per-request overrides for headers, query params, retries, timeout, caching, and fallback |
+| `SafeApiResult<T>` | `interface` | `src/simplecli/core/types.ts` | Non-throwing result envelope returned by `tryGet`, `tryPost`, `tryPut`, `tryPatch`, `tryDelete` |
+| `GraphQLResult<T>` | `interface` | `src/simplecli/core/types.ts` | Typed GraphQL response returned by `client.graphql` and `stdlib.graphql` |
+| `SseEvent` | `interface` | `src/simplecli/core/types.ts` | Parsed Server-Sent Event item passed to `client.streamSse` callbacks |
+| `PaginationOptions<T>` | `interface` | `src/simplecli/core/types.ts` | Configuration for `client.paginate` and `client.fetchAllPages` (`page`, `offset`, `cursor`, `link`) |
+| `HealthCheckResult` | `interface` | `src/simplecli/core/types.ts` | Endpoint health and latency report returned by `client.healthCheck` |
+| `BenchmarkStats` | `interface` | `src/simplecli/core/types.ts` | Load test summary (`rps`, `p50Ms`, `p95Ms`, `p99Ms`, `successRate`) returned by `client.benchmark` |
 | `TreeNode` | `class` | `src/simplecli/core/types.ts` | Node structure for hierarchical `app.tree(root)` visualizations |
 | `LogLevel` | `enum` | `src/simplecli/core/types.ts` | `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `SILENT` |
 | `AlertKind` | `enum` | `src/simplecli/core/types.ts` | `INFO`, `SUCCESS`, `WARNING`, `CAUTION`, `TIP`, `NOTE` |
