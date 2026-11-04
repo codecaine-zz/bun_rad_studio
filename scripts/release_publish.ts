@@ -165,9 +165,25 @@ async function main() {
     log("🔄", `Updating existing release ${tag} (${toUpload.length} changed/new archive(s) + SHA256SUMS.txt, ${files.length - toUpload.length} unchanged skipped)…`);
     const editProc = Bun.spawn(["gh", "release", "edit", tag, "--repo", repo, "--title", `Bun RAD Studio ${tag}`, "--notes-file", notesPath], { cwd: ROOT, stdout: "inherit", stderr: "inherit" });
     if ((await editProc.exited) !== 0) throw new Error("gh release edit failed.");
-    const upProc = Bun.spawn(["gh", "release", "upload", tag, "--repo", repo, "--clobber", ...toUpload.map((f) => f.path), sumsPath], { cwd: ROOT, stdout: "inherit", stderr: "inherit" });
-    const upCode = await upProc.exited;
-    if (upCode !== 0) throw new Error(`gh release upload failed (${upCode}).`);
+    const uploadQueue = [...toUpload.map((f) => ({ path: f.path, name: f.name, bytes: f.bytes })), { path: sumsPath, name: "SHA256SUMS.txt", bytes: statSync(sumsPath).size }];
+    for (let i = 0; i < uploadQueue.length; i++) {
+      const item = uploadQueue[i]!;
+      log("⬆️", `[${i + 1}/${uploadQueue.length}] Uploading ${item.name} (${mb(item.bytes)})…`);
+      let ok = false;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        const upProc = Bun.spawn(["gh", "release", "upload", tag, "--repo", repo, "--clobber", item.path], { cwd: ROOT, stdout: "inherit", stderr: "inherit" });
+        const upCode = await upProc.exited;
+        if (upCode === 0) {
+          ok = true;
+          break;
+        }
+        if (attempt < 3) {
+          log("⚠️", `Upload of ${item.name} failed (attempt ${attempt}/3, exit ${upCode}); retrying in ${attempt * 2}s…`);
+          await new Promise((r) => setTimeout(r, attempt * 2000));
+        }
+      }
+      if (!ok) throw new Error(`gh release upload failed for ${item.name}.`);
+    }
     log("🎉", `Updated: https://github.com/${repo}/releases/tag/${tag}`);
     return;
   }
