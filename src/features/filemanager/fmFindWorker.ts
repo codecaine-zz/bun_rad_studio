@@ -104,24 +104,23 @@ function renamePlan(job: Extract<WorkerJob, { kind: "renameplan" }>) {
   }
   const platform = job.platform as Platform;
   const insensitive = platform !== "linux";
-  const seen = new Map<string, number>();
+  const seen = new Set<string>();
   const key = (to: string) => (insensitive ? to.toLowerCase() : to);
   for (const row of rows) {
+    if (row.from === row.to) seen.add(key(row.to));
+  }
+  for (const row of rows) {
     if (row.from === row.to) continue;
-        // A change of letter case only ("a.txt" to "A.txt") is the same file on a case-insensitive disk, not a clash.
+    // A change of letter case only ("a.txt" to "A.txt") is the same file on a case-insensitive disk, not a clash.
     if (row.error === "A file with that name already exists." && insensitive && key(row.from) === key(row.to)) row.error = undefined;
     if (!row.error && row.newName !== row.newName.trim()) row.error = "A name can't start or end with a space.";
     if (!row.error) {
       const reason = validateName(row.newName, platform);
       if (reason) row.error = reason;
     }
-    if (!row.error) {
-      const k = key(row.to);
-      seen.set(k, (seen.get(k) ?? 0) + 1);
-    }
-  }
-  if (insensitive) {
-    for (const row of rows) if (!row.error && row.from !== row.to && (seen.get(key(row.to)) ?? 0) > 1) row.error = "Duplicate target name in this batch.";
+    const k = key(row.to);
+    if (!row.error && seen.has(k)) row.error = "Duplicate target name in this batch.";
+    seen.add(k);
   }
   return rows.map((r) => ({ from: r.from, to: r.to, oldName: r.oldName, newName: r.newName, changed: r.from !== r.to, ...(r.error ? { error: r.error } : {}) }));
 }

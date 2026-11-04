@@ -153,7 +153,6 @@ export function planBatchRename(paths: string[], rules: RenameRules): RenamePlan
     }
   }
   const width = Math.max(3, String(paths.length).length);
-  const taken = new Set<string>();
   const rows: RenamePlanRow[] = paths.map((filePath, index) => {
     const oldName = path.basename(filePath);
     const ext = path.extname(oldName);
@@ -173,12 +172,30 @@ export function planBatchRename(paths: string[], rules: RenameRules): RenamePlan
     return row;
   });
   // Conflict detection (collisions with each other or existing files not part of the batch)
-  const sources = new Set(rows.map((planRow) => planRow.from));
+  const caseFold = process.platform === "darwin" || process.platform === "win32";
+  const normKey = (p: string) => (caseFold ? p.toLowerCase() : p);
+  const movingSources = new Set<string>();
+  const unchangedSources = new Set<string>();
+  for (const planRow of rows) {
+    if (planRow.error) continue;
+    const fromKey = normKey(planRow.from);
+    const toKey = normKey(planRow.to);
+    if (fromKey !== toKey) {
+      movingSources.add(fromKey);
+    } else {
+      unchangedSources.add(fromKey);
+    }
+  }
+  const taken = new Set<string>();
   for (const planRow of rows) {
     if (planRow.error || planRow.from === planRow.to) continue;
-    if (taken.has(planRow.to)) planRow.error = "Duplicate target name in this batch.";
-    else if (fs.existsSync(planRow.to) && !sources.has(planRow.to)) planRow.error = "A file with that name already exists.";
-    taken.add(planRow.to);
+    const toKey = normKey(planRow.to);
+    if (taken.has(toKey)) {
+      planRow.error = "Duplicate target name in this batch.";
+    } else if ((fs.existsSync(planRow.to) || unchangedSources.has(toKey)) && !movingSources.has(toKey)) {
+      planRow.error = "A file with that name already exists.";
+    }
+    taken.add(toKey);
   }
   return rows;
 }
@@ -266,7 +283,41 @@ export function searchContents(
   return { matches, filesScanned, filesWithHits, truncated };
 }
 
-/** Finds identical files: group by size, then by SHA-256. */
+function quickHashSync(filePath: string, size: number, buf: Buffer): string {
+  const fd = fs.openSync(filePath, "r");
+  try {
+    const hasher = new Bun.CryptoHasher("sha256");
+    const headBytes = fs.readSync(fd, buf, 0, Math.min(buf.length, size), 0);
+    hasher.update(buf.subarray(0, headBytes));
+    if (size > buf.length) {
+      const tailOffset = Math.max(headBytes, size - buf.length);
+      const tailBytes = fs.readSync(fd, buf, 0, Math.min(buf.length, size - tailOffset), tailOffset);
+      hasher.update(buf.subarray(0, tailBytes));
+    }
+    return hasher.digest("hex");
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
+function fullHashSync(filePath: string, chunkBuf: Buffer): string {
+  const fd = fs.openSync(filePath, "r");
+  try {
+    const hasher = new Bun.CryptoHasher("sha256");
+    let pos = 0;
+    while (true) {
+      const bytesRead = fs.readSync(fd, chunkBuf, 0, chunkBuf.length, pos);
+      if (bytesRead <= 0) break;
+      hasher.update(chunkBuf.subarray(0, bytesRead));
+      pos += bytesRead;
+    }
+    return hasher.digest("hex");
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
+/** Finds identical files: group by size, pre-hash head+tail for large files, then stream SHA-256. */
 export function findDuplicates(paths: string[], minBytes = 1): { groups: DuplicateGroup[]; wastedBytes: number } {
   const bySize = new Map<number, string[]>();
   for (const filePath of paths) {
@@ -280,23 +331,48 @@ export function findDuplicates(paths: string[], minBytes = 1): { groups: Duplica
   }
   const groups: DuplicateGroup[] = [];
   let wastedBytes = 0;
+  const PREHASH_THRESHOLD = 128 * 1024;
+  let quickBuf: Buffer | null = null;
+  let chunkBuf: Buffer | null = null;
   for (const [size, list] of bySize) {
     if (list.length < 2) continue;
-    const byHash = new Map<string, string[]>();
-    for (const filePath of list) {
-      try {
-        const hasher = new Bun.CryptoHasher("sha256");
-        hasher.update(fs.readFileSync(filePath));
-        const hex = hasher.digest("hex");
-        const sameHashPaths = byHash.get(hex) ?? [];
-        sameHashPaths.push(filePath);
-        byHash.set(hex, sameHashPaths);
-      } catch {}
+    let candidatesLists: string[][] = [list];
+    if (size > PREHASH_THRESHOLD) {
+      quickBuf ??= Buffer.allocUnsafe(64 * 1024);
+      const byQuick = new Map<string, string[]>();
+      for (const filePath of list) {
+        try {
+          const qh = quickHashSync(filePath, size, quickBuf);
+          const bucket = byQuick.get(qh) ?? [];
+          bucket.push(filePath);
+          byQuick.set(qh, bucket);
+        } catch {}
+      }
+      candidatesLists = [...byQuick.values()].filter((bucket) => bucket.length >= 2);
     }
-    for (const [hash, ps] of byHash) {
-      if (ps.length > 1) {
-        groups.push({ hash, sizeBytes: size, paths: ps });
-        wastedBytes += size * (ps.length - 1);
+    for (const candidates of candidatesLists) {
+      const byHash = new Map<string, string[]>();
+      for (const filePath of candidates) {
+        try {
+          let hex: string;
+          if (size <= PREHASH_THRESHOLD) {
+            const hasher = new Bun.CryptoHasher("sha256");
+            hasher.update(fs.readFileSync(filePath));
+            hex = hasher.digest("hex");
+          } else {
+            chunkBuf ??= Buffer.allocUnsafe(1024 * 1024);
+            hex = fullHashSync(filePath, chunkBuf);
+          }
+          const sameHashPaths = byHash.get(hex) ?? [];
+          sameHashPaths.push(filePath);
+          byHash.set(hex, sameHashPaths);
+        } catch {}
+      }
+      for (const [hash, ps] of byHash) {
+        if (ps.length > 1) {
+          groups.push({ hash, sizeBytes: size, paths: ps });
+          wastedBytes += size * (ps.length - 1);
+        }
       }
     }
   }

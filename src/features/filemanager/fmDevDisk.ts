@@ -197,6 +197,8 @@ const QUICK = 64 * 1024;
 export interface DupeGroup {
   size: number;
   files: string[];
+  /** Per-file modification timestamps so the UI can offer "Keep Newest" / "Keep Oldest" smart selection. */
+  fileStats?: Array<{ path: string; mtimeMs: number }>;
   /** Space that deleting all but one copy would free. */
   wasted: number;
 }
@@ -267,6 +269,7 @@ async function fullHash(abs: string, signal: { cancelled: boolean }): Promise<st
 export async function runDupes(job: DevJob, o: { minBytes: number; vendored: boolean; limits?: Partial<WalkLimits> }): Promise<DupeReport> {
   const started = Date.now();
   const bySize = new Map<number, string[]>();
+  const mtimeByRel = new Map<string, number>();
   const deadline = started + HARD_MAX_SECONDS * 1000;
   const tree = await walkAll(
     job.root,
@@ -274,6 +277,7 @@ export async function runDupes(job: DevJob, o: { minBytes: number; vendored: boo
     job,
     (f) => {
       if (f.size < o.minBytes || f.size > DUPE_MAX_FILE_BYTES) return;
+      mtimeByRel.set(f.rel, f.mtimeMs);
       const list = bySize.get(f.size);
       if (list) list.push(f.rel);
       else bySize.set(f.size, [f.rel]);
@@ -316,7 +320,17 @@ export async function runDupes(job: DevJob, o: { minBytes: number; vendored: boo
           break outer;
         }
       }
-      for (const files of byFull.values()) if (files.length > 1) groups.push({ size, files: files.sort(), wasted: size * (files.length - 1) });
+      for (const files of byFull.values()) {
+        if (files.length > 1) {
+          const sorted = files.sort();
+          groups.push({
+            size,
+            files: sorted,
+            fileStats: sorted.map((p) => ({ path: p, mtimeMs: mtimeByRel.get(p) ?? 0 })),
+            wasted: size * (sorted.length - 1),
+          });
+        }
+      }
     }
     setProgress(job, { phase: "comparing", checked: ++done, of: candidates.length, hashedBytes });
     await tick();

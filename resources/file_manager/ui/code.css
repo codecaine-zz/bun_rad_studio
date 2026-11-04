@@ -262,7 +262,7 @@ kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; bac
 .code-wrap .code-row { height: auto; min-height: var(--code-lh); position: relative; white-space: pre-wrap; overflow-wrap: break-word; word-break: normal; }
 .code-gut { position: absolute; left: 0; top: 0; bottom: 0; width: var(--code-gutter); overflow: hidden; background: var(--code-gutter-bg); border-right: 1px solid var(--border); cursor: pointer; }
 .code-gut-inner { position: absolute; left: 0; top: 0; width: 100%; will-change: transform; }
-.code-gn { height: var(--code-lh); box-sizing: border-box; text-align: right; padding-right: 10px; color: var(--code-muted); user-select: none; }
+.code-gn { height: var(--code-lh); box-sizing: border-box; text-align: right; padding-right: 10px; color: var(--code-muted); user-select: none; white-space: nowrap; }
 .code-gn:hover { color: var(--code-fg); }
 .code-wrap .code-gut { display: none; }
 .code-wrap .code-hl::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: var(--code-gutter); background: var(--code-gutter-bg); border-right: 1px solid var(--border); }
@@ -367,6 +367,7 @@ kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; bac
 .code-fold-icon { display: inline-block; width: 12px; margin-right: 2px; color: var(--code-muted); font-size: 11px; cursor: pointer; text-align: center; }
 .code-fold-icon:hover { color: var(--accent); font-weight: 700; }
 .code-fold-badge { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 4px; background: var(--hover); color: var(--accent); border: 1px solid var(--border); font-size: 0.85em; vertical-align: baseline; }
+.code-wrap .code-fold-badge { position: absolute; pointer-events: none; }
 .code-row-folded { opacity: 0.25; }
 
 /* Inline color swatches & breadcrumb pills */

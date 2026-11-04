@@ -13,7 +13,7 @@ import { FmError, protectedReason } from "./fmPaths";
 import { bulkOperations } from "./fmFindBulk";
 import { EXPORT_FORMATS } from "./fmFindExport";
 import { parseSearch, resolveTargets, statItem, storeResults } from "./fmFindQuery";
-import { runWorkerJob } from "./fmFindRun";
+import { cancelWorkerJobs, runWorkerJob } from "./fmFindRun";
 import { DEFAULT_MAX_RESULTS, EXEC_OUTPUT_CAP, EXEC_TIMEOUT_MS, MAX_PATHS, MAX_RESULTS_CAP, MAX_WATCHERS, type SearchOutcome } from "./fmFindShared";
 import { pollWatch, startWatch, stopWatch } from "./fmFindWatch";
 
@@ -51,6 +51,10 @@ export const findOperations: Record<string, FmHandler> = {
     const { root, options } = await parseSearch(ctx, b);
     const found = await runWorkerJob<SearchOutcome>(ctx, { kind: "search", options });
     return { resultId: storeResults(ctx, root, found.items), root, ...found };
+  },
+
+  async "find/cancel"(ctx) {
+    return cancelWorkerJobs(ctx);
   },
 
   async "find/inspect"(ctx, b) {

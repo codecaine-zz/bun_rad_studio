@@ -523,6 +523,21 @@ export function renderQuickbar() {
   }
   const hasFilter = Boolean((state.quickFilter || "").trim()) || (state.kindFilter && state.kindFilter !== "all");
   if (clearBtn) clearBtn.hidden = !hasFilter;
+  const rawTotal = (left.search ? left.search.entries : left.entries)?.length ?? 0;
+  const shownCount = visibleEntries(left).length;
+  let countBadge = input?.parentElement?.querySelector(".quickbar-match-count");
+  if (!countBadge && input?.parentElement) {
+    countBadge = h("span", { class: "quickbar-match-count", hidden: true });
+    input.parentElement.insertBefore(countBadge, clearBtn || null);
+  }
+  if (countBadge) {
+    const anyFilter = hasFilter || Boolean(state.tagFilter);
+    countBadge.hidden = !anyFilter;
+    if (anyFilter) {
+      countBadge.textContent = `${shownCount} / ${rawTotal}`;
+      countBadge.title = `${shownCount} of ${rawTotal} items match active filter`;
+    }
+  }
 
   // Compute live counts across the current folder's raw entries (after tag filter if any)
   let baseEntries = left.search ? left.search.entries : left.entries;
@@ -593,8 +608,11 @@ export function renderQuickbar() {
 export function renderSelectionBar() {
   const bar = $("#selection-bar");
   if (!bar) return;
-  const items = selectedEntries(left);
-  if (!items.length || inTrash(left)) {
+  const active = activePane();
+  const activeItems = selectedEntries(active);
+  const targetPane = activeItems.length > 0 && !inTrash(active) ? active : left;
+  const items = targetPane === active ? activeItems : selectedEntries(left);
+  if (!items.length || inTrash(targetPane)) {
     bar.hidden = true;
     clear(bar);
     return;
@@ -738,7 +756,7 @@ export function renderSelectionBar() {
   addAct("copypath", "🔗", "Copy Path", "Copy full path(s) to the clipboard", () => ops.copyPathOf(items));
   addAct("copynames", "🏷️", "Copy Names", "Copy only the filename(s) without directory paths", () => ops.copyNamesOf(items));
   addAct("delete", "🗑️", "Delete", "Move selected items to the Recycle Bin / Graveyard", () => ops.trashSelection(), { danger: true });
-  addAct("clear", "✕", "Deselect", "Clear selection (Esc)", () => clearSelection(left));
+  addAct("clear", "✕", "Deselect", "Clear selection (Esc)", () => clearSelection(targetPane));
 
   bar.append(summary, tagGroup, actions);
 }

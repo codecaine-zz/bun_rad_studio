@@ -2,8 +2,10 @@
 // identical, cannot compare), and a one-way copy of the differences you choose. Copying goes through the same
 // preview and approval as every other change, and nothing is ever deleted from either folder.
 import { ApiError, call } from "./api.js";
+import { showCompareTextFiles } from "./datacompare.js";
+import { joinRoot } from "./devActions.js";
 import { announce, h } from "./dom.js";
-import { btn, createStatus, errorText, num, runJob, seconds } from "./devCore.js";
+import { btn, createStatus, errorText, linkButton, num, runJob, seconds } from "./devCore.js";
 import { pickFolder } from "./findPicker.js";
 import { toast } from "./menus.js";
 import { reviewPlan } from "./planDialog.js";
@@ -55,7 +57,13 @@ registerPowerTab({
       h("option", { value: "toRight" }, "Copy to the right →"),
       h("option", { value: "toLeft" }, "← Copy to the left"));
     const replaceBox = h("input", { type: "checkbox", id: "compare-replace", title: "Also copy over files that exist on both sides but differ. The old file goes to the Recycle Bin first." });
-    const selectAll = btn("Select everything that can be copied", "Tick every item in the list that can be copied this way", () => { for (const e of rows) if (usable(e)) picked.add(e.rel); paint(); });
+    const selectAll = btn("Select everything that can be copied", "Tick every item in the list that can be copied this way", async () => {
+      while (compareId && rows.length < total && rows.length < 5000) {
+        await load(false);
+      }
+      for (const e of rows) if (usable(e)) picked.add(e.rel);
+      paint();
+    });
     const clear = btn("Clear selection", "Untick everything", () => { picked.clear(); paint(); });
     const copy = btn("Copy the selected…", "Shows exactly what will be copied or replaced, and asks you to approve it", () => copyChosen(), { primary: true });
     const verifyNote = h("p", { class: "pw-hint compare-note", hidden: true });
@@ -95,8 +103,13 @@ registerPowerTab({
       const body = h("tbody", {}, rows.map((e) => {
         const ok = usable(e);
         const box = h("input", { type: "checkbox", checked: picked.has(e.rel), disabled: !ok, "aria-label": `Select ${e.rel}`, title: ok ? "Select to copy" : "This can't be copied this way", onchange: () => { box.checked ? picked.add(e.rel) : picked.delete(e.rel); countNote(); } });
+        const canDiffFile = e.category === "different" && e.left?.kind === "file" && e.right?.kind === "file";
         return h("tr", { class: `g-${e.category}` }, h("td", {}, box), h("td", { class: "pw-mono" }, e.rel), h("td", {}, sideText(e.left)), h("td", {}, sideText(e.right)),
-          h("td", {}, e.note, e.category === "identical" && !e.verified ? h("strong", {}, " (not verified)") : null));
+          h("td", {}, e.note, e.category === "identical" && !e.verified ? h("strong", {}, " (not verified)") : null,
+            canDiffFile ? [" ", linkButton("Diff", "Compare the contents of these two files line by line", () => showCompareTextFiles([
+              { path: joinRoot(left.value.trim(), e.rel), name: e.rel },
+              { path: joinRoot(right.value.trim(), e.rel), name: e.rel },
+            ]))] : null));
       }));
       table.replaceChildren(head, body);
       emptyNote.hidden = !compareId || rows.length > 0;
@@ -258,6 +271,9 @@ registerPowerTab({
         if (opts?.left) left.value = opts.left;
         if (opts?.right) right.value = opts.right;
         if (!left.value) left.value = currentPath() || "";
+      },
+      hide() {
+        if (job) stopCompare();
       },
     };
   },

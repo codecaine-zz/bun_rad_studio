@@ -12,9 +12,9 @@ import { lockSelection } from "./vault.js";
 import { showOperationHistory } from "./opHistory.js";
 import { $, buttonIconFor, clear, h } from "./dom.js";
 import { showMenu, toast } from "./menus.js";
-import { canGoUpIn, clearSearch, goBack, goForward, goTo, goUpIn, refresh, runSearch } from "./nav.js";
+import { canGoUpIn, clearSearch, goBack, goForward, goTo, goUpIn, refresh, runSearch, visibleEntries } from "./nav.js";
 import * as ops from "./ops.js";
-import { activePane, isFolderView } from "./pane.js";
+import { activePane, hooks, isFolderView } from "./pane.js";
 import { emit, inTrash, on, state } from "./state.js";
 import { hintOf } from "./keymap.js";
 import { selectAll, selectedEntries } from "./selection.js";
@@ -32,13 +32,13 @@ const mod = () => (state.platform === "darwin" ? "⌘" : "Ctrl+");
 /** Each button: id, icon, label, tooltip, what it does, and when it is enabled / shown. */
 function buttonSpecs() {
   // In the Dual view these follow the active pane (the one last clicked), so the same buttons work on either folder.
-  const sel = () => activePane().selection.size;
+  const sel = () => selectedEntries(activePane()).length;
   const folderView = () => isFolderView(activePane());
   const onLeft = () => activePane().side === "left";
   return [
     [
-      { id: "back", icon: "←", label: "Back", get tip() { return `Go back${hintOf("nav.back")}`; }, run: goBack, enabled: () => onLeft() && state.history.length > 0 },
-      { id: "forward", icon: "→", label: "Forward", get tip() { return `Go forward${hintOf("nav.forward")}`; }, run: goForward, enabled: () => onLeft() && state.future.length > 0 },
+      { id: "back", icon: "←", label: "Back", get tip() { return `Go back${hintOf("nav.back")}`; }, run: () => (onLeft() ? goBack() : hooks.goRightBack?.()), enabled: () => (onLeft() ? state.history.length > 0 : Boolean(hooks.canGoRightBack?.())) },
+      { id: "forward", icon: "→", label: "Forward", get tip() { return `Go forward${hintOf("nav.forward")}`; }, run: () => (onLeft() ? goForward() : hooks.goRightForward?.()), enabled: () => (onLeft() ? state.future.length > 0 : Boolean(hooks.canGoRightForward?.())) },
       { id: "up", icon: "↑", label: "Up", get tip() { return `Go up one folder${hintOf("nav.up")}`; }, run: () => goUpIn(activePane()), enabled: () => canGoUpIn(activePane()) },
       { id: "refresh", icon: "⟳", label: "Refresh", get tip() { return `Reload this folder${hintOf("nav.refresh")}`; }, run: () => refresh(), enabled: () => true },
     ],
@@ -49,7 +49,7 @@ function buttonSpecs() {
       { id: "newTemplate", icon: "✨", label: "Template", get tip() { return `Make a new file from a starter template${hintOf("file.newTemplate")}`; }, run: () => emit("new-template-dialog"), enabled: folderView, hide: inTrash },
     ],
     [
-      { id: "selectAll", icon: "☑️", label: "Select all", get tip() { return `Select every item in this folder${hintOf("file.selectAll")}`; }, run: () => selectAll(), enabled: () => folderView() && activePane().entries?.length !== 0, hide: inTrash },
+      { id: "selectAll", icon: "☑️", label: "Select all", get tip() { return `Select every item in this folder${hintOf("file.selectAll")}`; }, run: () => selectAll(), enabled: () => !inTrash() && visibleEntries(activePane()).length > 0, hide: inTrash },
       { id: "toTerminal", icon: "⌨️", label: "To Terminal", get tip() { return `Copy the selected items' paths, quoted for a terminal${hintOf("file.copyTerminalPaths")}. Use Insert paths in Terminal from the right-click menu to type them into the built-in terminal.`; }, run: () => { const items = selectedEntries(); void copyTerminalPaths(items); }, enabled: () => sel() > 0 },
     ],
     [

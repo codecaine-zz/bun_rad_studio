@@ -2,6 +2,7 @@
 // Everything is built with h() (never HTML strings), so names from disk can't inject markup.
 import { h, $, announce } from "./dom.js";
 import { ApiError } from "./api.js";
+import { menuIsOpen } from "./menus.js";
 
 let active = 0;
 
@@ -62,6 +63,7 @@ export function openDialog({ title, body, buttons = [{ label: "OK", primary: tru
 
   function onKey(e) {
     if (e.isComposing || e.keyCode === 229) return;
+    if (menuIsOpen()) return;
     if (!dialog.isConnected || backdrop !== [...document.querySelectorAll(".modal-backdrop")].at(-1)) return;
     if (e.key === "Escape") {
       e.preventDefault();

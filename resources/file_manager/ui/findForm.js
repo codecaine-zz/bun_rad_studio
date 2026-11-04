@@ -46,6 +46,8 @@ export function createForm(hooks) {
     }
   }, { tip: "Pick the folder to search from a list of your folders" });
   const search = button("🔍 Find", hooks.onSearch, { primary: true, tip: "Start the search (you can also press Enter in a text box)" });
+  const cancel = button("✕ Cancel", () => hooks.onCancel?.(), { danger: true, tip: "Stop the running search" });
+  cancel.hidden = true;
   const clear = button("✕ Reset", hooks.onClear, { tip: "Clear the filters and search again with the defaults" });
 
   const mode = dropdown(MODES, { label: "How to read the text", tip: "Pattern (regex) understands patterns like ^a.*\\.txt$. Wildcards (glob) understand * and ?. Plain text looks for exactly what you typed." });
@@ -73,7 +75,7 @@ export function createForm(hooks) {
 
   const el = h("section", { class: "pw-card find-form", "aria-label": "Search" },
     h("h3", {}, "Find files and folders"),
-    row(field("What to look for", pattern, "Part of a name, a pattern or a wildcard"), field("Where to look", root, "The folder to search"), browse, search, clear),
+    row(field("What to look for", pattern, "Part of a name, a pattern or a wildcard"), field("Where to look", root, "The folder to search"), browse, search, cancel, clear),
     row(field("How to read it", mode), field("Capital letters", caseMode), field("Show", show), field("Ready-made", preset), field("Recent", recent), field("Most results", max)),
     h("details", { class: "find-more" },
       h("summary", { title: "More ways to narrow the search: file endings, size, age, depth and more" }, "More filters"),
@@ -152,6 +154,7 @@ export function createForm(hooks) {
     setBusy(on) {
       search.disabled = on;
       search.textContent = on ? "Searching…" : "🔍 Find";
+      cancel.hidden = !on;
     },
     setPresets(list) {
       preset.replaceChildren(h("option", { value: "" }, "Presets…"), ...list.map((p) => h("option", { value: p.label }, p.label)));

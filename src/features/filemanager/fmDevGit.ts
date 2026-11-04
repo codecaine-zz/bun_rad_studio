@@ -81,8 +81,11 @@ export async function gitSummary(root: string, now = new Date()): Promise<GitSum
   if (top.missing) return { available: false, isRepo: false, message: "Git isn't installed (or isn't on your PATH), so there is no Git summary." };
   if (!top.ok || !top.stdout.trim()) return { available: true, isRepo: false, message: "This folder isn't inside a Git repository." };
   const toplevel = top.stdout.trim();
-  const realRoot = await fsp.realpath(root).catch(() => root);
-  const out: GitSummary = { available: true, isRepo: true, toplevel, subfolder: nodePath.resolve(toplevel) !== nodePath.resolve(realRoot) };
+  const [realRoot, realToplevel] = await Promise.all([
+    fsp.realpath(root).catch(() => root),
+    fsp.realpath(toplevel).catch(() => toplevel),
+  ]);
+  const out: GitSummary = { available: true, isRepo: true, toplevel, subfolder: nodePath.resolve(realToplevel) !== nodePath.resolve(realRoot) };
   const first = monthKeys(now, 12)[0]!;
   const [status, count, last, roots, remotes, shortlog, months, tags, tree, up] = await Promise.all([
     runGit(root, ["status", "--porcelain=v1", "-b", "--untracked-files=normal"], 15000),
@@ -131,7 +134,9 @@ export async function gitSummary(root: string, now = new Date()): Promise<GitSum
   const tagList = tags.ok ? tags.stdout.split("\n").map((t) => t.trim()).filter(Boolean) : [];
   out.tags = { count: tagList.length, latest: tagList.slice(0, 10) };
   const files: Array<{ path: string; bytes: number }> = [];
-  for (const rec of tree.ok ? tree.stdout.split("\0") : []) {
+  const rawRecs = tree.ok ? tree.stdout.split("\0") : [];
+  if (tree.truncated && rawRecs.length > 0) rawRecs.pop();
+  for (const rec of rawRecs) {
     const m = /^\d+ blob \w+\s+(\d+)\t([\s\S]+)$/.exec(rec);
     if (m) files.push({ path: m[2]!, bytes: Number(m[1]) });
   }

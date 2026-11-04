@@ -224,7 +224,7 @@ async function loadReadableTextForCompare(ctx: FmContext, input: unknown): Promi
 }
 
 /** Computes line-by-line LCS diff with prefix/suffix trimming for speed. */
-export function computeLineDiff(leftLines: string[], rightLines: string[]): TextDiffRow[] {
+export function computeLineDiff(leftLines: string[], rightLines: string[], maxMidLines = TEXT_COMPARE_MAX_LINES): TextDiffRow[] {
   let start = 0;
   while (start < leftLines.length && start < rightLines.length && leftLines[start] === rightLines[start]) {
     start++;
@@ -241,8 +241,8 @@ export function computeLineDiff(leftLines: string[], rightLines: string[]): Text
     rows.push({ type: "same", leftLine: i + 1, rightLine: i + 1, text: leftLines[i]! });
   }
 
-  const midLeft = leftLines.slice(start, endLeft + 1);
-  const midRight = rightLines.slice(start, endRight + 1);
+  const midLeft = leftLines.slice(start, Math.min(endLeft + 1, start + maxMidLines));
+  const midRight = rightLines.slice(start, Math.min(endRight + 1, start + maxMidLines));
   const n = midLeft.length;
   const m = midRight.length;
 
@@ -361,21 +361,25 @@ export async function compareTextFiles(ctx: FmContext, leftPath: unknown, rightP
   const rawLeftLines = normLeft.length === 0 ? [] : normLeft.split("\n");
   const rawRightLines = normRight.length === 0 ? [] : normRight.split("\n");
   const truncated = rawLeftLines.length > TEXT_COMPARE_MAX_LINES || rawRightLines.length > TEXT_COMPARE_MAX_LINES;
-  const leftLines = rawLeftLines.slice(0, TEXT_COMPARE_MAX_LINES);
-  const rightLines = rawRightLines.slice(0, TEXT_COMPARE_MAX_LINES);
-  const rows = computeLineDiff(leftLines, rightLines);
+  const allRows = computeLineDiff(rawLeftLines, rawRightLines, TEXT_COMPARE_MAX_LINES);
 
   let added = 0;
   let removed = 0;
   let unchanged = 0;
-  for (const r of rows) {
+  for (const r of allRows) {
     if (r.type === "add") added++;
     else if (r.type === "del") removed++;
     else unchanged++;
   }
-  const totalLines = Math.max(1, leftLines.length + rightLines.length);
-  const similarityPct = identical ? 100 : Math.round(((2 * unchanged) / totalLines) * 100);
-  const unifiedPatch = buildUnifiedPatch(left.name, right.name, rows);
+  const totalLines = Math.max(1, rawLeftLines.length + rawRightLines.length);
+  const similarityPct = identical ? 100 : Math.min(99, Math.round(((2 * unchanged) / totalLines) * 100));
+  const unifiedPatch = buildUnifiedPatch(left.name, right.name, allRows);
+  let rows = allRows;
+  if (allRows.length > TEXT_COMPARE_MAX_LINES) {
+    const firstChange = allRows.findIndex((r) => r.type !== "same");
+    const winStart = firstChange > 20 ? firstChange - 20 : 0;
+    rows = allRows.slice(winStart, winStart + TEXT_COMPARE_MAX_LINES);
+  }
 
   return {
     identical,

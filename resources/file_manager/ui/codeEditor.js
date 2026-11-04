@@ -116,6 +116,8 @@ export function createEditor({ onChange = () => {}, onSelect = () => {}, onClip 
   const rows = new Map();
   let tabTrap = true;
   const fallbackUndo = [];
+  const fallbackRedo = [];
+  let fallbackExpectedVal = null;
 
   const getStarts = () => (starts ??= buildLineStarts(ta.value));
   const lineOf = (pos) => lineAt(getStarts(), pos);
@@ -272,7 +274,7 @@ export function createEditor({ onChange = () => {}, onSelect = () => {}, onClip 
 
     const digits = Math.max(3, String(lines.length).length);
     rendered = null;
-    const px = o.lineNumbers && cw ? Math.ceil(digits * cw) + 22 : o.lineNumbers ? 46 : 0;
+    const px = o.lineNumbers && cw ? Math.ceil(digits * cw) + 28 : o.lineNumbers ? 48 : 0;
     if (px !== gutterPx) {
       gutterPx = px;
       el.style.setProperty("--code-gutter", `${px}px`);
@@ -478,6 +480,8 @@ export function createEditor({ onChange = () => {}, onSelect = () => {}, onClip 
   /** Replaces a range through the browser's own editing command, so Undo and Redo keep working. */
   function replaceRange(from, to, insert) {
     const value = ta.value;
+    const origStart = ta.selectionStart;
+    const origEnd = ta.selectionEnd;
     const old = value.slice(from, to);
     let a = 0;
     while (a < old.length && a < insert.length && old[a] === insert[a]) a++;
@@ -497,9 +501,11 @@ export function createEditor({ onChange = () => {}, onSelect = () => {}, onClip 
       ok = false;
     }
     if (!ok || ta.value !== expected) {
-      fallbackUndo.push({ value, start: ta.selectionStart, end: ta.selectionEnd });
+      fallbackUndo.push({ value, start: origStart, end: origEnd });
       if (fallbackUndo.length > 100) fallbackUndo.shift();
+      fallbackRedo.length = 0;
       ta.value = expected;
+      fallbackExpectedVal = expected;
       dirty = true;
       starts = null;
       ta.dispatchEvent(new Event("input", { bubbles: true }));
@@ -532,11 +538,20 @@ export function createEditor({ onChange = () => {}, onSelect = () => {}, onClip 
     const s = ta.selectionStart;
     const end = ta.selectionEnd;
     const text = ta.value;
-    if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === "z" && fallbackUndo.length) {
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === "z" && (fallbackUndo.length || fallbackRedo.length) && ta.value === fallbackExpectedVal) {
       e.preventDefault();
-      if (!e.shiftKey) {
+      if (!e.shiftKey && fallbackUndo.length) {
         const snap = fallbackUndo.pop();
+        fallbackRedo.push({ value: ta.value, start: ta.selectionStart, end: ta.selectionEnd });
         ta.value = snap.value;
+        fallbackExpectedVal = snap.value;
+        ta.setSelectionRange(snap.start, snap.end);
+        ta.dispatchEvent(new Event("input", { bubbles: true }));
+      } else if (e.shiftKey && fallbackRedo.length) {
+        const snap = fallbackRedo.pop();
+        fallbackUndo.push({ value: ta.value, start: ta.selectionStart, end: ta.selectionEnd });
+        ta.value = snap.value;
+        fallbackExpectedVal = snap.value;
         ta.setSelectionRange(snap.start, snap.end);
         ta.dispatchEvent(new Event("input", { bubbles: true }));
       }

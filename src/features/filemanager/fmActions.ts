@@ -209,6 +209,15 @@ export function builtinActions(ctx: FmContext): ActionDef[] {
 
 export const actionsFile = (ctx: FmContext) => nodePath.join(ctx.dataDir, "file_manager_actions.json");
 
+const actionWriteQueues = new Map<string, Promise<unknown>>();
+function serializeActions<T>(ctx: FmContext, fn: () => Promise<T>): Promise<T> {
+  const key = actionsFile(ctx);
+  const prev = actionWriteQueues.get(key) ?? Promise.resolve();
+  const next = prev.then(fn, fn);
+  actionWriteQueues.set(key, next.catch(() => {}));
+  return next;
+}
+
 interface Loaded { actions: ActionDef[]; newer: boolean; skipped: number }
 
 async function load(ctx: FmContext): Promise<Loaded> {
@@ -594,20 +603,24 @@ export const actionOperations: Record<string, FmHandler> = {
     return { actions: [...builtinActions(ctx), ...loaded.actions], readOnly: loaded.newer, skipped: loaded.skipped, version: ACTION_VERSION };
   },
   async "actions/save"(ctx, b) {
-    const loaded = await load(ctx);
-    const previous = typeof b.action?.id === "string" ? loaded.actions.find((a) => a.id === b.action.id) : undefined;
-    if (!previous && loaded.actions.length >= MAX_ACTIONS) throw new FmError("TOO_MANY", `You can keep up to ${MAX_ACTIONS} actions.`);
-    const a = sanitizeAction(ctx, { ...b.action }, previous?.source === "imported" ? "imported" : "local", previous?.id);
-    if ([...builtinActions(ctx), ...loaded.actions].some((x) => x.id !== a.id && x.name.toLowerCase() === a.name.toLowerCase())) throw new FmError("EXISTS", `An action named "${a.name}" already exists. Choose another name.`);
-    await save(ctx, loaded, previous ? loaded.actions.map((x) => (x.id === a.id ? a : x)) : [...loaded.actions, a]);
-    return { action: a };
+    return serializeActions(ctx, async () => {
+      const loaded = await load(ctx);
+      const previous = typeof b.action?.id === "string" ? loaded.actions.find((a) => a.id === b.action.id) : undefined;
+      if (!previous && loaded.actions.length >= MAX_ACTIONS) throw new FmError("TOO_MANY", `You can keep up to ${MAX_ACTIONS} actions.`);
+      const a = sanitizeAction(ctx, { ...b.action }, previous?.source === "imported" ? "imported" : "local", previous?.id);
+      if ([...builtinActions(ctx), ...loaded.actions].some((x) => x.id !== a.id && x.name.toLowerCase() === a.name.toLowerCase())) throw new FmError("EXISTS", `An action named "${a.name}" already exists. Choose another name.`);
+      await save(ctx, loaded, previous ? loaded.actions.map((x) => (x.id === a.id ? a : x)) : [...loaded.actions, a]);
+      return { action: a };
+    });
   },
   async "actions/delete"(ctx, b) {
-    const loaded = await load(ctx);
-    const a = loaded.actions.find((x) => x.id === b.id);
-    if (!a) throw new FmError("NOT_FOUND", "That action doesn't exist, or it is a built-in one that can't be deleted.");
-    await save(ctx, loaded, loaded.actions.filter((x) => x.id !== a.id));
-    return { deleted: a.id };
+    return serializeActions(ctx, async () => {
+      const loaded = await load(ctx);
+      const a = loaded.actions.find((x) => x.id === b.id);
+      if (!a) throw new FmError("NOT_FOUND", "That action doesn't exist, or it is a built-in one that can't be deleted.");
+      await save(ctx, loaded, loaded.actions.filter((x) => x.id !== a.id));
+      return { deleted: a.id };
+    });
   },
   async "actions/preflight"(ctx, b) {
     return { check: await preflight(ctx, b) };
@@ -633,14 +646,16 @@ export const actionOperations: Record<string, FmHandler> = {
     try { data = JSON.parse(b.text); } catch { throw new FmError("BAD_FILE", "That isn't an action file (it isn't valid JSON)."); }
     if (!data || data.format !== ACTION_FORMAT) throw new FmError("BAD_FILE", "That isn't a File Manager action file.");
     if (typeof data.version !== "number" || data.version > ACTION_VERSION) throw new FmError("NEWER_FILE", "That action file was made by a newer version of the app.");
-    const loaded = await load(ctx);
-    if (loaded.actions.length >= MAX_ACTIONS) throw new FmError("TOO_MANY", `You can keep up to ${MAX_ACTIONS} actions.`);
-    const a = sanitizeAction(ctx, { ...data.action, id: undefined }, "imported");
-    let name = a.name;
-    const all = [...builtinActions(ctx), ...loaded.actions];
-    for (let i = 2; all.some((x) => x.name.toLowerCase() === name.toLowerCase()); i++) name = `${a.name} (${i})`;
-    a.name = name;
-    await save(ctx, loaded, [...loaded.actions, a]);
-    return { action: a, disabledSteps: a.steps.filter((s) => s.type === "command").length };
+    return serializeActions(ctx, async () => {
+      const loaded = await load(ctx);
+      if (loaded.actions.length >= MAX_ACTIONS) throw new FmError("TOO_MANY", `You can keep up to ${MAX_ACTIONS} actions.`);
+      const a = sanitizeAction(ctx, { ...data.action, id: undefined }, "imported");
+      let name = a.name;
+      const all = [...builtinActions(ctx), ...loaded.actions];
+      for (let i = 2; all.some((x) => x.name.toLowerCase() === name.toLowerCase()); i++) name = `${a.name} (${i})`;
+      a.name = name;
+      await save(ctx, loaded, [...loaded.actions, a]);
+      return { action: a, disabledSteps: a.steps.filter((s) => s.type === "command").length };
+    });
   },
 };

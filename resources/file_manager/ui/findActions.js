@@ -96,15 +96,29 @@ export function createActions(hooks) {
     refreshAround();
   }
 
+  function guardDuplicateAllCopies(list) {
+    if (!Array.isArray(fs.dupeGroups) || fs.dupeGroups.length === 0) return list;
+    const pickedSet = new Set(list.map((i) => i.path));
+    const wipedGroups = fs.dupeGroups.filter((g) => Array.isArray(g.paths) && g.paths.length >= 2 && g.paths.every((p) => pickedSet.has(p)));
+    if (wipedGroups.length === 0) return list;
+    const keepSet = new Set(wipedGroups.map((g) => [...g.paths].sort((a, b) => a.length - b.length || a.localeCompare(b))[0]));
+    toast(`Kept 1 copy in ${plural(wipedGroups.length, "duplicate group")} so you don't delete every copy of a file.`, { kind: "info" });
+    return list.filter((i) => !keepSet.has(i.path));
+  }
+
   async function bury() {
-    const list = items("move them to the Recycle Bin");
-    if (!list) return;
+    const raw = items("move them to the Recycle Bin");
+    if (!raw) return;
+    const list = guardDuplicateAllCopies(raw);
+    if (!list.length) return;
     await reviewPlan({ type: "delete", paths: list.map((i) => i.path), permanent: false }, { applyLabel: "Move to the Recycle Bin" });
   }
 
   async function destroy() {
-    const list = items("delete them");
-    if (!list) return;
+    const raw = items("delete them");
+    if (!raw) return;
+    const list = guardDuplicateAllCopies(raw);
+    if (!list.length) return;
     await reviewPlan({ type: "delete", paths: list.map((i) => i.path), permanent: true }, { applyLabel: "Delete for good" });
   }
 

@@ -36,6 +36,13 @@ test("batch rename preview, conflicts and apply", () => {
   const res = o.applyRenamePlan(plan);
   expect(res.done.length).toBe(2);
   expect(fs.existsSync(P("b_002.txt"))).toBe(true);
+
+  // Unchanged file in batch cannot be overwritten by an earlier renamed file in the same batch
+  fs.writeFileSync(P("first.txt"), "1");
+  fs.writeFileSync(P("second.txt"), "2");
+  const unchangedCollision = o.planBatchRename([P("first.txt"), P("second.txt")], { find: "first", replace: "second" });
+  expect(unchangedCollision[0]!.error).toBe("A file with that name already exists.");
+  expect(unchangedCollision[1]!.error).toBeUndefined();
 });
 
 test("content search, duplicates, chmod, hex, exports", () => {
@@ -44,6 +51,18 @@ test("content search, duplicates, chmod, hex, exports", () => {
   const dp = o.findDuplicates(all);
   expect(dp.groups.length).toBe(1);
   expect(dp.groups[0]!.paths.length).toBe(2);
+
+  // Large files (>128 KB) with identical 64 KB head+tail but different middle are distinguished
+  const head = Buffer.alloc(70_000, 0x41);
+  const tail = Buffer.alloc(70_000, 0x5a);
+  const midA = Buffer.alloc(20_000, 0x31);
+  const midB = Buffer.alloc(20_000, 0x32);
+  fs.writeFileSync(P("big1.bin"), Buffer.concat([head, midA, tail]));
+  fs.writeFileSync(P("big2.bin"), Buffer.concat([head, midA, tail]));
+  fs.writeFileSync(P("big3.bin"), Buffer.concat([head, midB, tail]));
+  const bigDp = o.findDuplicates([P("big1.bin"), P("big2.bin"), P("big3.bin")]);
+  expect(bigDp.groups.length).toBe(1);
+  expect(bigDp.groups[0]!.paths.length).toBe(2);
   expect(o.parseMode("rwxr-xr-x")).toBe(0o755);
   expect(o.chmodPath(P("c.log"), "600").after).toBe("600");
   expect(o.hexPreview(P("c.log"), 16)).toContain("6f 74 68 65 72");

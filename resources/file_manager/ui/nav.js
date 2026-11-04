@@ -328,9 +328,11 @@ export function visibleEntries(pane = left) {
   const isTrash = pane.location.kind === "trash";
   const sourceList = isTrash ? pane.trashItems : (pane.search ? pane.search.entries : pane.entries);
   const tagFilter = !isTrash && state.tagFilter && state.settings?.tags ? state.tagFilter : "";
-  const tagVal = tagFilter && sourceList?.length ? sourceList.map((e) => state.settings.tags[e.path] || "").join("|") : "";
   const kindFilter = !isTrash && pane.side !== "right" ? (state.kindFilter || "all") : "all";
   const quickFilter = !isTrash && pane.side !== "right" ? (state.quickFilter || "").trim().toLowerCase() : "";
+  const needMetaDigest = Boolean(tagFilter || quickFilter) && sourceList?.length;
+  const tagVal = needMetaDigest && state.settings?.tags ? sourceList.map((e) => state.settings.tags[e.path] || "").join("|") : "";
+  const noteVal = quickFilter && needMetaDigest && state.settings?.notes ? sourceList.map((e) => state.settings.notes[e.path] || "").join("|") : "";
 
   const prev = visibleCache.get(pane);
   if (
@@ -343,6 +345,7 @@ export function visibleEntries(pane = left) {
     prev.foldersFirst === foldersFirst &&
     prev.tagFilter === tagFilter &&
     prev.tagVal === tagVal &&
+    prev.noteVal === noteVal &&
     prev.kindFilter === kindFilter &&
     prev.quickFilter === quickFilter
   ) {
@@ -362,7 +365,8 @@ export function visibleEntries(pane = left) {
         raw = raw.filter((e) => entryMatchesKindFilter(e, kindFilter));
       }
       if (quickFilter) {
-        raw = raw.filter((e) => entryMatchesQuickFilter(e, quickFilter, state.settings?.tags));
+        const now = Date.now();
+        raw = raw.filter((e) => entryMatchesQuickFilter(e, quickFilter, state.settings?.tags, now, state.settings?.notes));
       }
     }
     result = sortEntries(raw, { by: sortBy, dir: sortDir, foldersFirst });
@@ -377,6 +381,7 @@ export function visibleEntries(pane = left) {
     foldersFirst,
     tagFilter,
     tagVal,
+    noteVal,
     kindFilter,
     quickFilter,
     result,
@@ -572,9 +577,15 @@ export async function runSearch(query, { keepSelection = false } = {}) {
       const root = state.search?.root ?? state.location.path;
       const res = await call("search", { path: root, query: text, showHidden: state.settings.showHidden });
       if (mine !== navigation) return false;
+      const keep = keepSelection ? [...state.selection] : [];
       state.search = { query: text, root, entries: res.entries, truncated: res.truncated, skipped: res.skipped };
       state.shown = 0;
-      if (!keepSelection) resetSelection();
+      if (keepSelection) {
+        const present = new Set(res.entries.map(keyOf));
+        resetSelection(keep.filter((k) => present.has(k)));
+      } else {
+        resetSelection();
+      }
       emit("view");
       emit("selection");
       return true;

@@ -585,6 +585,10 @@ export async function tidyFolderHere(folderPath = null) {
 export async function commitRename(path, newName, pane = activePane()) {
   const r = await call("rename", { path, name: newName });
   if (r.from === r.to) return r;
+  if (state.clipboard?.paths?.includes(r.from)) {
+    state.clipboard.paths = state.clipboard.paths.map((p) => (p === r.from ? r.to : p));
+    emit("clipboard");
+  }
   if (lastCreated && lastCreated.path === r.from) {
     lastCreated.path = r.to;
     const top = state.undoStack.at(-1);
@@ -778,6 +782,12 @@ async function trashItems(paths) {
   try {
     const { done, failed } = await busy(() => trashPaths(paths));
     if (done.length) {
+      if (state.clipboard?.paths?.length) {
+        const gone = new Set(paths);
+        const remaining = state.clipboard.paths.filter((p) => !gone.has(p));
+        state.clipboard = remaining.length ? { ...state.clipboard, paths: remaining } : null;
+        emit("clipboard");
+      }
       const ids = done.map((d) => d.id);
       pushUndo(`delete of ${plural(done.length, "item")}`, async () => ensureOk((await call("trash/restore", { ids })).results, "restore"));
       toast(`Moved ${plural(done.length, "item")} to the Recycle Bin.`, { kind: "success", action: { label: "Undo", run: undo } });

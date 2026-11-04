@@ -255,7 +255,16 @@ export function syncSelection(pane = left) {
     const isFocused = key === pane.focusKey;
     if (row.classList.contains("focused") !== isFocused) row.classList.toggle("focused", isFocused);
   }
-  const focused = pane.focusKey ? rows.get(pane.focusKey) : null;
+  let focused = pane.focusKey ? rows.get(pane.focusKey) : null;
+  if (!focused && pane.focusKey) {
+    const allEntries = visibleEntries(pane);
+    const focusIdx = allEntries.findIndex((e) => e.path === pane.focusKey);
+    if (focusIdx >= pane.shown) {
+      pane.shown = Math.min(allEntries.length, Math.ceil((focusIdx + 1) / PAGE) * PAGE);
+      renderList(pane);
+      return;
+    }
+  }
   if (focused) {
     if (container.getAttribute("aria-activedescendant") !== focused.id) {
       container.setAttribute("aria-activedescendant", focused.id);
@@ -266,14 +275,16 @@ export function syncSelection(pane = left) {
   } else if (container.hasAttribute("aria-activedescendant")) {
     container.removeAttribute("aria-activedescendant");
   }
-  const count = pane.selection.size;
+  const selVisible = selectedEntries(pane);
+  const count = selVisible.length;
   const countStr = String(count);
   if (pane.side === "left" && document.body.dataset.selected !== countStr) {
     document.body.dataset.selected = countStr;
   }
   const total = visibleEntries(pane).length;
   const base = inTrash(pane) ? `${total} in the Recycle Bin` : pane.search ? `${total} search result${total === 1 ? "" : "s"}${pane.search.truncated ? " (stopped early)" : ""}` : summarizeCount(pane.total, total);
-  const statusText = count ? `${describeSelection(selectedEntries(pane))} · ${base}` : base;
+  const desc = count ? describeSelection(selVisible) : "";
+  const statusText = desc ? `${desc} · ${base}` : base;
   const statusEl = part(pane, "status");
   if (statusEl && statusEl.textContent !== statusText) statusEl.textContent = statusText;
 }
@@ -482,7 +493,7 @@ export function wireList() {
     renderList();
   });
   on("settings", (c) => {
-    if (c && ("columns" in c || "groupBy" in c || "tags" in c)) renderList(left);
+    if (c && ("columns" in c || "groupBy" in c || "tags" in c || "notes" in c)) renderList(left);
   });
   on("selection", () => syncSelection(left));
   on("clipboard", () => renderList(left));

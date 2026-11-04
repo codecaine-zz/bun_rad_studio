@@ -48,7 +48,14 @@ const short = (rel: string) => (rel.length > 80 ? `${rel.slice(0, 77)}…` : rel
 async function* walk(root: string, signal: AbortSignal | undefined, warnings: Warnings): AsyncGenerator<WalkEntry> {
   async function* inner(dirAbs: string, dirRel: string, depth: number): AsyncGenerator<WalkEntry> {
     throwIfAborted(signal);
-    const names = (await fsp.readdir(dirAbs)).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+    let names: string[];
+    try {
+      names = (await fsp.readdir(dirAbs)).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+    } catch (err) {
+      if (depth === 0) throw err;
+      warnings.add(`Skipped folder "${short(dirRel)}" (permission denied or vanished).`);
+      return;
+    }
     for (let i = 0; i < names.length; i += 64) {
       throwIfAborted(signal);
       const batchNames = names.slice(i, i + 64);
@@ -57,8 +64,12 @@ async function* walk(root: string, signal: AbortSignal | undefined, warnings: Wa
           const problem = componentProblem(name);
           if (problem) return { name, problem, abs: "", st: null };
           const abs = nodePath.join(dirAbs, name);
-          const st = await fsp.lstat(abs);
-          return { name, problem: null, abs, st };
+          try {
+            const st = await fsp.lstat(abs);
+            return { name, problem: null, abs, st };
+          } catch {
+            return { name, problem: "unreadable or missing metadata", abs, st: null };
+          }
         }),
       );
       for (const item of batchStats) {

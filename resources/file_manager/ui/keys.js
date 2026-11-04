@@ -302,6 +302,10 @@ export function wireKeys() {
       } else if (pane.side === "left" && state.tagFilter) {
         state.tagFilter = "";
         emit("view");
+      } else if (state.clipboard?.mode === "cut") {
+        state.clipboard = null;
+        emit("clipboard");
+        toast("Cut cancelled.", { timeout: 2000 });
       } else {
         clearSelection();
       }

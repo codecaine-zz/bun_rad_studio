@@ -50,6 +50,32 @@ const STATUS_NAMES: Record<string, string> = { M: "modified", A: "added", D: "de
 
 export interface GitFile { path: string; from?: string; x: string; y: string; label: string }
 
+function unquoteGitPath(raw: string): string {
+  if (!raw.startsWith('"') || !raw.endsWith('"')) return raw;
+  const inner = raw.slice(1, -1);
+  const bytes: number[] = [];
+  for (let i = 0; i < inner.length; i++) {
+    const ch = inner[i]!;
+    if (ch === "\\" && i + 1 < inner.length) {
+      const next = inner[++i]!;
+      if (next === "n") bytes.push(0x0a);
+      else if (next === "t") bytes.push(0x09);
+      else if (next === "r") bytes.push(0x0d);
+      else if (next === '"') bytes.push(0x22);
+      else if (next === "\\") bytes.push(0x5c);
+      else if (next >= "0" && next <= "7" && i + 2 < inner.length && inner[i + 1]! >= "0" && inner[i + 1]! <= "7" && inner[i + 2]! >= "0" && inner[i + 2]! <= "7") {
+        bytes.push(parseInt(next + inner[i + 1]! + inner[i + 2]!, 8));
+        i += 2;
+      } else {
+        bytes.push(...Buffer.from(next, "utf8"));
+      }
+    } else {
+      bytes.push(...Buffer.from(ch, "utf8"));
+    }
+  }
+  return Buffer.from(bytes).toString("utf8");
+}
+
 export function parseStatus(output: string): { branch: string; ahead: number; behind: number; files: GitFile[] } {
   let branch = "";
   let ahead = 0;
@@ -70,8 +96,12 @@ export function parseStatus(output: string): { branch: string; ahead: number; be
     let path = line.slice(3);
     let from: string | undefined;
     const arrow = path.indexOf(" -> ");
-    if (arrow > 0 && (x === "R" || x === "C")) { from = path.slice(0, arrow); path = path.slice(arrow + 4); }
-    if (path.startsWith('"') && path.endsWith('"')) path = path.slice(1, -1).replace(/\\(["\\])/g, "$1");
+    if (arrow > 0 && (x === "R" || x === "C")) {
+      from = unquoteGitPath(path.slice(0, arrow));
+      path = unquoteGitPath(path.slice(arrow + 4));
+    } else {
+      path = unquoteGitPath(path);
+    }
     const key = x === "?" ? "?" : x === "U" || y === "U" || (x === "A" && y === "A") || (x === "D" && y === "D") ? "U" : y !== " " ? y : x;
     files.push({ path, from, x, y, label: STATUS_NAMES[key] ?? "changed" });
   }

@@ -57,6 +57,9 @@ function mount(root) {
 
   function useFolder(path) {
     if (!path) return status.set("There is no folder to use yet. Open a folder in the file list first.", true);
+    if (rootInput.value && rootInput.value !== path) {
+      for (const s of built.values()) s.cancel?.();
+    }
     rootInput.value = path;
     status.set("");
     autoRoot = path;
@@ -145,7 +148,9 @@ function mount(root) {
         (s.start ?? s.load)?.call(s);
       }
     },
-    hide() {},
+    hide() {
+      for (const s of built.values()) s.cancel?.();
+    },
   };
 }
 

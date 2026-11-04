@@ -109,3 +109,19 @@ export function runWorkerJob<T>(ctx: FmContext, job: WorkerJob, timeoutMs?: numb
     worker.postMessage(job);
   });
 }
+
+/** Cancels any running Find worker jobs and external child processes for this context. */
+export function cancelWorkerJobs(ctx: FmContext): { cancelled: number } {
+  const state = findState(ctx);
+  let cancelled = 0;
+  for (const stop of [...state.workers.values()]) {
+    stop();
+    cancelled++;
+  }
+  state.workers.clear();
+  for (const child of [...state.children]) {
+    try { child.kill("SIGKILL"); cancelled++; } catch {}
+  }
+  state.children.clear();
+  return { cancelled };
+}

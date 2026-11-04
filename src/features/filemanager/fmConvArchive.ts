@@ -508,16 +508,31 @@ interface Planned {
 async function plan(sources: string[], limits: ArchiveLimits): Promise<{ items: Planned[]; skippedLinks: number }> {
   const items: Planned[] = [];
   let skippedLinks = 0;
-  const walk = async (path: string, name: string) => {
-    const st = await fsp.lstat(path);
+  const walk = async (path: string, name: string, isRoot = false) => {
+    let st: fs.Stats;
+    try {
+      st = await fsp.lstat(path);
+    } catch (err) {
+      if (isRoot) throw err;
+      skippedLinks++;
+      return;
+    }
     if (st.isSymbolicLink()) { skippedLinks++; return; }
     if (items.length >= limits.maxEntries) throw new ConvError(`That's too many items for one archive (the limit is ${limits.maxEntries}).`);
     if (st.isDirectory()) {
       items.push({ name: `${name}/`, path, dir: true, mode: st.mode & 0o777, mtime: st.mtime, size: 0 });
-      for (const child of (await fsp.readdir(path)).sort()) await walk(nodePath.join(path, child), `${name}/${child}`);
+      let children: string[];
+      try {
+        children = (await fsp.readdir(path)).sort();
+      } catch (err) {
+        if (isRoot) throw err;
+        skippedLinks++;
+        return;
+      }
+      for (const child of children) await walk(nodePath.join(path, child), `${name}/${child}`, false);
     } else if (st.isFile()) items.push({ name, path, dir: false, mode: st.mode & 0o777, mtime: st.mtime, size: st.size });
   };
-  for (const s of sources) await walk(s, nodePath.basename(s));
+  for (const s of sources) await walk(s, nodePath.basename(s), true);
   return { items, skippedLinks };
 }
 

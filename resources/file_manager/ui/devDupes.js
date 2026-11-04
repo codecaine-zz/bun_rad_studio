@@ -35,8 +35,34 @@ export function createDupes(env) {
     for (const g of current?.groups ?? []) for (const f of g.files.slice(1)) picked.add(joinRoot(current.root, f));
     paint();
   });
+  const keepNewest = btn("Keep Newest", "Keeps the most recently modified copy in each group and ticks the older copies.", () => {
+    picked.clear();
+    for (const g of current?.groups ?? []) {
+      const mtimeMap = new Map((g.fileStats ?? []).map((s) => [s.path, s.mtimeMs]));
+      const sorted = [...g.files].sort((a, b) => (mtimeMap.get(b) ?? 0) - (mtimeMap.get(a) ?? 0) || a.length - b.length);
+      for (const f of sorted.slice(1)) picked.add(joinRoot(current.root, f));
+    }
+    paint();
+  });
+  const keepOldest = btn("Keep Oldest", "Keeps the oldest copy in each group and ticks the newer copies.", () => {
+    picked.clear();
+    for (const g of current?.groups ?? []) {
+      const mtimeMap = new Map((g.fileStats ?? []).map((s) => [s.path, s.mtimeMs]));
+      const sorted = [...g.files].sort((a, b) => (mtimeMap.get(a) ?? 0) - (mtimeMap.get(b) ?? 0) || a.length - b.length);
+      for (const f of sorted.slice(1)) picked.add(joinRoot(current.root, f));
+    }
+    paint();
+  });
+  const keepShortest = btn("Keep Shortest Path", "Keeps the copy with the shortest path in each group and ticks the rest.", () => {
+    picked.clear();
+    for (const g of current?.groups ?? []) {
+      const sorted = [...g.files].sort((a, b) => a.split(/[\\/]/).length - b.split(/[\\/]/).length || a.length - b.length || a.localeCompare(b));
+      for (const f of sorted.slice(1)) picked.add(joinRoot(current.root, f));
+    }
+    paint();
+  });
   const clearTicks = btn("Clear the ticks", "Untick every copy.", () => { picked.clear(); paint(); });
-  const tools = h("div", { class: "pw-row dev-dupe-tools", hidden: true }, tickRest, clearTicks, cleanBtn, pickedNote);
+  const tools = h("div", { class: "pw-row dev-dupe-tools", hidden: true }, tickRest, keepNewest, keepOldest, keepShortest, clearTicks, cleanBtn, pickedNote);
 
   function paint() {
     for (const box of out.querySelectorAll("input[data-path]")) box.checked = picked.has(box.dataset.path);
@@ -60,10 +86,27 @@ export function createDupes(env) {
 
   async function cleanUp() {
     if (!picked.size) return;
+    const removed = new Set(picked);
     const outcome = await reviewPlan({ type: "delete", paths: [...picked], permanent: false }, { applyLabel: "Move to the Recycle Bin" });
     if (outcome.applied) {
       picked.clear();
-      paint();
+      if (current?.groups?.length) {
+        const root = current.root;
+        for (const g of current.groups) {
+          g.files = g.files.filter((f) => !removed.has(joinRoot(root, f)));
+          if (Array.isArray(g.fileStats)) {
+            g.fileStats = g.fileStats.filter((st) => !removed.has(joinRoot(root, st.path)));
+          }
+          g.wasted = g.size * Math.max(0, g.files.length - 1);
+        }
+        current.groups = current.groups.filter((g) => g.files.length >= 2);
+        current.groupCount = current.groups.length;
+        current.totalWasted = current.groups.reduce((sum, g) => sum + g.wasted, 0);
+        render(current);
+        status.set(`${plural(current.groupCount, "group")} of duplicates remaining, ${formatSize(current.totalWasted)} could be freed.`, false);
+      } else {
+        paint();
+      }
     }
   }
 

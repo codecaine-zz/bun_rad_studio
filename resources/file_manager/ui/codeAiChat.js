@@ -561,6 +561,16 @@ export function createCodeAiChat(ctx) {
 
     function applyHunkSetToEditor(cs, hunkIdsToApply, snapshotLabel, toastMsg) {
       let d = ctx.getDoc?.();
+      if (cs.docId && d && d.id !== cs.docId) {
+        const targetDoc = ctx.docs?.get?.(cs.docId);
+        if (targetDoc) {
+          ctx.docs.activate(cs.docId);
+          d = ctx.getDoc?.();
+        } else if (cs.docName && d.name !== cs.docName) {
+          ctx.toast?.(`Target file "${cs.docName}" is no longer open.`, { kind: "error" });
+          return false;
+        }
+      }
       if (!d || d.kind === "diff") {
         d = ctx.docs?.newUntitled?.();
       }
@@ -582,15 +592,26 @@ export function createCodeAiChat(ctx) {
       ctx.docs?.snapshot?.(d, snapshotLabel);
       const curDocText = e.getText();
       let safeFrom = Math.max(0, Math.min(cs.targetFrom, curDocText.length));
-      let safeTo = Math.max(safeFrom, Math.min(safeFrom + cs.lastAppliedLen, curDocText.length));
+      let safeTo = cs.targetMode === "file"
+        ? curDocText.length
+        : Math.max(safeFrom, Math.min(safeFrom + cs.lastAppliedLen, curDocText.length));
 
       // If lines above cs.targetFrom were edited manually, relocate the expected block before splicing
       const expectedPrev = cs.lastAppliedText ?? cs.originalBaseText ?? "";
-      if (expectedPrev && curDocText.slice(safeFrom, safeTo) !== expectedPrev) {
+      if (cs.targetMode !== "file" && expectedPrev && curDocText.slice(safeFrom, safeTo) !== expectedPrev) {
         const relocatedIdx = curDocText.indexOf(expectedPrev);
         if (relocatedIdx !== -1) {
           safeFrom = relocatedIdx;
           safeTo = relocatedIdx + expectedPrev.length;
+        } else if (cs.originalBaseText && curDocText.includes(cs.originalBaseText)) {
+          safeFrom = curDocText.indexOf(cs.originalBaseText);
+          safeTo = safeFrom + cs.originalBaseText.length;
+        } else {
+          const reloc = locateTargetRangeInFile(curDocText, cleanCode, null);
+          if (reloc.mode === "subblock") {
+            safeFrom = reloc.from;
+            safeTo = reloc.to;
+          }
         }
       }
 

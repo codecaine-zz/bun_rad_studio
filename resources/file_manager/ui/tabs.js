@@ -2,7 +2,7 @@
 import { $, activeIconPackStyle, h, clear, announce, iconFor, placeIconFor } from "./dom.js";
 import { attachDropTarget } from "./dnd.js";
 import { showMenu } from "./menus.js";
-import { state, on, currentPath, inTrash } from "./state.js";
+import { state, on, emit, currentPath, inTrash } from "./state.js";
 import { goTo, showTrash } from "./nav.js";
 import { copyPathOf, isFavorite, toggleFavorite } from "./ops.js";
 import { setActivePane } from "./pane.js";
@@ -36,6 +36,9 @@ function ensureInitialTab() {
     history: [...state.history],
     future: [...state.future],
     selection: [...state.selection],
+    quickFilter: state.quickFilter || "",
+    kindFilter: state.kindFilter || "all",
+    tagFilter: state.tagFilter || "",
     scrollTop: 0,
   });
   state.activeTabId = id;
@@ -49,6 +52,9 @@ function saveCurrentTabSnapshot() {
   cur.history = [...state.history];
   cur.future = [...state.future];
   cur.selection = [...state.selection];
+  cur.quickFilter = state.quickFilter || "";
+  cur.kindFilter = state.kindFilter || "all";
+  cur.tagFilter = state.tagFilter || "";
   const wrap = $("#list-wrap");
   if (wrap) cur.scrollTop = wrap.scrollTop || 0;
 }
@@ -64,6 +70,14 @@ async function activateTabObject(tab) {
     const target = tab.location?.path || currentPath() || state.home;
     if (target) await goTo(target, { push: false });
   }
+  state.quickFilter = tab.quickFilter || "";
+  state.kindFilter = tab.kindFilter || "all";
+  state.tagFilter = tab.tagFilter || "";
+  const qfInput = $("#quick-filter");
+  if (qfInput && qfInput.value !== state.quickFilter) qfInput.value = state.quickFilter;
+  const qfClear = $("#quick-filter-clear");
+  if (qfClear) qfClear.hidden = !state.quickFilter;
+  emit("view");
   if (Array.isArray(tab.selection) && tab.selection.length) {
     selectKeys(tab.selection);
   }
@@ -91,7 +105,7 @@ export async function openNewTab(folderPath) {
       ? { kind: "trash" }
       : { kind: "folder", path: currentPath() || state.home };
   const id = nextTabSeq++;
-  const tab = { id, location: loc, history: [], future: [], selection: [], scrollTop: 0 };
+  const tab = { id, location: loc, history: [], future: [], selection: [], quickFilter: "", kindFilter: "all", tagFilter: "", scrollTop: 0 };
   state.tabs.push(tab);
   await activateTabObject(tab);
   announce(`Opened new tab for ${tabLabel(loc)}.`);
@@ -109,6 +123,9 @@ export async function duplicateTab(tabId = state.activeTabId) {
     history: [...(src.history ?? [])],
     future: [...(src.future ?? [])],
     selection: [...(src.selection ?? [])],
+    quickFilter: src.quickFilter || "",
+    kindFilter: src.kindFilter || "all",
+    tagFilter: src.tagFilter || "",
     scrollTop: src.scrollTop ?? 0,
   };
   const idx = state.tabs.indexOf(src);

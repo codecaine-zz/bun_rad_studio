@@ -437,6 +437,13 @@ export function executeFdSearch(options: FdSearchOptions = {}): FdSearchResult {
     depth: number;
   }
   const stack: StackFrame[] = [{ dir: resolvedRoot, depth: 0 }];
+  const visitedDirCounts = new Map<string, number>();
+  if (options.followSymlinks) {
+    try {
+      const rootStat = fs.statSync(resolvedRoot);
+      visitedDirCounts.set(`${rootStat.dev}:${rootStat.ino}`, 1);
+    } catch {}
+  }
 
   while (stack.length > 0) {
     if (results.length >= maxResults) {
@@ -487,11 +494,13 @@ export function executeFdSearch(options: FdSearchOptions = {}): FdSearchResult {
 
       // Follow symlinks if requested
       let targetSymlink: string | undefined;
+      let resolvedSymlinkStat: fs.Stats | null = null;
       if (isSymlink) {
         try {
           targetSymlink = fs.readlinkSync(fullPath);
           if (options.followSymlinks) {
             const stat = fs.statSync(fullPath);
+            resolvedSymlinkStat = stat;
             isDir = stat.isDirectory();
             isFile = stat.isFile();
             isSocket = stat.isSocket();
@@ -506,7 +515,24 @@ export function executeFdSearch(options: FdSearchOptions = {}): FdSearchResult {
       if (isDir) {
         const nextDepth = depth + 1;
         if (options.maxDepth === undefined || nextDepth <= options.maxDepth) {
-          stack.push({ dir: fullPath, depth: nextDepth });
+          let isCycle = false;
+          if (options.followSymlinks) {
+            try {
+              const dirStat = resolvedSymlinkStat ?? fs.statSync(fullPath);
+              const dirKey = `${dirStat.dev}:${dirStat.ino}`;
+              const prevVisits = visitedDirCounts.get(dirKey) ?? 0;
+              if (prevVisits >= 2) {
+                isCycle = true;
+              } else {
+                visitedDirCounts.set(dirKey, prevVisits + 1);
+              }
+            } catch {
+              isCycle = true;
+            }
+          }
+          if (!isCycle) {
+            stack.push({ dir: fullPath, depth: nextDepth });
+          }
         }
       }
 
@@ -519,7 +545,7 @@ export function executeFdSearch(options: FdSearchOptions = {}): FdSearchResult {
       // Stats check
       let stat: fs.Stats | null = null;
       try {
-        stat = isSymlink && !options.followSymlinks ? fs.lstatSync(fullPath) : fs.statSync(fullPath);
+        stat = resolvedSymlinkStat ?? (isSymlink && !options.followSymlinks ? fs.lstatSync(fullPath) : fs.statSync(fullPath));
       } catch {
         continue;
       }

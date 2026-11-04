@@ -56,7 +56,12 @@ export async function measureTree(source: string, signal: AbortSignal, limit = M
     while (stack.length) {
       signal.throwIfAborted();
       const dir = stack.pop()!;
-      const entries = await fsp.readdir(dir, { withFileTypes: true });
+      let entries: fs.Dirent[];
+      try {
+        entries = await fsp.readdir(dir, { withFileTypes: true });
+      } catch {
+        continue;
+      }
       const regularFiles: string[] = [];
       for (const d of entries) {
         signal.throwIfAborted();
@@ -73,8 +78,8 @@ export async function measureTree(source: string, signal: AbortSignal, limit = M
       }
       for (let i = 0; i < regularFiles.length; i += 64) {
         signal.throwIfAborted();
-        const batch = await Promise.all(regularFiles.slice(i, i + 64).map((f) => fsp.lstat(f)));
-        for (const st of batch) if (st.isFile()) bytes += st.size;
+        const batch = await Promise.all(regularFiles.slice(i, i + 64).map((f) => fsp.lstat(f).catch(() => null)));
+        for (const st of batch) if (st && st.isFile()) bytes += st.size;
       }
     }
     return { files, bytes };

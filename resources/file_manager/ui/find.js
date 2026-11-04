@@ -38,7 +38,14 @@ registerPowerTab({
       status.classList.toggle("pw-bad", bad);
     };
 
-    const form = createForm({ onSearch: () => search(), onClear, onLive, onPreset, onRecent });
+    function onCancel() {
+      seq++;
+      form.setBusy(false);
+      setStatus("Search cancelled.", false);
+      void call("find/cancel", {}).catch(() => {});
+    }
+
+    const form = createForm({ onSearch: () => search(), onCancel, onClear, onLive, onPreset, onRecent });
     // Saved projects read and restore the search settings through these two functions.
     fs.readForm = () => form.readSaved();
     fs.applyForm = (v, folder) => { form.applySaved(v); if (folder) form.setValues({ root: folder }); };
@@ -212,6 +219,9 @@ registerPowerTab({
       },
       hide() {
         stopLive();
+        seq++;
+        form.setBusy(false);
+        void call("find/cancel", {}).catch(() => {});
       },
     };
   },

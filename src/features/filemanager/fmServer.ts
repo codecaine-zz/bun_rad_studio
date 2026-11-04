@@ -406,7 +406,10 @@ const operations: Record<string, Handler> = {
     return await makeFolder(ctx, b.parent, b.name);
   },
   async newfile(ctx, b) {
-    const content = typeof b.content === "string" && b.content.length <= 256_000 ? b.content : "";
+    if (typeof b.content === "string" && b.content.length > 5_000_000) {
+      throw new FmError("TOO_LARGE", "That file content is too large.");
+    }
+    const content = typeof b.content === "string" ? b.content : "";
     return await makeFile(ctx, b.parent, b.name, content);
   },
   async newsqlite(ctx, b) {
@@ -931,11 +934,15 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
             return new Response(Bun.file(png), { headers: secureHeaders({ "Content-Type": "image/png", ...preview }) });
           }
           if (ext === "svgz") {
-            const rawBytes = await fsp.readFile(real);
-            const svgBytes = await new Promise<Buffer>((resolve, reject) => {
-              gunzip(rawBytes, { maxOutputLength: 16 * 1024 * 1024 }, (err, out) => (err ? reject(err) : resolve(out)));
-            });
-            return new Response(new Uint8Array(svgBytes), { headers: secureHeaders({ "Content-Type": "image/svg+xml", ...preview }) });
+            try {
+              const rawBytes = await fsp.readFile(real);
+              const svgBytes = await new Promise<Buffer>((resolve, reject) => {
+                gunzip(rawBytes, { maxOutputLength: 16 * 1024 * 1024 }, (err, out) => (err ? reject(err) : resolve(out)));
+              });
+              return new Response(new Uint8Array(svgBytes), { headers: secureHeaders({ "Content-Type": "image/svg+xml", ...preview }) });
+            } catch {
+              return json(415, { ok: false, error: { code: "BAD_ARCHIVE", message: "That compressed SVG image couldn't be unpacked." } });
+            }
           }
           return new Response(Bun.file(real), { headers: secureHeaders({ "Content-Type": picture!, ...preview }) });
         }

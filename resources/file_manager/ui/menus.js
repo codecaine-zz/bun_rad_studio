@@ -106,7 +106,7 @@ export function showMenu(items, { x = 0, y = 0, anchor, label = "Menu" } = {}) {
   return menu;
 }
 
-export const menuIsOpen = () => current !== null;
+export const menuIsOpen = () => Boolean(current?.el?.isConnected && current.el.ownerDocument === document);
 
 // ---------------------------------------------------------------------------------------------------------------
 // Toasts

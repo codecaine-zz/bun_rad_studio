@@ -398,6 +398,10 @@ describe("code/git", () => {
     expect(s.files.map((f) => `${f.path}:${f.label}`)).toEqual(["a.ts:modified", "b.ts:added", "c.ts:new (untracked)", "new.ts:renamed", "conflict.ts:conflict", "gone.ts:deleted"]);
     expect(s.files[3]!.from).toBe("old.ts");
     expect(parseStatus("## No commits yet on trunk\n").branch).toBe("trunk");
+    const quoted = parseStatus(' M "dir/file with \\"quote\\" and \\303\\251.ts"\nR  "old name.ts" -> "new name.ts"\n');
+    expect(quoted.files[0]!.path).toBe('dir/file with "quote" and é.ts');
+    expect(quoted.files[1]!.from).toBe("old name.ts");
+    expect(quoted.files[1]!.path).toBe("new name.ts");
   });
 
   test.skipIf(!hasGit)("a real repository: status, diff and the committed text", async () => {

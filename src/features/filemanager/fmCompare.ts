@@ -33,7 +33,7 @@ import { findDevJob, setProgress, startDevJob, type DevJob } from "./fmDevJobs";
 import type { Cancellable } from "./fmDevWalk";
 import { ignoreSetFromText, isIgnored, type IgnoreSet } from "./fmDevIgnore";
 import { createPlan, type ExplicitItem } from "./fmPlan";
-import { FmError, describeFsError } from "./fmPaths";
+import { FmError, describeFsError, isSameOrInside } from "./fmPaths";
 
 export const COMPARE_MAX_DEPTH = 64;
 export const COMPARE_MAX_ENTRIES = 200_000;
@@ -345,9 +345,7 @@ export function cleanIgnoreLines(input: unknown): string[] {
 export async function startCompare(ctx: FmContext, body: Record<string, any>): Promise<{ id: string }> {
   const left = await folderRoot(ctx, body.left, "left");
   const right = await folderRoot(ctx, body.right, "right");
-  const p = pathApi(ctx);
-  const inside = (a: string, b: string) => a === b || a.startsWith(b.endsWith(p.sep) ? b : b + p.sep);
-  if (inside(left, right) || inside(right, left)) throw new FmError("OVERLAP", "One folder is inside the other (or they are the same), so comparing them would not tell you anything useful. Choose two separate folders.");
+  if (isSameOrInside(left, right, ctx.platform) || isSameOrInside(right, left, ctx.platform)) throw new FmError("OVERLAP", "One folder is inside the other (or they are the same), so comparing them would not tell you anything useful. Choose two separate folders.");
   const mode: CompareMode = body.mode === "verified" ? "verified" : "quick";
   const ignore = cleanIgnoreLines(body.ignore);
   const job = startDevJob(ctx, "compare", `${left}  ↔  ${right}`, (j) => runCompare(j, left, right, ignore, mode));

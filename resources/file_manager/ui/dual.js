@@ -80,6 +80,10 @@ export async function loadRight(path, { keep = false, select = null, push = true
 }
 
 hooks.loadRight = loadRight;
+hooks.goRightBack = () => goRightBack();
+hooks.goRightForward = () => goRightForward();
+hooks.canGoRightBack = () => rightHistory.length > 0;
+hooks.canGoRightForward = () => rightFuture.length > 0;
 
 export async function goRightBack() {
   const target = rightHistory.pop();
@@ -112,7 +116,7 @@ export async function swapDualPanes() {
   return true;
 }
 
-export async function runRightSearch(query) {
+export async function runRightSearch(query, { keep = false } = {}) {
   const text = String(query ?? "").trim();
   if (!text) {
     if (!right.search) return false;
@@ -128,8 +132,13 @@ export async function runRightSearch(query) {
     if (mine !== loadNumber) return false;
     right.search = { query: text, root: right.location.path, entries: res.entries, truncated: res.truncated, skipped: res.skipped };
     right.shown = 0;
-    right.selection = new Set();
-    right.focusKey = null;
+    if (keep) {
+      right.selection = new Set([...right.selection].filter((k) => res.entries.some((e) => e.path === k)));
+      if (!right.selection.has(right.focusKey)) right.focusKey = null;
+    } else {
+      right.selection = new Set();
+      right.focusKey = null;
+    }
     drawRight();
     return true;
   } catch (err) {
@@ -280,7 +289,11 @@ function scheduleRefresh() {
     if (typeof document === "undefined" || state.workspace !== "dual" || !right.location.path || loading) return;
     // Never rebuild the list under someone who is typing a new name.
     if (isRenaming(right)) return scheduleRefresh();
-    loadRight(right.location.path, { keep: true });
+    if (right.search?.query) {
+      runRightSearch(right.search.query, { keep: true });
+    } else {
+      loadRight(right.location.path, { keep: true });
+    }
   }, 150);
 }
 

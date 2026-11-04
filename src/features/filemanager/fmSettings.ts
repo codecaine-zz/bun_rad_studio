@@ -670,7 +670,15 @@ function sanitizeServeOptions(raw: unknown): Settings["serveOptions"] {
 
 const settingsFile = (ctx: FmContext) => nodePath.join(ctx.dataDir, "file_manager.json");
 
-let writing: Promise<unknown> = Promise.resolve();
+const writingQueues = new Map<string, Promise<unknown>>();
+
+function serializeSettings<T>(ctx: FmContext, fn: () => Promise<T>): Promise<T> {
+  const key = settingsFile(ctx);
+  const prev = writingQueues.get(key) ?? Promise.resolve();
+  const next = prev.then(fn, fn);
+  writingQueues.set(key, next.catch(() => {}));
+  return next;
+}
 
 async function readSettingsRaw(ctx: FmContext): Promise<Settings> {
   try {
@@ -685,15 +693,20 @@ async function readSettingsRaw(ctx: FmContext): Promise<Settings> {
 }
 
 export async function loadSettings(ctx: FmContext): Promise<Settings> {
-  await writing;
+  await (writingQueues.get(settingsFile(ctx)) ?? Promise.resolve());
   return readSettingsRaw(ctx);
 }
 
-/** Applies a partial change and saves it. Unknown keys are ignored. */
-export async function updateSettings(ctx: FmContext, change: unknown): Promise<Settings> {
-  const run = async () => {
+/** Applies a partial change (or mutator function) and saves it. Unknown keys are ignored. */
+export async function updateSettings(
+  ctx: FmContext,
+  change: unknown | ((current: Settings) => Record<string, unknown> | null | Promise<Record<string, unknown> | null>),
+): Promise<Settings> {
+  return serializeSettings(ctx, async () => {
     const current = await readSettingsRaw(ctx);
-    const patch = change && typeof change === "object" ? (change as Record<string, unknown>) : {};
+    const resolvedChange = typeof change === "function" ? await change(current) : change;
+    if (resolvedChange === null) return current;
+    const patch = resolvedChange && typeof resolvedChange === "object" ? (resolvedChange as Record<string, unknown>) : {};
     const keys = Object.keys(DEFAULT_SETTINGS);
     const merged: Record<string, unknown> = { ...current };
     for (const k of keys) if (k in patch) merged[k] = patch[k];
@@ -710,29 +723,28 @@ export async function updateSettings(ctx: FmContext, change: unknown): Promise<S
       await fsp.rm(tmp, { force: true }).catch(() => {});
     }
     return next;
-  };
-  const result = writing.then(run, run);
-  writing = result.catch(() => {});
-  return result;
+  });
 }
 
 /** Remembers that an item was opened (newest first, no duplicates, at most 30). No-op when `recentsEnabled` is false. */
 export async function addRecent(ctx: FmContext, path: string): Promise<Settings> {
-  const current = await loadSettings(ctx);
-  if (!current.recentsEnabled) return current;
   const p = pathApi(ctx);
   const resolved = p.resolve(path);
-  const recents = [{ path: resolved, at: new Date().toISOString() }, ...current.recents.filter((r) => r.path !== resolved)].slice(0, MAX_RECENTS);
-  return updateSettings(ctx, { recents });
+  return updateSettings(ctx, (current) => {
+    if (!current.recentsEnabled) return null;
+    const recents = [{ path: resolved, at: new Date().toISOString() }, ...current.recents.filter((r) => r.path !== resolved)].slice(0, MAX_RECENTS);
+    return { recents };
+  });
 }
 
 /** Removes one item from the Recent list by path. */
 export async function removeRecent(ctx: FmContext, path: string): Promise<Settings> {
-  const current = await loadSettings(ctx);
   const p = pathApi(ctx);
   const resolved = p.resolve(path);
-  const recents = current.recents.filter((r) => r.path !== resolved);
-  return updateSettings(ctx, { recents });
+  return updateSettings(ctx, (current) => {
+    const recents = current.recents.filter((r) => r.path !== resolved);
+    return { recents };
+  });
 }
 
 /** Clears every remembered item from the Recent list. */
@@ -742,17 +754,19 @@ export async function clearRecents(ctx: FmContext): Promise<Settings> {
 
 /** Removes items from the Recent list whose file is no longer on disk. */
 export async function pruneRecents(ctx: FmContext): Promise<{ settings: Settings; removed: number }> {
-  const current = await loadSettings(ctx);
-  const kept: Settings["recents"] = [];
-  for (const item of current.recents) {
-    try {
-      const st = await fsp.stat(item.path);
-      if (!st.isDirectory()) kept.push(item);
-    } catch {
-      // missing or unreadable file is dropped
+  let removed = 0;
+  const settings = await updateSettings(ctx, async (current) => {
+    const kept: Settings["recents"] = [];
+    for (const item of current.recents) {
+      try {
+        const st = await fsp.stat(item.path);
+        if (!st.isDirectory()) kept.push(item);
+      } catch {
+        // missing or unreadable file is dropped
+      }
     }
-  }
-  const removed = current.recents.length - kept.length;
-  const settings = removed > 0 ? await updateSettings(ctx, { recents: kept }) : current;
+    removed = current.recents.length - kept.length;
+    return removed > 0 ? { recents: kept } : null;
+  });
   return { settings, removed };
 }

@@ -10,13 +10,31 @@ import { goTo, showTrash } from "./nav.js";
 import * as ops from "./ops.js";
 import { openPower } from "./power.js";
 import { selectedEntries } from "./selection.js";
+import { openNewTab } from "./tabs.js";
 import { canReadWithPhonon, isPhononSupported } from "./phonon.js";
 import { emit, inTrash, on, state } from "./state.js";
 import { driveFor, formatSize, plural } from "./util.js";
 
 function sideItem({ icon, label, title, active, onClick, onMenu, dropPath, trash = false, extra = null, badge = null, ariaLabel = null, placeId = null }) {
   const resolvedIcon = placeId ? placeIconFor(placeId, label, undefined, icon) : icon;
-  const btn = h("button", { type: "button", class: `side-item${active ? " active" : ""}`, title, "aria-label": ariaLabel, "aria-current": active ? "page" : null, onclick: onClick },
+  const btn = h("button", {
+    type: "button",
+    class: `side-item${active ? " active" : ""}`,
+    title,
+    "aria-label": ariaLabel,
+    "aria-current": active ? "page" : null,
+    onclick: onClick,
+    ...(dropPath && !trash
+      ? {
+          onauxclick: (e) => {
+            if (e.button === 1) {
+              e.preventDefault();
+              void openNewTab(dropPath);
+            }
+          },
+        }
+      : {}),
+  },
     h("span", { class: "si", "aria-hidden": "true", ...(placeId ? { dataset: { placeIcon: placeId, placeName: label, defaultIcon: icon } } : {}) }, resolvedIcon),
     h("span", { class: "sl" }, label, badge !== null ? h("span", { class: "badge" }, String(badge)) : null),
     extra);

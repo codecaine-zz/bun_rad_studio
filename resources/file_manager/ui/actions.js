@@ -298,6 +298,9 @@ registerPowerTab({
           h("button", { type: "button", class: "pw-btn primary", disabled: false, onclick: async () => { await ensureCatalog(); const saved = await editAction(null, catalog); if (saved) { await load(); toast(`Saved "${saved.name}".`, { kind: "success" }); } } }, "New action…"),
           h("button", { type: "button", class: "pw-btn", onclick: doImport }, "Import an action file…"))),
       status, list, panel);
-    return { show: () => { load(); if (current) { readSelection(); drawPanel(); } } };
+    return {
+      show: () => { load(); if (current) { readSelection(); drawPanel(); } },
+      hide: () => clearTimeout(timer),
+    };
   },
 });

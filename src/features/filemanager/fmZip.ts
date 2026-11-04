@@ -115,21 +115,36 @@ async function planEntries(ctx: FmContext, sources: string[], exclude: Set<strin
   const p = pathApi(ctx);
   const entries: PlannedEntry[] = [];
   let skippedLinks = 0;
-  const walk = async (path: string, zipName: string) => {
+  const walk = async (path: string, zipName: string, isRoot = false) => {
     if (exclude.has(path)) return;
-    const st = await fsp.lstat(path);
+    let st: fs.Stats;
+    try {
+      st = await fsp.lstat(path);
+    } catch (err) {
+      if (isRoot) throw err;
+      skippedLinks++;
+      return;
+    }
     if (st.isSymbolicLink()) {
       skippedLinks++;
       return;
     }
     if (st.isDirectory()) {
       entries.push({ name: `${zipName}/`, path, isDir: true, mode: st.mode & 0o777, mtime: st.mtime });
-      for (const child of (await fsp.readdir(path)).sort()) await walk(p.join(path, child), `${zipName}/${child}`);
+      let children: string[];
+      try {
+        children = (await fsp.readdir(path)).sort();
+      } catch (err) {
+        if (isRoot) throw err;
+        skippedLinks++;
+        return;
+      }
+      for (const child of children) await walk(p.join(path, child), `${zipName}/${child}`, false);
     } else if (st.isFile()) {
       entries.push({ name: zipName, path, isDir: false, mode: st.mode & 0o777, mtime: st.mtime });
     }
   };
-  for (const s of sources) await walk(s, p.basename(s));
+  for (const s of sources) await walk(s, p.basename(s), true);
   return { entries, skippedLinks };
 }
 

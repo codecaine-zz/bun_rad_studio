@@ -183,18 +183,22 @@ export async function folderStats(root: string, limits: { maxEntries?: number; t
 export async function calculateFolderSizes(
   ctx: FmContext,
   inputs: unknown,
-  limits: { maxEntriesPerFolder?: number; timeMsPerFolder?: number } = {},
+  limits: { maxEntriesPerFolder?: number; timeMsPerFolder?: number; totalTimeMs?: number } = {},
 ): Promise<{ sizes: Record<string, FolderStats> }> {
   if (!Array.isArray(inputs) || inputs.length === 0) throw new FmError("BAD_REQUEST", "Provide at least one folder path.");
   const paths = inputs.slice(0, 200).map((i) => absolutePath(ctx, i));
   const maxEntries = limits.maxEntriesPerFolder ?? 20_000;
   const timeMs = limits.timeMsPerFolder ?? 2500;
+  const totalTimeMs = limits.totalTimeMs ?? 8000;
+  const deadline = Date.now() + totalTimeMs;
   const sizes: Record<string, FolderStats> = {};
   for (const p of paths) {
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) break;
     try {
       const lst = await fsp.lstat(p);
       if (lst.isDirectory()) {
-        sizes[p] = await folderStats(p, { maxEntries, timeMs });
+        sizes[p] = await folderStats(p, { maxEntries, timeMs: Math.min(timeMs, Math.max(50, remaining)) });
       }
     } catch {
       // Skip folders that disappeared or cannot be read
@@ -232,11 +236,22 @@ export async function propertiesOf(ctx: FmContext, inputs: unknown): Promise<Pro
   let folders = 0;
   let partial = false;
   const stats: Array<{ path: string; lst: fs.Stats }> = [];
+  const deadline = Date.now() + 8000;
+  let firstErr: unknown = null;
   for (const path of paths) {
-    const lst = await fsp.lstat(path);
+    let lst: fs.Stats;
+    try {
+      lst = await fsp.lstat(path);
+    } catch (err) {
+      if (paths.length === 1) throw err;
+      firstErr ??= err;
+      partial = true;
+      continue;
+    }
     stats.push({ path, lst });
     if (lst.isDirectory()) {
-      const sub = await folderStats(path); // counts what is inside, not the folder itself
+      const remaining = Math.max(100, deadline - Date.now());
+      const sub = await folderStats(path, { timeMs: Math.min(8000, remaining) }); // counts what is inside, not the folder itself
       size += sub.bytes;
       files += sub.files;
       folders += sub.folders;
@@ -246,6 +261,7 @@ export async function propertiesOf(ctx: FmContext, inputs: unknown): Promise<Pro
       size += lst.size;
     }
   }
+  if (stats.length === 0 && firstErr) throw firstErr;
   const first = stats[0]!;
   const single = paths.length === 1;
   let linkTarget: string | null = null;

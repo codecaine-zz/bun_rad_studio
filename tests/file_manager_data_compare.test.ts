@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { createContext } from "../src/features/filemanager/fmCore";
-import { COMPARE_MAX_BYTES, COMPARE_MAX_ENTRIES, comparableKind, compareDataFiles, dataCompareOperations, diffValues, parseDataText, toPlain } from "../src/features/filemanager/fmDataCompare";
+import { COMPARE_MAX_BYTES, COMPARE_MAX_ENTRIES, comparableKind, compareDataFiles, compareTextFiles, dataCompareOperations, diffValues, parseDataText, toPlain } from "../src/features/filemanager/fmDataCompare";
 import { FmError } from "../src/features/filemanager/fmPaths";
 import { API_OPERATIONS } from "../src/features/filemanager/fmServer";
 
@@ -159,5 +159,19 @@ describe("bad input", () => {
     const r = (await dataCompareOperations["data/compare"]!(ctx, { left: a, right: b })) as any;
     expect(r.changed).toEqual([{ path: "a", left: "1", right: "2" }]);
     expect(r.left).toEqual({ name: "o1.yaml", kind: "YAML", bytes: 5 });
+  });
+
+  test("compareTextFiles trims common prefix and suffix before capping, finding diffs past line 2,000", async () => {
+    const linesA = Array.from({ length: 2600 }, (_, i) => `line-${i + 1}`);
+    const linesB = [...linesA];
+    linesB[2499] = "line-2500-modified";
+    const fA = put("longA.txt", linesA.join("\n") + "\n");
+    const fB = put("longB.txt", linesB.join("\n") + "\n");
+    const diff = await compareTextFiles(ctx, fA, fB);
+    expect(diff.identical).toBe(false);
+    expect(diff.added).toBe(1);
+    expect(diff.removed).toBe(1);
+    expect(diff.unifiedPatch).toContain("-line-2500");
+    expect(diff.unifiedPatch).toContain("+line-2500-modified");
   });
 });

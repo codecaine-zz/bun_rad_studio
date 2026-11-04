@@ -2,7 +2,7 @@
 // each kind of file takes. They work on the results that are shown (or the selected ones).
 import { call } from "./api.js";
 import { h } from "./dom.js";
-import { fs, scopeItems, targetBody } from "./findStore.js";
+import { fs, scopeItems, setScope, setSelection, targetBody } from "./findStore.js";
 import { attempt, button, card, checkbox, field, guarded, row, textInput } from "./findUi.js";
 import { toast } from "./menus.js";
 import { baseName, formatSize, plural } from "./util.js";
@@ -54,12 +54,24 @@ export function createAnalyze(hooks) {
     show(h("p", { class: "pw-hint" }, "Comparing files… (big sets can take a while)"));
     const res = await attempt(() => call("find/dupes", target));
     if (!res) return show(h("p", { class: "pw-bad" }, "The comparison didn't work."));
+    fs.dupeGroups = res.groups || [];
     if (!res.totalGroups) {
       show(h("p", { class: "pw-ok", role: "status" }, `No identical files were found among the results.${res.skippedTooBig ? ` ${plural(res.skippedTooBig, "file")} over 256 MB were left out.` : ""}`));
       return;
     }
+    const selectDupesBtn = button("☑️ Select extra copies (keep 1 per group)", () => {
+      const toSelect = [];
+      for (const g of res.groups) {
+        const sorted = [...g.paths].sort((a, b) => a.length - b.length || a.localeCompare(b));
+        for (const p of sorted.slice(1)) toSelect.push(p);
+      }
+      setSelection(toSelect);
+      setScope("selected");
+      toast(`Selected ${plural(toSelect.length, "duplicate copy", "duplicate copies")} (kept 1 copy per group).`, { kind: "info" });
+    }, { tip: "Select all duplicate copies except the shortest-path copy in each group, and switch bulk actions to Selected items" });
     show(
       h("p", { class: "pw-bad", role: "status" }, `${plural(res.totalGroups, "group")} of identical files; ${formatSize(res.wastedBytes)} could be saved by keeping one of each.${res.totalGroups > res.groups.length ? ` Showing the first ${res.groups.length}.` : ""}${res.skippedTooBig ? ` ${plural(res.skippedTooBig, "file")} over 256 MB were left out.` : ""}`),
+      row(selectDupesBtn),
       ...res.groups.map((g, i) => h("div", { class: "find-dupe" },
         h("p", { class: "find-sub" }, `Group ${i + 1}: ${plural(g.paths.length, "file")}, ${formatSize(g.sizeBytes)} each`),
         h("ul", {}, g.paths.map((p) => h("li", {}, link(p, p.startsWith(fs.root) ? p.slice(fs.root.length + 1) : p)))))),

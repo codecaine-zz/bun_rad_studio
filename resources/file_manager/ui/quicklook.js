@@ -19,9 +19,9 @@ import { createPlayer } from "./mediaplayer.js";
 import { mediaKindOfName } from "./mediacore.js";
 import { showOpenWith } from "./openwith.js";
 import { showToolsDialog } from "./tools.js";
-import { activePane } from "./pane.js";
+import { activePane, inTrash } from "./pane.js";
 import { focusIndex, selectedEntries } from "./selection.js";
-import { inTrash, on, state } from "./state.js";
+import { emit, on, state } from "./state.js";
 import { parseTable } from "./quicklookTable.js";
 import {
   buildQuickLookCopyButtons,
@@ -520,12 +520,82 @@ async function renderBody(entry, mine) {
       const ext = extensionOf(entry.name);
       const note = preview.truncated ? h("p", { class: "ql-note" }, `Showing the start of the file (${formatSize(new Blob([preview.text]).size)} of ${formatSize(preview.size)}).`) : null;
       if (TABLE_EXTS.has(ext)) {
-        const rows = parseTable(preview.text, ext === "tsv" ? "\t" : ",").slice(0, 300);
+        const allRows = parseTable(preview.text, ext === "tsv" ? "\t" : ",");
+        const rows = allRows.slice(0, 301);
         if (rows.length) {
           const width = Math.max(...rows.map((r) => r.length));
-          const body = rows.slice(1).map((r) => h("tr", {}, ...Array.from({ length: width }, (_, i) => h("td", {}, r[i] ?? ""))));
-          const copyBar = h("div", { class: "ql-fmt-head ql-plain-copybar" }, h("span", { class: "ql-fmt-badge" }, `${ext.toUpperCase()} Table`), h("span", { class: "code-grow" }), buildQuickLookCopyButtons(entry, preview, () => ql?.body, { onClose: closeQuickLook }));
-          return open(h("div", { class: "ql-tablewrap", tabindex: "0", "aria-label": `Table ${entry.name}` }, copyBar, h("table", { class: "ql-table" }, h("thead", {}, h("tr", {}, ...Array.from({ length: width }, (_, i) => h("th", { scope: "col" }, rows[0][i] ?? "")))), h("tbody", {}, ...body)), note, rows.length >= 300 ? h("p", { class: "ql-note" }, "Showing the first 300 rows.") : null));
+          const headerCells = rows[0] || [];
+          const dataRows = rows.slice(1);
+          const tbody = h("tbody", {});
+          let filterText = "";
+          let sortCol = -1;
+          let sortAsc = true;
+          const renderTableRows = () => {
+            const q = filterText.trim().toLowerCase();
+            let filtered = q ? dataRows.filter((r) => r.some((cell) => String(cell ?? "").toLowerCase().includes(q))) : [...dataRows];
+            if (sortCol >= 0) {
+              filtered.sort((a, b) => {
+                const va = String(a[sortCol] ?? "").trim();
+                const vb = String(b[sortCol] ?? "").trim();
+                const na = Number(va);
+                const nb = Number(vb);
+                const cmp = va !== "" && vb !== "" && Number.isFinite(na) && Number.isFinite(nb)
+                  ? na - nb
+                  : va.localeCompare(vb, undefined, { numeric: true, sensitivity: "base" });
+                return sortAsc ? cmp : -cmp;
+              });
+            }
+            tbody.replaceChildren(...filtered.map((r) => h("tr", {}, ...Array.from({ length: width }, (_, i) => h("td", {}, r[i] ?? "")))));
+          };
+          renderTableRows();
+          const filterInput = h("input", {
+            type: "search",
+            class: "ql-fmt-search",
+            placeholder: "Filter rows…",
+            "aria-label": "Filter table rows",
+            oninput: () => {
+              filterText = filterInput.value;
+              renderTableRows();
+            },
+          });
+          const thEls = Array.from({ length: width }, (_, i) =>
+            h(
+              "th",
+              {
+                scope: "col",
+                title: "Click to sort by this column",
+                style: "cursor:pointer",
+                onclick: () => {
+                  if (sortCol === i) sortAsc = !sortAsc;
+                  else {
+                    sortCol = i;
+                    sortAsc = true;
+                  }
+                  renderTableRows();
+                },
+              },
+              headerCells[i] ?? "",
+            ),
+          );
+          const copyBar = h(
+            "div",
+            { class: "ql-fmt-head ql-plain-copybar" },
+            h("span", { class: "ql-fmt-badge" }, `${ext.toUpperCase()} Table`),
+            h("span", { class: "ql-fmt-meta" }, `${Math.max(0, allRows.length - 1)} rows · ${width} cols`),
+            filterInput,
+            h("span", { class: "code-grow" }),
+            buildQuickLookCopyButtons(entry, preview, () => ql?.body, { onClose: closeQuickLook }),
+          );
+          return open(
+            h(
+              "div",
+              { class: "ql-tablewrap", tabindex: "0", "aria-label": `Table ${entry.name}` },
+              copyBar,
+              h("table", { class: "ql-table" }, h("thead", {}, h("tr", {}, ...thEls)), tbody),
+              note,
+              allRows.length > 301 ? h("p", { class: "ql-note" }, `Showing the first 300 of ${allRows.length - 1} rows.`) : null,
+            ),
+          );
         }
       }
       if (isMarkdownName(entry.name)) {
@@ -598,7 +668,17 @@ function mountPlayer(entry, mine) {
     destroyPlayer();
   }
   if (mine !== ql.seq) return;
-  ql.player = createPlayer({ entries: ql.entries, start: entry, subtitleEntries: ql.entries, announce, onTrack: (e) => followTrack(e) });
+  ql.player = createPlayer({
+    entries: ql.entries,
+    start: entry,
+    subtitleEntries: ql.entries,
+    announce,
+    onTrack: (e) => followTrack(e),
+    onOpenDeck: (payload) => {
+      closeQuickLook();
+      emit("player-deck-open", payload);
+    },
+  });
   ql.body.replaceChildren(ql.player.root);
   ql.foot.textContent = "Space plays or pauses  ·  ← → seek  ·  ↑ ↓ volume  ·  N and B next and previous  ·  E equalizer  ·  Q queue  ·  Esc closes  ·  Enter opens it in another program";
 }
@@ -688,6 +768,11 @@ function onKey(e) {
   if (e.key === "Escape") {
     e.stopPropagation();
     e.preventDefault();
+    const openFind = ql.body?.querySelector(".ql-find-bar:not([hidden])");
+    if (openFind) {
+      toggleQuickLookFindBar(ql.body);
+      return;
+    }
     // A player filling the window steps back first; the next Esc closes Quick Look.
     if (ql.player?.leaveFill?.()) return;
     return closeQuickLook();
@@ -695,16 +780,17 @@ function onKey(e) {
   if (e.key === "Tab") {
     e.stopPropagation();
     e.preventDefault();
-    const items = [...ql.dialog.querySelectorAll("button, select, input, audio[controls], video[controls], [tabindex='0']")].filter((el) => !el.disabled && !el.hidden && !el.closest("[hidden]"));
+    const items = [...ql.dialog.querySelectorAll("button, select, input, textarea, a[href], summary, audio[controls], video[controls], [tabindex='0']")].filter((el) => !el.disabled && !el.hidden && !el.closest("[hidden]"));
     if (!items.length) return;
     const at = items.indexOf(document.activeElement);
-    items[(at + (e.shiftKey ? -1 : 1) + items.length) % items.length].focus();
+    const nextIdx = at < 0 ? (e.shiftKey ? items.length - 1 : 0) : (at + (e.shiftKey ? -1 : 1) + items.length) % items.length;
+    items[nextIdx].focus();
     return;
   }
-  // A focused button, list or slider keeps the keys it uses itself (Space and Enter press a button; arrows move a slider or a list).
-  if (e.key === "Enter" && target?.closest("button, [role='link']")) { e.stopPropagation(); return; }
+  // A focused button, list, input or slider keeps the keys it uses itself (Space and Enter press a button; arrows/Home/End move a slider or text cursor).
+  if (e.key === "Enter" && target?.closest("button, [role='link'], input, textarea, select")) { e.stopPropagation(); return; }
   if (e.key === " " && onControl) { e.stopPropagation(); return; }
-  if (isArrow && target?.closest("select, input[type=range], input[type=text], input[type=search]")) { e.stopPropagation(); return; }
+  if ((isArrow || e.key === "Home" || e.key === "End" || e.key === "PageUp" || e.key === "PageDown") && target?.closest("select, textarea, input[type=range], input[type=text], input[type=search]")) { e.stopPropagation(); return; }
   if (e.key === "Enter") { e.stopPropagation(); e.preventDefault(); return openCurrent(); }
   // The player owns the rest of the keys while a sound or video is in view.
   if (ql.player && ql.player.handleKey(e)) { e.stopPropagation(); e.preventDefault(); return; }
@@ -764,9 +850,9 @@ on("quicklook-open", (entry) => {
 /** Opens Quick Look on `entry` (default: the focused or first selected item of the active list). */
 export function openQuickLook(entry = null, pane = activePane()) {
   if (ql) return closeQuickLook();
-  if (inTrash()) return toast("Restore it from the Recycle Bin first, then you can look at it.");
+  if (inTrash(pane)) return toast("Restore it from the Recycle Bin first, then you can look at it.");
   const entries = visibleEntries(pane);
-  const target = entry ?? entries.find((e) => e.path === pane.focusKey) ?? selectedEntries()[0];
+  const target = entry ?? entries.find((e) => e.path === pane.focusKey) ?? selectedEntries(pane)[0];
   const index = target ? entries.findIndex((e) => e.path === target.path) : -1;
   if (index < 0) return toast("Select a file first, then press Space.");
   const icon = h("span", { class: "ql-icon", "aria-hidden": "true" });

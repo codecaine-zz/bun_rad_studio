@@ -65,7 +65,7 @@ import { wireTools } from "./tools.js";
 import { renderAddress, renderBanner, updateSearchBox, updateToolbar, wireToolbar } from "./toolbar.js";
 
 /** The settings that change how the list looks or is ordered. */
-const LIST_SETTINGS = ["view", "sortBy", "sortDir", "foldersFirst", "columns", "groupBy", "rowDensity", "tags"];
+const LIST_SETTINGS = ["view", "sortBy", "sortDir", "foldersFirst", "columns", "groupBy", "rowDensity", "tags", "notes"];
 
 function applySettings() {
   const s = state.settings;
