@@ -22,7 +22,7 @@
  * Archive and conversion jobs can use the same `JobSpec` pieces (`item`, `measure`, `progress`, retryable); nothing
  * here is specific to copying except the step bodies.
  */
-import { promises as fsp } from "fs";
+import { promises as fsp, type Dirent } from "fs";
 import * as nodePath from "path";
 import { absolutePath, assertCreatable, assertFolder, assertModifiable, assertNotIntoItself, lstatOrNull, pathApi, type FmContext } from "./fmCore";
 import { renameItem, resolveTarget, type Policy } from "./fmOps";
@@ -56,7 +56,7 @@ export async function measureTree(source: string, signal: AbortSignal, limit = M
     while (stack.length) {
       signal.throwIfAborted();
       const dir = stack.pop()!;
-      let entries: fs.Dirent[];
+      let entries: Dirent[];
       try {
         entries = await fsp.readdir(dir, { withFileTypes: true });
       } catch {

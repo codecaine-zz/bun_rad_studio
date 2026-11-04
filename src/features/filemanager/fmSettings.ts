@@ -697,14 +697,18 @@ export async function loadSettings(ctx: FmContext): Promise<Settings> {
   return readSettingsRaw(ctx);
 }
 
+export type SettingsMutator = (current: Settings) => Record<string, unknown> | null | Promise<Record<string, unknown> | null>;
+
 /** Applies a partial change (or mutator function) and saves it. Unknown keys are ignored. */
+export async function updateSettings(ctx: FmContext, change: SettingsMutator): Promise<Settings>;
+export async function updateSettings(ctx: FmContext, change: unknown): Promise<Settings>;
 export async function updateSettings(
   ctx: FmContext,
-  change: unknown | ((current: Settings) => Record<string, unknown> | null | Promise<Record<string, unknown> | null>),
+  change: unknown,
 ): Promise<Settings> {
   return serializeSettings(ctx, async () => {
     const current = await readSettingsRaw(ctx);
-    const resolvedChange = typeof change === "function" ? await change(current) : change;
+    const resolvedChange = typeof change === "function" ? await (change as SettingsMutator)(current) : change;
     if (resolvedChange === null) return current;
     const patch = resolvedChange && typeof resolvedChange === "object" ? (resolvedChange as Record<string, unknown>) : {};
     const keys = Object.keys(DEFAULT_SETTINGS);
