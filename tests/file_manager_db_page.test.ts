@@ -599,7 +599,7 @@ describe("a studio inside the tab", () => {
     await until(() => pane().dataset.view === "studio", "the studio view");
     expect(doc.getElementById("app").classList.contains("db-studio-open")).toBe(true);
     click(btn("Open in a separate window"));
-    await until(() => windows.length === 1, "the window request");
+    await until(() => windows.length === 1 && toasts().includes("opening in its own window"), "the window request");
     expect(windows[0]!.command.at(-1)).toContain("people.sqlite");
     expect(toasts()).toContain("opening in its own window");
     const before = frame().getAttribute("src");
@@ -642,17 +642,21 @@ describe("a studio inside the tab", () => {
   test("a studio that crashes is said so in plain words, with its log", async () => {
     // the stand-in studio crashes shortly after it says it is ready
     live.FAKE_MODE = "crash";
-    await call("db/profile/save", { profile: { engine: "sqlite", name: "Crashy", sqliteMode: "memory" } });
-    await openTab();
-    await selectRow("Crashy");
-    click(btn("Open in SQLite Studio"));
-    await until(() => pane().querySelector(".db-studio:not([hidden])"), "the studio pane", 20_000);
-    await until(() => pane().querySelector(".db-studio-message:not([hidden])"), "the crash message", 20_000);
-    expect(pane().querySelector(".db-studio-message").textContent).toContain("stopped unexpectedly (exit code 3)");
-    expect(pane().querySelector(".db-studio-message").getAttribute("role")).toBe("alert");
-    expect(pane().querySelector(".db-state").textContent).toContain("Stopped unexpectedly");
-    await until(() => pane().querySelector(".db-log")?.textContent?.includes("READY:"), "the log lines");
-    delete live.FAKE_MODE;
+    try {
+      await call("db/profile/save", { profile: { engine: "sqlite", name: "Crashy", sqliteMode: "memory" } });
+      await openTab();
+      await selectRow("Crashy");
+      click(btn("Open in SQLite Studio"));
+      const activeStudio = () => pane().querySelector(".db-studio:not([hidden])");
+      await until(() => activeStudio(), "the studio pane", 20_000);
+      await until(() => activeStudio()?.querySelector(".db-studio-message:not([hidden])"), "the crash message", 20_000);
+      expect(activeStudio().querySelector(".db-studio-message").textContent).toContain("stopped unexpectedly (exit code 3)");
+      expect(activeStudio().querySelector(".db-studio-message").getAttribute("role")).toBe("alert");
+      expect(activeStudio().querySelector(".db-state").textContent).toContain("Stopped unexpectedly");
+      await until(() => activeStudio()?.querySelector(".db-log")?.textContent?.includes("READY:"), "the log lines");
+    } finally {
+      delete live.FAKE_MODE;
+    }
     click(btn("Close"));
   });
 });
