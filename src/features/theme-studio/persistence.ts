@@ -14,9 +14,19 @@ import type {
   ThemeSurfaceConfig,
 } from "./types";
 
+/**
+ * `localStorage` key used to persist the user's saved custom theme collection.
+ */
 export const STORAGE_KEY_SAVED_THEMES = "bun_rad_theme_studio_saved_v1";
+
+/**
+ * `localStorage` key used to persist the currently active working state in Theme Studio.
+ */
 export const STORAGE_KEY_ACTIVE_STATE = "bun_rad_theme_studio_active_v1";
 
+/**
+ * Minimal Web Storage interface (`getItem`, `setItem`, `removeItem`) supporting custom or in-memory backends.
+ */
 export interface StorageLike {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
@@ -35,6 +45,9 @@ const fallbackStorage: StorageLike = {
   },
 };
 
+/**
+ * Resolves a usable `StorageLike` implementation, preferring `customStorage`, then `localStorage`, and finally an in-memory map.
+ */
 export function resolveStorage(customStorage?: StorageLike): StorageLike {
   if (customStorage) return customStorage;
   try {
@@ -280,6 +293,9 @@ export function deleteSavedTheme(id: string, storage?: StorageLike): SavedThemeD
   return existing;
 }
 
+/**
+ * Snapshot of the active working session in Theme Studio (theme name, active preset ID, surface settings, and CSS overrides).
+ */
 export interface ActiveStudioState {
   name: string;
   activePresetId: string | null;

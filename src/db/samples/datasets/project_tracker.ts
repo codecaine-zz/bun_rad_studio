@@ -1,3 +1,7 @@
+/**
+ * Synthetic Project and Issue Tracker sample dataset definition covering users, projects,
+ * sprints, epics, stories, bugs, workflow status transitions, labels, and velocity metrics.
+ */
 import { addDays, dayOf, dayStr, hashString, mulberry32 } from "../gen";
 import { dataset, query, table, view, type Scale } from "../model";
 

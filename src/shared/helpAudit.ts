@@ -4,6 +4,7 @@
  */
 import { INTERACTIVE_SELECTOR, isSkipped, matchTip, normalizeLabel, type ElementInfo, type HelpTips, type SkipRule } from "./helpMatch";
 
+/** Interactive HTML element inspected during a help-tooltip audit, paired with its resolved tooltip (or `null` if missing). */
 export interface AuditedControl extends ElementInfo {
   /** The tip it would get, or null. */
   tip: string | null;

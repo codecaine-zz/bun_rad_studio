@@ -8,8 +8,10 @@ import { looksLikeSvg, parseSvg, svgGroups, type SvgInfo } from "./fmInfoSvg";
 import { COMPRESSION_TIFF, PHOTOMETRIC, name } from "./fmInfoTables";
 import { parseHeif, parseWebp } from "./fmInfoImage2";
 
+/** Supported image formats recognized by the built-in image inspector. */
 export type ImageKind = "png" | "jpeg" | "gif" | "webp" | "bmp" | "ico" | "tiff" | "heif" | "svg";
 
+/** Complete parsed metadata and structural details for an image file. */
 export interface ImageAnalysis {
   kind: ImageKind;
   format: string;
@@ -43,6 +45,7 @@ const KINDS: Record<ImageKind, { format: string; label: string; mime: string }> 
   svg: { format: "SVG", label: "SVG drawing", mime: "image/svg+xml" },
 };
 
+/** Detects the `ImageKind` of a file from its leading magic bytes (or SVG markup signature). */
 export function detectImageKind(head: Uint8Array): ImageKind | null {
   const s = ascii(head, 0, 12);
   if (head[0] === 0x89 && s.slice(1, 4) === "PNG") return "png";
@@ -59,6 +62,7 @@ export function detectImageKind(head: Uint8Array): ImageKind | null {
 
 const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : a);
 
+/** Formats a width and height in pixels into a simplified aspect ratio string such as `"16:9"` or `"1.33:1"`. */
 export function aspectText(w: number, h: number): string {
   if (!w || !h) return "";
   const g = gcd(w, h);
@@ -266,6 +270,7 @@ export async function analyzeImage(src: Source, extHint = ""): Promise<ImageAnal
   return out;
 }
 
+/** Builds a `Rows` collection starting with format, dimensions, aspect ratio, and megapixels, followed by format-specific rows. */
 export function commonImageRows(a: ImageAnalysis): Rows {
   const r = new Rows();
   r.add("Format", a.label);

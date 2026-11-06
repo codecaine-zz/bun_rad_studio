@@ -1,3 +1,7 @@
+/**
+ * Lightweight JSON Web Token (JWT) signing, constant-time HMAC-SHA256 (`HS256`) verification,
+ * expiration enforcement, and unverified payload inspection.
+ */
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 function base64UrlEncodeJson(obj: unknown): string {
@@ -10,6 +14,9 @@ function base64UrlDecodeJson<T>(str: string): T {
 }
 
 // Coordinator: Sign HS256 JSON Web Token
+/**
+ * Signs a JSON `payload` as an `HS256` JWT using `secret`, automatically populating `iat` and `exp` claims.
+ */
 export function signJwt(payload: Record<string, any>, secret: string, expiresInSeconds = 3600): string {
   const header = { alg: "HS256", typ: "JWT" };
   const nowSec = Math.floor(Date.now() / 1000);
@@ -28,6 +35,10 @@ export function signJwt(payload: Record<string, any>, secret: string, expiresInS
 }
 
 // Coordinator: Verify HS256 JSON Web Token signature and expiration
+/**
+ * Verifies an `HS256` JWT's signature in constant time and checks its `exp` claim, returning the decoded payload.
+ * @throws If the token is malformed, uses an unsupported algorithm, fails signature verification, or is expired.
+ */
 export function verifyJwt<T = Record<string, any>>(token: string, secret: string): T {
   const parts = token.split(".");
   if (parts.length !== 3) {
@@ -60,6 +71,9 @@ export function verifyJwt<T = Record<string, any>>(token: string, secret: string
 }
 
 // Doer: Decode token payload without signature verification
+/**
+ * Decodes and returns a JWT's payload claims without verifying its cryptographic signature.
+ */
 export function decodeJwtUnverified<T = Record<string, any>>(token: string): T {
   const parts = token.split(".");
   if (parts.length < 2) {
@@ -68,6 +82,9 @@ export function decodeJwtUnverified<T = Record<string, any>>(token: string): T {
   return base64UrlDecodeJson<T>(parts[1]!);
 }
 
+/**
+ * Namespace bundling JWT signing, verification, and unverified decoding helpers.
+ */
 export const jwtutils = {
   signJwt,
   verifyJwt,

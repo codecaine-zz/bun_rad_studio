@@ -2,6 +2,7 @@
  * JSON tools -- pure helpers used by JSON Query Studio (no GUI / IO dependencies, fully unit-testable).
  */
 
+/** Result of validating a JSON text string, with best-effort 1-based line and column on syntax error. */
 export interface JsonValidation {
   ok: boolean;
   error?: string;
@@ -67,6 +68,7 @@ function locateJsonError(text: string, message: string): { line: number; col: nu
   return { line, col };
 }
 
+/** Validates whether `text` is well-formed JSON and locates the 1-based line/column on failure. */
 export function validateJson(text: string): JsonValidation {
   if (!text.trim()) return { ok: false, error: "Document is empty", line: 1, col: 1 };
   try {
@@ -79,8 +81,10 @@ export function validateJson(text: string): JsonValidation {
   }
 }
 
+/** UI indentation option label for formatting JSON output. */
 export type IndentChoice = "2 spaces" | "4 spaces" | "Tab" | string;
 
+/** Converts an `IndentChoice` label into the corresponding `JSON.stringify` space argument (`2`, `4`, or `"\t"`). */
 export function indentFrom(choice: IndentChoice | undefined): string | number {
   const c = String(choice || "2 spaces").toLowerCase();
   if (c.startsWith("tab")) return "\t";
@@ -88,14 +92,17 @@ export function indentFrom(choice: IndentChoice | undefined): string | number {
   return 2;
 }
 
+/** Parses and pretty-prints a JSON string using the specified indentation. */
 export function formatJson(text: string, indent: string | number = 2): string {
   return JSON.stringify(JSON.parse(text), null, indent);
 }
 
+/** Parses and minifies a JSON string by removing all insignificant whitespace. */
 export function minifyJson(text: string): string {
   return JSON.stringify(JSON.parse(text));
 }
 
+/** Recursively returns a copy of `value` with all object keys sorted alphabetically. */
 export function sortKeysDeep(value: any): any {
   if (Array.isArray(value)) return value.map(sortKeysDeep);
   if (value && typeof value === "object") {
@@ -131,6 +138,7 @@ export function jsonToCsv(value: any): string {
   return csvCell(value);
 }
 
+/** Parses RFC 4180-style CSV text into a 2D array of string cells. */
 export function parseCsv(text: string): string[][] {
   const rows: string[][] = [];
   let row: string[] = [];
@@ -187,6 +195,7 @@ function yamlScalar(v: any): string {
   return s;
 }
 
+/** Serializes a JSON-compatible value into YAML text at the given indentation depth. */
 export function jsonToYaml(value: any, level = 0): string {
   const pad = "  ".repeat(level);
   if (Array.isArray(value)) {
@@ -222,6 +231,7 @@ export function jsonToYaml(value: any, level = 0): string {
 
 // ------------------------------------------------------------------ stats / search
 
+/** Structural statistics for a parsed JSON value. */
 export interface JsonStats {
   bytes: number;
   depth: number;
@@ -234,6 +244,7 @@ export interface JsonStats {
   keys: number;
 }
 
+/** Computes byte size, maximum nesting depth, and node counts by type for a JSON value. */
 export function jsonStats(value: any, text?: string): JsonStats {
   const s: JsonStats = {
     bytes: new TextEncoder().encode(text ?? JSON.stringify(value)).length,
@@ -254,6 +265,7 @@ export function jsonStats(value: any, text?: string): JsonStats {
   return s;
 }
 
+/** Match entry returned when searching keys and scalar values inside a JSON document. */
 export interface JsonSearchHit { path: string; kind: "key" | "value"; preview: string }
 
 /** Find keys / scalar values containing `term` (case-insensitive). Paths are jq-style (`.a.b[2].c`). */

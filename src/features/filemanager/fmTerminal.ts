@@ -13,9 +13,12 @@ import type { FmContext } from "./fmCore";
 import { terminalEnv } from "./fmCliUtils";
 import { childEnv } from "./fmTools";
 
+/** Maximum number of concurrent PTY terminal sessions allowed per File Manager server instance. */
 export const MAX_TERMINALS = 4;
+/** Maximum byte length of a single terminal WebSocket input message (64 KiB). */
 export const MAX_INPUT_BYTES = 64 * 1024;
 
+/** Returns whether interactive PTY terminals are supported on the given platform. */
 export function terminalSupported(platform: FmContext["platform"]): boolean {
   return platform === "win32" || platform === "darwin" || platform === "linux";
 }
@@ -31,6 +34,7 @@ export function pickShell(platform: FmContext["platform"], env: Record<string, s
   return fallbacks.find((p) => existsSync(p)) ?? "/bin/sh";
 }
 
+/** Coerces `value` to an integer clamped within `[min, max]`, returning `fallback` when `value` is missing or non-numeric. */
 export function clampSize(value: unknown, fallback: number, min: number, max: number): number {
   if (value === null || value === undefined || value === "") return fallback;
   const n = typeof value === "number" ? value : Number(value);
@@ -70,10 +74,12 @@ export async function shellFolder(platform: FmContext["platform"], pid: number):
   return path;
 }
 
+/** Shell flavor detected inside a Windows ConPTY session (`"powershell"`, `"wsl"`, `"cmd"`, or `"gitbash"`). */
 export type WindowsShell = "powershell" | "wsl" | "cmd" | "gitbash";
 /** What a WSL prompt tells about its distro: its name, and where Windows drives are mounted (usually /mnt/). */
 export interface WslInfo { distro: string; driveRoot: string }
 
+/** Active PTY terminal session handle for writing input, resizing the terminal grid, and closing the shell. */
 export interface TerminalSession {
   readonly pid: number;
   /** Last filesystem folder reported by PowerShell (5 or 7), the Command Prompt, WSL or Git Bash. */
@@ -86,6 +92,7 @@ export interface TerminalSession {
   close(): void;
 }
 
+/** Options for opening a new PTY terminal session. */
 export interface OpenTerminalOptions {
   cwd: string;
   cols: number;
@@ -251,6 +258,7 @@ function openWindowsTerminal(ctx: FmContext, options: OpenTerminalOptions, asset
   return session;
 }
 
+/** Manager that tracks open PTY terminal sessions and enforces the concurrent session limit. */
 export interface TerminalHub {
   readonly count: number;
   /** Returns null when too many terminals are open. */
@@ -258,6 +266,7 @@ export interface TerminalHub {
   closeAll(): void;
 }
 
+/** Creates a `TerminalHub` bounded to `limit` simultaneous terminal sessions. */
 export function createTerminalHub(limit = MAX_TERMINALS, assetsDir = resolve(import.meta.dir, "../../../resources/file_manager")): TerminalHub {
   const sessions = new Set<TerminalSession>();
 

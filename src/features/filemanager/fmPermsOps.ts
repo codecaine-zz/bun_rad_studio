@@ -90,6 +90,7 @@ async function inJob<T>(ctx: FmContext, runId: string, title: string, fn: (ctl: 
   return value as T;
 }
 
+/** Map of File Manager API operation handlers for reading, planning, applying, undoing, and monitoring permission changes (`perms/...`). */
 export const permsOperations: Record<string, FmHandler> = {
   async "perms/get"(ctx, b) {
     return await getPerms(ctx, hooksFor(ctx), b.paths);

@@ -13,6 +13,7 @@ const managers = new WeakMap<FmContext, DownloadManager>();
 
 const MAX_URLS_PER_ADD = 200;
 
+/** Returns (or lazily initializes) the `DownloadManager` instance associated with `ctx`. */
 export function downloadsOf(ctx: FmContext): DownloadManager {
   let m = managers.get(ctx);
   if (!m) {
@@ -40,6 +41,7 @@ const snapshot = (ctx: FmContext) => {
   return { items: m.list(), settings: m.getSettings(), maxConnections: MAX_CONNECTIONS };
 };
 
+/** File Manager API handlers for adding, pausing, resuming, removing, and configuring HTTP/HTTPS downloads. */
 export const downloadOperations: Record<string, FmHandler> = {
   async "dl/list"(ctx) {
     return snapshot(ctx);

@@ -5,6 +5,7 @@ import { humanBytes, lstatTarget, Rows, sizeText, type InfoGroup } from "./fmInf
 import type { TaskControl } from "./fmInfoTasks";
 import { FmError, classify } from "./fmPaths";
 
+/** Safety bounds, cancellation signal, and progress callback for walking a directory tree. */
 export interface ScanLimits {
   maxEntries: number;
   maxMs: number;
@@ -12,6 +13,7 @@ export interface ScanLimits {
   progress?: TaskControl["progress"];
 }
 
+/** Running totals of item counts, byte sizes, file kinds, and extremes accumulated during a folder scan. */
 export interface Tally {
   folders: number;
   files: number;
@@ -31,6 +33,7 @@ export interface Tally {
   startedAt: number;
 }
 
+/** Creates a zeroed `Tally` accumulator stamped with the current start time. */
 export function newTally(): Tally {
   return { folders: 0, files: 0, links: 0, others: 0, hidden: 0, bytes: 0, onDisk: 0, unreadable: 0, kinds: new Map(), newest: null, oldest: null, largest: [], partial: false, cancelled: false, entries: 0, startedAt: Date.now() };
 }
@@ -98,6 +101,7 @@ export async function scanFolder(ctx: FmContext, root: string, tally: Tally, lim
 
 const when = (ms: number) => new Date(ms).toLocaleString();
 
+/** Formats a folder scan `Tally` into display `InfoGroup` sections (general summary, top file kinds, and largest files). */
 export function tallyGroups(t: Tally, title: string): InfoGroup[] {
   const groups: InfoGroup[] = [];
   const g = new Rows();
@@ -127,6 +131,7 @@ export function tallyGroups(t: Tally, title: string): InfoGroup[] {
   return groups;
 }
 
+/** Result of scanning a single folder or a multi-item selection for the Info window. */
 export interface FolderResult {
   groups: InfoGroup[];
   partial: boolean;
@@ -136,6 +141,7 @@ export interface FolderResult {
   bytes: number;
 }
 
+/** Scans a single directory up to `limits` and returns its aggregated `FolderResult`. */
 export async function folderInfo(ctx: FmContext, input: unknown, limits: Partial<ScanLimits> = {}): Promise<FolderResult> {
   const t = await lstatTarget(ctx, input);
   if (t.lst.isSymbolicLink()) throw new FmError("IS_LINK", "This is a link. Its folder is not counted.");
@@ -145,6 +151,7 @@ export async function folderInfo(ctx: FmContext, input: unknown, limits: Partial
   return { groups: tallyGroups(tally, "This folder"), partial: tally.partial, cancelled: tally.cancelled, files: tally.files, folders: tally.folders, bytes: tally.bytes };
 }
 
+/** Scans a selection of multiple files and folders and returns their combined `FolderResult` and selected item count. */
 export async function manyInfo(ctx: FmContext, inputs: unknown, limits: Partial<ScanLimits> = {}): Promise<FolderResult & { selected: number }> {
   if (!Array.isArray(inputs) || inputs.length === 0) throw new FmError("BAD_REQUEST", "Nothing was selected.");
   if (inputs.length > 5000) throw new FmError("TOO_MANY", "That is too many items to add up at once.");

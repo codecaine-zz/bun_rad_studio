@@ -1,8 +1,18 @@
+/**
+ * Terminal UI rendering and ANSI text layout utilities: progress bars, Unicode sparklines,
+ * horizontal bar charts, gauges, tree hierarchies, and native `Bun` ANSI string helpers.
+ */
 import { colors } from "../../../shared/colors.ts";
 
+/**
+ * ANSI terminal color and text style helper functions re-exported from shared color utilities.
+ */
 export const { bold, dim, red, green, yellow, blue, magenta, cyan, gray } = colors;
 
 // Doer: Render horizontal terminal progress bar
+/**
+ * Renders an ASCII/Unicode horizontal progress bar with percentage completion (e.g., `[████░░░░]  50%`).
+ */
 export function formatProgressBar(current: number, total: number, width = 30): string {
   if (total <= 0) return `[${" ".repeat(width)}] 0%`;
   const pct = Math.min(1, Math.max(0, current / total));
@@ -14,6 +24,9 @@ export function formatProgressBar(current: number, total: number, width = 30): s
 }
 
 // Doer: Render compact Unicode sparkline from numeric array
+/**
+ * Renders a compact single-line Unicode block sparkline (`▂▃▄▅▆▇█`) from a sequence of numbers.
+ */
 export function renderSparkline(values: number[]): string {
   if (values.length === 0) return "";
   const ticks = [" ", "▂", "▃", "▄", "▅", "▆", "▇", "█"];
@@ -31,12 +44,18 @@ export function renderSparkline(values: number[]): string {
     .join("");
 }
 
+/**
+ * Single labeled data point for {@link renderBarChart}.
+ */
 export interface BarChartItem {
   label: string;
   value: number;
 }
 
 // Doer: Render ASCII/Unicode horizontal bar chart
+/**
+ * Renders a multi-line aligned horizontal bar chart for an array of {@link BarChartItem} entries.
+ */
 export function renderBarChart(items: BarChartItem[], maxWidth = 30): string {
   if (items.length === 0) return "";
   const maxVal = Math.max(...items.map((i) => i.value), 1);
@@ -53,6 +72,9 @@ export function renderBarChart(items: BarChartItem[], maxWidth = 30): string {
 }
 
 // Doer: Render numeric gauge meter
+/**
+ * Renders a linear dial gauge indicator showing where `value` sits within `[min, max]`.
+ */
 export function renderGauge(value: number, min: number, max: number, width = 20): string {
   const clamped = Math.min(max, Math.max(min, value));
   const range = max - min || 1;
@@ -64,6 +86,9 @@ export function renderGauge(value: number, min: number, max: number, width = 20)
   return `[${chars.join("")}] ${value} (${Math.round(ratio * 100)}%)`;
 }
 
+/**
+ * Hierarchical node with an optional list of child nodes for {@link renderTree}.
+ */
 export interface TreeNode {
   name: string;
   children?: TreeNode[];
@@ -85,6 +110,9 @@ function renderSubtree(node: TreeNode, prefix = "", isLast = true): string[] {
 }
 
 // Coordinator: Render visual tree hierarchy
+/**
+ * Formats a {@link TreeNode} hierarchy as a box-drawing tree string (`├──`, `└──`, `│`).
+ */
 export function renderTree(root: TreeNode): string {
   if (!root.children || root.children.length === 0) return root.name;
   const lines = [root.name];
@@ -96,25 +124,40 @@ export function renderTree(root: TreeNode): string {
 }
 
 // Doer: Strip ANSI escape codes from string using native Bun.stripANSI
+/**
+ * Removes all ANSI escape sequences from `text` using native `Bun.stripANSI()`.
+ */
 export function stripAnsi(text: string): string {
   return Bun.stripANSI(text);
 }
 
 // Doer: Calculate visual terminal display width using native Bun.stringWidth
+/**
+ * Computes the visual column width of `text` in a terminal (accounting for ANSI codes and wide glyphs) via `Bun.stringWidth()`.
+ */
 export function stringWidth(text: string): number {
   return Bun.stringWidth(text);
 }
 
 // Doer: Slice ANSI styled string preserving styles using native Bun.sliceAnsi
+/**
+ * Slices an ANSI-styled string by visual column indices while preserving active escape sequences via `Bun.sliceAnsi()`.
+ */
 export function sliceAnsi(text: string, start: number, end?: number): string {
   return Bun.sliceAnsi(text, start, end);
 }
 
 // Doer: Wrap ANSI styled string to column width using native Bun.wrapAnsi
+/**
+ * Word-wraps an ANSI-styled string to `columns` visual columns while preserving escape sequences via `Bun.wrapAnsi()`.
+ */
 export function wrapAnsi(text: string, columns: number): string {
   return Bun.wrapAnsi(text, columns);
 }
 
+/**
+ * Namespace bundling terminal color formatters, ANSI string helpers, and CLI chart/tree renderers.
+ */
 export const cliutils = {
   colors,
   bold,

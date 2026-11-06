@@ -9,6 +9,7 @@ import { detectSecretStore, type SecretStore } from "../../db/profiles";
 import { testConnection, type TestInput, type TestResult } from "./fmDbTest";
 import { ENGINES, type DbEngine } from "./fmDbModel";
 
+/** Minimal Redis client interface used for inspecting and cloning Redis keys. */
 export interface CloneRedisClient {
   send(command: string, args: string[]): Promise<unknown>;
   close(): void;
@@ -25,11 +26,13 @@ export interface DbProcess {
   kill(signal: "SIGTERM" | "SIGKILL"): void;
 }
 
+/** Environment variables and working directory passed when spawning a child database studio process. */
 export interface SpawnOptions {
   env: Record<string, string>;
   cwd: string;
 }
 
+/** Resolved launch mechanism (`dev`, `bundle`, `app`, or `executable`) and command builder for a database studio. */
 export interface StudioCommand {
   kind: "dev" | "bundle" | "app" | "executable";
   /** Builds the full command from Bun's own flags (ignored for an executable) and the studio's arguments. */
@@ -38,6 +41,7 @@ export interface StudioCommand {
   where: string;
 }
 
+/** Injectable system hooks for keychain access, environment inspection, studio process spawning, and connection testing. */
 export interface DatabasesHooks {
   secretStore(): Promise<SecretStore>;
   /** The environment this program was started with (including what Bun loaded from `.env` files). */
@@ -70,6 +74,7 @@ export interface DatabasesHooks {
 
 /* ------------------------------------------------------------------ finding the studios */
 
+/** Filesystem and process path layout used to locate database studio scripts or packaged binaries. */
 export interface StudioLayout {
   execPath: string;
   /** The script this program was started from (process.argv[1]). */
@@ -82,6 +87,7 @@ export interface StudioLayout {
 
 const dashed = (s: string) => s.replace(/_/g, "-");
 
+/** Returns the `StudioLayout` backed by the running Bun process and real filesystem. */
 export function realLayout(): StudioLayout {
   return { execPath: process.execPath, argv1: process.argv[1] ?? "", repoRoot: join(import.meta.dir, "..", "..", ".."), exists: existsSync, readdir: (p) => { try { return readdirSync(p); } catch { return []; } } };
 }
@@ -157,6 +163,7 @@ function killTree(pid: number, signal: "SIGTERM" | "SIGKILL") {
   } catch {}
 }
 
+/** Creates the default production `DatabasesHooks` implementation. */
 export function defaultDatabasesHooks(): DatabasesHooks {
   let store: Promise<SecretStore> | null = null;
   return {

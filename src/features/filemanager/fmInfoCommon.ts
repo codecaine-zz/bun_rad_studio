@@ -11,13 +11,16 @@ import { FmError, uniqueName, validateName } from "./fmPaths";
 import { childEnv } from "./fmTools";
 import { resolveTool } from "./fmToolDetect";
 
+/** Maximum character length for a single `InfoRow` value before truncation. */
 export const MAX_VALUE = 2000;
+/** Maximum number of `InfoRow` entries collected in a single `Rows` instance. */
 export const MAX_ROWS = 2000;
 /** How much of a file's start the parsers may read. */
 export const HEAD_BYTES = 4 * 1024 * 1024;
 /** Default time limit of an operation. */
 export const OP_TIMEOUT_MS = 10_000;
 
+/** Visual badge style (`warn`, `good`, or `info`) attached to an `InfoRow`. */
 export type RowFlag = "warn" | "good" | "info";
 
 /** One line of the report: a label, a value and (for jargon) a plain-words explanation shown as a tooltip. */
@@ -28,6 +31,7 @@ export interface InfoRow {
   flag?: RowFlag;
 }
 
+/** Named section of `InfoRow` items displayed in the "More info" window. */
 export interface InfoGroup {
   id: string;
   title: string;
@@ -45,6 +49,7 @@ export function clip(value: unknown, max = MAX_VALUE): string {
   return s.length > max ? `${s.slice(0, max - 1)}…` : s;
 }
 
+/** Formats a byte count into a human-readable string with units (`bytes`, `KB`, `MB`, `GB`, `TB`, `PB`). */
 export function humanBytes(n: number): string {
   if (!Number.isFinite(n) || n < 0) return "";
   if (n < 1024) return `${n} byte${n === 1 ? "" : "s"}`;
@@ -66,6 +71,7 @@ export function sizeText(n: number): string {
 /** Collects rows, skipping empty values and keeping within the row cap. */
 export class Rows {
   readonly rows: InfoRow[] = [];
+  /** Appends a row if `value` is non-empty and the row cap has not been reached. */
   add(label: string, value: unknown, hint?: string, flag?: RowFlag): this {
     if (this.rows.length >= MAX_ROWS) return this;
     if (value === undefined || value === null || value === "" || (typeof value === "number" && !Number.isFinite(value))) return this;
@@ -74,18 +80,22 @@ export class Rows {
     this.rows.push({ label, value: text, ...(hint ? { hint } : {}), ...(flag ? { flag } : {}) });
     return this;
   }
+  /** Number of rows added so far. */
   get length() {
     return this.rows.length;
   }
+  /** Packages the collected rows into an `InfoGroup`, or returns `null` when both rows and `note` are empty. */
   group(id: string, title: string, hint?: string, note?: string): InfoGroup | null {
     return this.rows.length || note ? { id, title, rows: this.rows, ...(hint ? { hint } : {}), ...(note ? { note } : {}) } : null;
   }
 }
 
+/** Appends `g` to `list` if `g` is non-null. */
 export function pushGroup(list: InfoGroup[], g: InfoGroup | null): void {
   if (g) list.push(g);
 }
 
+/** Resolved absolute path paired with its non-following `lstat` result. */
 export interface Target {
   path: string;
   /** lstat of the path itself. */
@@ -151,6 +161,7 @@ export interface Source {
   read(offset: number, length: number): Promise<Buffer>;
 }
 
+/** Wraps an in-memory `Uint8Array` as a random-access `Source` for format parsers. */
 export function bufferSource(buf: Uint8Array): Source {
   const b = Buffer.from(buf.buffer, buf.byteOffset, buf.byteLength);
   return { size: b.length, read: async (offset, length) => b.subarray(Math.max(0, offset), Math.max(0, Math.min(b.length, offset + length))) };
@@ -212,6 +223,7 @@ export async function orElse<T>(ms: number, work: Promise<T>, fallback: T): Prom
   }
 }
 
+/** Outcome of running a helper subprocess with `runProgram`, capturing exit code, output, and timeout/truncation flags. */
 export interface RunResult {
   code: number | null;
   stdout: string;
@@ -278,10 +290,12 @@ export function helperProgram(ctx: FmContext, tool: "exiftool" | "ffmpeg", progr
   return resolveTool(ctx, tool, program);
 }
 
+/** Returns the sanitized child-process environment variables for running helper tools under `ctx`. */
 export function helperEnv(ctx: FmContext): Record<string, string> {
   return childEnv(ctx);
 }
 
+/** Returns a platform-specific package manager command hint for installing `exiftool` or `ffprobe`. */
 export function installHint(platform: string, what: "exiftool" | "ffprobe"): string {
   const brew = what === "exiftool" ? "exiftool" : "ffmpeg";
   if (platform === "win32") return what === "exiftool" ? "To see more, install ExifTool (for example: winget install OliverBetz.ExifTool)." : "To see more, install FFmpeg (for example: winget install Gyan.FFmpeg).";
@@ -289,12 +303,18 @@ export function installHint(platform: string, what: "exiftool" | "ffprobe"): str
   return `To see more, install it with: brew install ${brew}`;
 }
 
+/** Reads an unsigned 16-bit big-endian integer from `b` at byte offset `o`. */
 export const be16 = (b: Uint8Array, o: number) => ((b[o] ?? 0) << 8) | (b[o + 1] ?? 0);
+/** Reads an unsigned 32-bit big-endian integer from `b` at byte offset `o`. */
 export const be32 = (b: Uint8Array, o: number) => (((b[o] ?? 0) * 0x1000000) + (((b[o + 1] ?? 0) << 16) | ((b[o + 2] ?? 0) << 8) | (b[o + 3] ?? 0))) >>> 0;
+/** Reads an unsigned 16-bit little-endian integer from `b` at byte offset `o`. */
 export const le16 = (b: Uint8Array, o: number) => (b[o] ?? 0) | ((b[o + 1] ?? 0) << 8);
+/** Reads an unsigned 32-bit little-endian integer from `b` at byte offset `o`. */
 export const le32 = (b: Uint8Array, o: number) => (((b[o] ?? 0) | ((b[o + 1] ?? 0) << 8) | ((b[o + 2] ?? 0) << 16)) + (b[o + 3] ?? 0) * 0x1000000) >>> 0;
+/** Decodes `n` bytes starting at `o` in `b` as a Latin-1 / ASCII string. */
 export const ascii = (b: Uint8Array, o: number, n: number) => Buffer.from(b.subarray(o, Math.min(b.length, o + n))).toString("latin1");
 
+/** Formats a duration in seconds as `"X.XX s"`, `"M:SS"`, or `"H:MM:SS"`. */
 export function formatDuration(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return "";
   if (seconds < 60) return `${Math.round(seconds * 100) / 100} s`;
@@ -310,6 +330,7 @@ export function isoFromExif(text: string): string | null {
   return m ? `${m[1]}-${m[2]}-${m[3]} ${m[4]}:${m[5]}:${m[6]}` : null;
 }
 
+/** Byte offsets and 4-character type of an ISO Base Media File Format (ISOBMFF) box. */
 export interface Box {
   type: string;
   /** Where the box starts, where its content starts, and where it ends (exclusive). */

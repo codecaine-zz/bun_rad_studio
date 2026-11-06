@@ -24,26 +24,32 @@ import { measureTree } from "./fmFileOps";
 import { planBulkRename, type BulkSpec } from "./fmOps";
 import { FmError, describeFsError, uniqueName, validateName } from "./fmPaths";
 
+/** Maximum number of items allowed in a single operation plan. */
 export const PLAN_MAX_ITEMS = 5000;
 const PLAN_VISIBLE_ITEMS = 2000;
 const PLAN_LIFETIME_MS = 30 * 60 * 1000;
 const MAX_PLANS = 20;
 
+/** Action kind for an individual item within an operation plan. */
 export type PlanAction = "create" | "copy" | "move" | "rename" | "delete" | "skip";
+/** Conflict resolution policy when a planned copy or move collides with an existing destination item. */
 export type ConflictPolicy = "rename" | "replace" | "skip";
 
+/** Lightweight file identity snapshot (`kind`, `size`, `mtimeMs`) used to detect post-preview modifications before applying or undoing a plan. */
 export interface Fingerprint {
   kind: "file" | "dir" | "link" | "other";
   size: number;
   mtimeMs: number;
 }
 
+/** Blocking error or warning attached to a planned item during preview generation. */
 export interface PlanIssue {
   level: "block" | "warn";
   code: string;
   message: string;
 }
 
+/** Public view of a single item in an operation plan preview. */
 export interface PlanItem {
   id: number;
   action: PlanAction;
@@ -60,6 +66,7 @@ export interface PlanItem {
   issues: PlanIssue[];
 }
 
+/** Internal representation of a planned item, extending `PlanItem` with pre-execution source/destination fingerprints and parent creation flag. */
 export interface PlanItemInternal extends PlanItem {
   srcFp: Fingerprint | null;
   destFp: Fingerprint | null;
@@ -67,6 +74,7 @@ export interface PlanItemInternal extends PlanItem {
   makeParents: boolean;
 }
 
+/** Aggregate counts of planned actions and problems across an operation plan. */
 export interface PlanSummary {
   create: number;
   copy: number;
@@ -80,12 +88,14 @@ export interface PlanSummary {
   problems: number;
 }
 
+/** Explanation of whether a specific recovery mechanism (`undo`, `recycle-bin`, `backup`, `quarantine`) is available for a plan. */
 export interface RecoveryNote {
   kind: "undo" | "recycle-bin" | "backup" | "quarantine";
   available: boolean;
   text: string;
 }
 
+/** Serializable operation plan preview returned to the client UI. */
 export interface PlanView {
   id: string;
   title: string;
@@ -107,6 +117,7 @@ export interface PlanView {
   undone: boolean;
 }
 
+/** Recorded outcome of a single applied plan item used by `undoPlan` to safely reverse the operation. */
 export interface UndoEntry {
   action: PlanAction;
   source: string | null;
@@ -117,6 +128,7 @@ export interface UndoEntry {
   afterFp: Fingerprint | null;
 }
 
+/** Server-side stored record of an operation plan, its internal items, execution state, and undo log. */
 export interface PlanRecord {
   id: string;
   title: string;
@@ -130,12 +142,14 @@ export interface PlanRecord {
 
 const stores = new WeakMap<FmContext, Map<string, PlanRecord>>();
 
+/** Returns the per-context in-memory map storing active and recently applied `PlanRecord`s. */
 export function planStore(ctx: FmContext): Map<string, PlanRecord> {
   let store = stores.get(ctx);
   if (!store) stores.set(ctx, (store = new Map()));
   return store;
 }
 
+/** Looks up a stored `PlanRecord` by `id`, throwing `PLAN_GONE` if missing or `PLAN_EXPIRED` if an unapplied preview is older than 30 minutes. */
 export function findPlan(ctx: FmContext, id: unknown): PlanRecord {
   const plan = typeof id === "string" ? planStore(ctx).get(id) : undefined;
   if (!plan) throw new FmError("PLAN_GONE", "That preview is no longer available. Preview the operation again.");
@@ -150,12 +164,14 @@ export function findPlan(ctx: FmContext, id: unknown): PlanRecord {
 // Looking at the disk
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Captures a `Fingerprint` (`kind`, `size`, `mtimeMs`) for `path` via `lstat`, or returns `null` if the path does not exist. */
 export async function fingerprint(path: string): Promise<Fingerprint | null> {
   const st = await lstatOrNull(path);
   if (!st) return null;
   return { kind: st.isSymbolicLink() ? "link" : st.isDirectory() ? "dir" : st.isFile() ? "file" : "other", size: st.isFile() ? st.size : 0, mtimeMs: Math.floor(st.mtimeMs) };
 }
 
+/** Checks whether two `Fingerprint` snapshots are non-null and have identical `kind`, `size`, and `mtimeMs`. */
 export const sameFingerprint = (a: Fingerprint | null, b: Fingerprint | null): boolean => !!a && !!b && a.kind === b.kind && a.size === b.size && a.mtimeMs === b.mtimeMs;
 
 async function writable(folder: string): Promise<boolean> {
@@ -368,6 +384,7 @@ async function planDelete(b: Builder, pathsInput: unknown, permanent: boolean): 
   return `${permanent ? "Delete for good" : "Move to the Recycle Bin"}: ${paths.length} ${paths.length === 1 ? "item" : "items"}`;
 }
 
+/** Explicit item specification with exact source and destination paths (used by folder comparison sync plans). */
 export interface ExplicitItem {
   action: "copy" | "move" | "create";
   source?: string;
@@ -425,6 +442,7 @@ async function planExplicit(b: Builder, itemsInput: unknown, title: string): Pro
   return title;
 }
 
+/** Discriminated union of operation requests that can be previewed and planned via `createPlan`. */
 export type PlanRequest =
   | { type: "transfer"; mode: "copy" | "move"; sources: unknown; destination: unknown; policy?: unknown }
   | { type: "rename"; items: unknown }
@@ -474,6 +492,7 @@ function recoveryOf(items: PlanItemInternal[]): RecoveryNote[] {
   return notes;
 }
 
+/** Builds a public, serializable `PlanView` summary and item slice from a stored `PlanRecord`. */
 export function viewOf(plan: PlanRecord): PlanView {
   const summary = summarize(plan.items);
   const live = plan.items.filter((i) => i.action !== "skip");

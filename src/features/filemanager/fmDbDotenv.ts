@@ -11,12 +11,15 @@
 import { promises as fsp } from "fs";
 import { join } from "path";
 
+/** Maximum file size in bytes read when inspecting a `.env` file. */
 export const DOTENV_MAX_BYTES = 256 * 1024;
 const MAX_LINES = 4000;
 const NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
+/** Normalized `NODE_ENV` mode (`production`, `development`, or `test`) determining which `.env*` files Bun loads. */
 export type DotenvMode = "production" | "development" | "test";
 
+/** Normalizes a `NODE_ENV` value into its corresponding `DotenvMode`. */
 export function dotenvMode(nodeEnv: string | undefined): DotenvMode {
   return nodeEnv === "production" ? "production" : nodeEnv === "test" ? "test" : "development";
 }
@@ -27,6 +30,7 @@ export function dotenvFileNames(nodeEnv: string | undefined): string[] {
   return mode === "test" ? [".env", ".env.test", ".env.test.local"] : [".env", `.env.${mode}`, ".env.local", `.env.${mode}.local`];
 }
 
+/** An unexpanded `NAME=value` assignment parsed from a `.env` file along with its quote style. */
 export interface RawEntry {
   name: string;
   raw: string;
@@ -120,6 +124,7 @@ export function expandValue(raw: string, quote: RawEntry["quote"], lookup: (name
   return out;
 }
 
+/** Metadata and variable count (or skip reason) for a single `.env*` file in a directory. */
 export interface DotenvFile {
   /** ".env", ".env.local" ... */
   name: string;
@@ -130,6 +135,7 @@ export interface DotenvFile {
   count: number;
 }
 
+/** Expanded value of a variable defined in a directory's `.env*` files and the winning file it came from. */
 export interface DotenvValue {
   value: string;
   /** The file this value finally came from (the highest-precedence one that sets it). */
@@ -137,6 +143,7 @@ export interface DotenvValue {
   path: string;
 }
 
+/** Inspected `.env*` file list and merged variable map for a directory. */
 export interface DotenvFolder {
   dir: string;
   files: DotenvFile[];

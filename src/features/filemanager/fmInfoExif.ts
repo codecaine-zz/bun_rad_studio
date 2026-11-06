@@ -8,7 +8,9 @@ import {
   RESOLUTION_UNIT, SCENE_TYPE, SENSING, WHITE_BALANCE, flashText, name,
 } from "./fmInfoTables";
 
+/** Identifier for a TIFF/EXIF Image File Directory (IFD). */
 export type IfdName = "IFD0" | "IFD1" | "Exif" | "GPS" | "Interop";
+/** Single decoded TIFF/EXIF tag entry with its directory, numeric ID, name, and value. */
 export interface ExifTag {
   ifd: IfdName;
   id: number;
@@ -19,6 +21,7 @@ export interface ExifTag {
   /** The numerator and denominator of each rational value. */
   ratio?: Array<[number, number]>;
 }
+/** Collection of decoded EXIF tags and structural flags extracted from a TIFF/EXIF block. */
 export interface ExifData {
   littleEndian: boolean;
   tags: ExifTag[];
@@ -149,16 +152,19 @@ export function parseExifBlock(block: Uint8Array): ExifData | null {
 }
 
 const find = (d: ExifData, ifd: IfdName, id: number) => d.tags.find((t) => t.ifd === ifd && t.id === id);
+/** Looks up a finite numeric value (or first array element) for an EXIF tag in the given IFD. */
 export const exifNumber = (d: ExifData, ifd: IfdName, id: number): number | null => {
   const t = find(d, ifd, id);
   const x = Array.isArray(t?.value) ? t!.value[0] : t?.value;
   return typeof x === "number" && Number.isFinite(x) ? x : null;
 };
+/** Looks up a trimmed string value for an EXIF tag in the given IFD, or returns `""`. */
 export const exifText = (d: ExifData, ifd: IfdName, id: number): string => {
   const t = find(d, ifd, id);
   return typeof t?.value === "string" ? t.value.trim() : "";
 };
 
+/** Decoded GPS coordinates, altitude, heading, and UTC timestamp from an EXIF GPS IFD. */
 export interface Gps {
   lat: number;
   lon: number;
@@ -177,6 +183,7 @@ function dms(parts: number[], ref: string): { deg: number; text: string } | null
   return { deg: sign * (d + m / 60 + s / 3600), text: `${d}° ${m}′ ${(Math.round(s * 100) / 100).toString()}″ ${ref}` };
 }
 
+/** Extracts and validates GPS coordinates and metadata from decoded `ExifData`, or returns `null`. */
 export function gpsOf(d: ExifData): Gps | null {
   const latRef = exifText(d, "GPS", 1).toUpperCase().slice(0, 1);
   const lonRef = exifText(d, "GPS", 3).toUpperCase().slice(0, 1);
@@ -198,6 +205,7 @@ export function gpsOf(d: ExifData): Gps | null {
   };
 }
 
+/** Formats an EXIF exposure time tag as a fractional or decimal shutter speed string (e.g. `"1/250 s"`). */
 export function shutterText(t: ExifTag | undefined): string {
   if (!t) return "";
   const r = t.ratio?.[0];
@@ -210,6 +218,7 @@ export function shutterText(t: ExifTag | undefined): string {
 
 const trimNum = (x: number, digits = 1) => String(Math.round(x * 10 ** digits) / 10 ** digits);
 
+/** Concise camera and exposure headline values for a photograph. */
 export interface PhotoSummary {
   camera: string;
   taken: string;
@@ -219,6 +228,7 @@ export interface PhotoSummary {
   focal: string;
 }
 
+/** Complete EXIF summary grouped into camera, image, location, headline photo stats, and privacy checklist items. */
 export interface ExifReport {
   camera: Rows;
   image: Rows;
@@ -229,6 +239,7 @@ export interface ExifReport {
   orientation: number | null;
 }
 
+/** Summarizes decoded `ExifData` into human-readable display rows, GPS coordinates, and privacy indicators. */
 export function summarizeExif(d: ExifData, extras: { xmp?: boolean; iptc?: boolean } = {}): ExifReport {
   const camera = new Rows(), image = new Rows(), location = new Rows();
   const make = exifText(d, "IFD0", 0x10f), model = exifText(d, "IFD0", 0x110);

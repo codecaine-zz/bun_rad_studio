@@ -84,6 +84,7 @@ async function saveReport(ctx: FmContext, b: Record<string, any>) {
   throw new FmError("NO_FREE_NAME", "Could not find a free name for the report.");
 }
 
+/** Map of File Manager API operation handlers for the Network power tool (`net/...`). */
 export const netOperations: Record<string, FmHandler> = {
   async "net/presets"() {
     return {

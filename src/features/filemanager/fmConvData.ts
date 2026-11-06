@@ -192,6 +192,7 @@ export function writeJson(v: Value, indent: number, notes: Notes): string {
 // JSON Lines
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Parses newline-delimited JSON (NDJSON / JSONL) text into an array of values. */
 export function parseNdjson(text: string, notes: Notes): Value {
   const out: Value[] = [];
   const lines = text.replace(/^\ufeff/, "").split(/\r?\n/);
@@ -208,6 +209,7 @@ export function parseNdjson(text: string, notes: Notes): Value {
   return out;
 }
 
+/** Serializes an array or value into newline-delimited JSON (NDJSON) text. */
 export function writeNdjson(v: Value, notes: Notes): string {
   const list = Array.isArray(v) ? v : isObj(v) && Object.keys(v).length === 1 && Array.isArray(Object.values(v)[0]) ? (Object.values(v)[0] as Value[]) : [v];
   if (!Array.isArray(v) && list.length === 1 && list[0] === v) notes.add("The data is one item, so the file has one line.");
@@ -218,6 +220,7 @@ export function writeNdjson(v: Value, notes: Notes): string {
 // YAML
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Parses YAML text into plain structured values using `Bun.YAML.parse`. */
 export function parseYaml(text: string): Value {
   if (!text.trim()) throw new ConvError("The file is empty: there is no data to convert.");
   const yaml = (Bun as any).YAML as { parse(text: string): unknown } | undefined;
@@ -237,6 +240,7 @@ function yamlScalarKey(s: string): string {
   return JSON.stringify(s);
 }
 
+/** Serializes a structured value into formatted YAML text. */
 export function writeYaml(v: Value): string {
   const lines: string[] = [];
   const scalar = (x: Value): string => {
@@ -280,6 +284,7 @@ export function writeYaml(v: Value): string {
 // TOML
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Parses TOML text into plain structured values using `Bun.TOML.parse`. */
 export function parseToml(text: string): Value {
   if (!text.trim()) throw new ConvError("The file is empty: there is no data to convert.");
   try {
@@ -291,6 +296,7 @@ export function parseToml(text: string): Value {
 
 const tomlKey = (k: string) => (/^[A-Za-z0-9_-]+$/.test(k) ? k : JSON.stringify(k));
 
+/** Serializes a structured value into TOML text, wrapping non-object roots in a top-level key. */
 export function writeToml(v: Value, notes: Notes): string {
   let root: Obj;
   if (isObj(v)) root = v;
@@ -351,6 +357,7 @@ export function writeToml(v: Value, notes: Notes): string {
 // CSV and TSV
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Supported column delimiter characters for CSV/TSV parsing and writing. */
 export type Delimiter = "," | ";" | "\t" | "|";
 
 /** The most likely separator, from the first lines: the one that appears in every line, most often, outside quotes. */
@@ -376,6 +383,7 @@ export function detectDelimiter(text: string): Delimiter {
   return best;
 }
 
+/** Parses RFC 4180 CSV/TSV text into a 2D array of string cells using the given delimiter. */
 export function parseCsvRows(source: string, delimiter: Delimiter): string[][] {
   const text = source.charCodeAt(0) === 0xfeff ? source.slice(1) : source;
   const rows: string[][] = [];
@@ -429,6 +437,7 @@ export function parseCsvRows(source: string, delimiter: Delimiter): string[][] {
   return rows;
 }
 
+/** Serializes optional header columns and data rows into properly quoted CSV/TSV text. */
 export function writeCsvRows(columns: string[] | null, rows: Value[][], delimiter: Delimiter, notes: Notes): string {
   const cell = (v: Value): string => {
     let s: string;

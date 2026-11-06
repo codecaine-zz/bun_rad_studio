@@ -9,6 +9,7 @@ import { gzipDocument, tarDocument, zipDocument } from "./fmInfoZipDoc";
 import { extensionOf, FmError } from "./fmPaths";
 import { SNIFF_BYTES, sniffType } from "./fmSniff";
 
+/** Structured inspection result for a document, archive, database, font, executable, or text file. */
 export interface DocumentResult {
   kind: string;
   groups: InfoGroup[];
@@ -19,6 +20,7 @@ export interface DocumentResult {
 const ZIP_EXT = new Set(["zip", "docx", "xlsx", "pptx", "odt", "ods", "odp", "epub", "jar", "apk", "war", "xpi", "cbz", "vsix", "nupkg", "whl", "ipa"]);
 const TEXT_KINDS = new Set(["text", "script", "html", "xml", "svg"]);
 
+/** Inspects a document, archive, binary, font, database, or text file and returns its structured info groups. */
 export async function documentInfo(ctx: FmContext, input: unknown): Promise<DocumentResult> {
   const t = await regularFile(ctx, input);
   const path = absolutePath(ctx, input);

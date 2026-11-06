@@ -25,6 +25,7 @@ export interface RunControl {
   report(phase: "checking" | "changing", done: number, changed: number): void;
 }
 
+/** No-op `RunControl` instance used for non-recursive permission checks and changes that run synchronously without job progress reporting. */
 export const NO_CONTROL: RunControl = { signal: new AbortController().signal, report() {} };
 
 const HOME_SUBFOLDERS = ["Desktop", "Documents", "Downloads", "Pictures", "Music", "Movies", "Videos", "Public", "Library", "AppData", "Templates"];
@@ -66,6 +67,7 @@ export function permError(err: unknown, platform: string): string {
 // Looking at items
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Current permission bits, ownership, extra flags, and editability status for a single inspected file or folder. */
 export interface PermItem {
   path: string;
   name: string;
@@ -87,6 +89,7 @@ export interface PermItem {
   acl: boolean | null;
 }
 
+/** Platform capability descriptor indicating which permission bits and file flags are supported on the current OS. */
 export interface PermsSupport {
   platform: string;
   mode: boolean;
@@ -98,6 +101,7 @@ export interface PermsSupport {
   admin: boolean;
 }
 
+/** Returns the `PermsSupport` capability descriptor for `ctx.platform` and the current process UID. */
 export function supportFor(ctx: FmContext, hooks: PermsHooks): PermsSupport {
   const p = ctx.platform;
   return { platform: p, mode: p !== "win32", specialBits: p !== "win32", locked: p === "darwin", hidden: p !== "linux", readonly: p === "win32", admin: hooks.uid() === 0 };
@@ -108,6 +112,7 @@ function isOwner(hooks: PermsHooks, st: PermStat): boolean {
   return uid === null || uid === 0 || st.uid === uid;
 }
 
+/** Reads the current permissions, owner/group names, extra flags, and ACL indicator for the requested `input` paths. */
 export async function getPerms(ctx: FmContext, hooks: PermsHooks, input: unknown): Promise<{ support: PermsSupport; items: PermItem[] }> {
   const paths = checkedPaths(ctx, hooks, input, false);
   const p = pathApi(ctx);
@@ -153,6 +158,7 @@ export async function getPerms(ctx: FmContext, hooks: PermsHooks, input: unknown
 // The scan: what a change would do to every item in it
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Disposition of a scanned item during a permission preview or apply run. */
 export type ItemState = "change" | "same" | "blocked" | "skipped";
 
 interface ScanItem {
@@ -285,6 +291,7 @@ async function scan(ctx: FmContext, hooks: PermsHooks, change: Change, roots: st
 // Preview
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Sample before/after row shown in a permission change preview or result summary. */
 export interface Example {
   path: string;
   state: ItemState;
@@ -297,6 +304,7 @@ export interface Example {
   reason: string;
 }
 
+/** Aggregate item counts produced when previewing a permission change. */
 export interface Counts {
   /** Items the change was looked at for. */
   considered: number;
@@ -306,6 +314,7 @@ export interface Counts {
   skipped: number;
 }
 
+/** Preview summary of a planned permission change, including counts, example rows, blocked items, and detected safety risks. */
 export interface Plan {
   counts: Counts;
   examples: Example[];
@@ -413,6 +422,7 @@ function storeUndo(ctx: FmContext, entries: UndoEntry[]): string {
   return id;
 }
 
+/** Result returned after applying a permission change, including item counts, examples, problems, and an optional undo token. */
 export interface ApplyResult {
   counts: { changed: number; alreadyCorrect: number; failed: number; skipped: number; notDone: number };
   examples: Example[];
@@ -453,6 +463,7 @@ async function changeOne(ctx: FmContext, hooks: PermsHooks, path: string, curren
   return { mode: actual, partial };
 }
 
+/** Scans and applies the requested permission and flag changes to `body.paths`, recording an undo entry for every modified item. */
 export async function applyPerms(ctx: FmContext, hooks: PermsHooks, body: Record<string, any>, ctl: RunControl = NO_CONTROL): Promise<ApplyResult> {
   const change = parseChange(body.change, ctx.platform);
   const roots = checkedPaths(ctx, hooks, body.paths, change.recursive !== null);
@@ -542,6 +553,7 @@ export async function applyPerms(ctx: FmContext, hooks: PermsHooks, body: Record
 // Undo
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Outcome of `undoPerms` reporting how many items had their original permissions restored and which items were skipped. */
 export interface UndoResult {
   restored: number;
   skipped: Array<{ path: string; reason: string }>;

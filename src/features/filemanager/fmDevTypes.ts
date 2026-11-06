@@ -1,5 +1,6 @@
 /** Shapes shared by the Dev tab's code-statistics engines, snapshots and exports. */
 
+/** Aggregated file, code, comment, blank, line, and byte counts for a single programming language. */
 export interface LangRow {
   name: string;
   files: number;
@@ -12,6 +13,7 @@ export interface LangRow {
   bytes: number;
 }
 
+/** Code, comment, blank, line, and byte counts for an individual source file. */
 export interface FileRow {
   path: string;
   language: string;
@@ -21,6 +23,7 @@ export interface FileRow {
   size: number;
 }
 
+/** Grand total file, code, comment, blank, line, and byte counts across all scanned languages. */
 export interface StatsTotals {
   files: number;
   code: number;
@@ -29,6 +32,7 @@ export interface StatsTotals {
   lines: number;
 }
 
+/** Configuration options for a code statistics scan (engine choice, gitignore, hidden/vendored files, and walk limits). */
 export interface StatsOptions {
   engine: "auto" | "tokei" | "builtin";
   respectGitignore: boolean;
@@ -41,6 +45,7 @@ export interface StatsOptions {
   maxSeconds?: number;
 }
 
+/** Complete code statistics report including engine info, totals, per-language rows, per-file rows, and walk summary. */
 export interface StatsResult {
   engine: "tokei" | "builtin";
   /** "tokei 15.0.0" or "Built-in counter". */
@@ -58,6 +63,7 @@ export interface StatsResult {
   fileCount: number;
 }
 
+/** Sums `files`, `code`, `comments`, `blanks`, `lines`, and `bytes` across an array of language rows. */
 export const sumTotals = (rows: Array<Pick<LangRow, "files" | "code" | "comments" | "blanks">>): StatsTotals => {
   const t: StatsTotals = { files: 0, code: 0, comments: 0, blanks: 0, lines: 0 };
   for (const r of rows) {

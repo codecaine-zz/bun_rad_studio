@@ -3,6 +3,7 @@
  * undo bookkeeping and patch/report formatting. No GUI access.
  */
 
+/** Find-and-replace preset configuration for Sd Studio. */
 export interface SdPreset {
   label: string;
   find: string;
@@ -16,8 +17,10 @@ export interface SdPreset {
   escapes?: boolean;
 }
 
+/** Placeholder dropdown label when no find-and-replace preset is selected. */
 export const SD_PRESET_NONE = "Presets…";
 
+/** Built-in find-and-replace presets for Sd Studio. */
 export const SD_PRESETS: SdPreset[] = [
   { label: "Trim trailing whitespace", find: "[ \\t]+$", replace: "", flags: "gm", literal: false, wholeWord: false, ignoreCase: false },
   { label: "Tabs → 4 spaces", find: "\\t", replace: "    ", flags: "g", literal: false, wholeWord: false, ignoreCase: false },
@@ -28,6 +31,7 @@ export const SD_PRESETS: SdPreset[] = [
   { label: "Rename identifier (whole word)", find: "oldName", replace: "newName", flags: "g", literal: false, wholeWord: true, ignoreCase: false },
 ];
 
+/** Finds a built-in `SdPreset` by its dropdown display label. */
 export function findSdPreset(label: string): SdPreset | undefined {
   return SD_PRESETS.find((p) => p.label === label);
 }
@@ -63,6 +67,7 @@ export function globToRegExp(glob: string): RegExp {
   return compiled;
 }
 
+/** File extension whitelist and exclude glob patterns for filtering candidate files. */
 export interface FileFilter {
   exts?: string[];
   exclude?: string[];
@@ -95,8 +100,10 @@ export function isLikelyBinary(sample: Uint8Array): boolean {
   return ctrl / n > 0.1;
 }
 
+/** Maximum file size in bytes (5 MiB) that Sd Studio will load for find-and-replace. */
 export const SD_MAX_FILE_BYTES = 5 * 1024 * 1024;
 
+/** Snapshot of a file's original content prior to replacement, used for undo restoration. */
 export interface UndoRecord {
   filePath: string;
   original: string;
@@ -108,6 +115,7 @@ export function mergeUndo(existing: UndoRecord[], incoming: UndoRecord[]): UndoR
   return [...existing, ...incoming.filter((r) => !seen.has(r.filePath))];
 }
 
+/** Per-file summary row in an Sd Studio replacement report. */
 export interface ReportRow {
   filePath: string;
   matches: number;

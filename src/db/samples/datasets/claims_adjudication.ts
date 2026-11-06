@@ -1,3 +1,7 @@
+/**
+ * Synthetic Healthcare Claims Adjudication sample dataset definition covering members,
+ * providers, CPT procedures, ICD-10 diagnoses, claim lines, denial codes, and remittances.
+ */
 import { addDays, dayOf, dayStr, hashString, mulberry32 } from "../gen";
 import { dataset, query, table, view, type Scale } from "../model";
 

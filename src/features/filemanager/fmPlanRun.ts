@@ -23,6 +23,7 @@ import { FmError, describeFsError } from "./fmPaths";
 import { deletePermanently, moveToTrash, restoreFromTrash } from "./fmTrash";
 import { fingerprint, findPlan, sameFingerprint, viewOf, type PlanItemInternal, type PlanRecord, type PlanView, type UndoEntry } from "./fmPlan";
 
+/** Options and user approval flags passed when applying a previewed file operation plan. */
 export interface ApplyRequest {
   /** The person looked at the preview and agrees. Required when something is replaced or deleted. */
   approved?: unknown;
@@ -275,6 +276,7 @@ export async function applyPlan(ctx: FmContext, id: unknown, request: ApplyReque
 // Undo
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Per-item outcome produced when reversing a previously applied file operation plan. */
 export interface UndoResult {
   ok: boolean;
   path: string;

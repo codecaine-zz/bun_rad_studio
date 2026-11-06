@@ -119,6 +119,7 @@ function studioOf(ctx: FmContext, id: unknown): StudioInfo {
   return info;
 }
 
+/** File Manager API handlers for starting, stopping, listing, and reading logs from database studio instances. */
 export const studioOperations: Record<string, FmHandler> = {
   async "db/studio/start"(ctx, b) {
     return await startStudio(ctx, isObject(b) ? b : {});

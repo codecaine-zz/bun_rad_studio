@@ -17,6 +17,7 @@
  * studios and their tests rely on. Nothing is loaded from the network.
  */
 
+/** Shared theme-aware CSS design tokens and component polish for the database studios. */
 export const STUDIO_POLISH_STYLE = `
     /* ===== Shared polish (src/shared/studioPolish.ts) ===== */
     :root {
@@ -438,4 +439,5 @@ function studioPolishClient() {
   window.StudioPolish = { enhanceBody, init, applyFmTheme };
 }
 
+/** Self-invoking browser script providing tab keyboard navigation, accessible toasts, and data-grid cell enhancers. */
 export const STUDIO_POLISH_SCRIPT = `(${studioPolishClient.toString()})();`;

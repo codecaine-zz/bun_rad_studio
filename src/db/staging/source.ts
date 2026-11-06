@@ -5,8 +5,10 @@
 import { statSync } from "fs";
 import { StagingError, limitMessage, limits } from "./limits";
 
+/** Supported character encodings for incoming text files. */
 export type EncodingName = "utf-8" | "utf-16le" | "utf-16be" | "windows-1252";
 
+/** Detected or configured character encoding metadata including BOM length. */
 export interface EncodingInfo {
   encoding: EncodingName;
   /** Bytes of byte-order mark to skip. */
@@ -15,6 +17,7 @@ export interface EncodingInfo {
   label: string;
 }
 
+/** Human-readable display labels for each supported character encoding. */
 export const ENCODING_LABELS: Record<EncodingName, string> = {
   "utf-8": "UTF-8",
   "utf-16le": "UTF-16 (little-endian)",
@@ -22,8 +25,10 @@ export const ENCODING_LABELS: Record<EncodingName, string> = {
   "windows-1252": "Latin-1 / Windows-1252 (older Western text)",
 };
 
+/** Type guard checking whether an unknown value is a supported `EncodingName`. */
 export const isEncodingName = (v: unknown): v is EncodingName => typeof v === "string" && v in ENCODING_LABELS;
 
+/** Streamable source of raw bytes backed by either a disk file or in-memory buffer. */
 export interface ByteSource {
   /** File name for display (never a path). */
   name: string;
@@ -36,6 +41,7 @@ export interface ByteSource {
   chunks(): AsyncIterable<Uint8Array>;
 }
 
+/** Creates a `ByteSource` that streams bytes from a file on disk after checking size limits. */
 export function fileSource(path: string, name?: string): ByteSource {
   const st = statSync(path);
   if (!st.isFile()) throw new StagingError("That is not a file.", "NOT_A_FILE");
@@ -54,6 +60,7 @@ export function fileSource(path: string, name?: string): ByteSource {
   };
 }
 
+/** Creates a `ByteSource` from an in-memory string (such as pasted clipboard text). */
 export function memorySource(text: string, name = "pasted text"): ByteSource {
   if (text.length > limits.maxPasteChars) throw new StagingError(limitMessage("paste"), "PASTE_TOO_BIG", 413);
   const bytes = new TextEncoder().encode(text);
@@ -89,6 +96,7 @@ function validUtf8(sample: Uint8Array): boolean {
   }
 }
 
+/** Detects the character encoding and byte-order mark of a file from an initial byte sample. */
 export function detectEncoding(sample: Uint8Array): EncodingInfo {
   const info = (encoding: EncodingName, bomBytes = 0): EncodingInfo => ({ encoding, bomBytes, label: ENCODING_LABELS[encoding] });
   if (sample.length >= 3 && sample[0] === 0xef && sample[1] === 0xbb && sample[2] === 0xbf) return info("utf-8", 3);

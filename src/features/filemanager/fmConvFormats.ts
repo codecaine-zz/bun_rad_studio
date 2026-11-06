@@ -11,6 +11,7 @@ import {
   writePlist, writeProperties, writeSql, writeXml, type Dialect,
 } from "./fmConvMarkup";
 
+/** Identifier for any structured data or tabular format supported by the built-in data converter. */
 export type DataFormat =
   | "json" | "jsonc" | "json5" | "yaml" | "toml" | "csv" | "tsv" | "xml" | "ndjson" | "ini" | "env" | "properties" | "markdown" | "html" | "sql" | "plist" | "sheet";
 
@@ -20,6 +21,7 @@ export const DATA_EXTENSIONS: Record<string, DataFormat> = {
   ini: "ini", env: "env", properties: "properties", md: "markdown", markdown: "markdown", html: "html", htm: "html", sql: "sql", plist: "plist", xlsx: "sheet", ods: "sheet",
 };
 
+/** Configuration options controlling flattening, header rows, delimiters, type inference, and SQL/XML output settings. */
 export interface DataOptions {
   /** Nested data in a table: dotted column names (true) or JSON text in one cell (false). */
   flatten: boolean;
@@ -43,11 +45,13 @@ export interface DataOptions {
   title: string;
 }
 
+/** Default `DataOptions` used when converting between structured data formats. */
 export const DEFAULT_DATA_OPTIONS: DataOptions = {
   flatten: true, unflatten: false, header: true, delimiter: "auto", types: true, sortKeys: false, indent: 2, tableName: "data", rootName: "root", itemName: "item",
   dialect: "ansi", createTable: false, bom: false, title: "Table",
 };
 
+/** List of `DataFormat` targets that can be written directly as text by `writeData`. */
 export const WRITABLE: ReadonlyArray<Exclude<DataFormat, "jsonc" | "json5" | "sheet">> = ["json", "yaml", "toml", "csv", "tsv", "xml", "ndjson", "ini", "env", "properties", "markdown", "html", "sql", "plist"];
 
 /** The extension of the file a format is written to. */
@@ -55,6 +59,7 @@ export const FORMAT_EXTENSION: Record<string, string> = {
   json: "json", yaml: "yaml", toml: "toml", csv: "csv", tsv: "tsv", xml: "xml", ndjson: "ndjson", ini: "ini", env: "env", properties: "properties", markdown: "md", html: "html", sql: "sql", plist: "plist",
 };
 
+/** Parses text in the specified `DataFormat` into a normalized `Value` tree. */
 export function parseData(format: DataFormat, text: string, o: DataOptions, notes: Notes): Value {
   switch (format) {
     case "json": return parseJson(text, false, notes);
@@ -87,6 +92,7 @@ function maybeUnflatten(v: Value, o: DataOptions): Value {
   return o.unflatten && isObj(v) ? unflatten(v) : v;
 }
 
+/** Serializes a normalized `Value` tree into formatted text for the target `DataFormat`. */
 export function writeData(format: DataFormat, value: Value, o: DataOptions, notes: Notes): string {
   const v = o.sortKeys ? sortKeysDeep(value) : value;
   switch (format) {

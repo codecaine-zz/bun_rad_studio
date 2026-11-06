@@ -1,3 +1,6 @@
+/**
+ * Interactive UI help tooltips and audit skip rules for Network Studio (`network_studio`), covering ping, traceroute, port scanning, TLS certificate inspection, and HTTP probes.
+ */
 import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Network Forensics Studio: port scanner, DNS inspector, HTTP and TLS probes. */

@@ -1,3 +1,7 @@
+/**
+ * Synthetic HR and Payroll sample dataset definition covering department hierarchies,
+ * job grades, employee org charts, compensation history, payslips, benefits, leave, and recruiting.
+ */
 import { addDays, dayOf, dayStr } from "../gen";
 import { dataset, query, table, view, type Scale } from "../model";
 

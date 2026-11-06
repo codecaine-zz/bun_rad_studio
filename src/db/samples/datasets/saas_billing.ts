@@ -1,3 +1,7 @@
+/**
+ * Synthetic SaaS Subscription and Billing sample dataset definition covering pricing plans,
+ * metered features, customer organizations, subscriptions, invoices, payments, and MRR analytics.
+ */
 import { addDays, dayOf, dayStr } from "../gen";
 import { COUNTRIES } from "../words";
 import { dataset, query, table, view, type Row } from "../model";

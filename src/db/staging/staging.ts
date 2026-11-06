@@ -15,19 +15,23 @@ import { compileRules } from "./mapping";
 import { newReadContext, readRows, type SourceSettings } from "./reader";
 import type { ColumnRule, ImportPlan, RowError } from "./types";
 
+/** Error thrown when an in-progress staging load is aborted via its `AbortSignal`. */
 export class LoadCancelled extends Error {
+  /** Creates a `LoadCancelled` error indicating that the staging load was aborted cleanly. */
   constructor() {
     super("The load was cancelled and nothing was kept.");
     this.name = "LoadCancelled";
   }
 }
 
+/** Progress snapshot emitted while streaming source rows into the staging table. */
 export interface LoadProgress {
   rows: number;
   /** 0..1 of the file read so far (an estimate). */
   fraction: number;
 }
 
+/** Options for loading a byte source into a newly created staging table. */
 export interface LoadOptions {
   db: StageDb;
   src: ByteSource;
@@ -42,6 +46,7 @@ export interface LoadOptions {
   batchId?: string;
 }
 
+/** Summary returned after all records from a source have been loaded into a staging table. */
 export interface LoadResult {
   batch: BatchRecord;
   stagingTable: string;
@@ -78,6 +83,7 @@ function countingSource(src: ByteSource, counter: { bytes: number }): ByteSource
   } as ByteSource;
 }
 
+/** Streams rows from the byte source, applies column mapping rules, and inserts them into a new staging table. */
 export async function loadIntoStaging(o: LoadOptions): Promise<LoadResult> {
   const { db, plan } = o;
   const e = db.engine;

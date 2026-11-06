@@ -4,6 +4,7 @@ import { FmError } from "./fmPaths";
 import { createPlan, findPlan, planStore, viewOf, type PlanRequest } from "./fmPlan";
 import { applyPlan, undoPlan } from "./fmPlanRun";
 
+/** Map of File Manager API operation handlers for previewing, retrieving, applying, undoing, and discarding file operation plans (`plan/...`). */
 export const planOperations: Record<string, FmHandler> = {
   /** Works out what would happen. Changes nothing. */
   async "plan/preview"(ctx, b) {

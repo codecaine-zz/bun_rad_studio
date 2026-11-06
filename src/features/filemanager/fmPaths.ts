@@ -7,8 +7,10 @@
  */
 import * as nodePath from "path";
 
+/** Normalized operating system platform identifier used across File Manager path and permission rules. */
 export type Platform = "win32" | "darwin" | "linux";
 
+/** Maximum allowed length for a single file or folder name (255 characters on Windows, 255 UTF-8 bytes on POSIX). */
 export const MAX_NAME_LENGTH = 255;
 
 function pathFor(platform: Platform, sample?: string) {
@@ -18,6 +20,7 @@ function pathFor(platform: Platform, sample?: string) {
     : nodePath.posix;
 }
 
+/** Normalizes a `process.platform` string into one of `"win32"`, `"darwin"`, or `"linux"`. */
 export function platformName(platform: string = process.platform): Platform {
   return platform === "win32" || platform === "darwin" ? platform : "linux";
 }
@@ -87,6 +90,7 @@ export function uniqueName(name: string, exists: (candidate: string) => boolean,
 // Paths that must not be changed
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Platform, home directory, and extra protected roots used by `protectedReason` to guard system and Recycle Bin paths. */
 export interface ProtectContext {
   platform?: Platform;
   home: string;
@@ -213,6 +217,7 @@ export function parseTypedPath(input: string, cwd: string, home: string, platfor
 // What kind of file is it
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Classification metadata for a file or folder, including its category, icon, human label, inline preview mode, and executable flag. */
 export interface FileKind {
   kind: "folder" | "image" | "video" | "audio" | "pdf" | "document" | "spreadsheet" | "presentation" | "archive" | "code" | "text" | "program" | "disk-image" | "font" | "other";
   icon: string;
@@ -256,11 +261,13 @@ for (const g of EXT_GROUPS) for (const e of g[3]) if (!BY_EXT.has(e)) BY_EXT.set
 const PROGRAM_EXTS = new Set(["exe", "msi", "bat", "cmd", "com", "scr", "ps1", "vbs", "jar", "app", "command", "sh", "bash", "zsh", "run", "appimage", "deb", "rpm", "pkg", "dmg", "apk"]);
 const IMAGE_PREVIEW = new Set(ALL_IMAGE_EXTS);
 
+/** Returns the lowercase file extension of `name` without a leading dot (preserving compound archive extensions such as `"tar.gz"`). */
 export function extensionOf(name: string): string {
   const [, ext] = splitName(name);
   return ext.replace(/^\./, "").toLowerCase();
 }
 
+/** Tuple of directory-bundle extensions (such as `.epub`, `.rtfd`, `.pages`, `.numbers`, `.key`) that behave as single document packages. */
 export const DOCUMENT_PACKAGE_EXTS = [
   "epub",
   "ibooks",
@@ -278,10 +285,12 @@ export const DOCUMENT_PACKAGE_EXTS = [
   "graffle",
 ] as const;
 
+/** Checks whether `name` ends with a known macOS/iOS or e-book document package extension. */
 export function isDocumentPackageName(name: string): boolean {
   return /\.(?:epub|ibooks|rtfd|textbundle|scriv|ulysses|pages|numbers|key|playground|playgroundbook|oo3|mindnode|graffle)$/i.test(name.trim());
 }
 
+/** Classifies a file or directory by its name, directory status, and POSIX executable bit into a `FileKind` descriptor. */
 export function classify(name: string, isDir: boolean, hasExecBit = false): FileKind {
   if (isDir) {
     const lower = name.toLowerCase();
@@ -313,6 +322,7 @@ export function isHiddenName(name: string, platform: Platform = platformName()):
   return false;
 }
 
+/** Formats a non-negative byte count into a human-readable string (`"512 bytes"`, `"4.2 KB"`, `"12.8 MB"`, etc.). */
 export function formatSize(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes < 0) return "";
   if (bytes < 1024) return `${bytes} byte${bytes === 1 ? "" : "s"}`;
@@ -330,10 +340,12 @@ export function formatSize(bytes: number): string {
 // Errors in plain words
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Structured File Manager error carrying a machine-readable `code`, user-friendly `message`, and optional diagnostic `details`. */
 export class FmError extends Error {
   code: string;
   /** Extra facts for the page, sent along with the error (for example what a file really is). */
   details?: unknown;
+  /** Creates a new `FmError` with the specified error `code`, human-readable `message`, and optional `details` payload. */
   constructor(code: string, message: string, details?: unknown) {
     super(message);
     this.name = "FmError";

@@ -9,6 +9,7 @@ import { absolutePath, assertFolder, pathApi, tick, type FmContext } from "./fmC
 import { mediaKindOf, thumbnailsAvailable, wantsThumbnail } from "./fmQuickLook";
 import { FmError, classify, describeFsError, isDocumentPackageName, isHiddenName, systemFileManagerName } from "./fmPaths";
 
+/** Metadata for a single file, folder, or symbolic link returned in a folder listing or search result. */
 export interface Entry {
   name: string;
   path: string;
@@ -29,6 +30,7 @@ export interface Entry {
   mode: number | null;
 }
 
+/** Maximum number of directory entries returned in a single `listFolder` call before truncating. */
 export const MAX_LIST_ENTRIES = 50_000;
 
 async function toEntry(ctx: FmContext, dir: string, name: string, p: typeof nodePath.posix, preStat?: fs.Stats): Promise<Entry | null> {
@@ -81,6 +83,7 @@ async function toEntry(ctx: FmContext, dir: string, name: string, p: typeof node
   };
 }
 
+/** Result of listing a folder, including its absolute path, parent folder path, entry list, and truncation indicator. */
 export interface Listing {
   path: string;
   parent: string | null;
@@ -100,6 +103,7 @@ export async function entryFor(ctx: FmContext, input: unknown): Promise<Entry> {
   return entry;
 }
 
+/** Lists the entries inside directory `input`, optionally including hidden dotfiles and system files. */
 export async function listFolder(ctx: FmContext, input: unknown, options: { showHidden?: boolean } = {}): Promise<Listing> {
   const dir = absolutePath(ctx, input);
   const p = pathApi(ctx);
@@ -126,6 +130,7 @@ export async function listFolder(ctx: FmContext, input: unknown, options: { show
 // Sizes and properties
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Cumulative byte size, file count, and subfolder count for a directory tree. */
 export interface FolderStats {
   bytes: number;
   files: number;
@@ -207,6 +212,7 @@ export async function calculateFolderSizes(
   return { sizes };
 }
 
+/** Detailed properties summary for one or more selected files and folders (size, counts, timestamps, permissions, symlink target). */
 export interface Properties {
   count: number;
   name: string;
@@ -227,6 +233,7 @@ export interface Properties {
   hidden: boolean;
 }
 
+/** Computes aggregated `Properties` (size, file/folder counts, timestamps, permissions) for the paths in `inputs`. */
 export async function propertiesOf(ctx: FmContext, inputs: unknown): Promise<Properties> {
   if (!Array.isArray(inputs) || inputs.length === 0) throw new FmError("BAD_REQUEST", "Nothing was selected.");
   const paths = inputs.map((i) => absolutePath(ctx, i));
@@ -298,6 +305,7 @@ export async function propertiesOf(ctx: FmContext, inputs: unknown): Promise<Pro
 // Places and drives
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Sidebar shortcut or mounted drive entry with optional free/total disk space in bytes. */
 export interface Place {
   id: string;
   name: string;
@@ -373,6 +381,7 @@ function readNoBrowse(): Set<string> {
 
 const MAC_SYSTEM_VOLUMES = new Set(["Recovery", "Preboot", "VM", "Update", "xarts", "iSCPreboot", "Hardware"]);
 
+/** Discovers standard user folders (`places`) and mounted volumes/drives (`drives`) for the File Manager sidebar. */
 export function listPlaces(ctx: FmContext): { places: Place[]; drives: Place[]; platform: string; fileManagerName: string; separator: string; home: string } {
   const p = pathApi(ctx);
   const xdg = ctx.platform === "linux" ? xdgUserDirs(ctx.home) : {};
@@ -438,8 +447,10 @@ export function listPlaces(ctx: FmContext): { places: Place[]; drives: Place[]; 
 
 import { inspectPackageDirectoryRich, inspectRichPreview, type RichPreview } from "./fmPreview";
 
+/** Maximum number of leading bytes read from a file when generating a text or rich preview (64 KiB). */
 export const PREVIEW_BYTES = 64 * 1024;
 
+/** Discriminated union describing how the File Manager Info/Quick Look panel should preview a file. */
 export type Preview =
   | { type: "text"; text: string; truncated: boolean; size: number; rich?: RichPreview }
   | { type: "image"; size: number; rich?: RichPreview }
@@ -450,6 +461,7 @@ export type Preview =
   | { type: "binary"; size: number; rich?: RichPreview }
   | { type: "none"; size: number; rich?: RichPreview };
 
+/** Inspects `input` and returns a `Preview` payload (text snippet, media kind, Quick Look thumbnail availability, and rich structured metadata). */
 export async function previewFile(ctx: FmContext, input: unknown): Promise<Preview> {
   const path = absolutePath(ctx, input);
   const st = await fsp.stat(path);
@@ -504,6 +516,7 @@ export async function previewFile(ctx: FmContext, input: unknown): Promise<Previ
 // Search
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Filtering, depth, result count, and timeout limits for recursive folder searches. */
 export interface SearchOptions {
   showHidden?: boolean;
   maxResults?: number;
@@ -513,6 +526,7 @@ export interface SearchOptions {
   kind?: string;
 }
 
+/** Result of `searchFolder`, containing matched entries with their parent folder paths and scan statistics. */
 export interface SearchResult {
   entries: Array<Entry & { folder: string }>;
   truncated: boolean;
@@ -531,6 +545,7 @@ export function nameMatcher(query: string): (name: string) => boolean {
   return (name) => name.toLowerCase().includes(q);
 }
 
+/** Searches recursively under `rootInput` for files and folders matching `queryInput` (substring or `*`/`?` glob) within `options` bounds. */
 export async function searchFolder(ctx: FmContext, rootInput: unknown, queryInput: unknown, options: SearchOptions = {}): Promise<SearchResult> {
   const root = absolutePath(ctx, rootInput);
   const query = typeof queryInput === "string" ? queryInput.trim() : "";

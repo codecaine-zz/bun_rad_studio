@@ -1,9 +1,15 @@
 #!/usr/bin/env bun
+/**
+ * Command-line entry point and argument parser for the `gdu` disk usage analyzer.
+ */
 import { parseArgs } from "node:util";
 import { analyzeDirectory, runGduCoordinator } from "./gduCoordinator.ts";
 import { runGduTui } from "./gduTui.ts";
 import type { GduOptions } from "./gduTypes.ts";
 
+/**
+ * Parses CLI flags and positional target directory arguments into a structured `GduOptions` object.
+ */
 export function parseGduArguments(args: string[]): GduOptions {
   const { values, positionals } = parseArgs({
     args,
@@ -55,6 +61,9 @@ export function parseGduArguments(args: string[]): GduOptions {
   };
 }
 
+/**
+ * Prints usage instructions and available CLI flags for `gdu` to stdout.
+ */
 export function printGduHelp(): void {
   console.log(`Usage: gdu [directory_to_scan] [flags]
 

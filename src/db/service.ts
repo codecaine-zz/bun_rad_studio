@@ -1,3 +1,7 @@
+/**
+ * High-level Database Workbench orchestration service managing live connections, sessions,
+ * safety confirmations, multi-statement scripts, and SQLite backup/restore operations.
+ */
 import { createHash, randomUUID } from "crypto";
 import { existsSync, statSync } from "fs";
 import { resolve } from "path";
@@ -22,6 +26,7 @@ import { classifyStatement, needsConfirmation, type Classification } from "./cla
 import { splitStatements } from "./splitter";
 import { ProfileStore, profileToConfig, sanitizeProfileInput, type ConnectionProfile, type Environment } from "./profiles";
 
+/** Summary of an active workbench database connection returned to the UI. */
 export interface ConnectionSummary {
   connectionId: string;
   profileId: string | null;
@@ -53,6 +58,7 @@ interface Pending {
   expires: number;
 }
 
+/** Human-readable details describing a pending destructive, administrative, or production operation awaiting user confirmation. */
 export interface ConfirmationSummary {
   connection: string;
   environment: Environment;
@@ -63,6 +69,7 @@ export interface ConfirmationSummary {
   reasons: string[];
 }
 
+/** Response returned when an operation requires explicit user confirmation before executing. */
 export interface ConfirmationRequired {
   needsConfirmation: true;
   token: string;
@@ -71,11 +78,13 @@ export interface ConfirmationRequired {
   summary: ConfirmationSummary;
 }
 
+/** Confirmation token and optional typed connection name supplied by the user when re-submitting a gated operation. */
 export interface ConfirmInput {
   token?: string;
   typed?: string;
 }
 
+/** Execution outcome of a single SQL statement within a multi-statement script run. */
 export interface ScriptStatementResult {
   index: number;
   line: number;
@@ -85,6 +94,7 @@ export interface ScriptStatementResult {
   error?: { code: string; message: string; hint?: string };
 }
 
+/** Aggregate result of executing a multi-statement SQL script via `WorkbenchService.script()`. */
 export interface ScriptResult {
   statements: ScriptStatementResult[];
   stoppedAt: number | null;
@@ -104,6 +114,7 @@ export class WorkbenchService {
   private readonly live = new Map<string, Live>();
   private readonly pending = new Map<string, Pending>();
 
+  /** Creates a `WorkbenchService` backed by `profiles` and the `makeAdapter` factory. */
   constructor(
     readonly profiles: ProfileStore,
     private readonly makeAdapter: (config: ConnectionConfig) => DbAdapter = createAdapter,
@@ -111,6 +122,7 @@ export class WorkbenchService {
 
   // ---- connections ------------------------------------------------------------------------------------------
 
+  /** Opens a new live connection from a saved `profileId` or ad-hoc `profile` and returns its `ConnectionSummary`. */
   async connect(input: { profileId?: string; profile?: unknown; password?: string }): Promise<ConnectionSummary> {
     let profile: ConnectionProfile;
     let config: ConnectionConfig;
@@ -156,6 +168,7 @@ export class WorkbenchService {
     };
   }
 
+  /** Lists summaries for all currently open connections. */
   list(): ConnectionSummary[] {
     return [...this.live.values()].map((c) => this.summary(c));
   }
@@ -178,10 +191,12 @@ export class WorkbenchService {
     for (const [t, p] of this.pending) if (p.connectionId === id) this.pending.delete(t);
   }
 
+  /** Closes all active connections, rolling back any open transactions. */
   async closeAll(): Promise<void> {
     for (const id of [...this.live.keys()]) await this.disconnect(id, { discardTransaction: true }).catch(() => {});
   }
 
+  /** Tests connectivity for a saved profile or ad-hoc config by connecting, pinging, and immediately disconnecting. */
   async test(input: { profileId?: string; profile?: unknown; password?: string }): Promise<{ ok: true; version: string; latencyMs: number }> {
     const summary = await this.connect(input);
     try {
@@ -194,12 +209,15 @@ export class WorkbenchService {
 
   // ---- metadata and data ------------------------------------------------------------------------------------
 
+  /** Lists all user tables and views visible on connection `id`. */
   objects(id: string): Promise<ObjectRef[]> {
     return this.get(id).adapter.listObjects();
   }
+  /** Describes the columns, primary key, foreign keys, and indexes of `ref` on connection `id`. */
   describe(id: string, ref: ObjectRef) {
     return this.get(id).adapter.describeTable(ref);
   }
+  /** Browses paginated, sorted, and filtered rows of a table or view on connection `id`. */
   browse(id: string, req: BrowseRequest) {
     return this.get(id).adapter.browse(req);
   }
@@ -216,6 +234,7 @@ export class WorkbenchService {
     if (gate) return gate;
     return this.viaSession(c, () => c.adapter.updateRow(req));
   }
+  /** Deletes a single row by primary key/rowid on connection `id`, gated by confirmation rules. */
   async deleteRow(id: string, req: RowDelete, confirm: ConfirmInput = {}) {
     const c = this.get(id);
     this.assertWritable(c);
@@ -223,6 +242,7 @@ export class WorkbenchService {
     if (gate) return gate;
     return this.viaSession(c, () => c.adapter.deleteRow(req));
   }
+  /** Inserts a single row into a table on connection `id`, gated by confirmation on production connections. */
   async insertRow(id: string, req: RowInsert, confirm: ConfirmInput = {}) {
     const c = this.get(id);
     this.assertWritable(c);
@@ -242,6 +262,7 @@ export class WorkbenchService {
     return fn();
   }
 
+  /** Streams table or query rows from connection `id` as RFC 4180 CSV chunks. */
   exportCsv(id: string, source: Parameters<DbAdapter["exportCsv"]>[0]) {
     return this.get(id).adapter.exportCsv(source);
   }
@@ -312,6 +333,7 @@ export class WorkbenchService {
     return { statements: out, stoppedAt, atomic, rolledBack };
   }
 
+  /** Begins, commits, or rolls back an explicit transaction on connection `id`'s session. */
   async transaction(id: string, action: "begin" | "commit" | "rollback") {
     const c = this.get(id);
     if (action === "begin") {
@@ -324,6 +346,7 @@ export class WorkbenchService {
     return { inTransaction: c.session.inTransaction };
   }
 
+  /** Requests server-side cancellation of the currently running statement on connection `id`. */
   async cancel(id: string): Promise<{ canceled: boolean; explanation?: string }> {
     const c = this.get(id);
     if (!c.capabilities.cancelQuery) return { canceled: false, explanation: c.capabilities.notes.cancelQuery ?? "This engine cannot cancel a running statement." };
@@ -400,6 +423,7 @@ export class WorkbenchService {
     return { token, backup, target, bytes: statSync(backup).size, ...check, willOverwrite: false };
   }
 
+  /** Executes a confirmed SQLite restore from `backupPath` into a new file `targetPath` using `VACUUM INTO`. */
   sqliteRestoreExecute(backupPath: string, targetPath: string, token: string) {
     const backup = resolve(backupPath);
     const target = this.checkNewFile(targetPath);
@@ -425,6 +449,7 @@ export class WorkbenchService {
   }
 }
 
+/** Integrity check result and per-table row counts returned by `verifySqlite`. */
 export interface SqliteVerification {
   integrityOk: boolean;
   integrityMessages: string[];

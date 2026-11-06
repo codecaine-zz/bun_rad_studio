@@ -35,6 +35,7 @@ function armIdle(ctx: FmContext, w: LiveWatcher, idleMs: number): void {
   (w.idle as { unref?: () => void }).unref?.();
 }
 
+/** Starts a recursive filesystem watcher on `b.root` for Find live mode and returns its `watchId`. */
 export async function startWatch(ctx: FmContext, b: Record<string, any>, idleMs = WATCH_IDLE_MS): Promise<{ watchId: string; root: string }> {
   const root = absolutePath(ctx, b.root);
   await assertFolder(root, "The folder to watch");
@@ -65,6 +66,7 @@ export async function startWatch(ctx: FmContext, b: Record<string, any>, idleMs 
   return { watchId: id, root };
 }
 
+/** Polls an active Find watcher by `b.watchId`, resetting its idle timer and returning its change count. */
 export function pollWatch(ctx: FmContext, b: Record<string, any>, idleMs = WATCH_IDLE_MS): { active: boolean; changes: number; lastName: string; error: string | null } {
   const w = typeof b.watchId === "string" ? findState(ctx).watchers.get(b.watchId) : undefined;
   if (!w) return { active: false, changes: 0, lastName: "", error: "Live mode has stopped. Turn it on again." };
@@ -72,6 +74,7 @@ export function pollWatch(ctx: FmContext, b: Record<string, any>, idleMs = WATCH
   return { active: w.failed === null, changes: w.changes, lastName: w.lastName, error: w.failed };
 }
 
+/** Stops and removes the Find filesystem watcher identified by `b.watchId`. */
 export function stopWatch(ctx: FmContext, b: Record<string, any>): { stopped: boolean } {
   return { stopped: typeof b.watchId === "string" && stopWatcher(ctx, b.watchId) };
 }

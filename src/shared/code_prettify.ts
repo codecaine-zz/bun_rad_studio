@@ -14,9 +14,12 @@ import * as localFormat from "../../resources/file_manager/ui/codeFormat.js";
 
 const local: any = localFormat;
 
+/** Maximum number of source characters accepted by a single prettify operation. */
 export const MAX_PRETTIFY_CHARS = 900_000;
+/** Maximum execution time in milliseconds allowed for an external CLI formatter subprocess. */
 export const TOOL_TIMEOUT_MS = 10_000;
 
+/** Input options for formatting source code via `prettifyCode`. */
 export interface PrettifyInput {
   /** The file name or path (its extension picks the language) and/or the editor's language id. */
   path?: string;
@@ -26,6 +29,7 @@ export interface PrettifyInput {
   tabWidth?: number;
 }
 
+/** Result returned by `prettifyCode` or `formatWithBunFmt`. */
 export interface PrettifyResult {
   ok: boolean;
   text?: string;
@@ -87,6 +91,7 @@ for (const alias of ["bash", "zsh"]) TOOLS[alias] = TOOLS.sh!;
 const C_FAMILY = new Set(["js", "mjs", "cjs", "ts", "java", "c", "h", "cpp", "cc", "cxx", "hpp", "cs", "go", "rs", "php", "kt", "swift"]);
 const LOCAL_LANG: Record<string, string> = { java: "java", c: "c", h: "c", cpp: "cpp", cc: "cpp", cxx: "cpp", hpp: "cpp", cs: "csharp", go: "go", rs: "rust", php: "php", kt: "kotlin", swift: "swift" };
 
+/** Resolves the normalized lowercase file extension from a file `path` or editor `lang` identifier. */
 export function extensionOf(path = "", lang = ""): string {
   const name = path.split(/[\\/]/).pop() ?? "";
   const dot = name.lastIndexOf(".");
@@ -99,6 +104,7 @@ export function isBuiltIn(ext: string): boolean {
   return ext in PRETTIER_PARSER || BUN_FMT_EXTS.has(ext) || ext === "sql";
 }
 
+/** Configuration options for running Bun's built-in `bun fmt` code formatter. */
 export interface BunFmtOptions {
   tabWidth?: number;
   useTabs?: boolean;

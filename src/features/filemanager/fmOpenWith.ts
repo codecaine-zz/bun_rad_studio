@@ -13,6 +13,7 @@ import { assertOpenAllowed } from "./fmCheck";
 import { absolutePath, pathApi, type FmContext, type FmHandler } from "./fmCore";
 import { FmError } from "./fmPaths";
 
+/** User-configured external application or command entry in the "Open with" program list. */
 export interface OpenWithProgram {
   id: string;
   name: string;
@@ -23,20 +24,25 @@ export interface OpenWithProgram {
   args: string[];
 }
 
+/** Persisted "Open with" configuration containing user-registered programs and per-extension associations. */
 export interface OpenWithState {
   programs: OpenWithProgram[];
   /** Lower-case extension without the dot -> program id, "default" (the system's choice) or a built-in id. */
   associations: Record<string, string>;
 }
 
+/** Built-in Rad Studio editors that can be associated with file extensions in "Open with". */
 export const BUILTIN_PROGRAMS = [
   { id: "builtin:code", name: "Code editor (built in)", builtin: true as const },
   { id: "builtin:sqlite", name: "SQLite Studio (built in)", builtin: true as const },
 ];
 const BUILTIN_IDS = new Set(BUILTIN_PROGRAMS.map((b) => b.id));
 
+/** Maximum number of custom external programs a user can register in "Open with". */
 export const MAX_PROGRAMS = 40;
+/** Maximum number of file extension associations stored in "Open with". */
 export const MAX_ASSOCIATIONS = 300;
+/** Maximum number of files that can be launched at once in a single `openwith/run` call. */
 export const MAX_FILES_PER_RUN = 20;
 
 const ID = /^[a-z0-9][a-z0-9_-]{0,39}$/;
@@ -75,6 +81,7 @@ export function sanitizeOpenWith(raw: unknown): OpenWithState {
 
 const stateFile = (ctx: FmContext) => nodePath.join(ctx.dataDir, "file_manager_openwith.json");
 
+/** Reads and sanitizes the persisted `file_manager_openwith.json` state for `ctx`, returning an empty state if missing or invalid. */
 export async function loadOpenWith(ctx: FmContext): Promise<OpenWithState> {
   try {
     return sanitizeOpenWith(JSON.parse(await fsp.readFile(stateFile(ctx), "utf8")));
@@ -85,6 +92,7 @@ export async function loadOpenWith(ctx: FmContext): Promise<OpenWithState> {
 
 let writing: Promise<unknown> = Promise.resolve();
 
+/** Sanitizes and atomically persists `next` to `file_manager_openwith.json` inside `ctx.dataDir`. */
 export async function saveOpenWith(ctx: FmContext, next: unknown): Promise<OpenWithState> {
   const state = sanitizeOpenWith(next);
   const run = async () => {
@@ -99,6 +107,7 @@ export async function saveOpenWith(ctx: FmContext, next: unknown): Promise<OpenW
   return result;
 }
 
+/** Extracts the lowercase file extension without a leading dot from `name` (or `""` for dotfiles and extensionless names). */
 export const extensionKey = (name: string): string => {
   const i = name.lastIndexOf(".");
   return i > 0 && i < name.length - 1 ? name.slice(i + 1).toLowerCase() : "";
@@ -132,6 +141,7 @@ async function launch(ctx: FmContext, program: OpenWithProgram, paths: string[])
   }
 }
 
+/** Result returned when opening one or more files via a configured or built-in "Open with" program. */
 export interface OpenWithResult {
   opened: string;
   program: false;
@@ -182,6 +192,7 @@ export async function openViaAssociation(ctx: FmContext, pathInput: unknown, con
   return await runWith(ctx, [path], id, confirmMismatch);
 }
 
+/** Suggested installed application or command discovered on the host computer for one-click addition to "Open with". */
 export interface Suggestion {
   name: string;
   kind: OpenWithProgram["kind"];
@@ -223,6 +234,7 @@ export function detectPrograms(platform: FmContext["platform"], home: string, ap
   return result;
 }
 
+/** Map of File Manager API operation handlers for listing, saving, and running "Open with" programs and associations (`openwith/...`). */
 export const openWithOperations: Record<string, FmHandler> = {
   async "openwith/list"(ctx, b) {
     const state = await loadOpenWith(ctx);

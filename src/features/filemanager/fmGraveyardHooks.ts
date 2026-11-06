@@ -5,6 +5,7 @@
 import { promises as fsp } from "fs";
 import * as nodePath from "path";
 
+/** Injectable filesystem hooks for the graveyard (device comparison and post-copy fault injection in tests). */
 export interface GraveyardHooks {
   /** True when `a` (an existing item) and the folder `b` are on the same disk. Saying false makes a move copy instead of rename. */
   sameDevice(a: string, b: string): Promise<boolean>;
@@ -27,6 +28,7 @@ async function existingAncestor(path: string): Promise<string> {
   }
 }
 
+/** Default production implementation of `GraveyardHooks` using `lstat` device IDs. */
 export const defaultGraveyardHooks: GraveyardHooks = {
   async sameDevice(a, b) {
     try {
@@ -41,4 +43,5 @@ export const defaultGraveyardHooks: GraveyardHooks = {
   afterCopy() {},
 };
 
+/** Merges any partial `graveyardHooks` overrides on `ctx` with `defaultGraveyardHooks`. */
 export const graveyardHooksOf = (ctx: { graveyardHooks?: Partial<GraveyardHooks> }): GraveyardHooks => ({ ...defaultGraveyardHooks, ...ctx.graveyardHooks });

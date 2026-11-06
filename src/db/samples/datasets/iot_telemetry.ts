@@ -1,3 +1,7 @@
+/**
+ * Synthetic IoT telemetry sample dataset definition covering sites, edge gateways,
+ * sensor-equipped devices, 15-minute time-series readings, hourly rollups, alerts, and maintenance.
+ */
 import { addDays, hashString, mulberry32 } from "../gen";
 import { dataset, query, table, view, type Scale } from "../model";
 

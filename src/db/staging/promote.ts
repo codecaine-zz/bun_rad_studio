@@ -18,6 +18,7 @@ import { newTableTarget, sanitizeNewTable } from "./newtable";
 import { limits, StagingError } from "./limits";
 import type { ImportPlan, PromoteMode, RowError, TargetColumn, TargetTable } from "./types";
 
+/** Human-readable descriptions for each promotion mode shown in the staging import UI. */
 export const MODE_LABELS: Record<PromoteMode, string> = {
   "insert-new": "Insert new rows only (rows that already exist are left alone)",
   "insert-all": "Insert every row (stop if any row clashes with an existing one)",
@@ -26,6 +27,7 @@ export const MODE_LABELS: Record<PromoteMode, string> = {
   append: "Append all valid rows (skip repeats)",
 };
 
+/** Options for previewing or executing a batch promotion into the target table. */
 export interface PromoteOptions {
   db: StageDb;
   batch: BatchRecord;
@@ -39,6 +41,7 @@ export interface PromoteOptions {
   onProgress?: (phase: string) => void;
 }
 
+/** Row count breakdown calculated for a promotion preview or execution. */
 export interface PromoteCounts {
   insert: number;
   update: number;
@@ -50,6 +53,7 @@ export interface PromoteCounts {
   skippedByPerson: number;
 }
 
+/** Dry-run preview of a promotion showing row counts, SQL statements, sample changes, and undo availability. */
 export interface PromotePreview {
   mode: PromoteMode;
   counts: PromoteCounts;
@@ -365,6 +369,7 @@ async function snapshotsByPk(s: Snap, c: StageConn, pks: (string | null)[][], lo
   return out;
 }
 
+/** Outcome returned after promoting or rehearsing a staging batch into the target table. */
 export interface PromoteResult {
   batch: BatchRecord;
   counts: { inserted: number; updated: number; skipped: number };
@@ -519,11 +524,13 @@ export { CHANGES };
 
 // ---- undo ------------------------------------------------------------------------------------------------------------
 
+/** Conflict detected when attempting to undo a promoted batch row that has been modified or deleted since promotion. */
 export interface UndoConflict {
   key: string;
   reason: string;
 }
 
+/** Result returned after attempting to undo a previously promoted import batch. */
 export interface UndoResult {
   ok: boolean;
   deleted: number;
@@ -533,6 +540,7 @@ export interface UndoResult {
   batch?: BatchRecord;
 }
 
+/** Reverts a promoted import batch by deleting inserted rows and restoring updated rows to their pre-import snapshots. */
 export async function undoBatch(db: StageDb, target: TargetTable | null, batchId: string): Promise<UndoResult> {
   await ensureLedger(db);
   const batch = await getBatch(db, batchId);

@@ -13,18 +13,26 @@
  */
 import type { Gen } from "./gen";
 
+/** Supported SQL dialect targets for sample dataset rendering. */
 export type Dialect = "sqlite" | "mysql" | "postgres";
+/** Dataset size tier controlling row counts generated for each table. */
 export type Scale = "small" | "medium" | "large";
+/** Ordered list of supported dataset size tiers. */
 export const SCALES: Scale[] = ["small", "medium", "large"];
+/** Ordered list of supported SQL dialects. */
 export const DIALECTS: Dialect[] = ["sqlite", "mysql", "postgres"];
 
+/** Allowed cell value types produced by sample row generators. */
 export type Cell = string | number | boolean | null | string[] | unknown[] | { [k: string]: unknown };
+/** Generated row object mapping column names to cell values. */
 export type Row = Record<string, Cell | undefined>;
 
+/** Dialect-neutral base column type identifier used in compact column specifications. */
 export type BaseType =
   | "id" | "int" | "bigint" | "smallint" | "str" | "char" | "text" | "dec" | "real"
   | "bool" | "date" | "ts" | "time" | "json" | "tags" | "uuid" | "enum";
 
+/** Parsed dialect-neutral column definition for a sample table. */
 export interface ColumnDef {
   name: string;
   type: BaseType;
@@ -44,15 +52,19 @@ export interface ColumnDef {
   comment?: string;
 }
 
+/** Secondary or partial index definition on a sample table. */
 export interface IndexDef {
   cols: string[];
   unique: boolean;
   where?: string;
 }
 
+/** Function computing a table's row count from parent table counts and the active scale. */
 export type CountFn = (n: (table: string) => number, scale: Scale) => number;
+/** Row count specification for a sample table: fixed number, `[small, medium, large]` tuple, or `CountFn`. */
 export type Count = number | [number, number, number] | CountFn;
 
+/** Complete schema and row-generation definition for a single table in a sample dataset. */
 export interface TableDef {
   name: string;
   comment: string;
@@ -68,6 +80,7 @@ export interface TableDef {
   uses: string[];
 }
 
+/** Options passed to the `table(...)` builder helper when defining a sample table. */
 export interface TableOpts {
   n?: Count;
   pk?: string[];
@@ -80,6 +93,7 @@ export interface TableOpts {
   uses?: string[];
 }
 
+/** Dialect-portable SQL expression builders passed to sample view and query definitions. */
 export interface SqlHelpers {
   dialect: Dialect;
   concat(...parts: string[]): string;
@@ -100,8 +114,10 @@ export interface SqlHelpers {
   asOf: string;
 }
 
+/** Function that renders a dialect-specific SQL SELECT query using `SqlHelpers`. */
 export type SqlFn = (d: SqlHelpers) => string;
 
+/** View or materialized view definition in a sample dataset. */
 export interface ViewDef {
   name: string;
   comment: string;
@@ -109,6 +125,7 @@ export interface ViewDef {
   materialized: boolean;
 }
 
+/** Example analytical SELECT query bundled with a sample dataset. */
 export interface QueryDef {
   id: string;
   title: string;
@@ -116,6 +133,7 @@ export interface QueryDef {
   sql: SqlFn;
 }
 
+/** Optional per-dialect SQL trigger and helper function DDL statements for a dataset. */
 export interface RawTriggers {
   sqlite?: string[];
   mysql?: string[];
@@ -124,6 +142,7 @@ export interface RawTriggers {
   postgresFunctions?: string[];
 }
 
+/** Validated, dependency-ordered sample dataset definition. */
 export interface DatasetDef {
   id: string;
   title: string;
@@ -145,6 +164,7 @@ export interface DatasetDef {
 
 const SPEC_TYPE = /^(id|int|bigint|smallint|text|real|bool|date|ts|time|json|tags|uuid)$/;
 
+/** Parses a compact column specification string into a structured `ColumnDef`. */
 export function parseColumn(spec: string): ColumnDef {
   let rest = spec.trim();
   let comment: string | undefined;
@@ -223,6 +243,7 @@ function parseIndex(spec: string): IndexDef {
   return { cols: m[2]!.split(",").map((s) => s.trim()), unique: Boolean(m[1]), where: m[3] };
 }
 
+/** Defines a sample table with parsed column specifications, constraints, indexes, and row generator. */
 export function table(name: string, comment: string, cols: string[], opts: TableOpts = {}): TableDef {
   const columns = cols.map(parseColumn);
   const idCols = columns.filter((c) => c.pk).map((c) => c.name);
@@ -242,14 +263,17 @@ export function table(name: string, comment: string, cols: string[], opts: Table
   };
 }
 
+/** Defines a SQL view or materialized view for a sample dataset. */
 export function view(name: string, comment: string, sql: SqlFn, materialized = false): ViewDef {
   return { name, comment, sql, materialized };
 }
 
+/** Defines an example analytical SELECT query for a sample dataset. */
 export function query(id: string, title: string, description: string, sql: SqlFn): QueryDef {
   return { id, title, description, sql };
 }
 
+/** Input specification passed to `dataset(...)` before foreign key resolution and topological ordering. */
 export interface DatasetInput {
   id: string;
   title: string;
@@ -338,6 +362,7 @@ export function dataset(input: DatasetInput): DatasetDef {
   };
 }
 
+/** Evaluates a table's `Count` specification for a given `Scale` tier and parent count lookup function. */
 export function resolveCount(t: TableDef, scale: Scale, n: (table: string) => number): number {
   const c = t.count;
   if (typeof c === "number") return c;
@@ -357,6 +382,7 @@ export function tableCounts(ds: DatasetDef, scale: Scale): Record<string, number
   return out;
 }
 
+/** Returns all non-generated columns of a table definition that accept values in `INSERT` statements. */
 export function insertableColumns(t: TableDef): ColumnDef[] {
   return t.columns.filter((c) => !c.generated);
 }

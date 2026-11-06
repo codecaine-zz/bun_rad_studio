@@ -48,6 +48,7 @@ function masterRow(page: Uint8Array, cell: number, encoding: number): { type: st
   return out.length === 3 ? { type: out[0]!, name: out[1]!, table: out[2]! } : null;
 }
 
+/** Parses a SQLite 3 database header and B-tree root pages to summarize page layout, encoding, and schema objects. */
 export async function sqliteInfo(src: Source): Promise<{ groups: InfoGroup[]; kind: string }> {
   const h = await src.read(0, 100);
   if (h.length < 100 || ascii(h, 0, 16) !== "SQLite format 3\0") throw new Error("not sqlite");
@@ -126,6 +127,7 @@ function decodeName(platform: number, bytes: Uint8Array): string {
   return clip(platform === 1 ? b.toString("latin1") : Buffer.from(b).swap16().toString("utf16le"), 500).trim();
 }
 
+/** Parses TrueType, OpenType, TTC, and WOFF font tables (`name`, `head`, `maxp`, `OS/2`) into display info groups. */
 export async function fontInfo(src: Source): Promise<{ groups: InfoGroup[]; kind: string }> {
   const head = await src.read(0, 12);
   let tag = ascii(head, 0, 4);
@@ -209,6 +211,7 @@ const MACHO_TYPE: Record<number, string> = { 1: "Object file", 2: "Program", 3: 
 
 const dateFrom = (secs: number) => (secs > 315532800 && secs < 4e9 ? new Date(secs * 1000).toISOString().replace(/\.000Z$/, "Z") : "");
 
+/** Parses Windows Portable Executable (PE / EXE / DLL) headers for target architecture, subsystem, and .NET metadata. */
 export async function peInfo(src: Source): Promise<{ groups: InfoGroup[]; kind: string }> {
   const dos = await src.read(0, 64);
   const pe = le32(dos, 0x3c);
@@ -230,6 +233,7 @@ export async function peInfo(src: Source): Promise<{ groups: InfoGroup[]; kind: 
   return { groups: g ? [g] : [], kind: chars & 0x2000 ? "Windows library (DLL)" : "Windows program" };
 }
 
+/** Parses ELF binary headers and program headers for target CPU architecture, endianness, and dynamic interpreter. */
 export async function elfInfo(src: Source): Promise<{ groups: InfoGroup[]; kind: string }> {
   const h = await src.read(0, 64);
   const is64 = h[4] === 2, le = h[5] === 1;
@@ -259,6 +263,7 @@ export async function elfInfo(src: Source): Promise<{ groups: InfoGroup[]; kind:
   return { groups: g ? [g] : [], kind: type === 2 || type === 3 ? "Linux program or library" : "ELF file" };
 }
 
+/** Parses macOS Mach-O and Universal Binary headers for target CPU architectures, minimum OS version, and code signature presence. */
 export async function machoInfo(src: Source): Promise<{ groups: InfoGroup[]; kind: string }> {
   const h = await src.read(0, 4096);
   const first = be32(h, 0);

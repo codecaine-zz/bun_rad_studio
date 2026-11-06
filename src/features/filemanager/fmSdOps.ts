@@ -123,6 +123,7 @@ function diffsOf(ctx: FmContext, b: Record<string, any>, what: string): string[]
   return parts;
 }
 
+/** File Manager RPC handlers for the `sd/*` search-and-replace operations. */
 export const sdOperations: Record<string, FmHandler> = {
   async "sd/info"(ctx) {
     return {

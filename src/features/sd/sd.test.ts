@@ -1,3 +1,7 @@
+/**
+ * Unit tests for `sd` helper functions and coordinator workflows, verifying literal
+ * escaping, capture-group replacements, diff hunks, whole-word matching, backups, and file processing.
+ */
 import { describe, expect, it } from "bun:test";
 import {
   buildReplacerRegex,

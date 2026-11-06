@@ -8,6 +8,7 @@ import type { FmContext } from "./fmCore";
 import { FmError, describeFsError } from "./fmPaths";
 import { FIND_TIMEOUT_MS, MAX_WORKERS, type FindItem, type WorkerJob } from "./fmFindShared";
 
+/** Cached Find search result set stored in server memory for follow-up bulk operations or export. */
 export interface StoredResults {
   id: string;
   root: string;
@@ -15,6 +16,7 @@ export interface StoredResults {
   at: number;
 }
 
+/** Active filesystem watcher entry tracking live directory change counts for a Find session. */
 export interface LiveWatcher {
   id: string;
   root: string;
@@ -26,6 +28,7 @@ export interface LiveWatcher {
   idle: ReturnType<typeof setTimeout>;
 }
 
+/** Per-context Find subsystem state holding cached results, filesystem watchers, worker threads, and child processes. */
 export interface FindState {
   results: Map<string, StoredResults>;
   watchers: Map<string, LiveWatcher>;
@@ -38,6 +41,7 @@ export interface FindState {
 
 const states = new WeakMap<FmContext, FindState>();
 
+/** Returns (or initializes and registers cleanup for) the `FindState` associated with `ctx`. */
 export function findState(ctx: FmContext): FindState {
   let state = states.get(ctx);
   if (!state) {

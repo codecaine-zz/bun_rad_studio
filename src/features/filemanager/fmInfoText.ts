@@ -1,6 +1,7 @@
 /** Text files: encoding guess, line endings, counts, indentation, and a check of JSON files. Reads at most the first 4 MB. */
 import { clip, Rows, type InfoGroup } from "./fmInfoCommon";
 
+/** Character encoding, line-ending style, line/word/character counts, and indentation statistics for a text file. */
 export interface TextStats {
   encoding: string;
   bom: string;
@@ -55,6 +56,7 @@ function indentText(tabs: number, spaces: number, widths: Map<number, number>): 
   return "Spaces (uneven widths)";
 }
 
+/** Decodes `bytes` and computes encoding, line endings, line/word/character counts, shebang, and indentation statistics. */
 export function analyzeText(bytes: Uint8Array, totalSize: number): { stats: TextStats; text: string } {
   const { name, bom, text } = guessEncoding(bytes);
   let crlf = 0, lf = 0, cr = 0;
@@ -106,6 +108,7 @@ export function analyzeText(bytes: Uint8Array, totalSize: number): { stats: Text
   };
 }
 
+/** Formats `TextStats` and optional JSON validation rows into `InfoGroup` sections for display. */
 export function textGroups(s: TextStats, json: Rows | null): InfoGroup[] {
   const ge = s.truncated ? "≥ " : "";
   const r = new Rows();
@@ -127,6 +130,7 @@ export function textGroups(s: TextStats, json: Rows | null): InfoGroup[] {
   return out;
 }
 
+/** Validates whether `text` is well-formed JSON and summarizes its top-level structure into display `Rows`. */
 export function jsonRows(text: string, complete: boolean): Rows | null {
   const t = text.trimStart();
   if (!/^[[{"\d\-tfn]/.test(t)) return null;

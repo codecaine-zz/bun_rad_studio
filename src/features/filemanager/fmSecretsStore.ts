@@ -10,11 +10,16 @@ import { MAX_FILE_BYTES } from "./fmSecretsFormat";
 import { SecretsError } from "./fmSecretsCrypto";
 import type { SecretsHooks } from "./fmSecretsHooks";
 
+/** Default filename for the encrypted Secrets vault inside `dataDir`. */
 export const VAULT_FILE = "file_manager_secrets.radsec";
+/** Number of rotating encrypted backup files (`.1` through `.3`) kept alongside the vault. */
 export const BACKUPS = 3;
 
+/** Returns the full path to the encrypted Secrets vault file inside `dataDir`. */
 export const vaultPath = (dataDir: string): string => join(dataDir, VAULT_FILE);
+/** Returns the path to rotating backup slot `n` (`1..BACKUPS`) for `path`. */
 export const backupPath = (path: string, n: number): string => `${path}.${n}`;
+/** Returns the path to the failed-attempt throttle state file for `path`. */
 export const throttlePath = (path: string): string => `${path}.attempts`;
 
 /** The app's data folder, created private (0700) where the system supports it. */
@@ -29,8 +34,10 @@ export function ensureDir(dir: string): void {
   }
 }
 
+/** Returns true if a vault file exists at `path`. */
 export const vaultExists = (path: string): boolean => existsSync(path);
 
+/** Reads the encrypted vault file from `path`, rejecting files larger than `MAX_FILE_BYTES`. */
 export function readVaultFile(path: string): Buffer {
   const size = statSync(path).size;
   if (size > MAX_FILE_BYTES) throw new SecretsError("NOT_VAULT", "That file is far too big to be a vault.");
@@ -72,6 +79,7 @@ function writeNewFile(path: string, data: Buffer): void {
   }
 }
 
+/** Options for atomic vault file writes (`writeAtomic`), including read-back verification and backup rotation. */
 export interface AtomicOptions {
   /** Called with what was read back from the temporary file; throws if it can't be opened again. */
   verify?: (written: Buffer) => void;
@@ -117,6 +125,7 @@ function rotateBackups(path: string): void {
   renameSync(tmp, backupPath(path, 1));
 }
 
+/** Deletes all rotating backup files (`.1`..`.3`) for `path` and returns how many were removed. */
 export function deleteBackups(path: string): number {
   let n = 0;
   for (let i = 1; i <= BACKUPS; i++) {
@@ -130,6 +139,7 @@ export function deleteBackups(path: string): number {
   return n;
 }
 
+/** Lists existing rotating backup files for `path` with their slot number, byte size, and modification time. */
 export const listBackups = (path: string): Array<{ n: number; bytes: number; modifiedMs: number }> =>
   Array.from({ length: BACKUPS }, (_, i) => i + 1).flatMap((n) => {
     try {
@@ -145,6 +155,7 @@ export const listBackups = (path: string): Array<{ n: number; bytes: number; mod
 // protected against someone who can edit files; it only slows down guessing through this program.
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Persisted failed-unlock attempt counter and backoff deadline for a vault. */
 export interface Throttle {
   fails: number;
   lastFailAt: number;
@@ -154,8 +165,10 @@ export interface Throttle {
 const FREE_ATTEMPTS = 2;
 const MAX_DELAY_MS = 15 * 60 * 1000;
 
+/** Computes the exponential backoff delay in milliseconds after `fails` consecutive wrong password attempts. */
 export const delayAfter = (fails: number): number => (fails <= FREE_ATTEMPTS ? 0 : Math.min(MAX_DELAY_MS, 1000 * 2 ** (fails - FREE_ATTEMPTS - 1)));
 
+/** Reads the current failed-attempt throttle state for `path` (returning zeroes if none exists or on read error). */
 export function readThrottle(path: string): Throttle {
   try {
     const t = JSON.parse(readFileSync(throttlePath(path), "utf8"));
@@ -166,6 +179,7 @@ export function readThrottle(path: string): Throttle {
   }
 }
 
+/** Atomically writes or removes (when `fails === 0`) the failed-attempt throttle file for `path`. */
 export function writeThrottle(path: string, t: Throttle): void {
   const file = throttlePath(path);
   try {

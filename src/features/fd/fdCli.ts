@@ -1,9 +1,16 @@
 #!/usr/bin/env bun
+/**
+ * Command-line interface for `fd`, parsing search patterns, root paths, and
+ * filtering flags for fast filesystem discovery.
+ */
 import { existsSync, statSync } from "node:fs";
 import { parseArgs } from "node:util";
 import { runFdCoordinator } from "./fdCoordinator.ts";
 import type { EntryTypeFilter, FdOptions } from "./fdTypes.ts";
 
+/**
+ * Parses CLI arguments and flags into a structured `FdOptions` configuration object.
+ */
 export function parseFdArguments(args: string[]): FdOptions {
   const { values, positionals } = parseArgs({
     args,
@@ -72,6 +79,9 @@ export function parseFdArguments(args: string[]): FdOptions {
   };
 }
 
+/**
+ * Prints usage instructions and CLI options for `fd` to stdout.
+ */
 export function printFdHelp(): void {
   console.log(`Usage: fd [options] [pattern] [path]
 

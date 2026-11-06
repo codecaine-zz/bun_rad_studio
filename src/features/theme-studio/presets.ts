@@ -5,6 +5,9 @@
 
 import type { ThemePreset } from "./types";
 
+/**
+ * Built-in catalog of curated one-click theme presets available in Quick Studio.
+ */
 export const THEME_STUDIO_PRESETS: readonly ThemePreset[] = [
   {
     id: "obsidian-glass",
@@ -204,6 +207,9 @@ export const THEME_STUDIO_PRESETS: readonly ThemePreset[] = [
   },
 ] as const;
 
+/**
+ * Looks up a built-in theme preset by its unique identifier, returning `undefined` when not found.
+ */
 export function getThemePresetById(id: string): ThemePreset | undefined {
   return THEME_STUDIO_PRESETS.find((p) => p.id === id);
 }

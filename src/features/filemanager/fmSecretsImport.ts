@@ -6,6 +6,7 @@
 import { FmError } from "./fmPaths";
 import { LIMITS } from "./fmSecretsModel";
 
+/** Maximum byte size accepted when importing a password export file (16 MiB). */
 export const MAX_IMPORT_BYTES = 16 * 1024 * 1024;
 
 /** RFC 4180 CSV: quotes, doubled quotes, line breaks inside quotes, CRLF or LF, a leading byte order mark. */
@@ -52,6 +53,7 @@ export function parseCsv(input: string, maxRows = LIMITS.items + 2): string[][] 
   return rows;
 }
 
+/** Normalized secret item parsed from an external password manager export. */
 export interface ImportedItem {
   type: string;
   title: string;
@@ -62,6 +64,7 @@ export interface ImportedItem {
   favorite?: boolean;
   custom?: Array<{ label: string; kind: string; value: string }>;
 }
+/** Result of parsing an external password export, including detected dialect, items, and warnings. */
 export interface ImportParse {
   dialect: string;
   items: ImportedItem[];
@@ -94,6 +97,7 @@ function dialectOf(h: Set<string>): string {
 
 const truthy = (v: string): boolean => /^(1|true|yes|y|x)$/i.test(v.trim());
 
+/** Parses a CSV export from common browsers and password managers into normalized `ImportedItem` records. */
 export function importCsv(text: string): ImportParse {
   const rows = parseCsv(text);
   if (rows.length < 2) throw new FmError("BAD_IMPORT", "That file has no rows to import.");
@@ -186,8 +190,10 @@ export function importAny(text: string, format?: string): ImportParse {
 
 const quote = (v: string): string => (/[",\r\n]/.test(v) || v !== v.trim() ? `"${v.replace(/"/g, '""')}"` : v);
 
+/** Column names written on the first line of a plain-text CSV vault export. */
 export const CSV_HEADER = ["title", "url", "username", "password", "notes", "totp", "type", "folder", "tags", "favorite"];
 
+/** Formats an array of cell strings into a single RFC 4180 CSV line. */
 export function csvRow(cells: string[]): string {
   return cells.map(quote).join(",");
 }

@@ -12,9 +12,13 @@ import * as nodePath from "path";
 import type { FmContext } from "./fmCore";
 import { FmError } from "./fmPaths";
 
+/** Maximum execution time in milliseconds allowed for an external code formatter (`v fmt`). */
 export const FORMAT_TIMEOUT_MS = 10_000;
+/** Maximum combined stdout/stderr byte limit accepted from the external code formatter. */
 export const FORMAT_MAX_OUTPUT = 1024 * 1024;
+/** Maximum source text length in characters that can be sent to the code formatter. */
 export const MAX_FORMAT_CHARS = 900_000;
+/** User-facing message returned when the `v` compiler/formatter is not installed on `PATH`. */
 export const V_MISSING = "V isn't installed (or isn't on your PATH). Get it from vlang.io to format V files.";
 
 /** `formatted` (not `ok`, which the reply envelope uses) says whether `text` is the formatted result; otherwise `problem` or `message` says why not. */

@@ -1,3 +1,6 @@
+/**
+ * Interactive UI help tooltips and audit skip rules for MySQL Workbench Studio (`mysql_studio`), covering MySQL connections, schema browsing, SQL execution, and data staging.
+ */
 import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Help tips for `mysql_studio`. Keys: see src/shared/helpTips.ts. Check with: bun run scripts/help_controls.ts <app file> --missing */

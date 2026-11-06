@@ -11,6 +11,7 @@ import * as nodePath from "path";
 import { absolutePath, assertFolder, pathApi, type FmContext, type FmHandler } from "./fmCore";
 import { FmError } from "./fmPaths";
 
+/** Metadata describing a command-line flag supported by a built-in RAD Studio CLI utility. */
 export interface CliFlagInfo {
   /** Long flag name (without `--`), e.g. `expr`, `file`, `json`. */
   name: string;
@@ -24,6 +25,7 @@ export interface CliFlagInfo {
   description: string;
 }
 
+/** An example invocation badge and argument string for a built-in CLI utility. */
 export interface CliExampleInfo {
   /** Short badge label shown in the UI. */
   label: string;
@@ -33,6 +35,7 @@ export interface CliExampleInfo {
   description?: string;
 }
 
+/** Catalog entry describing a built-in RAD Studio CLI utility, its aliases, flags, and executable wrapper paths. */
 export interface CliUtilEntry {
   /** Short command name without `_cli`, e.g. `calc`, `fd`, `rad`, `api_stress_bench`. */
   id: string;
@@ -64,6 +67,7 @@ export interface CliUtilEntry {
   stemCommand: string;
 }
 
+/** Execution result from running a built-in CLI utility, including exit code, stdout/stderr, and duration. */
 export interface CliRunResult {
   ok: boolean;
   tool: CliUtilEntry;
@@ -815,6 +819,7 @@ export async function runCliUtil(
   };
 }
 
+/** File Manager API handlers for listing, provisioning, and executing built-in RAD Studio CLI utilities. */
 export const cliUtilsOperations: Record<string, FmHandler> = {
   async "cliutils/list"(ctx) {
     return listCliUtils(ctx);

@@ -1,3 +1,8 @@
+/**
+ * Low-level subdomain discovery and verification helpers ("doers") for `subfinder`:
+ * domain/subdomain sanitization, passive OSINT source queries (HackerTarget, crt.sh, AlienVault OTX,
+ * Anubis, CertSpotter), dictionary DNS lookups, wildcard detection, HTTP title probing, and TCP port scanning.
+ */
 import { lookup, Resolver } from "node:dns/promises";
 import * as os from "node:os";
 import * as fs from "node:fs";
@@ -10,6 +15,9 @@ export function isSafeHostname(h: string): boolean {
   return /^(?!-)[a-z0-9*_.-]{1,253}$/i.test(h) && !h.includes("*");
 }
 
+/**
+ * Strips URL schemes, paths, and ports from a domain string and normalizes it to lowercase.
+ */
 export function cleanDomain(domain: string): string {
   return domain
     .trim()
@@ -19,6 +27,9 @@ export function cleanDomain(domain: string): string {
     .replace(/:[0-9]+$/, "");
 }
 
+/**
+ * Normalizes a candidate subdomain string (stripping `*.` and invalid characters) and returns it if it belongs to `rootDomain`, or `null` otherwise.
+ */
 export function cleanSubdomain(raw: string, rootDomain: string): string | null {
   const cleaned = raw
     .trim()
@@ -31,10 +42,16 @@ export function cleanSubdomain(raw: string, rootDomain: string): string | null {
   return cleaned;
 }
 
+/**
+ * Deduplicates and alphabetically sorts an array of subdomain strings.
+ */
 export function deduplicateSubdomains(list: string[]): string[] {
   return Array.from(new Set(list)).sort();
 }
 
+/**
+ * Queries the HackerTarget `hostsearch` API asynchronously for subdomains of `domain`.
+ */
 export async function queryHackerTarget(
   domain: string,
   timeoutMs: number = 4000
@@ -56,6 +73,9 @@ export async function queryHackerTarget(
   }
 }
 
+/**
+ * Queries the `crt.sh` Certificate Transparency log JSON API asynchronously for subdomains of `domain`.
+ */
 export async function queryCrtSh(
   domain: string,
   timeoutMs: number = 4000
@@ -80,6 +100,9 @@ export async function queryCrtSh(
   }
 }
 
+/**
+ * Queries the AlienVault OTX passive DNS endpoint asynchronously for subdomains of `domain`.
+ */
 export async function queryAlienVault(
   domain: string,
   timeoutMs: number = 3000
@@ -100,6 +123,9 @@ export async function queryAlienVault(
   }
 }
 
+/**
+ * Queries the Anubis (`jldc.me`) subdomain database API asynchronously for `domain`.
+ */
 export async function queryAnubis(
   domain: string,
   timeoutMs: number = 3000
@@ -116,6 +142,9 @@ export async function queryAnubis(
   }
 }
 
+/**
+ * Queries the CertSpotter certificate issuance API asynchronously for DNS names under `domain`.
+ */
 export async function queryCertSpotter(
   domain: string,
   timeoutMs: number = 3500
@@ -145,12 +174,18 @@ export async function queryCertSpotter(
   }
 }
 
+/**
+ * Built-in dictionary of common subdomain prefixes probed during active DNS enumeration.
+ */
 export const COMMON_SUBDOMAINS = [
   "www", "mail", "api", "dev", "app", "admin", "blog", "portal", "cloud",
   "staging", "auth", "login", "cdn", "vpn", "m", "docs", "support", "test",
   "status", "shop", "beta", "secure", "git", "drive", "news", "maps", "ns1", "ns2"
 ];
 
+/**
+ * Resolves each prefix in `COMMON_SUBDOMAINS` against `domain` in parallel and returns the resolving hostnames.
+ */
 export async function queryCommonDns(domain: string): Promise<string[]> {
   const root = cleanDomain(domain);
   const results = await Promise.all(
@@ -169,6 +204,9 @@ export async function queryCommonDns(domain: string): Promise<string[]> {
   return results.filter((h): h is string => Boolean(h));
 }
 
+/**
+ * Resolves a hostname to its IPv4/IPv6 addresses with a short timeout, falling back from `Resolver.resolve4` to `dns.lookup`.
+ */
 export async function resolveHostDns(host: string): Promise<string[]> {
   try {
     const res = await Promise.race([
@@ -189,6 +227,9 @@ export async function resolveHostDns(host: string): Promise<string[]> {
   }
 }
 
+/**
+ * Probes `host` over HTTPS (and fallback HTTP) to retrieve the HTTP status code and `<title>` text.
+ */
 export async function probeHttp(
   host: string,
   timeoutMs: number = 1800
@@ -209,17 +250,26 @@ export async function probeHttp(
   return {};
 }
 
+/**
+ * Probes a random non-existent subdomain under `rootDomain` to detect wildcard DNS catch-all IP addresses.
+ */
 export async function detectWildcardDns(rootDomain: string): Promise<string[]> {
   const randomPrefix = `probe-wildcard-${Math.random().toString(36).substring(2, 10)}`;
   const testHost = `${randomPrefix}.${rootDomain}`;
   return resolveHostDns(testHost);
 }
 
+/**
+ * Checks whether all resolved `ips` for a host match the detected `wildcardIps` set.
+ */
 export function isWildcardMatch(ips: string[], wildcardIps: string[]): boolean {
   if (wildcardIps.length === 0 || ips.length === 0) return false;
   return ips.every((ip) => wildcardIps.includes(ip));
 }
 
+/**
+ * Attempts a TCP socket connection to `host:port` within `timeoutMs`, returning `true` if the port is open.
+ */
 export async function probePort(host: string, port: number, timeoutMs: number = 800): Promise<boolean> {
   try {
     const connectPromise = Bun.connect({
@@ -248,6 +298,9 @@ export async function probePort(host: string, port: number, timeoutMs: number = 
   }
 }
 
+/**
+ * Probes multiple TCP `ports` on `host` in parallel and returns a sorted array of open port numbers.
+ */
 export async function probePorts(
   host: string,
   ports: number[],
@@ -263,6 +316,9 @@ export async function probePorts(
   return openPorts.sort((a, b) => a - b);
 }
 
+/**
+ * Synchronously resolves `COMMON_SUBDOMAINS` against `domain` via a single `dig` invocation.
+ */
 export function queryCommonDnsSync(domain: string): { host: string; ip?: string[] }[] {
   const root = cleanDomain(domain);
   const candidateHosts = COMMON_SUBDOMAINS.map((s) => `${s}.${root}`);
@@ -289,6 +345,9 @@ export function queryCommonDnsSync(domain: string): { host: string; ip?: string[
   }
 }
 
+/**
+ * Synchronously queries CertSpotter via `curl` and returns deduplicated subdomains for `domain`.
+ */
 export function queryCertSpotterSync(domain: string): string[] {
   try {
     const root = cleanDomain(domain);
@@ -312,6 +371,9 @@ export function queryCertSpotterSync(domain: string): string[] {
   }
 }
 
+/**
+ * Synchronously queries HackerTarget via `curl` and returns deduplicated subdomains for `domain`.
+ */
 export function queryHackerTargetSync(domain: string): string[] {
   try {
     const root = cleanDomain(domain);
@@ -334,6 +396,9 @@ export function queryHackerTargetSync(domain: string): string[] {
   }
 }
 
+/**
+ * Synchronously resolves up to 100 safe hostnames in a batch using `dig`, returning a map of `host -> IPs`.
+ */
 export function resolveHostDnsSync(hosts: string[]): Map<string, string[]> {
   const map = new Map<string, string[]>();
   if (hosts.length === 0) return map;
@@ -357,6 +422,9 @@ export function resolveHostDnsSync(hosts: string[]): Map<string, string[]> {
   return map;
 }
 
+/**
+ * Synchronously queries CertSpotter and HackerTarget concurrently via backgrounded `curl` jobs.
+ */
 export function queryOsintSourcesSync(domain: string): { certSubs: string[]; hackerSubs: string[] } {
   const root = cleanDomain(domain);
   const certUrl = `https://api.certspotter.com/v1/issuances?domain=${encodeURIComponent(root)}&include_subdomains=true&expand=dns_names`;
@@ -414,6 +482,9 @@ export function queryOsintSourcesSync(domain: string): { certSubs: string[]; hac
   }
 }
 
+/**
+ * Synchronously probes HTTP `HEAD` status codes for up to 10 safe hostnames in parallel using `curl -I`.
+ */
 export function probeHostsHttpSync(hosts: string[]): Map<string, number> {
   const map = new Map<string, number>();
   if (hosts.length === 0) return map;

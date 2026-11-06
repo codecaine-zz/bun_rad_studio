@@ -1,3 +1,7 @@
+/**
+ * Futuristic GPU-composited motion, glassmorphism, and interactive lighting CSS layer
+ * scoped under `[data-fx="on"]` and `[data-fx="reduced"]`.
+ */
 // The futuristic motion/interaction layer as one CSS string, emitted once into generated pages and into the Designer.
 // Everything is scoped under [data-fx="on"] (full) or [data-fx="reduced"] (looks without motion); [data-fx="off"] or no
 // attribute means none of it applies. Themes without `fx` never get this block, so their pages are unchanged.

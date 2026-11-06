@@ -31,6 +31,7 @@ const FORMATS: Record<ExportFormat, { ext: string; label: string }> = {
   json: { ext: ".json", label: "subdomains" },
 };
 
+/** File Manager RPC handlers for the `subdomains/*` subdomain discovery operations. */
 export const subdomainOperations: Record<string, FmHandler> = {
   async "subdomains/info"(ctx) {
     const program = await detectProgram(ctx);

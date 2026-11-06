@@ -8,13 +8,20 @@
  */
 import { FmError, type Platform } from "./fmPaths";
 
+/** Bitmask covering the 12 POSIX permission and special mode bits (`0o7777`). */
 export const MODE_MASK = 0o7777;
+/** Bitmask covering the user, group, and other execute bits (`0o111`). */
 export const EXEC_BITS = 0o111;
+/** POSIX set-user-ID (`setuid`) mode bit (`0o4000`). */
 export const SETUID = 0o4000;
+/** POSIX set-group-ID (`setgid`) mode bit (`0o2000`). */
 export const SETGID = 0o2000;
+/** POSIX sticky bit (`0o1000`). */
 export const STICKY = 0o1000;
+/** Maximum allowed character length for a `chmod`-style symbolic permission expression. */
 export const MAX_SYMBOLIC_LENGTH = 200;
 
+/** Target item scope when applying permission changes recursively inside a folder. */
 export type Scope = "all" | "files" | "dirs";
 
 /** One `[ugoa]*` part and what it does: "+", "-" or "=" followed by letters, or the class to copy from. */
@@ -25,6 +32,7 @@ export interface SymbolicAction {
   /** "u", "g" or "o" when the permissions are copied from another class (`g=u`). */
   copyFrom: "u" | "g" | "o" | null;
 }
+/** Parsed comma-separated clause of a `chmod` symbolic mode string, pairing a target class mask (`who`) with one or more `SymbolicAction`s. */
 export interface SymbolicClause {
   /** 1 = owner, 2 = group, 4 = others; 7 when no letter was given. */
   who: number;
@@ -120,17 +128,20 @@ export function applySymbolic(clauses: SymbolicClause[], old: number, isDir: boo
 // The change a request asks for
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Specification of how POSIX permission bits should be modified (`set` exact mode, `bits` add/remove mask, or `symbolic` clauses). */
 export type ModeEdit =
   | { kind: "set"; file: number | null; dir: number | null }
   | { kind: "bits"; add: number; remove: number }
   | { kind: "symbolic"; clauses: SymbolicClause[] };
 
+/** Platform-specific file attribute flag changes (macOS `locked`/`hidden`, Windows `readonly`/`hidden`). */
 export interface FlagChange {
   locked?: boolean;
   hidden?: boolean;
   readonly?: boolean;
 }
 
+/** Validated permission and file-flag change specification parsed from a client request. */
 export interface Change {
   edit: ModeEdit | null;
   recursive: { scope: Scope; xOnlyIfExecutable: boolean } | null;
@@ -226,8 +237,10 @@ export function newModeFor(old: number, isDir: boolean, change: Change): number 
 // Risk
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Identifier code for a potentially dangerous permission change that requires explicit user confirmation. */
 export type RiskCode = "world-writable" | "owner-lockout" | "special-bits" | "many-items";
 
+/** Safety warning describing a risky permission change and its plain-English explanation. */
 export interface Risk {
   code: RiskCode;
   message: string;
@@ -244,6 +257,7 @@ export function risksOfChange(before: number, after: number, isDir: boolean): Ri
   return out;
 }
 
+/** Plain-English warning messages corresponding to each `RiskCode`. */
 export const RISK_MESSAGES: Record<RiskCode, string> = {
   "world-writable": "Anyone with an account on this computer would be able to change or replace these items.",
   "owner-lockout": "You would lose your own read, write or open access to some items, so you might not be able to change them back without Undo.",

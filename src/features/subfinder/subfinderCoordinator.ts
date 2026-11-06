@@ -1,3 +1,7 @@
+/**
+ * High-level orchestration for `subfinder` subdomain discovery, coordinating passive OSINT queries,
+ * DNS resolution, wildcard filtering, HTTP/port probing, and CLI/JSON output formatting.
+ */
 import type { SubdomainResult, SubfinderOptions } from "./subfinderTypes.ts";
 import {
   cleanDomain,
@@ -23,6 +27,10 @@ import {
 } from "./subfinderDoers.ts";
 import { colors } from "../../shared/colors.ts";
 
+/**
+ * Enumerates subdomains for `domain` across passive OSINT sources and common DNS prefixes,
+ * optionally verifying DNS resolution, wildcard records, HTTP status/titles, and open TCP ports in streaming batches.
+ */
 export async function enumerateDomain(
   domain: string,
   timeoutMs: number,
@@ -115,6 +123,9 @@ export async function enumerateDomain(
   return results;
 }
 
+/**
+ * Formats a `SubdomainResult` as JSON, plain hostname (`silent` mode), or a colorized terminal line with IPs, ports, HTTP info, and sources.
+ */
 export function formatSubdomainResult(
   res: SubdomainResult,
   options: SubfinderOptions
@@ -135,6 +146,9 @@ export function formatSubdomainResult(
   return `${hostStr}${ipStr}${wildcardStr}${portsStr}${statusStr}${titleStr}${srcStr}`;
 }
 
+/**
+ * Runs subdomain enumeration across all target domains in `options`, writes `outputFile` if configured, and returns formatted lines.
+ */
 export async function runSubfinderCoordinator(
   options: SubfinderOptions
 ): Promise<string[]> {
@@ -161,6 +175,9 @@ export async function runSubfinderCoordinator(
   return lines;
 }
 
+/**
+ * Synchronously enumerates subdomains for `domain` using `dig` and `curl` subprocess helpers, suitable for blocking runloops.
+ */
 export function enumerateDomainSync(
   domain: string,
   active: boolean = false,

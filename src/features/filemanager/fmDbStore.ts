@@ -15,6 +15,7 @@ import { DbError } from "../../db/errors";
 import { ProfileStore, type ConnectionProfile, type Environment, type SecretStore } from "../../db/profiles";
 import { DB_ENGINES, isEngine, validHost, validPort, type DbEngine } from "./fmDbModel";
 
+/** Saved connection profile for a Redis server endpoint. */
 export interface RedisProfile {
   id: string;
   name: string;
@@ -37,8 +38,10 @@ export interface RedisProfile {
   lastUsedAt?: string;
 }
 
+/** Union of SQL (`ConnectionProfile`) and Redis (`RedisProfile`) saved connection profiles. */
 export type DbProfile = ConnectionProfile | RedisProfile;
 
+/** Origin and environment provenance metadata attached to a saved database connection profile. */
 export interface ProfileMeta {
   /** How the profile came to be. */
   source: "manual" | "environment" | "dotenv" | "envfile" | "url" | "local";
@@ -49,8 +52,10 @@ export interface ProfileMeta {
   savedAt: string;
 }
 
+/** Database connection profile enriched with `hasPassword` and optional `ProfileMeta` for UI display. */
 export type PublicDbProfile = DbProfile & { hasPassword: boolean; meta?: ProfileMeta };
 
+/** User-configured fallback host, port, user, database, and TLS settings for a database engine. */
 export interface EngineDefaults {
   host?: string;
   port?: number;
@@ -60,12 +65,14 @@ export interface EngineDefaults {
   tls?: boolean;
 }
 
+/** Per-engine configuration controlling environment variable fallback and default connection values. */
 export interface EngineSettings {
   /** When no profile is chosen, start the studio with this program's environment variables as before; also lets a profile fall back to them for blank fields. */
   useEnv: boolean;
   defaults: EngineDefaults;
 }
 
+/** Persisted Databases feature settings including auto-detection preferences, per-engine defaults, and dismissed keys. */
 export interface DbSettings {
   version: 1;
   detect: { auto: boolean; autoSave: boolean };
@@ -78,6 +85,7 @@ export interface DbSettings {
 const bad = (m: string) => new DbError("INVALID_REQUEST", m);
 const ENVIRONMENTS: Environment[] = ["development", "test", "staging", "production"];
 
+/** Creates a fresh `DbSettings` object with default per-engine settings and auto-detection enabled. */
 export function defaultSettings(): DbSettings {
   const engines = Object.fromEntries(DB_ENGINES.map((e) => [e, { useEnv: true, defaults: {} }])) as Record<DbEngine, EngineSettings>;
   return { version: 1, detect: { auto: true, autoSave: false }, engines, dismissed: [], meta: {} };
@@ -113,6 +121,7 @@ export function sanitizeDefaults(input: unknown): EngineDefaults {
   return out;
 }
 
+/** Validates and normalizes an untrusted Redis connection profile payload. */
 export function sanitizeRedisProfile(input: unknown, existing?: RedisProfile): Omit<RedisProfile, "id" | "createdAt" | "lastUsedAt"> {
   if (typeof input !== "object" || input === null) throw bad("Profile must be an object");
   const o = input as Record<string, unknown>;
@@ -179,6 +188,7 @@ function writeJson(file: string, data: unknown) {
   } catch {}
 }
 
+/** Unified persistence store managing SQL profiles, Redis profiles, connection passwords, and Databases settings. */
 export class DbStore {
   readonly sql: ProfileStore;
   private redis: RedisProfile[] = [];
@@ -187,18 +197,21 @@ export class DbStore {
   private readonly redisFile: string;
   private readonly settingsFile: string;
 
+  /** Initializes a `DbStore` backed by JSON files in `dir` and the provided `SecretStore`. */
   constructor(readonly dir: string, readonly secrets: SecretStore) {
     this.sql = new ProfileStore(dir, secrets);
     this.redisFile = join(dir, "connections_redis.json");
     this.settingsFile = join(dir, "file_manager_databases.json");
   }
 
+  /** Returns the active secret storage backend kind (`keychain`, `file`, or `memory`). */
   get secretKind() {
     return this.secrets.kind;
   }
 
   /* ---------------------------------------------------------------- settings */
 
+  /** Loads (and caches) the persisted `DbSettings` from disk, falling back to `defaultSettings()`. */
   getSettings(): DbSettings {
     if (this.settings) return this.settings;
     const base = defaultSettings();
@@ -232,10 +245,12 @@ export class DbStore {
     return base;
   }
 
+  /** Writes the current `DbSettings` state to `databases_settings.json`. */
   saveSettings() {
     writeJson(this.settingsFile, this.getSettings());
   }
 
+  /** Updates `useEnv` and default connection fields for `engine` and persists the settings. */
   setEngineSettings(engine: DbEngine, change: { useEnv?: unknown; defaults?: unknown }) {
     const s = this.getSettings().engines[engine];
     if (change.useEnv !== undefined) s.useEnv = change.useEnv === true;
@@ -244,6 +259,7 @@ export class DbStore {
     return s;
   }
 
+  /** Updates automatic environment connection detection preferences and persists the settings. */
   setDetect(change: { auto?: unknown; autoSave?: unknown }) {
     const s = this.getSettings();
     if (change.auto !== undefined) s.detect.auto = change.auto === true;
@@ -252,17 +268,20 @@ export class DbStore {
     return s.detect;
   }
 
+  /** Records a detected connection key in the dismissed list so it is hidden from future auto-detection. */
   dismiss(key: string) {
     const s = this.getSettings();
     if (!s.dismissed.includes(key)) s.dismissed.push(key);
     this.saveSettings();
   }
 
+  /** Clears all dismissed environment connection keys and persists the updated settings. */
   undismissAll() {
     this.getSettings().dismissed = [];
     this.saveSettings();
   }
 
+  /** Attaches or removes provenance `ProfileMeta` for a profile ID and persists the settings. */
   setMeta(id: string, meta: ProfileMeta | null) {
     const s = this.getSettings();
     if (meta) s.meta[id] = meta;
@@ -283,6 +302,7 @@ export class DbStore {
     writeJson(this.redisFile, { version: 1, profiles: this.redis });
   }
 
+  /** Looks up a saved SQL or Redis connection profile by ID. */
   get(id: string): DbProfile | undefined {
     this.loadRedis();
     return this.sql.get(id) ?? this.redis.find((p) => p.id === id);
@@ -299,6 +319,7 @@ export class DbStore {
     return [...this.sql.listPlain(), ...this.redis];
   }
 
+  /** Returns all saved SQL and Redis profiles enriched with `hasPassword` and `ProfileMeta`, sorted by recent use. */
   async list(): Promise<PublicDbProfile[]> {
     this.loadRedis();
     const all: DbProfile[] = [...(await this.sql.list()).map(({ hasPassword: _h, ...p }) => p as ConnectionProfile), ...this.redis];
@@ -336,6 +357,7 @@ export class DbStore {
     return this.decorate(profile);
   }
 
+  /** Deletes a saved SQL or Redis profile along with its stored password and metadata. */
   async remove(id: string): Promise<void> {
     this.loadRedis();
     const i = this.redis.findIndex((p) => p.id === id);
@@ -347,6 +369,7 @@ export class DbStore {
     this.setMeta(id, null);
   }
 
+  /** Creates a copy of an existing SQL or Redis profile, optionally copying its stored password. */
   async duplicate(id: string, copyPassword: boolean): Promise<PublicDbProfile> {
     this.loadRedis();
     const redis = this.redis.find((p) => p.id === id);
@@ -368,11 +391,13 @@ export class DbStore {
     return this.secrets.get(id);
   }
 
+  /** Deletes the stored password for the specified connection profile ID. */
   async clearPassword(id: string): Promise<void> {
     if (!this.get(id)) throw bad("Unknown connection profile");
     await this.secrets.delete(id);
   }
 
+  /** Updates the `lastUsedAt` timestamp for a SQL or Redis profile to the current time. */
   markUsed(id: string) {
     this.loadRedis();
     const r = this.redis.find((p) => p.id === id);

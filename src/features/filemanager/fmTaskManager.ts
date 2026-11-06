@@ -24,6 +24,7 @@ import * as nodePath from "path";
 import type { Platform } from "./fmPaths";
 import { Sys } from "../../simplecli/sys/index";
 
+/** Supported process control action kinds in the Task Manager. */
 export type TaskActionKind =
   | "terminate"
   | "kill"
@@ -34,6 +35,7 @@ export type TaskActionKind =
   | "group"
   | "priority";
 
+/** UI metadata and CLI command hint describing a platform-supported process action. */
 export interface TaskActionDescriptor {
   id: TaskActionKind;
   label: string;
@@ -43,6 +45,7 @@ export interface TaskActionDescriptor {
   danger: boolean;
 }
 
+/** Platform-specific capabilities, OS tools, and supported actions for the Task Manager. */
 export interface TaskPlatformProfile {
   platform: Platform;
   osLabel: string;
@@ -58,6 +61,7 @@ export interface TaskPlatformProfile {
   actions: TaskActionDescriptor[];
 }
 
+/** Normalized snapshot of a single running OS process with CPU, memory, listening ports, and safety flags. */
 export interface TaskProcessItem {
   pid: string;
   ppid: string;
@@ -80,6 +84,7 @@ export interface TaskProcessItem {
   windowTitle?: string;
 }
 
+/** Aggregated resource usage and PID list for all running processes sharing the same application name. */
 export interface TaskProcessGroup {
   name: string;
   count: number;
@@ -92,6 +97,7 @@ export interface TaskProcessGroup {
   pids: string[];
 }
 
+/** Flattened row in a depth-indented parent/child process tree view. */
 export interface TaskTreeRow {
   pid: string;
   ppid: string;
@@ -100,6 +106,7 @@ export interface TaskTreeRow {
   process: TaskProcessItem;
 }
 
+/** System-wide CPU, memory, load average, uptime, and process count telemetry returned with a process list. */
 export interface TaskTelemetry {
   cpuPercent: number;
   cpuCores: number;
@@ -114,6 +121,7 @@ export interface TaskTelemetry {
   devServerCount: number;
 }
 
+/** Detailed inspection report for a single PID including parent/child lineage, working directory, open files, and termination safety. */
 export interface TaskInspectResult {
   pid: string;
   platform: Platform;
@@ -138,12 +146,14 @@ export interface TaskInspectResult {
   };
 }
 
+/** Result of executing an OS process-inspection or signal command. */
 export interface TaskCommandResult {
   exitCode: number;
   stdout: string;
   stderr: string;
 }
 
+/** Dependency injection hooks for testing Task Manager discovery, inspection, and signal commands across platforms. */
 export interface TaskManagerHooks {
   /** Override OS command runner for deterministic cross-platform tests. */
   execCommand?: (cmd: string[], platform: Platform) => Promise<TaskCommandResult>;
@@ -201,6 +211,7 @@ export const WIN_CRITICAL_NAMES = [
   "svchost",
 ];
 
+/** Returns `true` if `pid` or `name` identifies a protected OS kernel or init/system service process on `platform`. */
 export function isCriticalProcess(name: string, pid: string, platform: Platform): boolean {
   if (pid === "0") return true;
   const lower = (name || "").trim().toLowerCase();
@@ -228,6 +239,7 @@ export function posixSignalNumber(signal: "SIGTERM" | "SIGKILL" | "SIGSTOP" | "S
   }
 }
 
+/** Builds the `TaskPlatformProfile` describing process discovery, port mapping, and available actions for `platform`. */
 export function getTaskPlatformProfile(platform: Platform): TaskPlatformProfile {
   if (platform === "win32") {
     return {
@@ -435,6 +447,7 @@ export function executablePath(command: string, platform: Platform = "darwin", e
   return first.startsWith("/") ? first : null;
 }
 
+/** Returns `true` if `command` or `name` matches a known runtime, web server, bundler, database, or container tool. */
 export function isDevServerProcess(command: string, name: string): boolean {
   const hay = `${name} ${command}`.toLowerCase();
   return /\b(bun|node|deno|vite|next|ts-node|tsx|esbuild|webpack|turbopack|python|python3|uvicorn|gunicorn|flask|fastapi|ruby|rails|cargo|rustc|go|redis-server|postgres|mysqld|mongod|docker|caddy|nginx|php|dotnet|java)\b/i.test(hay);
@@ -447,6 +460,7 @@ export function parseEtime(s: string): number | undefined {
   return Number(m[1] || 0) * 86400 + Number(m[2] || 0) * 3600 + Number(m[3]) * 60 + Number(m[4]);
 }
 
+/** Formats an elapsed uptime in seconds into a compact human string (e.g. `"45s"`, `"12m"`, `"3h 14m"`, `"2d 5h"`). */
 export function formatUptime(sec: number | undefined): string {
   if (sec === undefined || !Number.isFinite(sec) || sec < 0) return "—";
   if (sec < 60) return `${Math.floor(sec)}s`;
@@ -455,10 +469,12 @@ export function formatUptime(sec: number | undefined): string {
   return `${Math.floor(sec / 86400)}d ${Math.floor((sec % 86400) / 3600)}h`;
 }
 
+/** Formats a resident set size in kilobytes (`kb`) as a megabyte string with one decimal place (e.g. `"42.5 MB"`). */
 export function formatMb(kb: number): string {
   return `${(Math.max(0, kb) / 1024).toFixed(1)} MB`;
 }
 
+/** Translates a raw `ps` or Windows process state code into a human-readable status label. */
 export function stateLabel(state: string, platform: Platform = "darwin"): string {
   const raw = (state || "?").trim();
   if (platform === "win32") {
@@ -779,6 +795,7 @@ export function parseWindowsTasklistCsv(
 // Grouping, Tree, Filtering, and Safety
 // ---------------------------------------------------------------------------
 
+/** Groups processes by `name`, summing CPU, memory, and RSS and collecting unique listening ports and PIDs. */
 export function groupProcesses(procs: TaskProcessItem[]): TaskProcessGroup[] {
   const map = new Map<string, TaskProcessItem[]>();
   for (const p of procs) {
@@ -805,6 +822,7 @@ export function groupProcesses(procs: TaskProcessItem[]): TaskProcessGroup[] {
   return out;
 }
 
+/** Returns direct child processes of `pid` from `procs`. */
 export function childrenOf(procs: TaskProcessItem[], pid: string): TaskProcessItem[] {
   return procs.filter((p) => p.ppid === pid && p.pid !== pid);
 }
@@ -888,6 +906,7 @@ export function buildProcessTree(procs: TaskProcessItem[]): TaskTreeRow[] {
   return out;
 }
 
+/** Caller identity and process-lineage context used to guard against terminating critical or self processes. */
 export interface TaskSafetyContext {
   platform: Platform;
   selfPid: string;
@@ -895,12 +914,14 @@ export interface TaskSafetyContext {
   currentUser: string;
 }
 
+/** Outcome of evaluating whether a requested `TaskActionKind` on a process is permitted or requires confirmation. */
 export interface TaskActionAssessment {
   allowed: boolean;
   reason?: string;
   confirm?: string;
 }
 
+/** Evaluates whether performing `action` on `pid` is safe, blocked, or requires a confirmation prompt. */
 export function assessTaskAction(
   proc: TaskProcessItem | undefined,
   pid: string,
@@ -1043,6 +1064,7 @@ export function matchesTaskQuery(p: TaskProcessItem, rawQuery: string): boolean 
   return true;
 }
 
+/** Parses a port number (`1`..`65535`) from `raw` (accepting `":3000"` or `"3000"`), returning `null` if invalid. */
 export function validPort(raw: unknown): number | null {
   const digits = String(raw ?? "").replace(/[^0-9]/g, "");
   if (!digits) return null;
@@ -1060,6 +1082,7 @@ function csvCell(v: unknown): string {
   return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
+/** Formats a list of `TaskProcessItem` records as a spreadsheet-safe CSV document. */
 export function processesToCsv(procs: TaskProcessItem[]): string {
   const head = ["pid", "ppid", "name", "user", "state", "cpu_percent", "mem_percent", "rss_mb", "uptime", "ports", "command"];
   const rows = procs.map((p) => [
@@ -1078,6 +1101,7 @@ export function processesToCsv(procs: TaskProcessItem[]): string {
   return [head, ...rows].map((r) => r.map(csvCell).join(",")).join("\n") + "\n";
 }
 
+/** Formats a list of `TaskProcessItem` records and optional metadata as pretty-printed JSON. */
 export function processesToJson(procs: TaskProcessItem[], meta: Record<string, unknown> = {}): string {
   return (
     JSON.stringify(
@@ -1108,6 +1132,7 @@ export function processesToJson(procs: TaskProcessItem[], meta: Record<string, u
   );
 }
 
+/** Formats a list of `TaskProcessItem` records as a tab-separated values (TSV) table. */
 export function processesToTsv(procs: TaskProcessItem[]): string {
   const head = ["PID", "PPID", "Name", "Ports", "CPU %", "MEM %", "RSS", "User", "State", "Uptime", "Command"].join("\t");
   return (
@@ -1134,6 +1159,7 @@ export function processesToTsv(procs: TaskProcessItem[]): string {
   );
 }
 
+/** Formats a list of `TaskProcessItem` records as a Markdown report table for `platform`. */
 export function processesToMarkdown(procs: TaskProcessItem[], platform: Platform): string {
   const esc = (s: string) => s.replace(/\|/g, "\\|").replace(/[\r\n]+/g, " ");
   const lines = [
@@ -1157,6 +1183,7 @@ export function processesToMarkdown(procs: TaskProcessItem[], platform: Platform
 // OS Command Execution & Platform Dispatchers
 // ---------------------------------------------------------------------------
 
+/** Spawns `cmd` with a 5-second timeout and returns its exit code, stdout, and stderr without throwing. */
 export async function defaultExecCommand(cmd: string[], _platform: Platform): Promise<TaskCommandResult> {
   try {
     const proc = Bun.spawn(cmd, {

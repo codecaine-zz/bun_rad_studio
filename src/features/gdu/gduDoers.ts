@@ -1,9 +1,16 @@
+/**
+ * Low-level filesystem and formatting helpers ("doers") for `gdu`: human-readable byte/count formatting,
+ * size string parsing, recursive async/sync directory scanning, `df -k` mount parsing, and item deletion/opening.
+ */
 import { rmSync, lstatSync, readdirSync } from "node:fs";
 import { lstat, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import type { DiskUsageItem, GduOptions, GduSortBy, MountedDisk } from "./gduTypes.ts";
 import { colors } from "../../shared/colors.ts";
 
+/**
+ * Formats a byte count into a 10-character right-padded string using binary (`KiB`, `MiB`, ...) or SI (`kB`, `MB`, ...) units.
+ */
 export function formatBytes(bytes: number, si: boolean = false): string {
   const base = si ? 1000 : 1024;
   const units = si
@@ -16,12 +23,18 @@ export function formatBytes(bytes: number, si: boolean = false): string {
   return `${val} ${units[exp]}`.padStart(10);
 }
 
+/**
+ * Formats an item count into a 10-character right-padded string using `k` / `M` abbreviations.
+ */
 export function formatCount(count: number): string {
   if (count < 1000) return count.toString().padStart(10);
   if (count < 1000000) return `${(count / 1000).toFixed(1)}k`.padStart(10);
   return `${(count / 1000000).toFixed(1)}M`.padStart(10);
 }
 
+/**
+ * Parses a human-readable size string (such as `"500k"`, `"10M"`, `"2GiB"`) into a byte count, or `0` if invalid.
+ */
 export function parseByteSize(str: string): number {
   const match = str.trim().match(/^([\d.]+)\s*([kKmMgGtT]?[iI]?[bB]?)$/);
   if (!match) return 0;
@@ -34,10 +47,16 @@ export function parseByteSize(str: string): number {
   return num;
 }
 
+/**
+ * Serializes a `DiskUsageItem` tree as pretty-printed JSON.
+ */
 export function formatGduJson(item: DiskUsageItem): string {
   return JSON.stringify(item, null, 2);
 }
 
+/**
+ * Renders an ASCII progress bar (e.g. `[#####     ]`) representing `ratio` (`0`..`1`) across `width` characters.
+ */
 export function formatRelativeBar(ratio: number, width: number = 10): string {
   const clamped = Math.max(0, Math.min(1, ratio));
   const filled = Math.round(clamped * width);
@@ -45,6 +64,9 @@ export function formatRelativeBar(ratio: number, width: number = 10): string {
   return `[${bar}]`;
 }
 
+/**
+ * Determines whether a directory entry should be skipped during scanning based on `noHidden` and `ignoreDirs`.
+ */
 export function shouldIgnoreItem(
   name: string,
   fullPath: string,
@@ -56,6 +78,9 @@ export function shouldIgnoreItem(
   return ignoreDirs.some((ig) => fullPath === ig || name === ig);
 }
 
+/**
+ * Returns a new array of `DiskUsageItem` entries sorted by size, name, item count, or modification time.
+ */
 export function sortDiskItems(
   items: DiskUsageItem[],
   sortBy: "size" | "name" | "count" | "mtime" = "size"
@@ -67,16 +92,25 @@ export function sortDiskItems(
 }
 
 // Doer: permanently delete a file or directory recursively
+/**
+ * Permanently deletes a file or directory tree at `targetPath` using `rmSync(..., { recursive: true, force: true })`.
+ */
 export function deleteDiskItem(targetPath: string): void {
   rmSync(targetPath, { recursive: true, force: true });
 }
 
 // Doer: launch default operating system handler for file or directory
+/**
+ * Opens `targetPath` in the operating system's default application (`open` on macOS, `xdg-open` on Linux).
+ */
 export function openItemInDefaultApp(targetPath: string): void {
   const cmd = process.platform === "darwin" ? "open" : "xdg-open";
   Bun.spawn([cmd, targetPath]);
 }
 
+/**
+ * Asynchronously scans a file or directory recursively, aggregating total byte size, item count, and latest mtime.
+ */
 export async function scanItem(
   itemPath: string,
   name: string,
@@ -144,6 +178,9 @@ export async function scanItem(
   };
 }
 
+/**
+ * Synchronously scans a file or directory recursively, aggregating total byte size, item count, and latest mtime.
+ */
 export function scanItemSync(
   itemPath: string,
   name: string,
@@ -214,6 +251,9 @@ export function scanItemSync(
   };
 }
 
+/**
+ * Parses `df -k` command output into an array of `MountedDisk` objects for `/dev/*` block devices.
+ */
 export function parseDfOutput(raw: string): MountedDisk[] {
   const lines = raw.trim().split("\n");
   const disks: MountedDisk[] = [];
@@ -235,6 +275,9 @@ export function parseDfOutput(raw: string): MountedDisk[] {
   return disks;
 }
 
+/**
+ * Synchronously executes `df -k` and returns the parsed list of mounted `/dev/*` disks.
+ */
 export function fetchMountedDisksSync(): MountedDisk[] {
   try {
     const proc = Bun.spawnSync(["df", "-k"]);
@@ -245,12 +288,18 @@ export function fetchMountedDisksSync(): MountedDisk[] {
   }
 }
 
+/**
+ * Asynchronously executes `df -k` and returns the parsed list of mounted `/dev/*` disks.
+ */
 export async function fetchMountedDisks(): Promise<MountedDisk[]> {
   const proc = Bun.spawn(["df", "-k"], { stdout: "pipe", stderr: "pipe" });
   const raw = await new Response(proc.stdout).text();
   return parseDfOutput(raw);
 }
 
+/**
+ * Formats a single `DiskUsageItem` into a colorized CLI summary line with optional item counts and relative size bars.
+ */
 export function formatGduLine(
   item: DiskUsageItem,
   maxSize: number,

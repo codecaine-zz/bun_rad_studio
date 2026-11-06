@@ -2,6 +2,8 @@
  * Hard limits of the staging import. They exist so a huge or damaged file can never exhaust memory, disk or a database;
  * every limit has a plain-words message (see `limitMessage`). Tests and advanced users may lower them with `setLimits`.
  */
+
+/** Active resource, size, and pagination thresholds for staging import operations. */
 export const limits = {
   /** Largest source file (upload or file on disk). */
   maxFileBytes: 2 * 1024 ** 3,
@@ -22,13 +24,16 @@ export const limits = {
   retainDays: 7,
 };
 
+/** Shape of the staging import limits configuration object. */
 export type Limits = typeof limits;
 
+/** Overrides one or more active staging limits in place and returns the updated limits object. */
 export function setLimits(patch: Partial<Limits>): Limits {
   Object.assign(limits, patch);
   return limits;
 }
 
+/** Restores all staging import limits to their default production values. */
 export function resetLimits(): void {
   Object.assign(limits, {
     maxFileBytes: 2 * 1024 ** 3,
@@ -46,6 +51,7 @@ export function resetLimits(): void {
 
 const mb = (n: number) => `${Math.round(n / 1024 / 1024)} MB`;
 
+/** Formats a human-friendly error explanation when a staging limit is exceeded. */
 export function limitMessage(kind: "file" | "rows" | "columns" | "record" | "paste"): string {
   switch (kind) {
     case "file":
@@ -63,6 +69,7 @@ export function limitMessage(kind: "file" | "rows" | "columns" | "record" | "pas
 
 /** An error whose message is already written for a person. */
 export class StagingError extends Error {
+  /** Creates a new staging error with a machine code, HTTP status, and optional user hint. */
   constructor(
     message: string,
     readonly code: string = "BAD_REQUEST",

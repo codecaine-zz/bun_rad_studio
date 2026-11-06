@@ -6,6 +6,7 @@ import { defaultDeps, type EngineDeps } from "../subfinder/subfinderEngine";
 import type { FmContext } from "./fmCore";
 import { childEnv } from "./fmTools";
 
+/** Injectable external dependencies (network, DNS, clock, subprocess spawning) for the Subdomains discovery engine. */
 export type SubdomainsHooks = EngineDeps;
 
 /** The real dependencies, with any replacements the context carries on top. */

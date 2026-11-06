@@ -1,3 +1,6 @@
+/**
+ * Interactive UI help tooltips and audit skip rules for the visual RAD Form Designer (`designer`), covering canvas controls, component palette, property inspector, and code generation.
+ */
 import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Help tips for the visual form designer (`src/ide/`, built into `src/ide.html`). Check with: bun run scripts/help_controls.ts designer --missing */

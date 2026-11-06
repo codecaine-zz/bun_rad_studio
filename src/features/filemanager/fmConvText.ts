@@ -12,6 +12,7 @@ import { ConvError } from "./fmConvCommon";
 // Encodings
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Metadata describing a character encoding supported by the built-in text converter. */
 export interface EncodingDef {
   id: string;
   label: string;
@@ -22,6 +23,7 @@ export interface EncodingDef {
   write: boolean;
 }
 
+/** Catalog of Unicode, single-byte, and multi-byte character encodings supported for text conversion. */
 export const ENCODINGS: EncodingDef[] = [
   { id: "utf-8", label: "UTF-8 (the usual one)", decoder: "utf-8", kind: "unicode", write: true },
   { id: "utf-8-bom", label: "UTF-8 with a byte-order mark (Excel and Notepad like it)", decoder: "utf-8", kind: "unicode", write: true },
@@ -42,8 +44,10 @@ export const ENCODINGS: EncodingDef[] = [
   { id: "euc-kr", label: "EUC-KR (Korean)", decoder: "euc-kr", kind: "multi", write: true },
 ];
 
+/** Lookup map indexing each `EncodingDef` by its lowercase encoding ID. */
 export const ENCODING_BY_ID = new Map(ENCODINGS.map((e) => [e.id, e]));
 
+/** Decoded text, detected encoding ID, invalid-byte count, and human explanation produced by `decodeBytes`. */
 export interface Decoded {
   text: string;
   /** The encoding that was used (for "auto", what was found). */
@@ -159,6 +163,7 @@ function reverseTable(enc: EncodingDef): Map<string, number> {
   return map;
 }
 
+/** Encoded byte buffer and unmappable-character diagnostics produced by `encodeText`. */
 export interface Encoded {
   bytes: Buffer;
   /** Characters this encoding has no code for. */
@@ -223,13 +228,16 @@ export function mapText(bytes: Uint8Array, fn: (text: string) => string): Buffer
   }
 }
 
+/** Target line-ending style (`lf`, `crlf`, or `cr`) for newline conversion. */
 export type LineEnding = "lf" | "crlf" | "cr";
 
+/** Converts all line breaks in a UTF-8/UTF-16 text buffer to the specified `LineEnding` style. */
 export function convertLineEndings(bytes: Uint8Array, to: LineEnding): Buffer {
   const eol = to === "lf" ? "\n" : to === "crlf" ? "\r\n" : "\r";
   return mapText(bytes, (t) => t.replace(/\r\n|\r|\n/g, eol));
 }
 
+/** Replaces tab characters with tab-stop-aligned spaces of `width` columns while preserving encoding. */
 export function tabsToSpaces(bytes: Uint8Array, width: number): Buffer {
   return mapText(bytes, (t) => t.split(/(\r\n|\r|\n)/).map((part, i) => {
     if (i % 2) return part;
@@ -243,6 +251,7 @@ export function tabsToSpaces(bytes: Uint8Array, width: number): Buffer {
   }).join(""));
 }
 
+/** Converts leading indentation spaces into tab characters of `width` columns while preserving encoding. */
 export function spacesToTabs(bytes: Uint8Array, width: number): Buffer {
   return mapText(bytes, (t) => t.replace(/^[ \t]+/gm, (lead) => {
     const cols = [...lead].reduce((c, ch) => (ch === "\t" ? c + width - (c % width) : c + 1), 0);
@@ -250,10 +259,12 @@ export function spacesToTabs(bytes: Uint8Array, width: number): Buffer {
   }));
 }
 
+/** Removes trailing spaces and horizontal whitespace before line endings in a text buffer. */
 export function stripTrailingSpaces(bytes: Uint8Array): Buffer {
   return mapText(bytes, (t) => t.replace(/[ \t\f\v]+(?=\r?\n|\r|$)/g, ""));
 }
 
+/** Removes a leading UTF-8 byte-order mark (BOM) from `bytes`, or throws if the buffer is UTF-16. */
 export function stripUtf8Bom(bytes: Uint8Array): Buffer {
   const b = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   if (b.length >= 2 && ((b[0] === 0xff && b[1] === 0xfe) || (b[0] === 0xfe && b[1] === 0xff))) throw new ConvError("This file is UTF-16, which always needs its mark. Use \"Change the text encoding\" to turn it into UTF-8 instead.");
@@ -264,6 +275,7 @@ export function stripUtf8Bom(bytes: Uint8Array): Buffer {
 // Base64 and hex
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Encodes raw bytes as Base64 text, optionally wrapping lines at `wrap` characters. */
 export function encodeBase64(bytes: Uint8Array, wrap: number): string {
   const s = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength).toString("base64");
   if (!wrap) return `${s}\n`;
@@ -272,6 +284,7 @@ export function encodeBase64(bytes: Uint8Array, wrap: number): string {
   return `${lines.join("\n")}\n`;
 }
 
+/** Decodes standard, URL-safe, or `data:*;base64,` Base64 text into a `Buffer`. */
 export function decodeBase64(text: string): Buffer {
   let s = text.trim();
   const url = /^data:[^,]*;base64,/i.exec(s);
@@ -285,6 +298,7 @@ export function decodeBase64(text: string): Buffer {
   return Buffer.from(s, "base64");
 }
 
+/** Encodes raw bytes as hexadecimal text, with optional byte spacing and uppercase digits. */
 export function encodeHex(bytes: Uint8Array, spaced: boolean, upper: boolean): string {
   let hex = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength).toString("hex");
   if (upper) hex = hex.toUpperCase();
@@ -294,6 +308,7 @@ export function encodeHex(bytes: Uint8Array, spaced: boolean, upper: boolean): s
   return `${lines.join("\n")}\n`;
 }
 
+/** Decodes hexadecimal text (ignoring `0x` prefixes, spaces, colons, and commas) into a `Buffer`. */
 export function decodeHex(text: string): Buffer {
   const s = text.replace(/0x/gi, "").replace(/[\s,:]+/g, "");
   const bad = /[^0-9a-fA-F]/.exec(s);
@@ -330,6 +345,7 @@ export function sniffExtension(b: Uint8Array): string {
 // Text, Markdown and HTML
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Escapes `&`, `<`, `>`, and `"` characters for safe inclusion in HTML text or attributes. */
 export const escapeHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const escapeKeepEntities = (s: string) => s.replace(/&(?!#?[A-Za-z0-9]{1,12};)/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
@@ -346,6 +362,7 @@ export function safeUrl(raw: string, image = false): string | null {
   return null;
 }
 
+/** Default embedded CSS stylesheet used when rendering plain text or Markdown into standalone HTML pages. */
 export const PAGE_STYLE = "body{font-family:system-ui,sans-serif;max-width:46rem;margin:2rem auto;padding:0 1rem;line-height:1.55;color:#222}pre{background:#f5f5f5;padding:.8rem;overflow:auto}code{background:#f5f5f5;padding:.1rem .25rem}pre code{padding:0}blockquote{border-left:4px solid #ccc;margin-left:0;padding-left:1rem;color:#555}table{border-collapse:collapse}td,th{border:1px solid #bbb;padding:.3rem .6rem}img{max-width:100%}";
 
 function inline(src: string): string {
@@ -504,6 +521,7 @@ export function markdownPage(fragment: string, title: string): string {
   return `<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https: http: data:; style-src 'unsafe-inline'">\n<title>${pageTitle || escapeHtml(title)}</title>\n<style>${PAGE_STYLE}</style>\n</head>\n<body>\n${fragment}\n</body>\n</html>\n`;
 }
 
+/** Wraps plain text into a complete standalone HTML document using `<pre>` or `<p>` paragraph layout. */
 export function textToHtml(text: string, title: string, layout: "pre" | "paragraphs"): string {
   const t = text.replace(/^\ufeff/, "").replace(/\r\n?/g, "\n");
   const body = layout === "pre" ? `<pre>${escapeHtml(t)}</pre>` : t.split(/\n{2,}/).filter((p) => p.trim()).map((p) => `<p>${escapeHtml(p.trim()).replace(/\n/g, "<br>\n")}</p>`).join("\n");

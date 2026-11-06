@@ -20,6 +20,7 @@
  * `studioColumnsClient` is serialized with Function.toString() and executed in the page.
  */
 
+/** CSS stylesheet for the shared Studio Columns visibility, filtering, and header menu controls. */
 export const STUDIO_COLUMNS_STYLE = `
     /* ===== Columns control (shared by the SQLite / MySQL / PostgreSQL studios) ===== */
     [hidden] { display: none !important; }
@@ -1290,4 +1291,5 @@ function studioColumnsClient() {
   if (typeof window.studioColsInit === "function") window.studioColsInit();
 }
 
+/** Self-invoking client-side script that registers `window.StudioCols` and initializes column controllers. */
 export const STUDIO_COLUMNS_SCRIPT = `(${studioColumnsClient.toString()})();`;

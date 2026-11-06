@@ -1,3 +1,7 @@
+/**
+ * SQLite database adapter (`SqliteAdapter`) built on `bun:sqlite` with `safeIntegers`,
+ * explicit open modes (`readwrite`, `readonly`, `create`, `memory`), and `VACUUM INTO` backups.
+ */
 import { Database, type SQLQueryBindings } from "bun:sqlite";
 import { existsSync, statSync } from "fs";
 import { resolve } from "path";
@@ -10,6 +14,7 @@ import { BaseAdapter, type Executor } from "./base";
 
 const WRITE_KEYWORDS = new Set(["INSERT", "UPDATE", "DELETE", "REPLACE"]);
 
+/** SQLite implementation of `DbAdapter` backed by `bun:sqlite`. */
 export class SqliteAdapter extends BaseAdapter {
   readonly engine = "sqlite" as const;
   private db: Database | null = null;
@@ -19,6 +24,7 @@ export class SqliteAdapter extends BaseAdapter {
   get isTemporary(): boolean {
     return this.resolvedPath === ":memory:";
   }
+  /** Resolved absolute filesystem path of the SQLite database file, or `":memory:"`. */
   get path(): string {
     return this.resolvedPath;
   }
@@ -28,6 +34,7 @@ export class SqliteAdapter extends BaseAdapter {
     return this.db;
   }
 
+  /** Opens the SQLite database in the configured mode (`readwrite`, `readonly`, `create`, or `memory`) and configures `busy_timeout` and `foreign_keys`. */
   async connect(): Promise<void> {
     if (this.db) return;
     const mode = this.config.sqliteMode ?? (this.config.path === ":memory:" ? "memory" : "readwrite");
@@ -78,6 +85,7 @@ export class SqliteAdapter extends BaseAdapter {
     }
   }
 
+  /** Closes the underlying `bun:sqlite` `Database` handle and resets transaction state. */
   async close(): Promise<void> {
     this.db?.close();
     this.db = null;
@@ -88,12 +96,14 @@ export class SqliteAdapter extends BaseAdapter {
     return Boolean(this.config.readOnly) || this.config.sqliteMode === "readonly";
   }
 
+  /** Queries `sqlite_version()` and returns the version, resolved file path, and latency. */
   async ping(): Promise<ServerInfo> {
     const t = performance.now();
     const row = this.conn.query("SELECT sqlite_version() AS v").get() as { v: string };
     return { version: row.v, currentDatabase: this.resolvedPath, latencyMs: Math.round((performance.now() - t) * 100) / 100 };
   }
 
+  /** Reports SQLite capabilities, active `foreign_keys` and `journal_mode` pragmas, and read-only enforcement mode. */
   async capabilities(): Promise<Capabilities> {
     const { version } = await this.ping();
     const fk = this.conn.query("PRAGMA foreign_keys").get() as { foreign_keys: number | bigint };
@@ -164,6 +174,7 @@ export class SqliteAdapter extends BaseAdapter {
     }
   }
 
+  /** Opens a `DbSession` over the in-process SQLite connection with `BEGIN` / `COMMIT` / `ROLLBACK` tracking. */
   async openSession(): Promise<DbSession> {
     const self = this;
     return {
@@ -198,15 +209,18 @@ export class SqliteAdapter extends BaseAdapter {
     };
   }
 
+  /** Casts `expr` to `TEXT` for `LIKE` filtering in SQLite. */
   protected textCast(expr: string): string {
     return `CAST(${expr} AS TEXT)`;
   }
 
+  /** Lists all user tables and views from `sqlite_master`, excluding internal `sqlite_*` objects. */
   async listObjects(): Promise<ObjectRef[]> {
     const rows = this.conn.query("SELECT name, type FROM sqlite_master WHERE type IN ('table','view') AND name NOT LIKE 'sqlite\\_%' ESCAPE '\\' ORDER BY name").all() as { name: string; type: string }[];
     return rows.map((r) => ({ name: r.name, type: r.type === "view" ? "view" : "table" }));
   }
 
+  /** Introspects columns (`table_xinfo`), foreign keys (`foreign_key_list`), indexes (`index_list`), and `WITHOUT ROWID` status for `ref`. */
   async describeTable(ref: ObjectRef): Promise<TableInfo> {
     const master = this.conn.query("SELECT name, type, sql FROM sqlite_master WHERE type IN ('table','view') AND name = ?").get(ref.name) as { name: string; type: string; sql: string | null } | null;
     if (!master) throw new DbError("OBJECT_NOT_FOUND", `Table or view "${ref.name}" does not exist.`);

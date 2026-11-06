@@ -1,3 +1,13 @@
+/**
+ * SimpleGUI — Cross-platform desktop windowing, layout, theming, and widget engine for Bun RAD Studio.
+ *
+ * Provides `SimpleWindow` and `SimpleControlRef` for building native webview and browser-hosted GUI
+ * applications with fluent layout containers (rows, grids, cards, flex), 140+ built-in visual controls and
+ * enterprise components, SweetAlert-style dialogs, reactive key-value state bindings, automatic session and
+ * form state persistence, and a 75+ theme design system with contrast-checked semantic palettes and
+ * hardware-adaptive visual effects (FX).
+ */
+
 import { SIMPLEGUI_THEMES } from "./shared/simpleguiThemes";
 export { SIMPLEGUI_THEMES } from "./shared/simpleguiThemes";
 import type { SizeHint, Webview } from "webview-bun";
@@ -58,10 +68,12 @@ import { SimpleDialogs, DIALOG_CLIENT_HTML, type DialogOptions, type DialogResul
 import { UI_CLIENT_HTML, UI_DEFAULT_SIZES, renderUIComponent, type UIComponentType } from "./simplegui_components.ts";
 import { writeClipboardSync, readClipboardSync } from "./localGuard.ts";
 
+/** Immediately terminates the current process with the specified exit status code. */
 export function forceExit(code = 0): void {
     process.exit(code);
 }
 
+/** Configuration options for creating and initializing a `SimpleWindow` instance. */
 export interface SimpleWindowOptions {
     title?: string;
     width?: number;
@@ -86,6 +98,7 @@ export interface SimpleWindowOptions {
     effects?: "full" | "reduced" | "off";
 }
 
+/** Serialized geometry, styling, and state specification for an individual UI control on a form. */
 export interface ControlSpec {
     id: string;
     control_type: string;
@@ -133,6 +146,7 @@ export interface ControlSpec {
     [key: string]: any;
 }
 
+/** Complete serialized specification of a `SimpleWindow` form, including theme palette, layout metrics, and controls. */
 export interface FormSpec {
     title: string;
     width: number;
@@ -157,20 +171,24 @@ export interface FormSpec {
 }
 
 // Some controls (kanban moves, table sorting, ...) pass extra arguments after the value.
+/** Callback signature invoked when a control or window event fires, receiving the owning `SimpleWindow`, primary value, and any extra event payload arguments. */
 export type EventCallback = (win: SimpleWindow, val?: any, ...extra: any[]) => void;
 
 /** Options shared by every enterprise component: free-form config plus the usual event hooks. */
 export type UIOpts = Record<string, any> & { id?: string; width?: number; height?: number; onChange?: EventCallback; onClick?: EventCallback };
 
+/** Fluent handle returned when adding a control to a `SimpleWindow`, enabling chainable layout, styling, value manipulation, and event binding. */
 export class SimpleControlRef {
     public spec: any;
     public window: SimpleWindow;
 
+    /** Creates a fluent `SimpleControlRef` wrapping a control specification and its owning `SimpleWindow`. */
     constructor(spec: any, window: SimpleWindow) {
         this.spec = spec;
         this.window = window;
     }
 
+    /** Assigns a new unique identifier to this control, migrating any stored values, list items, event handlers, and layout section references from the previous ID. */
     id(idStr: string): this {
         const oldId = this.spec.id;
         if (oldId && oldId !== idStr) {
@@ -202,6 +220,7 @@ export class SimpleControlRef {
         return this;
     }
 
+    /** Positions this control at explicit `(x, y)` coordinates within the window. */
     at(x: number, y: number): this {
         this.spec.left = x;
         this.spec.top = y;
@@ -210,16 +229,19 @@ export class SimpleControlRef {
         return this;
     }
 
+    /** Alias of `at`: sets the control's `(x, y)` position coordinates. */
     pos(x: number, y: number): this {
         return this.at(x, y);
     }
 
+    /** Sets both the explicit width and height (in pixels) of this control and updates surrounding layout flow. */
     size(width: number, height: number): this {
         this.width(width);
         this.height(height);
         return this;
     }
 
+    /** Sets the explicit pixel width of this control and recalculates horizontal coordinates for subsequent controls in the same row. */
     width(w: number): this {
         this.spec.user_explicit_width = true;
         const oldW = this.spec.width;
@@ -230,6 +252,7 @@ export class SimpleControlRef {
         return this;
     }
 
+    /** Sets the explicit pixel height of this control and adjusts vertical layout flow for subsequent rows. */
     height(h: number): this {
         this.spec.user_explicit_height = true;
         const oldH = this.spec.height;
@@ -240,16 +263,19 @@ export class SimpleControlRef {
         return this;
     }
 
+    /** Sets the background color (CSS color or hex string) of this control. */
     bg(color: string): this {
         this.spec.background_color = color;
         return this;
     }
 
+    /** Sets the foreground text color (CSS color or hex string) of this control. */
     color(color: string): this {
         this.spec.font_color = color;
         return this;
     }
 
+    /** Configures the control's font size in pixels, with optional text color and font weight, automatically expanding label dimensions when needed. */
     font(size: number, color?: string, weight?: string): this {
         this.spec.font_size = size;
         this.spec.fontSize = size;
@@ -282,40 +308,49 @@ export class SimpleControlRef {
         return this;
     }
 
+    /** Sets the font size (in pixels) of this control. */
     fontSize(size: number): this {
         return this.font(size);
     }
 
+    /** Snake_case alias of `fontSize`: sets the font size (in pixels) of this control. */
     font_size(size: number): this {
         return this.font(size);
     }
 
+    /** Alias of `color`: sets the foreground text color of this control. */
     fontColor(c: string): this {
         return this.color(c);
     }
 
+    /** Snake_case alias of `fontColor`: sets the foreground text color of this control. */
     font_color(c: string): this {
         return this.color(c);
     }
 
+    /** Alias of `bg`: sets the background color of this control. */
     backgroundColor(c: string): this {
         return this.bg(c);
     }
 
+    /** Snake_case alias of `backgroundColor`: sets the background color of this control. */
     background_color(c: string): this {
         return this.bg(c);
     }
 
+    /** Configures whether this control stretches horizontally to fill remaining space in its row or container. */
     expandFill(expand: boolean = true): this {
         this.spec.expandFill = expand;
         this.spec.expand_fill = expand;
         return this;
     }
 
+    /** Snake_case alias of `expandFill`: configures whether this control stretches to fill available container width. */
     expand_fill(expand: boolean = true): this {
         return this.expandFill(expand);
     }
 
+    /** Enables or disables bold (`font-weight: 700`) typography on this control. */
     bold(isBold = true): this {
         this.spec.font_weight = isBold ? "700" : "400";
         this.spec.is_bold = isBold;
@@ -323,97 +358,122 @@ export class SimpleControlRef {
         return this;
     }
 
+    /** Enables or disables italic (`font-style: italic`) typography on this control. */
     italic(isItalic = true): this {
         this.spec.font_style = isItalic ? "italic" : "normal";
         return this;
     }
 
+    /** Sets horizontal text alignment (`"left"`, `"center"`, or `"right"`) inside this control. */
     align(textAlignment: "left" | "center" | "right"): this {
         this.spec.text_align = textAlignment;
         return this;
     }
 
+    /** Sets the hover tooltip hint text displayed for this control. */
     tooltip(hint: string): this {
         this.spec.tooltip = hint;
         return this;
     }
 
+    /** Sets the placeholder hint text displayed when this input control is empty. */
     placeholder(ph: string): this {
         this.spec.placeholder = ph;
         return this;
     }
 
+    /** Sets the visual opacity percentage (`0` to `100` or `0.0` to `1.0`) of this control. */
     opacity(percent: number): this {
         this.spec.opacity = percent;
         return this;
     }
 
+    /** Enables or disables user interaction on this control, syncing immediately with the live DOM when the window is running. */
     enabled(flag = true): this {
         this.spec.enabled = flag;
         this.window.setControlEnabled(this.spec.id, flag);
         return this;
     }
 
+    /** Shows or hides this control, syncing visibility immediately with the live DOM when the window is running. */
     visible(flag = true): this {
         this.spec.visible = flag;
         this.window.setControlVisible(this.spec.id, flag);
         return this;
     }
 
+    /** Registers a callback invoked when the user clicks or activates this control. */
     onClick(handler: EventCallback): this {
         this.window.bindControlEvent(this.spec.id, "onClick", handler);
         return this;
     }
 
+    /** Registers a callback invoked whenever this control's value or selection changes. */
     onChange(handler: EventCallback): this {
         this.window.bindControlEvent(this.spec.id, "onChange", handler);
         return this;
     }
 
+    /** Registers a callback invoked when the pointer enters this control. */
     onHover(handler: EventCallback): this {
         this.window.bindControlEvent(this.spec.id, "onHover", handler);
         return this;
     }
 
+    /** Registers a callback invoked when the pointer leaves this control. */
     onHoverExit(handler: EventCallback): this {
         this.window.bindControlEvent(this.spec.id, "onHoverExit", handler);
         return this;
     }
 
+    /** Registers a callback invoked when the user double-clicks this control. */
     onDoubleClick(handler: EventCallback): this {
         this.window.bindControlEvent(this.spec.id, "onDoubleClick", handler);
         return this;
     }
+    /** Snake_case alias of `onDoubleClick`: registers a callback invoked when the user double-clicks this control. */
     on_double_click(handler: EventCallback): this { return this.onDoubleClick(handler); }
+    /** Alias of `onDoubleClick`: registers a callback invoked when the user double-clicks this control. */
     onDblClick(handler: EventCallback): this { return this.onDoubleClick(handler); }
+    /** Snake_case alias of `onDoubleClick`: registers a callback invoked when the user double-clicks this control. */
     on_dblclick(handler: EventCallback): this { return this.onDoubleClick(handler); }
+    /** Alias of `onDoubleClick`: registers a callback invoked when the user double-clicks this control. */
     bindDoubleClick(handler: EventCallback): this { return this.onDoubleClick(handler); }
+    /** Alias of `onDoubleClick`: registers a callback invoked when the user double-clicks this control. */
     bindDblClick(handler: EventCallback): this { return this.onDoubleClick(handler); }
 
+    /** Registers a callback invoked when the user right-clicks (opens the context menu on) this control. */
     onRightClick(handler: EventCallback): this {
         this.window.bindControlEvent(this.spec.id, "onContextMenu", handler);
         return this;
     }
+    /** Snake_case alias of `onRightClick`: registers a callback invoked when the user right-clicks (opens the context menu on) this control. */
     on_right_click(handler: EventCallback): this { return this.onRightClick(handler); }
 
+    /** Registers a callback invoked when the user presses the Enter/Return key while this control is focused. */
     onEnter(handler: EventCallback): this {
         this.window.bindControlEvent(this.spec.id, "onEnter", handler);
         return this;
     }
+    /** Snake_case alias of `onEnter`: registers a callback invoked when the user presses the Enter/Return key while this control is focused. */
     on_enter(handler: EventCallback): this { return this.onEnter(handler); }
 
+    /** Binds a custom or standard event handler by event name to this control. */
     on(event: string, handler: EventCallback): this {
         this.window.bindControlEvent(this.spec.id, event, handler);
         return this;
     }
 
+    /** Registers a callback invoked when the active selection in a list, table, or tree control changes. */
     onSelectionChange(handler: EventCallback): this {
         return this.on("selection_change", handler);
     }
+    /** Snake_case alias of `onSelectionChange`: registers a callback invoked when the active selection changes. */
     on_selection_change(handler: EventCallback): this {
         return this.on("selection_change", handler);
     }
 
+    /** Attaches a custom right-click context menu (array of labels or comma-separated string) and optional selection handler to this control. */
     contextMenu(items: string[] | string, onSelect?: EventCallback): this {
         const itemsArr = Array.isArray(items) ? items : items.split(",").map(s => s.trim());
         this.spec.context_menu_items = itemsArr;
@@ -422,146 +482,198 @@ export class SimpleControlRef {
         }
         return this;
     }
+    /** Snake_case alias of `contextMenu`: attaches a custom right-click context menu (array of labels or comma-separated string) and optional selection handler to this control. */
     context_menu(items: string[] | string, onSelect?: EventCallback): this {
         return this.contextMenu(items, onSelect);
     }
 
+    /** Establishes two-way reactive binding between this control's value and a key in the window's state store. */
     bindState(key: string): this {
         this.window.bindState(this.spec.id, key);
         return this;
     }
+    /** Snake_case alias of `bindState`: establishes two-way reactive binding between this control's value and a key in the window's state store. */
     bind_state(key: string): this {
         return this.bindState(key);
     }
+    /** Alias of `bindState`: establishes two-way reactive binding between this control's value and a key in the window's state store. */
     bindControl(key: string): this {
         return this.bindState(key);
     }
+    /** Snake_case alias of `bindState`: establishes two-way reactive binding between this control's value and a key in the window's state store. */
     bind_control(key: string): this {
         return this.bindState(key);
     }
+    /** Alias of `bindState`: establishes two-way reactive binding between this control's value and a key in the window's state store. */
     bindValue(key: string): this {
         return this.bindState(key);
     }
+    /** Snake_case alias of `bindState`: establishes two-way reactive binding between this control's value and a key in the window's state store. */
     bind_value(key: string): this {
         return this.bindState(key);
     }
+    /** Binds a click event callback to this control via `SimpleWindow.bindClick`. */
     bindClick(cb: EventCallback): this {
         this.window.bindClick(this.spec.id, cb);
         return this;
     }
+    /** Snake_case alias of `bindClick`: binds a click event callback to this control via `SimpleWindow.bindClick`. */
     bind_click(cb: EventCallback): this {
         return this.bindClick(cb);
     }
+    /** Binds a value-change event callback to this control via `SimpleWindow.bindChange`. */
     bindChange(cb: EventCallback): this {
         this.window.bindChange(this.spec.id, cb);
         return this;
     }
+    /** Snake_case alias of `bindChange`: binds a value-change event callback to this control via `SimpleWindow.bindChange`. */
     bind_change(cb: EventCallback): this {
         return this.bindChange(cb);
     }
+    /** Binds an Enter-key event callback to this control via `SimpleWindow.bindEnter`. */
     bindEnter(cb: EventCallback): this {
         this.window.bindEnter(this.spec.id, cb);
         return this;
     }
+    /** Snake_case alias of `bindEnter`: binds an Enter-key event callback to this control via `SimpleWindow.bindEnter`. */
     bind_enter(cb: EventCallback): this {
         return this.bindEnter(cb);
     }
 
+    /** Returns the current value of this control from the owning window's form values store. */
     getValue(): any {
         return this.window.getValue(this.spec.id);
     }
 
+    /** Updates the value of this control in the owning window and live DOM. */
     setValue(val: any): this {
         this.window.setValue(this.spec.id, val);
         return this;
     }
 
+    /** Returns the current string text content of this control. */
     getText(): string {
         return this.window.getText(this.spec.id);
     }
 
+    /** Updates the text content of this control in the owning window and live DOM. */
     setText(text: string): this {
         this.window.setText(this.spec.id, text);
         return this;
     }
 
+    /** Makes this control visible (`visible(true)`). */
     show(): this { return this.visible(true); }
+    /** Hides this control (`visible(false)`). */
     hide(): this { return this.visible(false); }
+    /** Opens this modal dialog control in the live window. */
     openModal(): this { this.window.openModal(this.spec.id); return this; }
+    /** Closes this modal dialog control in the live window. */
     closeModal(): this { this.window.closeModal(this.spec.id); return this; }
+    /** Snake_case alias of `openModal`: opens this modal dialog control in the live window. */
     open_modal(): this { return this.openModal(); }
+    /** Snake_case alias of `closeModal`: closes this modal dialog control in the live window. */
     close_modal(): this { return this.closeModal(); }
+    /** Enables user interaction on this control (`enabled(true)`). */
     enable(): this { return this.enabled(true); }
+    /** Disables user interaction on this control (`enabled(false)`). */
     disable(): this { return this.enabled(false); }
+    /** Sets the disabled state of this control (inverse of `enabled`). */
     disabled(flag = true): this { return this.enabled(!flag); }
+    /** Marks this input control as read-only or editable. */
     readOnly(flag = true): this { this.spec.readonly = flag; return this; }
+    /** Moves keyboard focus to this control in the live window. */
     focus(): this { this.window.setFocus(this.spec.id); return this; }
+    /** Briefly flashes an accent outline around this control to draw user attention. */
     flash(): this { this.window.flashControl(this.spec.id); return this; }
+    /** Highlights this control with a glowing box shadow for `durationMs` milliseconds. */
     highlight(durationMs = 1000): this { this.window.highlightControl(this.spec.id, durationMs); return this; }
+    /** Increments this numeric control's integer value by `delta` (default `1`) and returns the new value. */
     increment(delta = 1): number { return this.window.increment(this.spec.id, delta); }
+    /** Toggles this boolean/checkbox/switch control's checked state and returns the new boolean state. */
     toggleChecked(): boolean { return this.window.toggleChecked(this.spec.id); }
+    /** Appends a string to the end of this control's existing text content. */
     appendText(text: string): this { this.window.appendText(this.spec.id, text); return this; }
+    /** Appends a newline-delimited line of text to this control's existing text content. */
     appendLine(line: string): this { this.window.appendLine(this.spec.id, line); return this; }
     
+    /** Gets the control's current value when called with no arguments, or sets its value and returns `this` for chaining. */
     value(val?: any): any | this {
         if (val === undefined) return this.getValue();
         return this.setValue(val);
     }
+    /** Gets the control's current text when called with no arguments, or sets its text and returns `this` for chaining. */
     text(txt?: string): string | this {
         if (txt === undefined) return this.getText();
         return this.setText(txt);
     }
+    /** Replaces the selectable option items of this dropdown, list box, or segmented control. */
     options(items: string[]): this {
         this.window.setListItems(this.spec.id, items);
         return this;
     }
+    /** Sets the minimum allowed numeric value (`min_value`) for this slider, stepper, or progress control. */
     min(val: number): this { this.spec.min_value = val; return this; }
+    /** Sets the maximum allowed numeric value (`max_value`) for this slider, stepper, or progress control. */
     max(val: number): this { this.spec.max_value = val; return this; }
+    /** Sets the numeric increment step interval for this slider or stepper control. */
     step(val: number): this { this.spec.step = val; return this; }
 
+    /** Enables or disables multiple-item selection mode on this list or table control. */
     multiSelect(enable = true): this {
         this.spec.multiple = enable;
         this.spec.multi_select = enable;
         this.spec.selection_mode = enable ? "multiple" : "single";
         return this;
     }
+    /** Snake_case alias of `multiSelect`: enables or disables multiple-item selection mode on this list or table control. */
     multi_select(enable = true): this { return this.multiSelect(enable); }
 
+    /** Enables or disables per-row selection checkboxes on this list or table control. */
     checkboxSelection(enable = true): this {
         this.spec.checkbox_selection = enable;
         this.spec.selectable_checkbox = enable;
         return this;
     }
+    /** Snake_case alias of `checkboxSelection`: enables or disables per-row selection checkboxes on this list or table control. */
     checkbox_selection(enable = true): this { return this.checkboxSelection(enable); }
 
+    /** Returns the currently selected item labels of this list or multi-select control as an array of strings. */
     getSelectedItems(): string[] {
         const val = this.getValue();
         if (Array.isArray(val)) return val.map(String);
         if (typeof val === "string" && val.length > 0) return val.split(",").map(s => s.trim());
         return [];
     }
+    /** Snake_case alias of `getSelectedItems`: returns the currently selected item labels of this list or multi-select control as an array of strings. */
     get_selected_items(): string[] { return this.getSelectedItems(); }
 
+    /** Returns the currently selected row records of this table or tree-grid control as an array. */
     getSelectedRows(): any[] {
         const val = this.getValue();
         if (Array.isArray(val)) return val;
         return [];
     }
+    /** Snake_case alias of `getSelectedRows`: returns the currently selected row records of this table or tree-grid control as an array. */
     get_selected_rows(): any[] { return this.getSelectedRows(); }
 
+    /** Registers a callback invoked when a disclosure, collapsible section, or toggle control expands or collapses. */
     onToggle(handler: EventCallback): this {
         return this.on("toggle", handler);
     }
+    /** Snake_case alias of `onToggle`: registers a callback invoked when a disclosure, collapsible section, or toggle control expands or collapses. */
     on_toggle(handler: EventCallback): this {
         return this.onToggle(handler);
     }
 
+    /** Expands all nodes in this tree view, tree grid, or accordion control in the live window. */
     expandAll(): this {
         if (this.window && (this.window as any).evalJs) {
             (this.window as any).evalJs(`if(window['${this.spec.id}_expandAll'])window['${this.spec.id}_expandAll']();`);
         }
         return this;
     }
+    /** Collapses all nodes in this tree view, tree grid, or accordion control in the live window. */
     collapseAll(): this {
         if (this.window && (this.window as any).evalJs) {
             (this.window as any).evalJs(`if(window['${this.spec.id}_collapseAll'])window['${this.spec.id}_collapseAll']();`);
@@ -569,51 +681,74 @@ export class SimpleControlRef {
         return this;
     }
 
+    /** Configures whether tabs or panels in this control render a close (`×`) button. */
     closable(enable = true): this {
         this.spec.closable = enable;
         this.spec.closeable = enable;
         return this;
     }
+    /** Configures whether columns or items in this table or list control can be sorted by the user. */
     sortable(enable = true): this {
         this.spec.sortable = enable;
         return this;
     }
+    /** Configures whether columns or panes in this control can be resized interactively. */
     resizable(enable = true): this {
         this.spec.resizable = enable;
         return this;
     }
 
+    /** Registers a handler invoked when a command palette or menu item is executed or selected. */
     onCommand(handler: EventCallback): this {
         this.on("command", handler);
         return this.on("select", handler);
     }
+    /** Registers a callback invoked when a closable tab is closed by the user. */
     onTabClose(handler: EventCallback): this {
         return this.on("tab_close", handler);
     }
+    /** Registers a callback invoked when a card is dragged across columns in a Kanban board. */
     onCardMove(handler: EventCallback): this {
         return this.on("card_move", handler);
     }
+    /** Registers a callback invoked when a split pane or resizable control is resized. */
     onResize(handler: EventCallback): this {
         return this.on("resize", handler);
     }
+    /** Registers a callback invoked when a table column is sorted. */
     onSort(handler: EventCallback): this {
         return this.on("sort", handler);
     }
 
+    /** Snake_case alias of `onClick`: registers a callback invoked when the user clicks or activates this control. */
     on_click(handler: EventCallback): this { return this.onClick(handler); }
+    /** Snake_case alias of `onChange`: registers a callback invoked whenever this control's value or selection changes. */
     on_change(handler: EventCallback): this { return this.onChange(handler); }
+    /** Snake_case alias of `onHover`: registers a callback invoked when the pointer enters this control. */
     on_hover(handler: EventCallback): this { return this.onHover(handler); }
+    /** Snake_case alias of `onHoverExit`: registers a callback invoked when the pointer leaves this control. */
     on_hover_exit(handler: EventCallback): this { return this.onHoverExit(handler); }
+    /** Snake_case alias of `getValue`: returns the current value of this control from the owning window's form values store. */
     get_value(): any { return this.getValue(); }
+    /** Snake_case alias of `setValue`: updates the value of this control in the owning window and live DOM. */
     set_value(val: any): this { return this.setValue(val); }
+    /** Snake_case alias of `getText`: returns the current string text content of this control. */
     get_text(): string { return this.getText(); }
+    /** Snake_case alias of `setText`: updates the text content of this control in the owning window and live DOM. */
     set_text(text: string): this { return this.setText(text); }
+    /** Snake_case alias of `enabled`: enables or disables user interaction on this control, syncing immediately with the live DOM when the window is running. */
     set_enabled(flag = true): this { return this.enabled(flag); }
+    /** Snake_case alias of `visible`: shows or hides this control, syncing visibility immediately with the live DOM when the window is running. */
     set_visible(flag = true): this { return this.visible(flag); }
+    /** Snake_case alias of `readOnly`: marks this input control as read-only or editable. */
     read_only(flag = true): this { return this.readOnly(flag); }
+    /** Snake_case alias of `toggleChecked`: toggles this boolean/checkbox/switch control's checked state and returns the new boolean state. */
     toggle_checked(): boolean { return this.toggleChecked(); }
+    /** Snake_case alias of `appendText`: appends a string to the end of this control's existing text content. */
     append_text(text: string): this { return this.appendText(text); }
+    /** Snake_case alias of `appendLine`: appends a newline-delimited line of text to this control's existing text content. */
     append_line(line: string): this { return this.appendLine(line); }
+    /** Snake_case alias of `options`: replaces the selectable option items of this dropdown, list box, or segmented control. */
     set_options(items: string[]): this { return this.options(items); }
 }
 
@@ -630,6 +765,7 @@ interface LayoutFrame {
     cardSpec?: any;
 }
 
+/** Structural layout section descriptor (header bar, card, row, grid, or standalone control group) used when rendering responsive window HTML. */
 export interface SimpleguiLayoutSection {
     type: "header_bar" | "card" | "row" | "standalone" | "grid";
     id?: string;
@@ -647,6 +783,7 @@ export interface SimpleguiLayoutSection {
 // Path, Directory & Atomic File Utilities
 // =============================================================================
 
+/** Expands leading `~` home shortcuts and `$VAR` / `${VAR}` environment variables in a path string and resolves it to an absolute filesystem path. */
 export function resolveUserPath(filePath: string): string {
     if (!filePath) return "";
     let p = filePath;
@@ -659,8 +796,10 @@ export function resolveUserPath(filePath: string): string {
     p = p.replace(/\$([A-Za-z_][A-Za-z0-9_]*)/g, (_, name) => process.env[name] || "");
     return path.resolve(p);
 }
+/** Snake_case alias of `resolveUserPath`: expands `~` and environment variables in a path string to an absolute path. */
 export const resolve_user_path = resolveUserPath;
 
+/** Returns the platform-specific user configuration directory (`~/.config/<appName>` on macOS/Linux or `%APPDATA%\<appName>` on Windows). */
 export function getAppConfigDir(appName: string): string {
     const home = os.homedir() || process.env.HOME || "/Users";
     if (process.platform === "win32") {
@@ -670,8 +809,10 @@ export function getAppConfigDir(appName: string): string {
     const xdgConfig = process.env.XDG_CONFIG_HOME || path.join(home, ".config");
     return path.join(xdgConfig, appName);
 }
+/** Snake_case alias of `getAppConfigDir`: returns the platform-specific user configuration directory for `appName`. */
 export const get_app_config_dir = getAppConfigDir;
 
+/** Returns the platform-specific application data directory (`~/Library/Application Support/<appName>`, `%LOCALAPPDATA%\<appName>`, or `~/.local/share/<appName>`). */
 export function getAppDataDir(appName: string): string {
     const home = os.homedir() || process.env.HOME || "/Users";
     if (process.platform === "darwin") {
@@ -684,8 +825,10 @@ export function getAppDataDir(appName: string): string {
     const xdgData = process.env.XDG_DATA_HOME || path.join(home, ".local", "share");
     return path.join(xdgData, appName);
 }
+/** Snake_case alias of `getAppDataDir`: returns the platform-specific application data directory for `appName`. */
 export const get_app_data_dir = getAppDataDir;
 
+/** Returns the platform-specific cache directory (`~/Library/Caches/<appName>`, `%LOCALAPPDATA%\<appName>\Cache`, or `~/.cache/<appName>`). */
 export function getAppCacheDir(appName: string): string {
     const home = os.homedir() || process.env.HOME || "/Users";
     if (process.platform === "darwin") {
@@ -698,8 +841,10 @@ export function getAppCacheDir(appName: string): string {
     const xdgCache = process.env.XDG_CACHE_HOME || path.join(home, ".cache");
     return path.join(xdgCache, appName);
 }
+/** Snake_case alias of `getAppCacheDir`: returns the platform-specific cache directory for `appName`. */
 export const get_app_cache_dir = getAppCacheDir;
 
+/** Returns the platform-specific persistent application state directory (`~/Library/Application Support/<appName>`, `%LOCALAPPDATA%\<appName>`, or `~/.local/state/<appName>`). */
 export function getAppStateDir(appName: string): string {
     const home = os.homedir() || process.env.HOME || "/Users";
     if (process.platform === "darwin") {
@@ -712,8 +857,10 @@ export function getAppStateDir(appName: string): string {
     const xdgState = process.env.XDG_STATE_HOME || path.join(home, ".local", "state");
     return path.join(xdgState, appName);
 }
+/** Snake_case alias of `getAppStateDir`: returns the platform-specific persistent state directory for `appName`. */
 export const get_app_state_dir = getAppStateDir;
 
+/** Returns the platform-specific application log directory (`~/Library/Logs/<appName>`, `%LOCALAPPDATA%\<appName>\Logs`, or `<stateDir>/log`). */
 export function getAppLogDir(appName: string): string {
     const home = os.homedir() || process.env.HOME || "/Users";
     if (process.platform === "darwin") {
@@ -725,26 +872,34 @@ export function getAppLogDir(appName: string): string {
     }
     return path.join(getAppStateDir(appName), "log");
 }
+/** Snake_case alias of `getAppLogDir`: returns the platform-specific application log directory for `appName`. */
 export const get_app_log_dir = getAppLogDir;
 
+/** Returns the temporary runtime directory for an application (`$XDG_RUNTIME_DIR/<appName>` or `<tmpdir>/<appName>_runtime`). */
 export function getAppRuntimeDir(appName: string): string {
     if (process.platform !== "win32" && process.env.XDG_RUNTIME_DIR) {
         return path.join(process.env.XDG_RUNTIME_DIR, appName);
     }
     return path.join(os.tmpdir(), `${appName}_runtime`);
 }
+/** Snake_case alias of `getAppRuntimeDir`: returns the temporary runtime directory for `appName`. */
 export const get_app_runtime_dir = getAppRuntimeDir;
 
+/** Resolves the full path to a named configuration file (default `"settings.json"`) inside the application's config directory. */
 export function getAppConfigFile(appName: string, filename = "settings.json"): string {
     return path.join(getAppConfigDir(appName), filename);
 }
+/** Snake_case alias of `getAppConfigFile`: resolves the full path to a configuration file for `appName`. */
 export const get_app_config_file = getAppConfigFile;
 
+/** Resolves the full path to a named state file (default `"state.json"`) inside the application's state directory. */
 export function getAppStateFile(appName: string, filename = "state.json"): string {
     return path.join(getAppStateDir(appName), filename);
 }
+/** Snake_case alias of `getAppStateFile`: resolves the full path to a state file for `appName`. */
 export const get_app_state_file = getAppStateFile;
 
+/** Writes UTF-8 string content to `filePath` atomically by writing to a process-unique temporary file in the target directory and renaming it over the destination. */
 export function writeFileAtomic(filePath: string, content: string): void {
     const resolved = resolveUserPath(filePath);
     const parentDir = path.dirname(resolved);
@@ -764,14 +919,18 @@ export function writeFileAtomic(filePath: string, content: string): void {
         throw err;
     }
 }
+/** Snake_case alias of `writeFileAtomic`: atomically writes UTF-8 content to `filePath` via a temporary file rename. */
 export const write_file_atomic = writeFileAtomic;
 
+/** Serializes a key-value state dictionary as formatted JSON and writes it atomically to `filePath`. */
 export function saveStateToFile(filePath: string, store: Record<string, any>): void {
     const json = JSON.stringify(store, null, 2);
     writeFileAtomic(filePath, json);
 }
+/** Snake_case alias of `saveStateToFile`: serializes a key-value state store as JSON and writes it atomically to `filePath`. */
 export const save_state_to_file = saveStateToFile;
 
+/** Reads and parses a JSON key-value state file from disk, coercing all loaded values to strings. */
 export function loadStateFromFile(filePath: string): Record<string, string> {
     const resolved = resolveUserPath(filePath);
     if (!fs.existsSync(resolved)) {
@@ -786,8 +945,10 @@ export function loadStateFromFile(filePath: string): Record<string, string> {
     }
     return result;
 }
+/** Snake_case alias of `loadStateFromFile`: reads a JSON key-value state file from disk into a string dictionary. */
 export const load_state_from_file = loadStateFromFile;
 
+/** Persists the user's preferred global SimpleGUI theme name to `~/.config/simplegui/theme.txt`. */
 export function saveTheme(themeName: string): boolean {
     try {
         const themeDir = path.join(os.homedir() || process.env.HOME || "/Users", ".config", "simplegui");
@@ -798,8 +959,10 @@ export function saveTheme(themeName: string): boolean {
         return false;
     }
 }
+/** Snake_case alias of `saveTheme`: persists the preferred global SimpleGUI theme name to disk. */
 export const save_theme = saveTheme;
 
+/** Reads the user's globally saved SimpleGUI theme name from `~/.config/simplegui/theme.txt`, or returns `""` if none is saved. */
 export function getSavedTheme(): string {
     try {
         const themeFile = path.join(os.homedir() || process.env.HOME || "/Users", ".config", "simplegui", "theme.txt");
@@ -810,8 +973,10 @@ export function getSavedTheme(): string {
     } catch (e) {}
     return "";
 }
+/** Snake_case alias of `getSavedTheme`: reads the globally saved SimpleGUI theme name from disk. */
 export const get_saved_theme = getSavedTheme;
 
+/** Determines whether a control's value should be automatically persisted across sessions, excluding transient consoles/logs and sensitive password/secret fields. */
 export function shouldPersistControl(ctrl: any): boolean {
     if (!ctrl) return false;
     const name = ctrl.id || ctrl.name;
@@ -856,8 +1021,10 @@ export function shouldPersistControl(ctrl: any): boolean {
 
     return true;
 }
+/** Snake_case alias of `shouldPersistControl`: checks whether a control is eligible for automatic form-state persistence. */
 export const should_persist_control = shouldPersistControl;
 
+/** Computes perceived luminance (ITU-R BT.601) of a `#RGB` or `#RRGGBB` hex color and returns `true` when it exceeds the light-surface threshold (`> 180`). */
 export function isBrightColor(hex?: string): boolean {
     if (!hex || typeof hex !== "string" || !hex.startsWith("#")) return false;
     const clean = hex.slice(1);
@@ -878,8 +1045,10 @@ export function isBrightColor(hex?: string): boolean {
     }
     return (r * 0.299 + g * 0.587 + b * 0.114) > 180;
 }
+/** Snake_case alias of `isBrightColor`: returns `true` when a hex color has high perceived luminance. */
 export const is_bright_color = isBrightColor;
 
+/** Returns `true` when a hex accent color requires dark foreground text for legibility, checking both the curated bright-accent palette and perceived luminance. */
 export function isBrightAccentColor(hex?: string): boolean {
     if (!hex) return false;
     const lower = hex.toLowerCase();
@@ -890,8 +1059,10 @@ export function isBrightAccentColor(hex?: string): boolean {
     ]);
     return brights.has(lower) || isBrightColor(hex);
 }
+/** Snake_case alias of `isBrightAccentColor`: checks whether an accent color requires dark contrasting foreground text. */
 export const is_bright_accent_color = isBrightAccentColor;
 
+/** Main SimpleGUI application window and form builder supporting native webview windows, browser hosting, fluent layout containers, 140+ controls, dialogs, and reactive state. */
 export class SimpleWindow {
     public title: string;
     public width: number;
@@ -938,6 +1109,7 @@ export class SimpleWindow {
     private _sectionRowCounter = 0;
     public responsiveLayout = true;
 
+    /** Internal helper that updates all references to a control ID across active and committed layout sections when a control is renamed via `.id()`. */
     public _renameControlInLayoutSections(oldId: string, newId: string): void {
         const renameInList = (list: string[]) => {
             for (let i = 0; i < list.length; i++) {
@@ -975,6 +1147,7 @@ export class SimpleWindow {
         }
     }
 
+    /** Creates a new `SimpleWindow` instance with the given window title, pixel dimensions, and optional theme/layout configuration. */
     constructor(title = "SimpleGUI Application", width = 800, height = 600, options: SimpleWindowOptions = {}) {
         this.title = options.title || title;
         this.width = options.width || width;
@@ -1034,6 +1207,7 @@ export class SimpleWindow {
         return pairs;
     }
 
+    /** Cycles the window's active theme forward (`1`) or backward (`-1`) through the available theme catalog, optionally persisting the choice. */
     public cycleTheme(direction: 1 | -1 = 1, persist = true): this {
         const selector = this.controls.find((control) => control.is_theme_selector);
         const names = new Set<string>();
@@ -1054,6 +1228,7 @@ export class SimpleWindow {
         return this;
     }
 
+    /** Applies a registered SimpleGUI theme by name or key, updating window/control palettes in place (including live DOM CSS variables when running) and optionally persisting the selection. */
     public setTheme(themeName: string, persist = true): this {
         const previousThemeName = this.theme;
         this.theme = themeName;
@@ -1451,6 +1626,7 @@ export class SimpleWindow {
         if (this.isWindowRunning) this.syncFx(previousThemeName);
         return this;
     }
+    /** Snake_case alias of `setTheme`: applies a registered SimpleGUI theme by name or key, updating window/control palettes in place (including live DOM CSS variables when running) and optionally persisting the selection. */
     public set_theme(themeName: string, persist = true): this {
         return this.setTheme(themeName, persist);
     }
@@ -1465,6 +1641,7 @@ export class SimpleWindow {
         this.effects = resolved.fxMode === "on" ? "full" : resolved.fxMode;
         return this.setTheme(resolved.appliedKey, persist);
     }
+    /** Snake_case alias of `setThemeSafe`: resolves and applies a theme with automatic hardware-capability fallback for FX themes. */
     public set_theme_safe(themeName: string, hw?: FxHardwareInput, persist = true, opts?: { revertToFallbackTheme?: boolean }): this {
         return this.setThemeSafe(themeName, hw, persist, opts);
     }
@@ -1475,6 +1652,7 @@ export class SimpleWindow {
         if (this.isWindowRunning) this.syncFx(this.theme);
         return this;
     }
+    /** Snake_case alias of `setEffects`: sets the window's visual effects mode (`"full"`, `"reduced"`, or `"off"`). */
     public set_effects(mode: "full" | "reduced" | "off"): this {
         return this.setEffects(mode);
     }
@@ -1503,6 +1681,7 @@ export class SimpleWindow {
         `);
     }
 
+    /** Configures whether the native window floats above all other windows on screen. */
     public setAlwaysOnTop(onTop: boolean): this {
         this.alwaysOnTop = onTop;
         if (this.webview) {
@@ -1511,6 +1690,7 @@ export class SimpleWindow {
         return this;
     }
 
+    /** Enables or disables native fullscreen mode for the window. */
     public setFullscreen(fullscreen = true): this {
         this.fullscreen = fullscreen;
         if (this.webview) {
@@ -1519,6 +1699,7 @@ export class SimpleWindow {
         return this;
     }
 
+    /** Returns `true` if the window is currently in fullscreen mode. */
     public isFullscreen(): boolean {
         if (this.webview) {
             return isFullscreenNative(this.webview);
@@ -1526,6 +1707,7 @@ export class SimpleWindow {
         return this.fullscreen;
     }
 
+    /** Toggles the window between fullscreen and windowed mode. */
     public toggleFullscreen(): this {
         if (this.webview) {
             toggleFullscreenNative(this.webview);
@@ -1533,11 +1715,13 @@ export class SimpleWindow {
         return this;
     }
 
+    /** Returns `true` while the window's native webview or browser-hosted session is actively running. */
     public isRunning(): boolean {
         return this.isWindowRunning;
     }
 
     // --- Layout Containers ---
+    /** Begins a horizontal row layout container where subsequent controls are placed side-by-side from left to right. */
     public beginRow(): this {
         this._sectionRowCounter++;
         const rowId = "rad_row_" + this._sectionRowCounter;
@@ -1557,8 +1741,10 @@ export class SimpleWindow {
         });
         return this;
     }
+    /** Snake_case alias of `beginRow`: begins a horizontal row layout container where subsequent controls are placed side-by-side from left to right. */
     public begin_row(): this { return this.beginRow(); }
 
+    /** Closes the current horizontal row layout container and advances vertical cursor flow to the next line. */
     public endRow(): this {
         if (this._currentRowSection && this._currentRowSection.controls.length > 0) {
             if (this._currentCardSection) {
@@ -1586,8 +1772,10 @@ export class SimpleWindow {
         }
         return this;
     }
+    /** Snake_case alias of `endRow`: closes the current horizontal row layout container and advances vertical cursor flow to the next line. */
     public end_row(): this { return this.endRow(); }
 
+    /** Begins a multi-column responsive grid layout container with `cols` columns and `gap` pixel spacing. */
     public beginGrid(cols = 2, gap = 12): this {
         if (this._currentRowSection && this._currentRowSection.controls.length > 0) {
             if (this._currentCardSection) {
@@ -1627,8 +1815,10 @@ export class SimpleWindow {
         });
         return this;
     }
+    /** Snake_case alias of `beginGrid`: begins a multi-column responsive grid layout container with `cols` columns and `gap` pixel spacing. */
     public begin_grid(cols = 2, gap = 12): this { return this.beginGrid(cols, gap); }
 
+    /** Closes the current multi-column grid layout container and advances vertical layout coordinates. */
     public endGrid(): this {
         if (this._currentGridSection) {
             this._layoutSections.push(this._currentGridSection);
@@ -1648,8 +1838,10 @@ export class SimpleWindow {
         }
         return this;
     }
+    /** Snake_case alias of `endGrid`: closes the current multi-column grid layout container and advances vertical layout coordinates. */
     public end_grid(): this { return this.endGrid(); }
 
+    /** Begins an elevated card container section with an optional header title and subtitle. */
     public beginCard(title?: string, subtitle?: string): this {
         if (this._currentRowSection && this._currentRowSection.controls.length > 0) {
             this._layoutSections.push({
@@ -1704,8 +1896,10 @@ export class SimpleWindow {
         }
         return this;
     }
+    /** Snake_case alias of `beginCard`: begins an elevated card container section with an optional header title and subtitle. */
     public begin_card(title?: string, subtitle?: string): this { return this.beginCard(title, subtitle); }
 
+    /** Closes the current card container section, finalizing its bounding height and advancing the vertical layout cursor. */
     public endCard(): this {
         if (this._currentRowSection && this._currentRowSection.controls.length > 0 && this._currentCardSection) {
             this._currentCardSection.rows = this._currentCardSection.rows || [];
@@ -1749,8 +1943,10 @@ export class SimpleWindow {
         }
         return this;
     }
+    /** Snake_case alias of `endCard`: closes the current card container section, finalizing its bounding height and advancing the vertical layout cursor. */
     public end_card(): this { return this.endCard(); }
 
+    /** Begins a flex layout container along the specified `direction` (`"row"` or `"column"`). */
     public beginFlex(direction: "row" | "column" = "row", justify = "start", align = "center"): this {
         if (direction === "row") {
             return this.beginRow();
@@ -1758,18 +1954,22 @@ export class SimpleWindow {
             return this;
         }
     }
+    /** Snake_case alias of `beginFlex`: begins a flex layout container along the specified `direction` (`"row"` or `"column"`). */
     public begin_flex(direction: "row" | "column" = "row", justify = "start", align = "center"): this {
         return this.beginFlex(direction, justify, align);
     }
 
+    /** Closes the active flex layout container. */
     public endFlex(): this {
         if (this.layoutStack.length > 0 && this.layoutStack[this.layoutStack.length - 1]?.type === "row") {
             return this.endRow();
         }
         return this;
     }
+    /** Snake_case alias of `endFlex`: closes the active flex layout container. */
     public end_flex(): this { return this.endFlex(); }
 
+    /** Calculates the available horizontal content width (in pixels) inside the current layout container or window padding. */
     public getAvailableWidth(): number {
         for (let i = this.layoutStack.length - 1; i >= 0; i--) {
             const frame = this.layoutStack[i];
@@ -1931,6 +2131,7 @@ export class SimpleWindow {
         }
     }
 
+    /** Adjusts horizontal positions of sibling controls in the active row when a control's explicit width changes. */
     public recalculateRowX(spec: any, oldWidth: number, newWidth: number): void {
         const activeFrame = this.layoutStack[this.layoutStack.length - 1];
         if (activeFrame && activeFrame.type === "row") {
@@ -1956,6 +2157,7 @@ export class SimpleWindow {
         }
     }
 
+    /** Adjusts vertical layout offsets when a control's explicit height changes. */
     public recalculateHeightY(spec: any, oldHeight: number, newHeight: number): void {
         const delta = newHeight - oldHeight;
         const activeFrame = this.layoutStack[this.layoutStack.length - 1];
@@ -2017,6 +2219,7 @@ export class SimpleWindow {
     }
 
     // --- Control Builder Methods ---
+    /** Adds a text label control to the current layout container and returns a fluent `SimpleControlRef`. */
     public addLabel(idOrText: string, textOrOpts?: string | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
         let text = idOrText;
         let explicitId: string | undefined;
@@ -2051,6 +2254,7 @@ export class SimpleWindow {
         return this.addVisualControl("label", defaultW, 24, ctrlOpts);
     }
 
+    /** Adds a clickable push button control with optional explicit ID, click handler, and style options. */
     public addButton(idOrText: string, textOrOnClick?: string | EventCallback, onClickOrOpts?: EventCallback | Partial<any>, optsArg: Partial<any> = {}): SimpleControlRef {
         let text = idOrText;
         let explicitId: string | undefined;
@@ -2098,10 +2302,12 @@ export class SimpleWindow {
         return ref;
     }
 
+    /** Snake_case alias of `addButton`: adds a clickable push button control with optional explicit ID, click handler, and style options. */
     public add_button(idOrText: string, textOrOnClick?: string | EventCallback, onClickOrOpts?: EventCallback | Partial<any>, optsArg: Partial<any> = {}): SimpleControlRef {
         return this.addButton(idOrText, textOrOnClick, onClickOrOpts, optsArg);
     }
 
+    /** Adds a single-line text input control with placeholder, optional initial value, and change callback. */
     public addTextInput(placeholder = "", arg2: string | EventCallback | Partial<any> = "", arg3: string | EventCallback | Partial<any> = {}): SimpleControlRef {
         let initialValue = "";
         let onChange: EventCallback | undefined;
@@ -2134,20 +2340,25 @@ export class SimpleWindow {
         if (onChange) ref.onChange(onChange);
         return ref;
     }
+    /** Snake_case alias of `addTextInput`: adds a single-line text input control with placeholder, optional initial value, and change callback. */
     public add_text_input(placeholder = "", arg2: string | EventCallback | Partial<any> = "", arg3: EventCallback | Partial<any> = {}): SimpleControlRef {
         return this.addTextInput(placeholder, arg2, arg3);
     }
+    /** Alias of `addTextInput`: adds a single-line text input control with placeholder, optional initial value, and change callback. */
     public addTextField(placeholder = "", arg2: string | EventCallback | Partial<any> = "", arg3: string | EventCallback | Partial<any> = {}): SimpleControlRef {
         return this.addTextInput(placeholder, arg2, arg3);
     }
+    /** Snake_case alias of `addTextInput`: adds a single-line text input control with placeholder, optional initial value, and change callback. */
     public add_text_field(placeholder = "", arg2: string | EventCallback | Partial<any> = "", arg3: string | EventCallback | Partial<any> = {}): SimpleControlRef {
         return this.addTextInput(placeholder, arg2, arg3);
     }
 
+    /** Adds a masked password input field with placeholder text and custom options. */
     public addPasswordInput(placeholder = "••••••••", opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("password", 280, 36, { placeholder, ...opts });
     }
 
+    /** Adds a multi-line text area control with optional ID, placeholder, and initial text content. */
     public addTextArea(idOrPlaceholder = "", initialValueOrPlaceholder = "", optsOrPlaceholder: string | Partial<any> = {}): SimpleControlRef {
         let id: string | undefined;
         let placeholder = idOrPlaceholder;
@@ -2176,6 +2387,7 @@ export class SimpleWindow {
         return ref;
     }
 
+    /** Adds a boolean checkbox control with label text, initial checked state, and optional change handler. */
     public addCheckbox(idOrLabel: string, labelOrChecked: string | boolean = false, checkedOrOnChange: boolean | EventCallback = false, onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         let explicitId: string | undefined;
         let label = idOrLabel;
@@ -2208,6 +2420,7 @@ export class SimpleWindow {
         return ref;
     }
 
+    /** Adds a sliding boolean toggle switch control with label, initial state, and optional change callback. */
     public addSwitch(label: string, checked = false, onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         const ref = this.addVisualControl("switch", 260, 26, { text: label, caption: label, value: checked, checked, ...opts });
         this.formValuesStore[ref.spec.id] = checked;
@@ -2215,6 +2428,7 @@ export class SimpleWindow {
         return ref;
     }
 
+    /** Adds a horizontal numeric range slider control bounded by `[min, max]` with initial value and change handler. */
     public addSlider(min = 0, max = 100, value = 50, onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         const ref = this.addVisualControl("slider", 280, 24, { min_value: min, max_value: max, value, ...opts });
         this.formValuesStore[ref.spec.id] = value;
@@ -2222,6 +2436,7 @@ export class SimpleWindow {
         return ref;
     }
 
+    /** Adds a numeric stepper input with increment/decrement buttons bounded by `[min, max]`. */
     public addStepper(min = 0, max = 100, value = 1, onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         const ref = this.addVisualControl("number_stepper", 140, 36, { min_value: min, max_value: max, value, ...opts });
         this.formValuesStore[ref.spec.id] = value;
@@ -2229,10 +2444,12 @@ export class SimpleWindow {
         return ref;
     }
 
+    /** Adds a horizontal progress bar indicator showing `value` relative to `max`. */
     public addProgressBar(value = 50, max = 100, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("progress_bar", 280, 20, { value, max_value: max, ...opts });
     }
 
+    /** Adds a single-select dropdown (`<select>`) control populated with `items`, optional initial selection, and change handler. */
     public addDropdown(idOrItems: string | string[], itemsOrSelected?: string[] | string | number | EventCallback, selectedOrOnChange?: string | number | EventCallback, onChangeOrOpts?: EventCallback | Record<string, any>, optsArg: Record<string, any> = {}): SimpleControlRef {
         let explicitId: string | undefined;
         let items: string[] = [];
@@ -2284,6 +2501,7 @@ export class SimpleWindow {
         return ref;
     }
 
+    /** Adds an interactive theme-switcher dropdown pre-populated with SimpleGUI themes that automatically re-themes the window on selection. */
     public addThemeSelector(
         idOrLabel: string = "dd_theme",
         labelOrPopularOnly: string | boolean = "Theme:",
@@ -2428,10 +2646,12 @@ export class SimpleWindow {
 
         return ref;
     }
+    /** Snake_case alias of `addThemeSelector`: adds an interactive theme-switcher dropdown pre-populated with SimpleGUI themes that automatically re-themes the window on selection. */
     public add_theme_selector(id = "dd_theme", label = "Theme:", popularOnly = false, width = 135, autoShortNames = true): SimpleControlRef {
         return this.addThemeSelector(id, label, popularOnly, width, autoShortNames);
     }
 
+    /** Adds a scrollable single- or multi-selection list box control with selectable string items. */
     public addListBox(idOrItems: string | string[], itemsOrSelected?: string[] | string | string[] | number | EventCallback, selectedOrOnChange?: string | string[] | number | EventCallback, onChangeOrOpts?: EventCallback | Record<string, any>, optsArg: Record<string, any> = {}): SimpleControlRef {
         let explicitId: string | undefined;
         let items: string[] = [];
@@ -2501,10 +2721,12 @@ export class SimpleWindow {
         }
         return ref;
     }
+    /** Snake_case alias of `addListBox`: adds a scrollable single- or multi-selection list box control with selectable string items. */
     public add_list_box(idOrItems: string | string[], itemsOrSelected?: string[] | string | string[] | number | EventCallback, selectedOrOnChange?: string | string[] | number | EventCallback, onChangeOrOpts?: EventCallback | Record<string, any>, optsArg: Record<string, any> = {}): SimpleControlRef {
         return this.addListBox(idOrItems, itemsOrSelected, selectedOrOnChange, onChangeOrOpts, optsArg);
     }
 
+    /** Adds a multi-selection list box control allowing multiple items to be selected simultaneously. */
     public addMultiListBox(idOrItems: string | string[], itemsOrSelected?: string[] | string | EventCallback, selectedOrOnChange?: string[] | string | EventCallback, onChangeOrOpts?: EventCallback | Record<string, any>, optsArg: Record<string, any> = {}): SimpleControlRef {
         let explicitId: string | undefined;
         let items: string[] = [];
@@ -2574,10 +2796,12 @@ export class SimpleWindow {
         }
         return ref;
     }
+    /** Snake_case alias of `addMultiListBox`: adds a multi-selection list box control allowing multiple items to be selected simultaneously. */
     public add_multi_list_box(idOrItems: string | string[], itemsOrSelected?: string[] | string | EventCallback, selectedOrOnChange?: string[] | string | EventCallback, onChangeOrOpts?: EventCallback | Record<string, any>, optsArg: Record<string, any> = {}): SimpleControlRef {
         return this.addMultiListBox(idOrItems, itemsOrSelected, selectedOrOnChange, onChangeOrOpts, optsArg);
     }
 
+    /** Adds a horizontal pill-style segmented button bar where one segment is active at a time. */
     public addSegmentedControl(items: string[], selectedIndex = 0, onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         const text = items.join(", ");
         const initialVal = items[selectedIndex] || "";
@@ -2588,12 +2812,14 @@ export class SimpleWindow {
         return ref;
     }
 
+    /** Adds a search input field with a magnifier icon, clear action, and change handler. */
     public addSearchInput(placeholder = "Search...", onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         const ref = this.addVisualControl("search", 260, 36, { placeholder, ...opts });
         if (onChange) ref.onChange(onChange);
         return ref;
     }
 
+    /** Adds an interactive color picker well initialized to the specified hex color. */
     public addColorWell(initialColor = "#0284c7", onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         const ref = this.addVisualControl("color_picker", 120, 36, { value: initialColor, ...opts });
         this.formValuesStore[ref.spec.id] = initialColor;
@@ -2601,6 +2827,7 @@ export class SimpleWindow {
         return ref;
     }
 
+    /** Adds a calendar date picker input initialized to an ISO date string (`YYYY-MM-DD`). */
     public addDatePicker(initialDate = "2026-07-27", onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         const ref = this.addVisualControl("date_picker", 180, 36, { value: initialDate, ...opts });
         this.formValuesStore[ref.spec.id] = initialDate;
@@ -2608,6 +2835,7 @@ export class SimpleWindow {
         return ref;
     }
 
+    /** Adds a time picker input initialized to a 24-hour time string (`HH:MM`). */
     public addTimePicker(initialTime = "12:00", onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         const ref = this.addVisualControl("time_picker", 140, 36, { value: initialTime, ...opts });
         this.formValuesStore[ref.spec.id] = initialTime;
@@ -2615,10 +2843,12 @@ export class SimpleWindow {
         return ref;
     }
 
+    /** Adds a semantic status badge pill (`"info"`, `"success"`, `"warning"`, or `"error"`). */
     public addBadge(text: string, type: "info" | "success" | "warning" | "error" = "info", opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("status_badge", 120, 26, { text, caption: text, alert_type: type, ...opts });
     }
 
+    /** Adds an interactive data table control with column headers, 2D row array, and row selection callback. */
     public addTable(idOrHeaders: string | string[], headersOrRows?: string[] | any[][], rowsOrOnSelect?: any[][] | EventCallback | Partial<any>, onSelect?: EventCallback | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
         let explicitId: string | undefined;
         let headers: string[] = [];
@@ -2673,16 +2903,20 @@ export class SimpleWindow {
         return ref;
     }
 
+    /** Alias of `addTable`: adds an interactive data table control with column headers, 2D row array, and row selection callback. */
     public addDataTable(idOrHeaders: string | string[], headersOrRows?: string[] | any[][], rowsOrOnSelect?: any[][] | EventCallback | Partial<any>, onSelect?: EventCallback | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
         return this.addTable(idOrHeaders, headersOrRows, rowsOrOnSelect, onSelect, opts);
     }
+    /** Snake_case alias of `addTable`: adds an interactive data table control with column headers, 2D row array, and row selection callback. */
     public add_data_table(idOrHeaders: string | string[], headersOrRows?: string[] | any[][], rowsOrOnSelect?: any[][] | EventCallback | Partial<any>, onSelect?: EventCallback | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
         return this.addTable(idOrHeaders, headersOrRows, rowsOrOnSelect, onSelect, opts);
     }
+    /** Snake_case alias of `addTable`: adds an interactive data table control with column headers, 2D row array, and row selection callback. */
     public add_table(idOrHeaders: string | string[], headersOrRows?: string[] | any[][], rowsOrOnSelect?: any[][] | EventCallback | Partial<any>, onSelect?: EventCallback | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
         return this.addTable(idOrHeaders, headersOrRows, rowsOrOnSelect, onSelect, opts);
     }
 
+    /** Adds a hierarchical tree-grid table supporting expandable/collapsible parent-child rows and column headers. */
     public addTreeGrid(idOrHeaders: string | string[], headersOrRows?: string[] | any[], rowsOrOnSelect?: any[] | EventCallback | Partial<any>, onSelect?: EventCallback | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
         let explicitId: string | undefined;
         let headers: string[] = [];
@@ -2743,16 +2977,20 @@ export class SimpleWindow {
         return ref;
     }
 
+    /** Snake_case alias of `addTreeGrid`: adds a hierarchical tree-grid table supporting expandable/collapsible parent-child rows and column headers. */
     public add_tree_grid(idOrHeaders: string | string[], headersOrRows?: string[] | any[], rowsOrOnSelect?: any[] | EventCallback | Partial<any>, onSelect?: EventCallback | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
         return this.addTreeGrid(idOrHeaders, headersOrRows, rowsOrOnSelect, onSelect, opts);
     }
+    /** Alias of `addTreeGrid`: adds a hierarchical tree-grid table supporting expandable/collapsible parent-child rows and column headers. */
     public addTreeTable(idOrHeaders: string | string[], headersOrRows?: string[] | any[], rowsOrOnSelect?: any[] | EventCallback | Partial<any>, onSelect?: EventCallback | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
         return this.addTreeGrid(idOrHeaders, headersOrRows, rowsOrOnSelect, onSelect, opts);
     }
+    /** Snake_case alias of `addTreeGrid`: adds a hierarchical tree-grid table supporting expandable/collapsible parent-child rows and column headers. */
     public add_tree_table(idOrHeaders: string | string[], headersOrRows?: string[] | any[], rowsOrOnSelect?: any[] | EventCallback | Partial<any>, onSelect?: EventCallback | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
         return this.addTreeGrid(idOrHeaders, headersOrRows, rowsOrOnSelect, onSelect, opts);
     }
 
+    /** Adds a collapsible hierarchical tree view control populated with node labels. */
     public addTreeView(nodes: string[], onSelect?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         const text = nodes.join(", ");
         const ref = this.addVisualControl("tree_view", 240, 160, { text, caption: text, ...opts });
@@ -2760,18 +2998,22 @@ export class SimpleWindow {
         return ref;
     }
 
+    /** Adds a syntax-styled read-only code viewer block for the given source snippet and language. */
     public addCodeView(code: string, language = "typescript", opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("code_view", 520, 140, { text: code, caption: code, placeholder: language, ...opts });
     }
 
+    /** Adds an image display control with explicit pixel dimensions and image URL/path. */
     public addImage(src: string, width = 200, height = 150, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("image", width, height, { text: src, caption: src, ...opts });
     }
 
+    /** Adds a full-width horizontal visual separator line across the current container. */
     public addDivider(opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("separator", this.getAvailableWidth(), 2, { ...opts });
     }
 
+    /** Adds a searchable command palette / quick-open overlay control with keyboard navigation and item selection callback. */
     public addCommandPalette(idOrItems?: string | any[], itemsOrOnSelect?: any[] | EventCallback | string | Partial<any>, onSelect?: EventCallback | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
         let explicitId: string | undefined;
         let items: any[] = [];
@@ -2807,13 +3049,16 @@ export class SimpleWindow {
         if (selectHandler) ref.on("select", selectHandler);
         return ref;
     }
+    /** Snake_case alias of `addCommandPalette`: adds a searchable command palette / quick-open overlay control with keyboard navigation and item selection callback. */
     public add_command_palette(idOrItems?: string | any[], itemsOrOnSelect?: any[] | EventCallback | string | Partial<any>, onSelect?: EventCallback | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
         return this.addCommandPalette(idOrItems, itemsOrOnSelect, onSelect, opts);
     }
+    /** Alias of `addCommandPalette`: adds a searchable command palette / quick-open overlay control with keyboard navigation and item selection callback. */
     public addQuickOpen(idOrItems?: string | any[], itemsOrOnSelect?: any[] | EventCallback | string | Partial<any>, onSelect?: EventCallback | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
         return this.addCommandPalette(idOrItems, itemsOrOnSelect, onSelect, opts);
     }
 
+    /** Adds a side-by-side or inline diff viewer comparing original and modified text content. */
     public addDiffView(idOrOriginal?: string, originalOrModified?: string | Partial<any>, modifiedOrOpts?: string | number | Partial<any>, widthOrOpts?: number | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
         let explicitId: string | undefined;
         let originalText = "";
@@ -2856,13 +3101,16 @@ export class SimpleWindow {
         if (explicitId) ctrlOpts.id = explicitId;
         return this.addVisualControl("diff_view", finalOpts.width || width, finalOpts.height || height, ctrlOpts);
     }
+    /** Snake_case alias of `addDiffView`: adds a side-by-side or inline diff viewer comparing original and modified text content. */
     public add_diff_view(idOrOriginal?: string, originalOrModified?: string | Partial<any>, modifiedOrOpts?: string | number | Partial<any>, widthOrOpts?: number | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
         return this.addDiffView(idOrOriginal, originalOrModified, modifiedOrOpts, widthOrOpts, opts);
     }
+    /** Alias of `addDiffView`: adds a side-by-side or inline diff viewer comparing original and modified text content. */
     public addDiffEditor(idOrOriginal?: string, originalOrModified?: string | Partial<any>, modifiedOrOpts?: string | number | Partial<any>, widthOrOpts?: number | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
         return this.addDiffView(idOrOriginal, originalOrModified, modifiedOrOpts, widthOrOpts, opts);
     }
 
+    /** Adds a horizontal toolbar strip populated with action buttons or icon items. */
     public addToolBar(idOrItems?: string | any[], itemsOrOnClick?: any[] | string | EventCallback | Partial<any>, onClick?: EventCallback | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
         let explicitId: string | undefined;
         let items: any[] = [];
@@ -2893,19 +3141,24 @@ export class SimpleWindow {
         if (clickHandler) ref.onClick(clickHandler);
         return ref;
     }
+    /** Snake_case alias of `addToolBar`: adds a horizontal toolbar strip populated with action buttons or icon items. */
     public add_tool_bar(idOrItems?: string | any[], itemsOrOnClick?: any[] | string | EventCallback | Partial<any>, onClick?: EventCallback | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
         return this.addToolBar(idOrItems, itemsOrOnClick, onClick, opts);
     }
+    /** Alias of `addToolBar`: adds a horizontal toolbar strip populated with action buttons or icon items. */
     public addToolbar(idOrItems?: string | any[], itemsOrOnClick?: any[] | string | EventCallback | Partial<any>, onClick?: EventCallback | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
         return this.addToolBar(idOrItems, itemsOrOnClick, onClick, opts);
     }
+    /** Alias of `addToolBar`: adds a horizontal toolbar strip populated with action buttons or icon items. */
     public addActionBar(idOrItems?: string | any[], itemsOrOnClick?: any[] | string | EventCallback | Partial<any>, onClick?: EventCallback | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
         return this.addToolBar(idOrItems, itemsOrOnClick, onClick, opts);
     }
+    /** Snake_case alias of `addToolBar`: adds a horizontal toolbar strip populated with action buttons or icon items. */
     public tool_bar(idOrItems?: any, itemsOrOpts?: any, opts: Partial<any> = {}): SimpleControlRef {
         return this.addToolBar(idOrItems, itemsOrOpts, opts);
     }
 
+    /** Adds a resizable two-pane split container with left/top and right/bottom content. */
     public addSplitPane(idOrLeft?: string, leftOrRight?: string | Partial<any>, rightOrOpts?: string | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
         let explicitId: string | undefined;
         let left = "";
@@ -2941,9 +3194,11 @@ export class SimpleWindow {
         if (onResize && typeof onResize === "function") ref.on("resize", onResize);
         return ref;
     }
+    /** Snake_case alias of `addSplitPane`: adds a resizable two-pane split container with left/top and right/bottom content. */
     public add_split_pane(idOrLeft?: string, leftOrRight?: string | Partial<any>, rightOrOpts?: string | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
         return this.addSplitPane(idOrLeft, leftOrRight, rightOrOpts, opts);
     }
+    /** Alias of `addSplitPane`: adds a resizable two-pane split container with left/top and right/bottom content. */
     public addSplitter(idOrLeft?: string, leftOrRight?: string | Partial<any>, rightOrOpts?: string | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
         return this.addSplitPane(idOrLeft, leftOrRight, rightOrOpts, opts);
     }
@@ -2953,6 +3208,7 @@ export class SimpleWindow {
     // ==========================================
 
     // 1. Text & Input Controls
+    /** Adds a styled search field control with optional explicit ID, placeholder, and initial query text. */
     public addSearchField(id?: string, placeholder = "Search...", initialVal = "", opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("search_field", Math.min(320, this.width - 40), 38, {
             id,
@@ -2962,10 +3218,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addSearchField`: adds a styled search field control with optional explicit ID, placeholder, and initial query text. */
     public add_search_field(id?: string, placeholder = "Search...", initialVal = "", opts: Partial<any> = {}): SimpleControlRef {
         return this.addSearchField(id, placeholder, initialVal, opts);
     }
 
+    /** Adds a password input field with optional explicit ID, placeholder, and initial value. */
     public addPassword(id?: string, placeholder = "Enter password...", initialVal = "", opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("password_input", Math.min(280, this.width - 40), 38, {
             id,
@@ -2975,10 +3233,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addPassword`: adds a password input field with optional explicit ID, placeholder, and initial value. */
     public add_password(id?: string, placeholder = "Enter password...", initialVal = "", opts: Partial<any> = {}): SimpleControlRef {
         return this.addPassword(id, placeholder, initialVal, opts);
     }
 
+    /** Adds a tokenized multi-value input field where entries render as removable token pills. */
     public addTokenField(id?: string, tokens: string[] = ["Bun", "TypeScript", "VLang"], opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("token_field", Math.min(380, this.width - 40), 40, {
             id,
@@ -2987,10 +3247,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addTokenField`: adds a tokenized multi-value input field where entries render as removable token pills. */
     public add_token_field(id?: string, tokens: string[] = ["Bun", "TypeScript", "VLang"], opts: Partial<any> = {}): SimpleControlRef {
         return this.addTokenField(id, tokens, opts);
     }
 
+    /** Adds an interactive tag input control pre-populated with removable tag strings. */
     public addTagInputField(id?: string, tags: string[] = ["gui", "desktop", "rad"], opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("tag_input", Math.min(380, this.width - 40), 40, {
             id,
@@ -2999,19 +3261,24 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addTagInputField`: adds an interactive tag input control pre-populated with removable tag strings. */
     public add_tag_input_field(id?: string, tags: string[] = ["gui", "desktop", "rad"], opts: Partial<any> = {}): SimpleControlRef {
         return this.addTagInputField(id, tags, opts);
     }
+    /** Alias of `addTagInputField`: adds an interactive tag input control pre-populated with removable tag strings. */
     public addTagInput(id?: string, tags: string[] = ["gui", "desktop", "rad"], opts: Partial<any> = {}): SimpleControlRef {
         return this.addTagInputField(id, tags, opts);
     }
+    /** Snake_case alias of `addTagInputField`: adds an interactive tag input control pre-populated with removable tag strings. */
     public add_tag_input(id?: string, tags: string[] = ["gui", "desktop", "rad"], opts: Partial<any> = {}): SimpleControlRef {
         return this.addTagInputField(id, tags, opts);
     }
+    /** Snake_case alias of `addTagInputField`: adds an interactive tag input control pre-populated with removable tag strings. */
     public tag_input(id?: string, tags: string[] = ["gui", "desktop", "rad"], opts: Partial<any> = {}): SimpleControlRef {
         return this.addTagInputField(id, tags, opts);
     }
 
+    /** Adds a formatted text input enforcing an input mask pattern (such as phone numbers or dates). */
     public addMaskedInput(id?: string, mask = "(999) 999-9999", initialVal = "", opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("masked_input", Math.min(240, this.width - 40), 38, {
             id,
@@ -3021,10 +3288,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addMaskedInput`: adds a formatted text input enforcing an input mask pattern (such as phone numbers or dates). */
     public add_masked_input(id?: string, mask = "(999) 999-9999", initialVal = "", opts: Partial<any> = {}): SimpleControlRef {
         return this.addMaskedInput(id, mask, initialVal, opts);
     }
 
+    /** Adds a text label that switches to an inline text editor when clicked. */
     public addInlineEditableLabel(id?: string, text = "Click to edit text", opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("inline_editable_label", Math.min(280, this.width - 40), 32, {
             id,
@@ -3033,11 +3302,13 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addInlineEditableLabel`: adds a text label that switches to an inline text editor when clicked. */
     public add_inline_editable_label(id?: string, text = "Click to edit text", opts: Partial<any> = {}): SimpleControlRef {
         return this.addInlineEditableLabel(id, text, opts);
     }
 
     // 2. Typography, Banners & Callouts
+    /** Adds a prominent section header block with a bold title and muted subtitle. */
     public addSectionHeader(title: string, subtitle = "", opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("section_header", this.width - (this.padding * 2), 48, {
             caption: title,
@@ -3045,10 +3316,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addSectionHeader`: adds a prominent section header block with a bold title and muted subtitle. */
     public add_section_header(title: string, subtitle = "", opts: Partial<any> = {}): SimpleControlRef {
         return this.addSectionHeader(title, subtitle, opts);
     }
 
+    /** Adds a keyboard shortcut kbd badge displaying key combinations (e.g. `"Cmd + Shift + P"`). */
     public addHotkeyBadge(keys: string | string[], opts: Partial<any> = {}): SimpleControlRef {
         const keyText = Array.isArray(keys) ? keys.join(" + ") : String(keys);
         const count = Array.isArray(keys) ? keys.length : keyText.split(/\s+|\+/).filter(Boolean).length;
@@ -3059,10 +3332,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addHotkeyBadge`: adds a keyboard shortcut kbd badge displaying key combinations (e.g. `"Cmd + Shift + P"`). */
     public add_hotkey_badge(keys: string | string[], opts: Partial<any> = {}): SimpleControlRef {
         return this.addHotkeyBadge(keys, opts);
     }
 
+    /** Adds a clickable hyperlink control displaying `text` and pointing to `url`. */
     public addLink(text: string, url = "#", opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("link", 180, 24, {
             text,
@@ -3070,10 +3345,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addLink`: adds a clickable hyperlink control displaying `text` and pointing to `url`. */
     public add_link(text: string, url = "#", opts: Partial<any> = {}): SimpleControlRef {
         return this.addLink(text, url, opts);
     }
 
+    /** Adds a full-width notification banner styled with semantic severity (`"info"`, `"success"`, `"warning"`, or `"error"`). */
     public addBanner(message: string, style: "info" | "success" | "warning" | "error" = "info", opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("banner", this.width - (this.padding * 2), 44, {
             text: message,
@@ -3082,10 +3359,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addBanner`: adds a full-width notification banner styled with semantic severity (`"info"`, `"success"`, `"warning"`, or `"error"`). */
     public add_banner(message: string, style: "info" | "success" | "warning" | "error" = "info", opts: Partial<any> = {}): SimpleControlRef {
         return this.addBanner(message, style, opts);
     }
 
+    /** Adds a full-width status banner displaying a prominent operational state message. */
     public addStatusBanner(message: string, style: "info" | "success" | "warning" | "error" = "info", opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("status_banner", this.width - (this.padding * 2), 44, {
             text: message,
@@ -3094,10 +3373,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addStatusBanner`: adds a full-width status banner displaying a prominent operational state message. */
     public add_status_banner(message: string, style: "info" | "success" | "warning" | "error" = "info", opts: Partial<any> = {}): SimpleControlRef {
         return this.addStatusBanner(message, style, opts);
     }
 
+    /** Adds a highlighted callout box with a bold title and descriptive body text. */
     public addInfoCallout(title: string, body: string, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("info_callout", this.width - (this.padding * 2), 68, {
             caption: title,
@@ -3105,10 +3386,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addInfoCallout`: adds a highlighted callout box with a bold title and descriptive body text. */
     public add_info_callout(title: string, body: string, opts: Partial<any> = {}): SimpleControlRef {
         return this.addInfoCallout(title, body, opts);
     }
 
+    /** Adds a large hero showcase banner with title, subtitle, and accent badge. */
     public addHeroBanner(title: string, subtitle = "", badge = "NEW", opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("hero_banner", this.width - (this.padding * 2), 110, {
             caption: title,
@@ -3117,11 +3400,13 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addHeroBanner`: adds a large hero showcase banner with title, subtitle, and accent badge. */
     public add_hero_banner(title: string, subtitle = "", badge = "NEW", opts: Partial<any> = {}): SimpleControlRef {
         return this.addHeroBanner(title, subtitle, badge, opts);
     }
 
     // 3. Buttons & Toolbars
+    /** Adds a clickable button combining an image/icon source with a text caption. */
     public addImageButton(src: string, caption = "", onClick?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("image_button", 140, 42, {
             caption: caption || src,
@@ -3130,10 +3415,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addImageButton`: adds a clickable button combining an image/icon source with a text caption. */
     public add_image_button(src: string, caption = "", onClick?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         return this.addImageButton(src, caption, onClick, opts);
     }
 
+    /** Adds a compact circular `?` help button with hover tooltip and click callback. */
     public addHelpButton(tooltipText = "Help information", onClick?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("help_button", 36, 36, {
             tooltip: tooltipText,
@@ -3143,10 +3430,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addHelpButton`: adds a compact circular `?` help button with hover tooltip and click callback. */
     public add_help_button(tooltipText = "Help information", onClick?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         return this.addHelpButton(tooltipText, onClick, opts);
     }
 
+    /** Adds a primary action button paired with a secondary dropdown menu of related actions. */
     public addSplitButton(caption: string, menuItems: string[] = ["Action 1", "Action 2"], onClick?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("split_button", 160, 38, {
             caption,
@@ -3156,10 +3445,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addSplitButton`: adds a primary action button paired with a secondary dropdown menu of related actions. */
     public add_split_button(caption: string, menuItems: string[] = ["Action 1", "Action 2"], onClick?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         return this.addSplitButton(caption, menuItems, onClick, opts);
     }
 
+    /** Adds a push button adorned with a numeric or text notification counter badge. */
     public addBadgeButton(caption: string, badgeCount: number | string = "1", onClick?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("badge_button", 130, 38, {
             caption,
@@ -3168,10 +3459,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addBadgeButton`: adds a push button adorned with a numeric or text notification counter badge. */
     public add_badge_button(caption: string, badgeCount: number | string = "1", onClick?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         return this.addBadgeButton(caption, badgeCount, onClick, opts);
     }
 
+    /** Adds a horizontal bar of quick-action shortcut buttons with icons and labels. */
     public addQuickActionBar(actions: Array<{ label: string; icon?: string; actionId?: string } | string>, onSelect?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("quick_action_bar", this.width - (this.padding * 2), 48, {
             items: actions,
@@ -3179,10 +3472,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addQuickActionBar`: adds a horizontal bar of quick-action shortcut buttons with icons and labels. */
     public add_quick_action_bar(actions: Array<{ label: string; icon?: string; actionId?: string } | string>, onSelect?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         return this.addQuickActionBar(actions, onSelect, opts);
     }
 
+    /** Adds a floating elevated toolbar strip of icon/label tool actions. */
     public addFloatingToolbar(tools: Array<{ icon?: string; label?: string; actionId?: string } | string>, onSelect?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("floating_toolbar", Math.min(380, this.width - 40), 46, {
             items: tools,
@@ -3190,11 +3485,13 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addFloatingToolbar`: adds a floating elevated toolbar strip of icon/label tool actions. */
     public add_floating_toolbar(tools: Array<{ icon?: string; label?: string; actionId?: string } | string>, onSelect?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         return this.addFloatingToolbar(tools, onSelect, opts);
     }
 
     // 4. Selection & Pickers
+    /** Adds a single radio button belonging to `groupName` with label and initial checked state. */
     public addRadio(label: string, groupName: string, checked = false, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("radio", 180, 28, {
             caption: label,
@@ -3204,10 +3501,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addRadio`: adds a single radio button belonging to `groupName` with label and initial checked state. */
     public add_radio(label: string, groupName: string, checked = false, opts: Partial<any> = {}): SimpleControlRef {
         return this.addRadio(label, groupName, checked, opts);
     }
 
+    /** Adds a vertical group of mutually exclusive radio buttons for `groupName` with an optional change handler. */
     public addRadioGroup(groupName: string, options: string[], selected = "", onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         const initial = selected || options[0] || "";
         return this.addVisualControl("radio_group", 240, Math.max(36, options.length * 30), {
@@ -3219,10 +3518,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addRadioGroup`: adds a vertical group of mutually exclusive radio buttons for `groupName` with an optional change handler. */
     public add_radio_group(groupName: string, options: string[], selected = "", onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         return this.addRadioGroup(groupName, options, selected, onChange, opts);
     }
 
+    /** Adds a pull-down action menu control populated with selectable string options. */
     public addPullDown(id: string, options: string[], selected = "", onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("pull_down", 220, 36, {
             id,
@@ -3232,10 +3533,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addPullDown`: adds a pull-down action menu control populated with selectable string options. */
     public add_pull_down(id: string, options: string[], selected = "", onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         return this.addPullDown(id, options, selected, onChange, opts);
     }
 
+    /** Adds an editable combo box combining a free-text input with a dropdown list of preset options. */
     public addComboBox(id: string, options: string[], initialVal = "", opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("combo_box", 240, 38, {
             id,
@@ -3245,10 +3548,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addComboBox`: adds an editable combo box combining a free-text input with a dropdown list of preset options. */
     public add_combo_box(id: string, options: string[], initialVal = "", opts: Partial<any> = {}): SimpleControlRef {
         return this.addComboBox(id, options, initialVal, opts);
     }
 
+    /** Adds a compact theme selection menu pre-bound to the window's active theme. */
     public addThemeMenu(id = "theme_menu", selected = "", onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("theme_menu", 180, 36, {
             id,
@@ -3257,10 +3562,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addThemeMenu`: adds a compact theme selection menu pre-bound to the window's active theme. */
     public add_theme_menu(id = "theme_menu", selected = "", onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         return this.addThemeMenu(id, selected, onChange, opts);
     }
 
+    /** Adds a multi-state mode selector (such as `["System", "Dark", "Light"]`) with change callback. */
     public addModeControl(id: string, modes = ["System", "Dark", "Light"], selected = "Dark", onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("mode_control", 240, 36, {
             id,
@@ -3270,10 +3577,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addModeControl`: adds a multi-state mode selector (such as `["System", "Dark", "Light"]`) with change callback. */
     public add_mode_control(id: string, modes = ["System", "Dark", "Light"], selected = "Dark", onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         return this.addModeControl(id, modes, selected, onChange, opts);
     }
 
+    /** Adds a segmented control where each segment displays an icon and label. */
     public addIconSegments(id: string, items: Array<{ icon: string; label: string } | string>, selectedIdx = 0, onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("icon_segments", Math.min(320, this.width - 40), 38, {
             id,
@@ -3283,10 +3592,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addIconSegments`: adds a segmented control where each segment displays an icon and label. */
     public add_icon_segments(id: string, items: Array<{ icon: string; label: string } | string>, selectedIdx = 0, onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         return this.addIconSegments(id, items, selectedIdx, onChange, opts);
     }
 
+    /** Adds a compact pill-shaped multi-option toggle switch. */
     public addPillToggle(id: string, options: string[] = ["On", "Off"], selectedIdx = 0, onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("pill_toggle", 180, 34, {
             id,
@@ -3296,10 +3607,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addPillToggle`: adds a compact pill-shaped multi-option toggle switch. */
     public add_pill_toggle(id: string, options: string[] = ["On", "Off"], selectedIdx = 0, onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         return this.addPillToggle(id, options, selectedIdx, onChange, opts);
     }
 
+    /** Adds an interactive cloud of selectable tag chips. */
     public addTagCloud(id: string, tags: string[], selected: string[] = [], onSelect?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("tag_cloud", Math.min(420, this.width - 40), 72, {
             id,
@@ -3309,10 +3622,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addTagCloud`: adds an interactive cloud of selectable tag chips. */
     public add_tag_cloud(id: string, tags: string[], selected: string[] = [], onSelect?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         return this.addTagCloud(id, tags, selected, onSelect, opts);
     }
 
+    /** Adds a dual-list transfer shuttle control for moving items between left (available) and right (selected) lists. */
     public addTransferList(id: string, leftItems: string[] = [], rightItems: string[] = [], onChangeOrOpts?: EventCallback | Partial<any>, optsArg: Partial<any> = {}): SimpleControlRef {
         let onChange: EventCallback | undefined;
         let opts: Partial<any> = {};
@@ -3333,11 +3648,13 @@ export class SimpleWindow {
         if (onChange) ref.onChange(onChange);
         return ref;
     }
+    /** Snake_case alias of `addTransferList`: adds a dual-list transfer shuttle control for moving items between left (available) and right (selected) lists. */
     public add_transfer_list(id: string, leftItems: string[] = [], rightItems: string[] = [], onChangeOrOpts?: EventCallback | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
         return this.addTransferList(id, leftItems, rightItems, onChangeOrOpts, opts);
     }
 
     // 5. Sliders, Numbers & Progress
+    /** Adds a vertically oriented numeric slider bounded by `[min, max]`. */
     public addVerticalSlider(id: string, min = 0, max = 100, val = 50, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("vertical_slider", 48, 160, {
             id,
@@ -3347,10 +3664,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addVerticalSlider`: adds a vertically oriented numeric slider bounded by `[min, max]`. */
     public add_vertical_slider(id: string, min = 0, max = 100, val = 50, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVerticalSlider(id, min, max, val, opts);
     }
 
+    /** Adds a dual-thumb range slider for selecting a `[low, high]` numeric interval within `[min, max]`. */
     public addRangeSlider(id: string, min = 0, max = 100, low = 25, high = 75, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("range_slider", Math.min(300, this.width - 40), 44, {
             id,
@@ -3362,10 +3681,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addRangeSlider`: adds a dual-thumb range slider for selecting a `[low, high]` numeric interval within `[min, max]`. */
     public add_range_slider(id: string, min = 0, max = 100, low = 25, high = 75, opts: Partial<any> = {}): SimpleControlRef {
         return this.addRangeSlider(id, min, max, low, high, opts);
     }
 
+    /** Adds a rotary dial knob control for adjusting a numeric value between `min` and `max`. */
     public addKnob(id: string, min = 0, max = 100, val = 50, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("knob", 80, 80, {
             id,
@@ -3375,17 +3696,21 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addKnob`: adds a rotary dial knob control for adjusting a numeric value between `min` and `max`. */
     public add_knob(id: string, min = 0, max = 100, val = 50, opts: Partial<any> = {}): SimpleControlRef {
         return this.addKnob(id, min, max, val, opts);
     }
 
+    /** Adds a named progress bar indicator control initialized to `value` out of `max`. */
     public addProgressIndicator(id: string, value = 0, max = 100, opts: Partial<any> = {}): SimpleControlRef {
         return this.addProgressBar(value, max, { id, ...opts });
     }
+    /** Snake_case alias of `addProgressIndicator`: adds a named progress bar indicator control initialized to `value` out of `max`. */
     public add_progress_indicator(id: string, value = 0, max = 100, opts: Partial<any> = {}): SimpleControlRef {
         return this.addProgressIndicator(id, value, max, opts);
     }
 
+    /** Adds a discrete segmented level meter (such as audio, battery, or capacity bars). */
     public addLevelIndicator(id: string, value = 5, max = 10, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("level_indicator", 160, 24, {
             id,
@@ -3394,10 +3719,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addLevelIndicator`: adds a discrete segmented level meter (such as audio, battery, or capacity bars). */
     public add_level_indicator(id: string, value = 5, max = 10, opts: Partial<any> = {}): SimpleControlRef {
         return this.addLevelIndicator(id, value, max, opts);
     }
 
+    /** Adds an animated loading spinner indicator with optional status label. */
     public addSpinner(size = 28, text = "Loading...", opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("spinner", 120, size + 8, {
             caption: text,
@@ -3407,10 +3734,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addSpinner`: adds an animated loading spinner indicator with optional status label. */
     public add_spinner(size = 28, text = "Loading...", opts: Partial<any> = {}): SimpleControlRef {
         return this.addSpinner(size, text, opts);
     }
 
+    /** Adds an interactive star rating control with `value` active stars out of `max`. */
     public addRating(id: string, value = 4, max = 5, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("rating", 140, 32, {
             id,
@@ -3419,17 +3748,21 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addRating`: adds an interactive star rating control with `value` active stars out of `max`. */
     public add_rating(id: string, value = 4, max = 5, opts: Partial<any> = {}): SimpleControlRef {
         return this.addRating(id, value, max, opts);
     }
 
+    /** Alias of `addRating`: adds an interactive star rating control with `value` active stars out of `max`. */
     public addStarRating(id: string, value = 4, max = 5, opts: Partial<any> = {}): SimpleControlRef {
         return this.addRating(id, value, max, opts);
     }
+    /** Snake_case alias of `addStarRating`: adds an interactive star rating control with `value` active stars out of `max`. */
     public add_star_rating(id: string, value = 4, max = 5, opts: Partial<any> = {}): SimpleControlRef {
         return this.addStarRating(id, value, max, opts);
     }
 
+    /** Adds a circular donut chart widget displaying a percentage ring, title, and subtitle. */
     public addDonutChart(id: string, title: string, percent = 75, subtitle = "", opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("donut_chart", 180, 160, {
             id,
@@ -3439,10 +3772,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addDonutChart`: adds a circular donut chart widget displaying a percentage ring, title, and subtitle. */
     public add_donut_chart(id: string, title: string, percent = 75, subtitle = "", opts: Partial<any> = {}): SimpleControlRef {
         return this.addDonutChart(id, title, percent, subtitle, opts);
     }
 
+    /** Adds concentric Apple Watch-style activity rings displaying multiple percentage metrics. */
     public addActivityRings(id: string, rings: Array<{ label: string; percent: number; color?: string }> = [
         { label: "Move", percent: 85, color: "#fa114f" },
         { label: "Exercise", percent: 62, color: "#a1ff00" },
@@ -3454,10 +3789,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addActivityRings`: adds concentric Apple Watch-style activity rings displaying multiple percentage metrics. */
     public add_activity_rings(id: string, rings?: Array<{ label: string; percent: number; color?: string }>, opts: Partial<any> = {}): SimpleControlRef {
         return this.addActivityRings(id, rings, opts);
     }
 
+    /** Adds a stacked horizontal proportional bar showing relative distribution across labeled segments. */
     public addSegmentDistributionBar(id: string, segments: Array<{ label: string; value: number; color?: string }>, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("segment_distribution_bar", Math.min(380, this.width - 40), 38, {
             id,
@@ -3465,17 +3802,21 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addSegmentDistributionBar`: adds a stacked horizontal proportional bar showing relative distribution across labeled segments. */
     public add_segment_distribution_bar(id: string, segments: Array<{ label: string; value: number; color?: string }>, opts: Partial<any> = {}): SimpleControlRef {
         return this.addSegmentDistributionBar(id, segments, opts);
     }
 
+    /** Alias of `addSegmentDistributionBar`: adds a stacked horizontal proportional bar showing relative distribution across labeled segments. */
     public addSegmentedProgress(id: string, segments: Array<{ label: string; value: number; color?: string }>, opts: Partial<any> = {}): SimpleControlRef {
         return this.addSegmentDistributionBar(id, segments, opts);
     }
+    /** Snake_case alias of `addSegmentedProgress`: adds a stacked horizontal proportional bar showing relative distribution across labeled segments. */
     public add_segmented_progress(id: string, segments: Array<{ label: string; value: number; color?: string }>, opts: Partial<any> = {}): SimpleControlRef {
         return this.addSegmentedProgress(id, segments, opts);
     }
 
+    /** Adds a user-sentiment mood selector strip (e.g. happy, neutral, sad) with change callback. */
     public addFeedbackMood(id: string, selected = "neutral", onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("feedback_mood", 240, 44, {
             id,
@@ -3484,10 +3825,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addFeedbackMood`: adds a user-sentiment mood selector strip (e.g. happy, neutral, sad) with change callback. */
     public add_feedback_mood(id: string, selected = "neutral", onChange?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         return this.addFeedbackMood(id, selected, onChange, opts);
     }
 
+    /** Adds a GitHub-style contribution/activity calendar heatmap over `weeks` weeks. */
     public addActivityHeatmap(id: string, weeks = 12, data?: number[][], opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("activity_heatmap", Math.min(480, this.width - 40), 120, {
             id,
@@ -3496,11 +3839,13 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addActivityHeatmap`: adds a GitHub-style contribution/activity calendar heatmap over `weeks` weeks. */
     public add_activity_heatmap(id: string, weeks = 12, data?: number[][], opts: Partial<any> = {}): SimpleControlRef {
         return this.addActivityHeatmap(id, weeks, data, opts);
     }
 
     // 6. Pickers & File / Path
+    /** Adds a start-and-end date range picker control. */
     public addDateRangePicker(id: string, startDate = "", endDate = "", opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("date_range_picker", 280, 40, {
             id,
@@ -3510,10 +3855,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addDateRangePicker`: adds a start-and-end date range picker control. */
     public add_date_range_picker(id: string, startDate = "", endDate = "", opts: Partial<any> = {}): SimpleControlRef {
         return this.addDateRangePicker(id, startDate, endDate, opts);
     }
 
+    /** Adds a combined date and time picker input control. */
     public addDateTimePicker(id: string, initialDate = "", opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("date_time_picker", 260, 40, {
             id,
@@ -3522,10 +3869,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addDateTimePicker`: adds a combined date and time picker input control. */
     public add_date_time_picker(id: string, initialDate = "", opts: Partial<any> = {}): SimpleControlRef {
         return this.addDateTimePicker(id, initialDate, opts);
     }
 
+    /** Adds a palette grid of clickable color swatches with an active selection. */
     public addColorGrid(id: string, colors: string[] = ["#ef4444", "#f97316", "#f59e0b", "#10b981", "#06b6d4", "#3b82f6", "#6366f1", "#a855f7"], selected = "#10b981", opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("color_grid", 240, 44, {
             id,
@@ -3534,17 +3883,21 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addColorGrid`: adds a palette grid of clickable color swatches with an active selection. */
     public add_color_grid(id: string, colors?: string[], selected?: string, opts: Partial<any> = {}): SimpleControlRef {
         return this.addColorGrid(id, colors, selected, opts);
     }
 
+    /** Alias of `addColorGrid`: adds a palette grid of clickable color swatches with an active selection. */
     public addColorSwatchPanel(id: string, colors?: string[], selected?: string, opts: Partial<any> = {}): SimpleControlRef {
         return this.addColorGrid(id, colors, selected, opts);
     }
+    /** Snake_case alias of `addColorSwatchPanel`: adds a palette grid of clickable color swatches with an active selection. */
     public add_color_swatch_panel(id: string, colors?: string[], selected?: string, opts: Partial<any> = {}): SimpleControlRef {
         return this.addColorSwatchPanel(id, colors, selected, opts);
     }
 
+    /** Adds a file path input field paired with a browse button filtered by `filter`. */
     public addFilePickerField(id: string, placeholder = "Select a file...", filter = "*.*", opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("file_picker_field", Math.min(380, this.width - 40), 38, {
             id,
@@ -3553,10 +3906,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addFilePickerField`: adds a file path input field paired with a browse button filtered by `filter`. */
     public add_file_picker_field(id: string, placeholder = "Select a file...", filter = "*.*", opts: Partial<any> = {}): SimpleControlRef {
         return this.addFilePickerField(id, placeholder, filter, opts);
     }
 
+    /** Adds a macOS Finder-style breadcrumb path bar displaying filesystem segments. */
     public addPathControl(id: string, segments: string[] = ["Macintosh HD", "Users", "codecaine", "Projects"], opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("path_control", Math.min(420, this.width - 40), 34, {
             id,
@@ -3565,10 +3920,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addPathControl`: adds a macOS Finder-style breadcrumb path bar displaying filesystem segments. */
     public add_path_control(id: string, segments?: string[], opts: Partial<any> = {}): SimpleControlRef {
         return this.addPathControl(id, segments, opts);
     }
 
+    /** Adds a drag-and-drop file upload target area with click-to-browse support. */
     public addDropZone(id: string, promptText = "Drag & Drop files here or click to browse", opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("drop_zone", Math.min(480, this.width - 40), 100, {
             id,
@@ -3577,13 +3934,16 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addDropZone`: adds a drag-and-drop file upload target area with click-to-browse support. */
     public add_drop_zone(id: string, promptText = "Drag & Drop files here or click to browse", opts: Partial<any> = {}): SimpleControlRef {
         return this.addDropZone(id, promptText, opts);
     }
+    /** Snake_case alias of `addDropZone`: adds a drag-and-drop file upload target area with click-to-browse support. */
     public drop_zone(id: string, promptText = "Drag & Drop files here or click to browse", opts: Partial<any> = {}): SimpleControlRef {
         return this.addDropZone(id, promptText, opts);
     }
 
+    /** Adds a compact form-embedded drag-and-drop file upload zone. */
     public addFormDropZone(id: string, promptText = "Drop files here or click to browse", opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("form_drop_zone", Math.min(480, this.width - 40), 90, {
             id,
@@ -3592,13 +3952,16 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addFormDropZone`: adds a compact form-embedded drag-and-drop file upload zone. */
     public add_form_drop_zone(id: string, promptText = "Drop files here or click to browse", opts: Partial<any> = {}): SimpleControlRef {
         return this.addFormDropZone(id, promptText, opts);
     }
+    /** Snake_case alias of `addFormDropZone`: adds a compact form-embedded drag-and-drop file upload zone. */
     public form_drop_zone(id: string, promptText = "Drop files here or click to browse", opts: Partial<any> = {}): SimpleControlRef {
         return this.addFormDropZone(id, promptText, opts);
     }
 
+    /** Adds an interactive file path breadcrumb/location bar control. */
     public addFilePathBar(pathOrId: string, idOrPath?: string, opts: Partial<any> = {}): SimpleControlRef {
         let id: string;
         let path: string;
@@ -3622,13 +3985,16 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addFilePathBar`: adds an interactive file path breadcrumb/location bar control. */
     public add_file_path_bar(pathOrId: string, idOrPath?: string, opts: Partial<any> = {}): SimpleControlRef {
         return this.addFilePathBar(pathOrId, idOrPath, opts);
     }
+    /** Snake_case alias of `addFilePathBar`: adds an interactive file path breadcrumb/location bar control. */
     public file_path_bar(pathOrId: string, idOrPath?: string, opts: Partial<any> = {}): SimpleControlRef {
         return this.addFilePathBar(pathOrId, idOrPath, opts);
     }
 
+    /** Adds a horizontal row of selectable hex color swatches. */
     public addColorSwatch(idOrColors: string | string[], colorsOrSelected?: string[] | string, selectedOrOpts?: string | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
         let id: string;
         let colors: string[];
@@ -3655,13 +4021,16 @@ export class SimpleWindow {
             ...finalOpts
         });
     }
+    /** Snake_case alias of `addColorSwatch`: adds a horizontal row of selectable hex color swatches. */
     public add_color_swatch(idOrColors: string | string[], colorsOrSelected?: string[] | string, selectedOrOpts?: string | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
         return this.addColorSwatch(idOrColors, colorsOrSelected, selectedOrOpts, opts);
     }
+    /** Snake_case alias of `addColorSwatch`: adds a horizontal row of selectable hex color swatches. */
     public color_swatch(idOrColors: string | string[], colorsOrSelected?: string[] | string, selectedOrOpts?: string | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
         return this.addColorSwatch(idOrColors, colorsOrSelected, selectedOrOpts, opts);
     }
 
+    /** Adds an inline monthly calendar view control initialized to a target date. */
     public addCalendarView(idOrDate: string, dateOrOpts?: string | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
         let id: string;
         let dateVal: string;
@@ -3689,13 +4058,16 @@ export class SimpleWindow {
             ...finalOpts
         });
     }
+    /** Snake_case alias of `addCalendarView`: adds an inline monthly calendar view control initialized to a target date. */
     public add_calendar_view(idOrDate: string, dateOrOpts?: string | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
         return this.addCalendarView(idOrDate, dateOrOpts, opts);
     }
+    /** Snake_case alias of `addCalendarView`: adds an inline monthly calendar view control initialized to a target date. */
     public calendar_view(idOrDate: string, dateOrOpts?: string | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
         return this.addCalendarView(idOrDate, dateOrOpts, opts);
     }
 
+    /** Adds a triggerable popup context menu control with selectable items. */
     public addPopupMenu(idOrItems: string | string[], itemsOrOpts?: string[] | string | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
         let id: string;
         let items: string[];
@@ -3724,13 +4096,16 @@ export class SimpleWindow {
             ...finalOpts
         });
     }
+    /** Snake_case alias of `addPopupMenu`: adds a triggerable popup context menu control with selectable items. */
     public add_popup_menu(idOrItems: string | string[], itemsOrOpts?: string[] | string | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
         return this.addPopupMenu(idOrItems, itemsOrOpts, opts);
     }
+    /** Snake_case alias of `addPopupMenu`: adds a triggerable popup context menu control with selectable items. */
     public popup_menu(idOrItems: string | string[], itemsOrOpts?: string[] | string | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
         return this.addPopupMenu(idOrItems, itemsOrOpts, opts);
     }
 
+    /** Adds a top-of-window application menu bar with hierarchical drop-down menus (`File`, `Edit`, `View`, etc.). */
     public addMenuBar(idOrMenus?: string | Array<{ label: string; items: string[] }>, menusOrOpts?: Array<{ label: string; items: string[] }> | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
         let id: string;
         let menus: Array<{ label: string; items: string[] }>;
@@ -3771,13 +4146,16 @@ export class SimpleWindow {
             ...finalOpts
         });
     }
+    /** Snake_case alias of `addMenuBar`: adds a top-of-window application menu bar with hierarchical drop-down menus (`File`, `Edit`, `View`, etc.). */
     public add_menu_bar(idOrMenus?: any, menusOrOpts?: any, opts: Partial<any> = {}): SimpleControlRef {
         return this.addMenuBar(idOrMenus, menusOrOpts, opts);
     }
+    /** Snake_case alias of `addMenuBar`: adds a top-of-window application menu bar with hierarchical drop-down menus (`File`, `Edit`, `View`, etc.). */
     public menu_bar(idOrMenus?: any, menusOrOpts?: any, opts: Partial<any> = {}): SimpleControlRef {
         return this.addMenuBar(idOrMenus, menusOrOpts, opts);
     }
 
+    /** Configures the global right-click context menu items shown anywhere on the window background. */
     public setGlobalContextMenu(items: string[]): this {
         (this as any)._globalContextMenuItems = items;
         if (this.isWindowRunning) {
@@ -3785,16 +4163,19 @@ export class SimpleWindow {
         }
         return this;
     }
+    /** Registers a callback invoked when the user selects an item from the window's global right-click context menu. */
     public onGlobalContextMenu(callback: EventCallback): this {
         this.eventHandlersMap.set("global:context_menu_select", callback);
         this.eventHandlersMap.set("global:oncontextmenuselect", callback);
         return this;
     }
+    /** Snake_case alias of `onGlobalContextMenu`: registers a callback invoked when the user selects an item from the window's global right-click context menu. */
     public on_global_context_menu(callback: EventCallback): this {
         return this.onGlobalContextMenu(callback);
     }
 
     // 7. Media, Code & Views
+    /** Adds a sandboxed custom HTML container rendering raw HTML markup inside the layout. */
     public addHtmlView(html: string, width = 520, height = 220, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("html_view", Math.min(width, this.width - 40), height, {
             text: html,
@@ -3802,10 +4183,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addHtmlView`: adds a sandboxed custom HTML container rendering raw HTML markup inside the layout. */
     public add_html_view(html: string, width = 520, height = 220, opts: Partial<any> = {}): SimpleControlRef {
         return this.addHtmlView(html, width, height, opts);
     }
 
+    /** Adds an embedded iframe/browser viewport pointing to `url`. */
     public addBrowserView(url: string, width = 520, height = 260, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("browser_view", Math.min(width, this.width - 40), height, {
             caption: url,
@@ -3813,10 +4196,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addBrowserView`: adds an embedded iframe/browser viewport pointing to `url`. */
     public add_browser_view(url: string, width = 520, height = 260, opts: Partial<any> = {}): SimpleControlRef {
         return this.addBrowserView(url, width, height, opts);
     }
 
+    /** Adds an editable syntax-aware code editor control initialized with `code` and `language`. */
     public addCodeEditor(code: string, language = "typescript", width = 520, height = 220, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("code_editor", Math.min(width, this.width - 40), height, {
             text: code,
@@ -3825,10 +4210,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addCodeEditor`: adds an editable syntax-aware code editor control initialized with `code` and `language`. */
     public add_code_editor(code: string, language = "typescript", width = 520, height = 220, opts: Partial<any> = {}): SimpleControlRef {
         return this.addCodeEditor(code, language, width, height, opts);
     }
 
+    /** Adds a full-width IDE code studio panel with header bar, language indicator, and editable source view. */
     public addCodeStudio(title: string, code: string, language = "typescript", opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("code_studio", this.width - (this.padding * 2), 240, {
             caption: title,
@@ -3837,10 +4224,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addCodeStudio`: adds a full-width IDE code studio panel with header bar, language indicator, and editable source view. */
     public add_code_studio(title: string, code: string, language = "typescript", opts: Partial<any> = {}): SimpleControlRef {
         return this.addCodeStudio(title, code, language, opts);
     }
 
+    /** Adds a terminal emulator output console pre-populated with command/output lines. */
     public addTerminalView(lines: string[] = ["$ bun --version", "1.2.4", "$ ready in 12ms"], width = 520, height = 180, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("terminal_view", Math.min(width, this.width - 40), height, {
             items: lines,
@@ -3848,10 +4237,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addTerminalView`: adds a terminal emulator output console pre-populated with command/output lines. */
     public add_terminal_view(lines?: string[], width = 520, height = 180, opts: Partial<any> = {}): SimpleControlRef {
         return this.addTerminalView(lines, width, height, opts);
     }
 
+    /** Adds an expandable interactive JSON tree inspector for arbitrary structured data. */
     public addJsonTree(data: any, width = 520, height = 200, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("json_tree", Math.min(width, this.width - 40), height, {
             jsonData: data,
@@ -3859,10 +4250,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addJsonTree`: adds an expandable interactive JSON tree inspector for arbitrary structured data. */
     public add_json_tree(data: any, width = 520, height = 200, opts: Partial<any> = {}): SimpleControlRef {
         return this.addJsonTree(data, width, height, opts);
     }
 
+    /** Adds an animated or static multi-bar audio waveform visualization widget. */
     public addAudioWaveform(id: string, bars = 32, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("audio_waveform", Math.min(340, this.width - 40), 64, {
             id,
@@ -3870,20 +4263,24 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addAudioWaveform`: adds an animated or static multi-bar audio waveform visualization widget. */
     public add_audio_waveform(id: string, bars = 32, opts: Partial<any> = {}): SimpleControlRef {
         return this.addAudioWaveform(id, bars, opts);
     }
 
+    /** Adds a grid/strip gallery of thumbnail images with optional captions. */
     public addImageGallery(images: Array<{ src: string; caption?: string } | string>, width = 520, height = 180, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("image_gallery", Math.min(width, this.width - 40), height, {
             images,
             ...opts
         });
     }
+    /** Snake_case alias of `addImageGallery`: adds a grid/strip gallery of thumbnail images with optional captions. */
     public add_image_gallery(images: Array<{ src: string; caption?: string } | string>, width = 520, height = 180, opts: Partial<any> = {}): SimpleControlRef {
         return this.addImageGallery(images, width, height, opts);
     }
 
+    /** Adds an audio/video media playback control with transport buttons and track title. */
     public addMediaPlayer(src: string, title = "Media Playback", opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("media_player", Math.min(420, this.width - 40), 96, {
             caption: title,
@@ -3891,21 +4288,25 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addMediaPlayer`: adds an audio/video media playback control with transport buttons and track title. */
     public add_media_player(src: string, title = "Media Playback", opts: Partial<any> = {}): SimpleControlRef {
         return this.addMediaPlayer(src, title, opts);
     }
 
     // 8. Cards & Complex Dashboard Tiles
+    /** Adds a responsive row of KPI metric cards showing values, deltas, and up/down trend indicators. */
     public addStatGrid(stats: Array<{ label: string; value: string; delta?: string; trend?: "up" | "down" }>, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("stat_grid", this.width - (this.padding * 2), 100, {
             stats,
             ...opts
         });
     }
+    /** Snake_case alias of `addStatGrid`: adds a responsive row of KPI metric cards showing values, deltas, and up/down trend indicators. */
     public add_stat_grid(stats: Array<{ label: string; value: string; delta?: string; trend?: "up" | "down" }>, opts: Partial<any> = {}): SimpleControlRef {
         return this.addStatGrid(stats, opts);
     }
 
+    /** Adds a summary score card displaying a numeric/letter score, grade badge, and subtitle. */
     public addScoreCard(title: string, score: number | string, subtitle = "", grade = "A+", opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("score_card", 220, 110, {
             caption: title,
@@ -3915,10 +4316,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addScoreCard`: adds a summary score card displaying a numeric/letter score, grade badge, and subtitle. */
     public add_score_card(title: string, score: number | string, subtitle = "", grade = "A+", opts: Partial<any> = {}): SimpleControlRef {
         return this.addScoreCard(title, score, subtitle, grade, opts);
     }
 
+    /** Adds a user identity card with avatar image, display name, role subtitle, and presence indicator. */
     public addAvatarCard(name: string, role: string, avatarUrl = "", status = "online", opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("avatar_card", 240, 80, {
             caption: name,
@@ -3928,10 +4331,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addAvatarCard`: adds a user identity card with avatar image, display name, role subtitle, and presence indicator. */
     public add_avatar_card(name: string, role: string, avatarUrl = "", status = "online", opts: Partial<any> = {}): SimpleControlRef {
         return this.addAvatarCard(name, role, avatarUrl, status, opts);
     }
 
+    /** Adds a rich social/profile card displaying user bio, handle, avatar, and follower/post statistics. */
     public addUserProfileCard(user: { name: string; handle: string; avatar?: string; bio?: string; stats?: { followers: string; following: string; posts: string } }, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("user_profile_card", 280, 150, {
             userProfile: user,
@@ -3940,10 +4345,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addUserProfileCard`: adds a rich social/profile card displaying user bio, handle, avatar, and follower/post statistics. */
     public add_user_profile_card(user: { name: string; handle: string; avatar?: string; bio?: string; stats?: { followers: string; following: string; posts: string } }, opts: Partial<any> = {}): SimpleControlRef {
         return this.addUserProfileCard(user, opts);
     }
 
+    /** Adds an e-commerce product showcase card with title, price, rating, tag badge, and description. */
     public addProductCard(product: { title: string; price: string; rating?: number; reviews?: number; tag?: string; image?: string; description?: string }, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("product_card", 260, 220, {
             productData: product,
@@ -3952,10 +4359,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addProductCard`: adds an e-commerce product showcase card with title, price, rating, tag badge, and description. */
     public add_product_card(product: { title: string; price: string; rating?: number; reviews?: number; tag?: string; image?: string; description?: string }, opts: Partial<any> = {}): SimpleControlRef {
         return this.addProductCard(product, opts);
     }
 
+    /** Adds a clickable dashboard launcher tile with large icon, title, and description. */
     public addAppLauncherTile(title: string, icon = "⚡", description = "", onClick?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("app_launcher_tile", 180, 100, {
             caption: title,
@@ -3965,10 +4374,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addAppLauncherTile`: adds a clickable dashboard launcher tile with large icon, title, and description. */
     public add_app_launcher_tile(title: string, icon = "⚡", description = "", onClick?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         return this.addAppLauncherTile(title, icon, description, onClick, opts);
     }
 
+    /** Adds an API inspector card displaying HTTP method badge, request URL, status code, and latency. */
     public addHttpRequestCard(method = "GET", url = "https://api.example.com/v1/data", status = 200, latency = "42ms", opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("http_request_card", Math.min(440, this.width - 40), 96, {
             method,
@@ -3979,10 +4390,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addHttpRequestCard`: adds an API inspector card displaying HTTP method badge, request URL, status code, and latency. */
     public add_http_request_card(method = "GET", url = "https://api.example.com/v1/data", status = 200, latency = "42ms", opts: Partial<any> = {}): SimpleControlRef {
         return this.addHttpRequestCard(method, url, status, latency, opts);
     }
 
+    /** Adds a system telemetry monitor widget displaying live CPU, RAM, and disk utilization bars. */
     public addResourceMonitor(id = "sys_res", cpu = 38, ram = 54, disk = 68, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("resource_monitor", Math.min(360, this.width - 40), 100, {
             id,
@@ -3992,10 +4405,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addResourceMonitor`: adds a system telemetry monitor widget displaying live CPU, RAM, and disk utilization bars. */
     public add_resource_monitor(id = "sys_res", cpu = 38, ram = 54, disk = 68, opts: Partial<any> = {}): SimpleControlRef {
         return this.addResourceMonitor(id, cpu, ram, disk, opts);
     }
 
+    /** Adds a key-value environment variable inspector/editor list. */
     public addEnvVars(id = "env_list", vars: Record<string, string> = { NODE_ENV: "development", BUN_PORT: "3000", APP_DEBUG: "true" }, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("env_vars", Math.min(420, this.width - 40), 140, {
             id,
@@ -4003,10 +4418,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addEnvVars`: adds a key-value environment variable inspector/editor list. */
     public add_env_vars(id = "env_list", vars?: Record<string, string>, opts: Partial<any> = {}): SimpleControlRef {
         return this.addEnvVars(id, vars, opts);
     }
 
+    /** Adds a compact status dot + label indicator (`"active"`, `"warning"`, `"error"`, or `"offline"`). */
     public addStatusIndicator(label: string, status: "active" | "warning" | "error" | "offline" = "active", opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("status_indicator", 160, 28, {
             caption: label,
@@ -4015,10 +4432,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addStatusIndicator`: adds a compact status dot + label indicator (`"active"`, `"warning"`, `"error"`, or `"offline"`). */
     public add_status_indicator(label: string, status?: "active" | "warning" | "error" | "offline", opts: Partial<any> = {}): SimpleControlRef {
         return this.addStatusIndicator(label, status, opts);
     }
 
+    /** Adds a bottom/inline telemetry status dock displaying icon-label-value pills. */
     public addStatusDock(items: Array<{ icon: string; label: string; value: string }> = [
         { icon: "🟢", label: "Backend", value: "Online" },
         { icon: "⚡", label: "Latency", value: "18ms" },
@@ -4029,11 +4448,13 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addStatusDock`: adds a bottom/inline telemetry status dock displaying icon-label-value pills. */
     public add_status_dock(items?: Array<{ icon: string; label: string; value: string }>, opts: Partial<any> = {}): SimpleControlRef {
         return this.addStatusDock(items, opts);
     }
 
     // 9. Navigation & Accordion Containers
+    /** Adds a vertical icon navigation rail for switching between primary application views. */
     public addNavRail(items: Array<{ icon: string; label: string; id?: string; active?: boolean }>, onSelect?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("nav_rail", 72, Math.max(200, items.length * 60), {
             navItems: items,
@@ -4041,10 +4462,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addNavRail`: adds a vertical icon navigation rail for switching between primary application views. */
     public add_nav_rail(items: Array<{ icon: string; label: string; id?: string; active?: boolean }>, onSelect?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         return this.addNavRail(items, onSelect, opts);
     }
 
+    /** Adds an expandable disclosure triangle section that reveals or hides body content. */
     public addDisclosure(title: string, content: string, expanded = false, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("disclosure", this.width - (this.padding * 2), expanded ? 120 : 42, {
             caption: title,
@@ -4053,27 +4476,33 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addDisclosure`: adds an expandable disclosure triangle section that reveals or hides body content. */
     public add_disclosure(title: string, content: string, expanded = false, opts: Partial<any> = {}): SimpleControlRef {
         return this.addDisclosure(title, content, expanded, opts);
     }
 
+    /** Alias of `addDisclosure`: adds an expandable disclosure triangle section that reveals or hides body content. */
     public addCollapsibleSection(title: string, content: string, expanded = false, opts: Partial<any> = {}): SimpleControlRef {
         return this.addDisclosure(title, content, expanded, opts);
     }
+    /** Snake_case alias of `addCollapsibleSection`: adds an expandable disclosure triangle section that reveals or hides body content. */
     public add_collapsible_section(title: string, content: string, expanded = false, opts: Partial<any> = {}): SimpleControlRef {
         return this.addCollapsibleSection(title, content, expanded, opts);
     }
 
+    /** Adds a vertically stacked accordion of collapsible titled content panels. */
     public addAccordionGroup(items: Array<{ title: string; content: string; expanded?: boolean }>, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("accordion_group", this.width - (this.padding * 2), items.length * 48 + 60, {
             accordionItems: items,
             ...opts
         });
     }
+    /** Snake_case alias of `addAccordionGroup`: adds a vertically stacked accordion of collapsible titled content panels. */
     public add_accordion_group(items: Array<{ title: string; content: string; expanded?: boolean }>, opts: Partial<any> = {}): SimpleControlRef {
         return this.addAccordionGroup(items, opts);
     }
 
+    /** Adds a multi-column drag-and-drop Kanban task board with card move callbacks. */
     public addKanbanBoard(idOrColumns: string | Array<any>, columnsOrOnMove?: Array<any> | EventCallback | Partial<any>, onMoveOrOpts?: EventCallback | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
         let explicitId: string | undefined;
         let cols: any[] = [];
@@ -4104,30 +4533,36 @@ export class SimpleWindow {
         if (moveHandler) ref.on("card_move", moveHandler);
         return ref;
     }
+    /** Snake_case alias of `addKanbanBoard`: adds a multi-column drag-and-drop Kanban task board with card move callbacks. */
     public add_kanban_board(idOrColumns: string | Array<any>, columnsOrOnMove?: Array<any> | EventCallback | Partial<any>, onMoveOrOpts?: EventCallback | Partial<any>, opts: Partial<any> = {}): SimpleControlRef {
         return this.addKanbanBoard(idOrColumns, columnsOrOnMove, onMoveOrOpts, opts);
     }
 
+    /** Adds a horizontal bar of primary and secondary form action buttons. */
     public addActionRow(buttons: Array<{ label: string; onClick?: EventCallback; primary?: boolean; style?: string }>, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("action_row", this.width - (this.padding * 2), 48, {
             actionButtons: buttons,
             ...opts
         });
     }
+    /** Snake_case alias of `addActionRow`: adds a horizontal bar of primary and secondary form action buttons. */
     public add_action_row(buttons: Array<{ label: string; onClick?: EventCallback; primary?: boolean; style?: string }>, opts: Partial<any> = {}): SimpleControlRef {
         return this.addActionRow(buttons, opts);
     }
 
+    /** Adds a multi-column horizontal row of labeled text input fields. */
     public addFieldsRow(fields: Array<{ label: string; id: string; placeholder?: string; value?: string }>, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("fields_row", this.width - (this.padding * 2), 68, {
             rowFields: fields,
             ...opts
         });
     }
+    /** Snake_case alias of `addFieldsRow`: adds a multi-column horizontal row of labeled text input fields. */
     public add_fields_row(fields: Array<{ label: string; id: string; placeholder?: string; value?: string }>, opts: Partial<any> = {}): SimpleControlRef {
         return this.addFieldsRow(fields, opts);
     }
 
+    /** Adds a titled group box frame container with explicit width and height. */
     public addGroupBox(title: string, width?: number, height = 180, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("group_box", width || (this.width - (this.padding * 2)), height, {
             caption: title,
@@ -4135,10 +4570,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addGroupBox`: adds a titled group box frame container with explicit width and height. */
     public add_group_box(title: string, width?: number, height = 180, opts: Partial<any> = {}): SimpleControlRef {
         return this.addGroupBox(title, width, height, opts);
     }
 
+    /** Adds a horizontal tab bar control with selectable tab labels and active index. */
     public addTabs(tabNames: string[], selectedIdxOrOpts: number | Partial<any> = 0, opts: Partial<any> = {}): SimpleControlRef {
         let selectedIdx = 0;
         let finalOpts: Record<string, any> = { ...opts };
@@ -4153,40 +4590,50 @@ export class SimpleWindow {
             ...finalOpts
         });
     }
+    /** Snake_case alias of `addTabs`: adds a horizontal tab bar control with selectable tab labels and active index. */
     public add_tabs(tabNames: string[], selectedIdxOrOpts: number | Partial<any> = 0, opts: Partial<any> = {}): SimpleControlRef {
         return this.addTabs(tabNames, selectedIdxOrOpts, opts);
     }
 
+    /** Adds a scrollable viewport container with fixed height. */
     public addScrollView(width?: number, height = 240, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("scroll_view", width || (this.width - (this.padding * 2)), height, {
             ...opts
         });
     }
+    /** Snake_case alias of `addScrollView`: adds a scrollable viewport container with fixed height. */
     public add_scroll_view(width?: number, height = 240, opts: Partial<any> = {}): SimpleControlRef {
         return this.addScrollView(width, height, opts);
     }
 
+    /** Inserts vertical whitespace of `height` pixels between layout rows. */
     public addVerticalSpacer(height = 16): SimpleControlRef {
         return this.addVisualControl("spacer_v", 1, height);
     }
+    /** Snake_case alias of `addVerticalSpacer`: inserts vertical whitespace of `height` pixels between layout rows. */
     public add_vertical_spacer(height = 16): SimpleControlRef {
         return this.addVerticalSpacer(height);
     }
 
+    /** Inserts horizontal whitespace of `width` pixels between controls in a row. */
     public addHorizontalSpacer(width = 16): SimpleControlRef {
         return this.addVisualControl("spacer_h", width, 1);
     }
+    /** Snake_case alias of `addHorizontalSpacer`: inserts horizontal whitespace of `width` pixels between controls in a row. */
     public add_horizontal_spacer(width = 16): SimpleControlRef {
         return this.addHorizontalSpacer(width);
     }
 
+    /** Alias of `addDivider`: adds a full-width horizontal visual separator line across the current container. */
     public addSeparator(): SimpleControlRef {
         return this.addDivider();
     }
+    /** Snake_case alias of `addSeparator`: adds a full-width horizontal visual separator line across the current container. */
     public add_separator(): SimpleControlRef {
         return this.addSeparator();
     }
 
+    /** Adds an individual clickable button item to a toolbar strip. */
     public addToolbarItem(label: string, icon = "", onClick?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("toolbar_item", 100, 32, {
             caption: label,
@@ -4195,10 +4642,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addToolbarItem`: adds an individual clickable button item to a toolbar strip. */
     public add_toolbar_item(label: string, icon = "", onClick?: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         return this.addToolbarItem(label, icon, onClick, opts);
     }
 
+    /** Adds a system-tray style status icon widget with hover tooltip. */
     public addTrayIcon(tooltip: string, icon = "⚡", opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("tray_icon", 36, 36, {
             caption: tooltip,
@@ -4206,10 +4655,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addTrayIcon`: adds a system-tray style status icon widget with hover tooltip. */
     public add_tray_icon(tooltip: string, icon = "⚡", opts: Partial<any> = {}): SimpleControlRef {
         return this.addTrayIcon(tooltip, icon, opts);
     }
 
+    /** Adds a visual CSS grid container control with `columns` columns and `gap` spacing. */
     public addGrid(columns = 2, gap = 12, opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("grid", this.width - (this.padding * 2), 120, {
             columns,
@@ -4217,10 +4668,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addGrid`: adds a visual CSS grid container control with `columns` columns and `gap` spacing. */
     public add_grid(columns = 2, gap = 12, opts: Partial<any> = {}): SimpleControlRef {
         return this.addGrid(columns, gap, opts);
     }
 
+    /** Adds a single expandable tree node with child item labels. */
     public addTreeNode(label: string, children: string[] = [], opts: Partial<any> = {}): SimpleControlRef {
         return this.addVisualControl("tree_node", 220, 32 + children.length * 24, {
             caption: label,
@@ -4228,10 +4681,12 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addTreeNode`: adds a single expandable tree node with child item labels. */
     public add_tree_node(label: string, children: string[] = [], opts: Partial<any> = {}): SimpleControlRef {
         return this.addTreeNode(label, children, opts);
     }
 
+    /** Registers a repeating non-visual interval timer control that invokes `onTick` every `intervalMs` milliseconds. */
     public addTimer(intervalMs: number, onTick: EventCallback, opts: Partial<any> = {}): SimpleControlRef {
         const id = opts.id || this.generateUniqueId("timer");
         const spec: any = {
@@ -4253,6 +4708,7 @@ export class SimpleWindow {
     // ✨ STUDIO EXTENDED CONTROLS: MODERN ERGONOMIC FLUENT APIS
     // ==============================================================
 
+    /** Adds a vertical navigation sidebar menu with header title, clickable items, and selection callback. */
     public addSidebar(
         idOrTitleOrItems: string | any[] = "Navigation",
         titleOrItemsOrOnClick?: string | any[] | EventCallback,
@@ -4304,10 +4760,14 @@ export class SimpleWindow {
         }
         return ref;
     }
+    /** Snake_case alias of `addSidebar`: adds a vertical navigation sidebar menu with header title, clickable items, and selection callback. */
     public add_sidebar(...args: any[]) { return (this.addSidebar as any)(...args); }
+    /** W3.CSS-compatible alias of `addSidebar`: adds a vertical navigation sidebar menu with header title, clickable items, and selection callback. */
     public addW3Sidebar(...args: any[]) { return (this.addSidebar as any)(...args); }
+    /** W3.CSS snake_case alias of `addSidebar`: adds a vertical navigation sidebar menu with header title, clickable items, and selection callback. */
     public add_w3_sidebar(...args: any[]) { return (this.addSidebar as any)(...args); }
 
+    /** Adds a modal dialog overlay container with title, message body, and optional confirmation handler. */
     public addModal(
         idOrTitleOrMsg = "Modal Dialog",
         titleOrMsgOrOnConfirm?: string | EventCallback,
@@ -4363,12 +4823,18 @@ export class SimpleWindow {
         }
         return ref;
     }
+    /** Snake_case alias of `addModal`: adds a modal dialog overlay container with title, message body, and optional confirmation handler. */
     public add_modal(...args: any[]) { return (this.addModal as any)(...args); }
+    /** Alias of `addModal`: adds a modal dialog overlay container with title, message body, and optional confirmation handler. */
     public addModalDialog(...args: any[]) { return (this.addModal as any)(...args); }
+    /** Snake_case alias of `addModal`: adds a modal dialog overlay container with title, message body, and optional confirmation handler. */
     public add_modal_dialog(...args: any[]) { return (this.addModal as any)(...args); }
+    /** W3.CSS-compatible alias of `addModal`: adds a modal dialog overlay container with title, message body, and optional confirmation handler. */
     public addW3Modal(...args: any[]) { return (this.addModal as any)(...args); }
+    /** W3.CSS snake_case alias of `addModal`: adds a modal dialog overlay container with title, message body, and optional confirmation handler. */
     public add_w3_modal(...args: any[]) { return (this.addModal as any)(...args); }
 
+    /** Adds a clickable dropdown action menu button that reveals a list of selectable commands. */
     public addDropdownMenu(
         idOrLabelOrItems: string | any[] = "Select Action",
         labelOrItemsOrOnSelect?: string | any[] | EventCallback,
@@ -4420,10 +4886,14 @@ export class SimpleWindow {
         }
         return ref;
     }
+    /** Snake_case alias of `addDropdownMenu`: adds a clickable dropdown action menu button that reveals a list of selectable commands. */
     public add_dropdown_menu(...args: any[]) { return (this.addDropdownMenu as any)(...args); }
+    /** W3.CSS-compatible alias of `addDropdownMenu`: adds a clickable dropdown action menu button that reveals a list of selectable commands. */
     public addW3Dropdown(...args: any[]) { return (this.addDropdownMenu as any)(...args); }
+    /** W3.CSS snake_case alias of `addDropdownMenu`: adds a clickable dropdown action menu button that reveals a list of selectable commands. */
     public add_w3_dropdown(...args: any[]) { return (this.addDropdownMenu as any)(...args); }
 
+    /** Adds a styled vertical list group with optional item badges and selection callback. */
     public addListGroup(
         idOrItems: string | any[] = [],
         itemsOrOnSelect?: any[] | EventCallback,
@@ -4459,12 +4929,18 @@ export class SimpleWindow {
         }
         return ref;
     }
+    /** Snake_case alias of `addListGroup`: adds a styled vertical list group with optional item badges and selection callback. */
     public add_list_group(...args: any[]) { return (this.addListGroup as any)(...args); }
+    /** Alias of `addListGroup`: adds a styled vertical list group with optional item badges and selection callback. */
     public addBadgedList(...args: any[]) { return (this.addListGroup as any)(...args); }
+    /** Snake_case alias of `addListGroup`: adds a styled vertical list group with optional item badges and selection callback. */
     public add_badged_list(...args: any[]) { return (this.addListGroup as any)(...args); }
+    /** W3.CSS-compatible alias of `addListGroup`: adds a styled vertical list group with optional item badges and selection callback. */
     public addW3List(...args: any[]) { return (this.addListGroup as any)(...args); }
+    /** W3.CSS snake_case alias of `addListGroup`: adds a styled vertical list group with optional item badges and selection callback. */
     public add_w3_list(...args: any[]) { return (this.addListGroup as any)(...args); }
 
+    /** Adds an elevated content card with header title, body description, and optional footer. */
     public addContentCard(
         idOrTitle = "Card Title",
         titleOrDesc?: string | Partial<any>,
@@ -4506,12 +4982,18 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addContentCard`: adds an elevated content card with header title, body description, and optional footer. */
     public add_content_card(...args: any[]) { return (this.addContentCard as any)(...args); }
+    /** Alias of `addContentCard`: adds an elevated content card with header title, body description, and optional footer. */
     public addCard(...args: any[]) { return (this.addContentCard as any)(...args); }
+    /** Snake_case alias of `addContentCard`: adds an elevated content card with header title, body description, and optional footer. */
     public add_card(...args: any[]) { return (this.addContentCard as any)(...args); }
+    /** W3.CSS-compatible alias of `addContentCard`: adds an elevated content card with header title, body description, and optional footer. */
     public addW3Card(...args: any[]) { return (this.addContentCard as any)(...args); }
+    /** W3.CSS snake_case alias of `addContentCard`: adds an elevated content card with header title, body description, and optional footer. */
     public add_w3_card(...args: any[]) { return (this.addContentCard as any)(...args); }
 
+    /** Adds a left-bordered semantic callout/note panel (`"info"`, `"success"`, `"warning"`, or `"error"`). */
     public addCalloutPanel(
         idOrTitleOrMsg = "Important Note",
         titleOrMsgOrType?: string,
@@ -4553,12 +5035,18 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addCalloutPanel`: adds a left-bordered semantic callout/note panel (`"info"`, `"success"`, `"warning"`, or `"error"`). */
     public add_callout_panel(...args: any[]) { return (this.addCalloutPanel as any)(...args); }
+    /** Alias of `addCalloutPanel`: adds a left-bordered semantic callout/note panel (`"info"`, `"success"`, `"warning"`, or `"error"`). */
     public addNotePanel(...args: any[]) { return (this.addCalloutPanel as any)(...args); }
+    /** Snake_case alias of `addCalloutPanel`: adds a left-bordered semantic callout/note panel (`"info"`, `"success"`, `"warning"`, or `"error"`). */
     public add_note_panel(...args: any[]) { return (this.addCalloutPanel as any)(...args); }
+    /** W3.CSS-compatible alias of `addCalloutPanel`: adds a left-bordered semantic callout/note panel (`"info"`, `"success"`, `"warning"`, or `"error"`). */
     public addW3Panel(...args: any[]) { return (this.addCalloutPanel as any)(...args); }
+    /** W3.CSS snake_case alias of `addCalloutPanel`: adds a left-bordered semantic callout/note panel (`"info"`, `"success"`, `"warning"`, or `"error"`). */
     public add_w3_panel(...args: any[]) { return (this.addCalloutPanel as any)(...args); }
 
+    /** Adds an inline trigger element that displays a rich hover tooltip popup. */
     public addTooltipBox(
         idOrTrigger = "Hover Me ℹ️",
         triggerOrTooltip?: string,
@@ -4594,10 +5082,14 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addTooltipBox`: adds an inline trigger element that displays a rich hover tooltip popup. */
     public add_tooltip_box(...args: any[]) { return (this.addTooltipBox as any)(...args); }
+    /** W3.CSS-compatible alias of `addTooltipBox`: adds an inline trigger element that displays a rich hover tooltip popup. */
     public addW3Tooltip(...args: any[]) { return (this.addTooltipBox as any)(...args); }
+    /** W3.CSS snake_case alias of `addTooltipBox`: adds an inline trigger element that displays a rich hover tooltip popup. */
     public add_w3_tooltip(...args: any[]) { return (this.addTooltipBox as any)(...args); }
 
+    /** Adds a text input field that smoothly expands in width when focused. */
     public addAnimatedInput(
         idOrPlaceholder = "Click to expand...",
         placeholderOrVal?: string,
@@ -4639,10 +5131,14 @@ export class SimpleWindow {
         }
         return ref;
     }
+    /** Snake_case alias of `addAnimatedInput`: adds a text input field that smoothly expands in width when focused. */
     public add_animated_input(...args: any[]) { return (this.addAnimatedInput as any)(...args); }
+    /** W3.CSS-compatible alias of `addAnimatedInput`: adds a text input field that smoothly expands in width when focused. */
     public addW3AnimatedInput(...args: any[]) { return (this.addAnimatedInput as any)(...args); }
+    /** W3.CSS snake_case alias of `addAnimatedInput`: adds a text input field that smoothly expands in width when focused. */
     public add_w3_animated_input(...args: any[]) { return (this.addAnimatedInput as any)(...args); }
 
+    /** Adds a high-contrast hero typography display banner with title and subtitle. */
     public addHeroDisplay(
         idOrTitle = "Hero Display",
         titleOrSubtitle?: string,
@@ -4680,12 +5176,18 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addHeroDisplay`: adds a high-contrast hero typography display banner with title and subtitle. */
     public add_hero_display(...args: any[]) { return (this.addHeroDisplay as any)(...args); }
+    /** Alias of `addHeroDisplay`: adds a high-contrast hero typography display banner with title and subtitle. */
     public addDisplayContainer(...args: any[]) { return (this.addHeroDisplay as any)(...args); }
+    /** Snake_case alias of `addHeroDisplay`: adds a high-contrast hero typography display banner with title and subtitle. */
     public add_display_container(...args: any[]) { return (this.addHeroDisplay as any)(...args); }
+    /** W3.CSS-compatible alias of `addHeroDisplay`: adds a high-contrast hero typography display banner with title and subtitle. */
     public addW3Display(...args: any[]) { return (this.addHeroDisplay as any)(...args); }
+    /** W3.CSS snake_case alias of `addHeroDisplay`: adds a high-contrast hero typography display banner with title and subtitle. */
     public add_w3_display(...args: any[]) { return (this.addHeroDisplay as any)(...args); }
 
+    /** Adds a formatted code block with syntax highlighting and copy-to-clipboard button. */
     public addCodeSnippet(
         idOrCode = "const app = new StudioApp();",
         codeOrLang?: string,
@@ -4718,12 +5220,18 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addCodeSnippet`: adds a formatted code block with syntax highlighting and copy-to-clipboard button. */
     public add_code_snippet(...args: any[]) { return (this.addCodeSnippet as any)(...args); }
+    /** Alias of `addCodeSnippet`: adds a formatted code block with syntax highlighting and copy-to-clipboard button. */
     public addCodeBlock(...args: any[]) { return (this.addCodeSnippet as any)(...args); }
+    /** Snake_case alias of `addCodeSnippet`: adds a formatted code block with syntax highlighting and copy-to-clipboard button. */
     public add_code_block(...args: any[]) { return (this.addCodeSnippet as any)(...args); }
+    /** W3.CSS-compatible alias of `addCodeSnippet`: adds a formatted code block with syntax highlighting and copy-to-clipboard button. */
     public addW3Code(...args: any[]) { return (this.addCodeSnippet as any)(...args); }
+    /** W3.CSS snake_case alias of `addCodeSnippet`: adds a formatted code block with syntax highlighting and copy-to-clipboard button. */
     public add_w3_code(...args: any[]) { return (this.addCodeSnippet as any)(...args); }
 
+    /** Adds a circular or pill numeric notification badge with semantic color styling. */
     public addCountBadge(
         idOrLabelOrCount: string | number = 1,
         labelOrCountOrColor?: string | number,
@@ -4770,12 +5278,18 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addCountBadge`: adds a circular or pill numeric notification badge with semantic color styling. */
     public add_count_badge(...args: any[]) { return (this.addCountBadge as any)(...args); }
+    /** Alias of `addCountBadge`: adds a circular or pill numeric notification badge with semantic color styling. */
     public addCircularBadge(...args: any[]) { return (this.addCountBadge as any)(...args); }
+    /** Snake_case alias of `addCountBadge`: adds a circular or pill numeric notification badge with semantic color styling. */
     public add_circular_badge(...args: any[]) { return (this.addCountBadge as any)(...args); }
+    /** W3.CSS-compatible alias of `addCountBadge`: adds a circular or pill numeric notification badge with semantic color styling. */
     public addW3Badge(...args: any[]) { return (this.addCountBadge as any)(...args); }
+    /** W3.CSS snake_case alias of `addCountBadge`: adds a circular or pill numeric notification badge with semantic color styling. */
     public add_w3_badge(...args: any[]) { return (this.addCountBadge as any)(...args); }
 
+    /** Adds a joined horizontal group of related action buttons. */
     public addButtonGroup(
         idOrButtons: string | any[] = ["Left", "Center", "Right"],
         buttonsOrOnClick?: any[] | EventCallback,
@@ -4810,12 +5324,18 @@ export class SimpleWindow {
         }
         return ref;
     }
+    /** Snake_case alias of `addButtonGroup`: adds a joined horizontal group of related action buttons. */
     public add_button_group(...args: any[]) { return (this.addButtonGroup as any)(...args); }
+    /** Alias of `addButtonGroup`: adds a joined horizontal group of related action buttons. */
     public addButtonBar(...args: any[]) { return (this.addButtonGroup as any)(...args); }
+    /** Snake_case alias of `addButtonGroup`: adds a joined horizontal group of related action buttons. */
     public add_button_bar(...args: any[]) { return (this.addButtonGroup as any)(...args); }
+    /** W3.CSS-compatible alias of `addButtonGroup`: adds a joined horizontal group of related action buttons. */
     public addW3ButtonGroup(...args: any[]) { return (this.addButtonGroup as any)(...args); }
+    /** W3.CSS snake_case alias of `addButtonGroup`: adds a joined horizontal group of related action buttons. */
     public add_w3_button_group(...args: any[]) { return (this.addButtonGroup as any)(...args); }
 
+    /** Adds an interactive slide/image carousel with previous/next navigation and slide change callback. */
     public addSlideshow(
         idOrSlides: string | any[] = [],
         slidesOrOnChange?: any[] | EventCallback,
@@ -4850,16 +5370,23 @@ export class SimpleWindow {
         }
         return ref;
     }
+    /** Snake_case alias of `addSlideshow`: adds an interactive slide/image carousel with previous/next navigation and slide change callback. */
     public add_slideshow(...args: any[]) { return (this.addSlideshow as any)(...args); }
+    /** Alias of `addSlideshow`: adds an interactive slide/image carousel with previous/next navigation and slide change callback. */
     public addCarousel(...args: any[]) { return (this.addSlideshow as any)(...args); }
+    /** Snake_case alias of `addSlideshow`: adds an interactive slide/image carousel with previous/next navigation and slide change callback. */
     public add_carousel(...args: any[]) { return (this.addSlideshow as any)(...args); }
+    /** W3.CSS-compatible alias of `addSlideshow`: adds an interactive slide/image carousel with previous/next navigation and slide change callback. */
     public addW3Slideshow(...args: any[]) { return (this.addSlideshow as any)(...args); }
+    /** W3.CSS snake_case alias of `addSlideshow`: adds an interactive slide/image carousel with previous/next navigation and slide change callback. */
     public add_w3_slideshow(...args: any[]) { return (this.addSlideshow as any)(...args); }
 
+    /** Opens a modal dialog overlay by its control ID in the live window. */
     public openModal(modalId: string): this {
         this.evalJS(`if(window.openModal)window.openModal('${modalId}');else{const el=document.getElementById('${modalId}');if(el)el.style.display='flex';}`);
         return this;
     }
+    /** Closes an open modal dialog overlay by its control ID in the live window. */
     public closeModal(modalId: string): this {
         this.evalJS(`if(window.closeModal)window.closeModal('${modalId}');else{const el=document.getElementById('${modalId}');if(el)el.style.display='none';}`);
         return this;
@@ -4867,6 +5394,7 @@ export class SimpleWindow {
 
 
     // --- IPC Event Registration & Dispatching ---
+    /** Registers an event handler callback for a specific control ID and event type (`onClick`, `onChange`, `onEnter`, etc.). */
     public bindControlEvent(controlId: string, eventType: string, callback: EventCallback): void {
         const raw = eventType.toLowerCase();
         const norm = raw.startsWith("on") ? raw : `on${raw}`;
@@ -4892,6 +5420,7 @@ export class SimpleWindow {
         }
     }
 
+    /** Evaluates arbitrary JavaScript code asynchronously inside the active webview or browser host. */
     public evalJS(code: string): void {
         if (this.webview) {
             try {
@@ -4902,10 +5431,12 @@ export class SimpleWindow {
         }
     }
 
+    /** Alias of `evalJS`: evaluates arbitrary JavaScript code asynchronously inside the active webview or browser host. */
     public eval(code: string): void {
         this.evalJS(code);
     }
 
+    /** Retrieves the current value of the control identified by `id`. */
     public getValue(id: string): any {
         if (this.formValuesStore[id] !== undefined) {
             return this.formValuesStore[id];
@@ -4917,6 +5448,7 @@ export class SimpleWindow {
         return undefined;
     }
 
+    /** Updates the value of the control identified by `id`, syncing two-way state bindings and updating the live DOM. */
     public setValue(id: string, val: any): this {
         this.formValuesStore[id] = val;
         const stateKey = this.controlStateBindings.get(id);
@@ -4977,6 +5509,7 @@ export class SimpleWindow {
         return this;
     }
 
+    /** Sets the raw inner HTML content of a control in both the form store and live DOM. */
     public setHtml(id: string, htmlContent: string): this {
         this.formValuesStore[id] = htmlContent;
         const ctrl = this.controls.find(c => c && (c.id === id || c.name === id));
@@ -4997,22 +5530,27 @@ export class SimpleWindow {
         }
         return this;
     }
+    /** Snake_case alias of `setHtml`: sets the raw inner HTML content of a control in both the form store and live DOM. */
     public set_html(id: string, htmlContent: string): this {
         return this.setHtml(id, htmlContent);
     }
 
+    /** Returns the current string text value of the control identified by `id`. */
     public getText(id: string): string {
         return String(this.formValuesStore[id] || "");
     }
 
+    /** Updates the string text value of the control identified by `id` in the form store and live DOM. */
     public setText(id: string, text: string): this {
         return this.setValue(id, text);
     }
 
+    /** Returns a shallow copy of all control ID-to-value entries in the form store. */
     public getFormValues(): Record<string, any> {
         return { ...this.formValuesStore };
     }
 
+    /** Batch-updates multiple form controls from a `{ [controlId]: value }` dictionary. */
     public setFormValues(values: Record<string, any>): this {
         for (const [id, val] of Object.entries(values)) {
             this.setValue(id, val);
@@ -5020,6 +5558,7 @@ export class SimpleWindow {
         return this;
     }
 
+    /** Resets all stored form control values in the window to empty strings. */
     public clearForm(): this {
         for (const id of Object.keys(this.formValuesStore)) {
             this.setValue(id, "");
@@ -5027,15 +5566,18 @@ export class SimpleWindow {
         return this;
     }
 
+    /** Alias of `clearForm`: resets all stored form control values in the window to empty strings. */
     public resetForm(): this {
         return this.clearForm();
     }
 
+    /** Clears the value of a single input control identified by `id` to an empty string. */
     public clearInput(id: string): this {
         this.setValue(id, "");
         return this;
     }
 
+    /** Clears the values of all specified input control IDs to empty strings. */
     public clearInputs(ids: string[]): this {
         for (const id of ids) {
             this.setValue(id, "");
@@ -5069,18 +5611,26 @@ export class SimpleWindow {
     public fire(options?: DialogOptions | string, text?: string | DialogOptions | DialogCallback, icon?: DialogIcon | DialogOptions | DialogCallback, cb?: DialogCallback): Promise<DialogResult> {
         return this.dialogs.fire(options, text, icon, cb);
     }
+    /** Displays a SweetAlert-style success dialog with a checkmark icon. */
     public success(title: string, text?: string | DialogCallback, opts?: DialogOptions | DialogCallback, cb?: DialogCallback) { return this.dialogs.success(title, text, opts, cb); }
+    /** Displays a SweetAlert-style question dialog with a question-mark icon. */
     public question(title: string, text?: string | DialogCallback, opts?: DialogOptions | DialogCallback, cb?: DialogCallback) { return this.dialogs.question(title, text, opts, cb); }
+    /** Displays a destructive-action confirmation dialog asking whether to delete `what`, resolving to `true` when confirmed. */
     public confirmDelete(what = "this item", opts?: DialogOptions | DialogCallback<boolean>, cb?: DialogCallback<boolean>) { return this.dialogs.confirmDelete(what, opts, cb); }
     /** Ask for a typed value (`email`, `password`, `number`, `date`, `color`, `range`, `textarea`...). Result is `undefined` when cancelled. */
     public inputDialog(type: DialogInputType, title: string, opts?: DialogOptions | DialogCallback<any>, cb?: DialogCallback<any>) { return this.dialogs.inputDialog(type, title, opts, cb); }
+    /** Displays a modal selection dialog prompting the user to choose from `options`. */
     public selectDialog(title: string, options: DialogInputOptions, opts?: DialogOptions | DialogCallback<any>, cb?: DialogCallback<any>) { return this.dialogs.selectDialog(title, options, opts, cb); }
     /** Run several dialogs in sequence with step indicators. */
     public queueDialogs(steps: DialogOptions[], cb?: (out: { completed: boolean; results: DialogResult[] }) => void) { return this.dialogs.queue(steps, cb); }
+    /** Displays a non-dismissible modal loading spinner dialog with `title` and optional `text`. */
     public showLoading(title = "Loading...", text?: string) { return this.dialogs.showLoading(title, text); }
+    /** Closes any currently open loading spinner dialog. */
     public hideLoading(): this { this.dialogs.close(); return this; }
+    /** Closes the currently active modal dialog. */
     public closeDialog(): this { this.dialogs.close(); return this; }
 
+    /** Displays a modal alert dialog with `message` and `title` (or logs to console when headless). */
     public showAlert(message: string, title = "Alert", cb?: () => void): void {
         if (!this.isWindowRunning) {
             console.log(`[Alert - ${title}] ${message}`);
@@ -5090,12 +5640,14 @@ export class SimpleWindow {
         this.dialogs.fire({ title, text: message }, () => cb?.());
     }
 
+    /** Displays a Yes/No confirmation dialog and resolves to `true` if the user confirms. */
     public showConfirm(message: string, title: string | ((ok: boolean) => void) = "Confirm", cb?: (ok: boolean) => void): Promise<boolean> {
         const callback = typeof title === "function" ? title : cb;
         const t = typeof title === "string" ? title : "Confirm";
         return this.dialogs.confirm(message, t, callback);
     }
 
+    /** Displays a text-input prompt dialog initialized with `defaultVal` and resolves to the entered string or `null` if cancelled. */
     public showPrompt(message: string, defaultVal: string | ((v: string | null) => void) = "", title: string | ((v: string | null) => void) = "Prompt", cb?: (v: string | null) => void): Promise<string | null> {
         const callback = typeof defaultVal === "function" ? defaultVal : typeof title === "function" ? title : cb;
         const def = typeof defaultVal === "string" ? defaultVal : "";
@@ -5104,10 +5656,12 @@ export class SimpleWindow {
         return this.dialogs.prompt(message, def, t, callback);
     }
 
+    /** Alias of `showAlert`: displays a modal alert dialog with `message` and `title` (or logs to console when headless). */
     public alert(message: string, title = "Alert", cb?: () => void): void {
         this.showAlert(message, title, cb);
     }
 
+    /** Writes `text` to the system clipboard (and browser clipboard when the window is running). */
     public copyToClipboard(text: string): void {
         writeClipboardSync(text);
         if (this.isWindowRunning) {
@@ -5127,6 +5681,7 @@ export class SimpleWindow {
         }
     }
 
+    /** Reads and returns the current plain-text content from the system or webview clipboard. */
     public async getClipboardText(): Promise<string> {
         // 1. Direct OS Native Clipboard Read (macOS pbpaste, Windows Get-Clipboard, Linux wl-paste)
         const nativeText = readClipboardSync();
@@ -5167,50 +5722,67 @@ export class SimpleWindow {
         const callback = typeof filter === "function" ? filter : typeof cb === "function" ? cb : undefined;
         return this.dialogs.openFile({ title, filter: typeof filter === "string" ? filter : "", native: cb === true ? "never" : "auto" }, callback);
     }
+    /** Opens a native (or fallback in-webview) Save File dialog and resolves to the chosen destination path or `null`. */
     public saveFileDialog(title = "Save File", defaultName: string | ((p: string | null) => void) = "untitled.txt", cb?: ((p: string | null) => void) | boolean): Promise<string | null> {
         const callback = typeof defaultName === "function" ? defaultName : typeof cb === "function" ? cb : undefined;
         return this.dialogs.saveFile({ title, defaultName: typeof defaultName === "string" ? defaultName : "untitled.txt", native: cb === true ? "never" : "auto" }, callback);
     }
+    /** Opens a native (or fallback in-webview) folder selection dialog and resolves to the selected directory path or `null`. */
     public openFolderDialog(title = "Select Folder", cb?: ((p: string | null) => void) | boolean): Promise<string | null> {
         return this.dialogs.openFolder({ title, native: cb === true ? "never" : "auto" }, typeof cb === "function" ? cb : undefined);
     }
+    /** Opens a multi-file selection dialog and resolves to an array of selected file paths or `null`. */
     public openFilesDialog(title = "Open Files", filter = "", cb?: (p: string[] | null) => void): Promise<string[] | null> {
         return this.dialogs.openFiles({ title, filter }, cb);
     }
+    /** Opens a single-file selection dialog configured with `FileDialogOptions`. */
     public openFile(opts?: FileDialogOptions, cb?: (p: string | null) => void) { return this.dialogs.openFile(opts, cb); }
+    /** Opens a multi-file selection dialog configured with `FileDialogOptions`. */
     public openFiles(opts?: FileDialogOptions, cb?: (p: string[] | null) => void) { return this.dialogs.openFiles(opts, cb); }
+    /** Opens a Save File dialog configured with `FileDialogOptions`. */
     public saveFile(opts?: FileDialogOptions, cb?: (p: string | null) => void) { return this.dialogs.saveFile(opts, cb); }
+    /** Opens a folder selection dialog configured with `FileDialogOptions`. */
     public openFolder(opts?: FileDialogOptions, cb?: (p: string | null) => void) { return this.dialogs.openFolder(opts, cb); }
 
+    /** Opens the built-in HTML/webview file/folder picker dialog directly without invoking the native OS dialog. */
     public showWebviewFileDialog(opts: { mode?: "open" | "save" | "folder"; title?: string; initialDir?: string; defaultName?: string; filter?: string; multiple?: boolean } = {}, cb?: (p: any) => void): Promise<string | string[] | null> {
         return this.dialogs.fileDialog(opts.mode || "open", { ...opts, native: "never" }, cb);
     }
 
+    /** Snake_case alias of `openFileDialog`: file dialogs. Native OS dialog first; the in-webview picker is used only when the native one is unavailable (cancelling a native dialog never opens another). Last argument may be a callback `(path|null) => void`. Pass `true` / `"never"` as `native` option via the options-object overloads on `win.dialogs.openFile({...})`. */
     public open_file_dialog(title = "Open File", filter = "", cb?: (p: string | null) => void): Promise<string | null> {
         return this.openFileDialog(title, filter, cb);
     }
+    /** Snake_case alias of `saveFileDialog`: opens a native (or fallback in-webview) Save File dialog and resolves to the chosen destination path or `null`. */
     public save_file_dialog(title = "Save File", defaultName = "untitled.txt", cb?: (p: string | null) => void): Promise<string | null> {
         return this.saveFileDialog(title, defaultName, cb);
     }
+    /** Snake_case alias of `openFolderDialog`: opens a native (or fallback in-webview) folder selection dialog and resolves to the selected directory path or `null`. */
     public open_folder_dialog(title = "Select Folder", cb?: (p: string | null) => void): Promise<string | null> {
         return this.openFolderDialog(title, cb);
     }
+    /** Snake_case alias of `openFileDialog`: file dialogs. Native OS dialog first; the in-webview picker is used only when the native one is unavailable (cancelling a native dialog never opens another). Last argument may be a callback `(path|null) => void`. Pass `true` / `"never"` as `native` option via the options-object overloads on `win.dialogs.openFile({...})`. */
     public browse_file(title = "Open File", filter = "", cb?: (p: string | null) => void): Promise<string | null> {
         return this.openFileDialog(title, filter, cb);
     }
+    /** Snake_case alias of `openFolderDialog`: opens a native (or fallback in-webview) folder selection dialog and resolves to the selected directory path or `null`. */
     public browse_folder(title = "Select Folder", cb?: (p: string | null) => void): Promise<string | null> {
         return this.openFolderDialog(title, cb);
     }
+    /** Opens the in-webview Open File picker dialog with the given title and extension filter. */
     public open_webview_file_dialog(title = "Open File", filter = "", cb?: (p: string | null) => void): Promise<string | null> {
         return this.dialogs.openFile({ title, filter, native: "never" }, cb);
     }
+    /** Opens the in-webview Save File picker dialog with the given title and default filename. */
     public save_webview_file_dialog(title = "Save File", defaultName = "untitled.txt", cb?: (p: string | null) => void): Promise<string | null> {
         return this.dialogs.saveFile({ title, defaultName, native: "never" }, cb);
     }
+    /** Opens the in-webview Select Folder picker dialog with the given title. */
     public open_webview_folder_dialog(title = "Select Folder", cb?: (p: string | null) => void): Promise<string | null> {
         return this.dialogs.openFolder({ title, native: "never" }, cb);
     }
 
+    /** Pauses execution for `ms` milliseconds using a webview-safe timer (or `setTimeout` when not running), invoking `cb` and returning a Promise. */
     public delay(ms: number, cb?: () => void): Promise<void> | void {
         if (cb) {
             if (!this.isWindowRunning || !this.webview) {
@@ -5249,10 +5821,12 @@ export class SimpleWindow {
         });
     }
 
+    /** Alias of `delay`: pauses execution for `ms` milliseconds using a webview-safe timer (or `setTimeout` when not running), invoking `cb` and returning a Promise. */
     public async sleep(ms: number): Promise<void> {
         return this.delay(ms) as Promise<void>;
     }
 
+    /** Disables the target controls in `names`, updates the window status bar to `statusText`, runs `callback`, and automatically re-enables the controls and restores status text upon completion. */
     public async withBusyState(names: string[], statusText: string, callback: (win: SimpleWindow, done: (completionStatus?: string) => void) => any | Promise<any>): Promise<this> {
         console.log(`[withBusyState] Starting... setting status to: ${statusText}`);
         let originalStatus = this.statusText;
@@ -5307,6 +5881,7 @@ export class SimpleWindow {
     }
 
     // --- HTML & Window Build Engine ---
+    /** Serializes the window's current theme, layout metrics, and controls into a standalone `FormSpec` object. */
     public buildFormSpec(): FormSpec {
         const specControls: any[] = [];
         const processControls = (items: any[]) => {
@@ -5349,22 +5924,27 @@ export class SimpleWindow {
         };
     }
 
+    /** Alias of `generateHtml`: compiles the complete self-contained HTML/CSS/JS document used to render the window and all its controls. */
     public toHtml(): string {
         return this.generateHtml();
     }
 
+    /** Snake_case alias of `generateHtml`: compiles the complete self-contained HTML/CSS/JS document used to render the window and all its controls. */
     public to_html(): string {
         return this.generateHtml();
     }
 
+    /** Alias of `generateHtml`: compiles the complete self-contained HTML/CSS/JS document used to render the window and all its controls. */
     public getHtml(): string {
         return this.generateHtml();
     }
 
+    /** Snake_case alias of `generateHtml`: compiles the complete self-contained HTML/CSS/JS document used to render the window and all its controls. */
     public get_html(): string {
         return this.generateHtml();
     }
 
+    /** Compiles the complete self-contained HTML/CSS/JS document used to render the window and all its controls. */
     public generateHtml(): string {
         if (this._currentGridSection) {
             if (this._currentCardSection) {
@@ -6138,6 +6718,7 @@ export class SimpleWindow {
         return injectHelp(html, this.helpId || this.getAppId());
     }
 
+    /** Registers a custom client-side JavaScript snippet to run inside the window (and executes it immediately if already running). */
     public addScript(script: string): this {
         this.customScripts.push(script);
         if (this.isWindowRunning) {
@@ -6146,19 +6727,23 @@ export class SimpleWindow {
         return this;
     }
 
+    /** Returns a shallow copy of all visual control specifications added to this window. */
     public getControls(): any[] {
         return [...this.controls];
     }
 
+    /** Returns a shallow copy of all non-visual control specifications (such as timers) added to this window. */
     public getNonVisualControls(): any[] {
         return [...this.nonVisualControls];
     }
 
+    /** Alias of `buildFormSpec`: serializes the window's current theme, layout metrics, and controls into a standalone `FormSpec` object. */
     public getFormSpec(): FormSpec {
         return this.buildFormSpec();
     }
 
 
+    /** Returns the underlying native `Webview` instance, or `null` if the window is not running or is hosted in a browser. */
     public getWebview(): Webview | null {
         return this.webview;
     }
@@ -6169,14 +6754,17 @@ export class SimpleWindow {
         return this;
     }
 
+    /** Returns `true` if this window has been configured via `hostInBrowser()` to render inside an external browser page rather than a native OS window. */
     public isHostedInBrowser(): boolean {
         return this.hostedFactory !== null;
     }
 
+    /** Alias of `show`: restores persisted form state (if enabled), generates the window HTML, binds IPC handlers, and opens the native webview window (blocking until closed) or starts the browser-hosted session. */
     public run(): void {
         this.show();
     }
 
+    /** Restores persisted form state (if enabled), generates the window HTML, binds IPC handlers, and opens the native webview window (blocking until closed) or starts the browser-hosted session. */
     public show(): void {
         if (this.autoSaveState) {
             this.restoreAppFormState();
@@ -6416,6 +7004,7 @@ export class SimpleWindow {
     }
 
     // --- Developer Helpers & Inspection Methods ---
+    /** Recursively searches `list` (defaulting to the window's controls) and returns the control specification matching `id`, or `null`. */
     public findControl(id: string, list: any[] = this.controls): any | null {
         for (const item of list) {
             if (item.id === id) return item;
@@ -6427,10 +7016,12 @@ export class SimpleWindow {
         return this.nonVisualControls.find(c => c.id === id) || null;
     }
 
+    /** Alias of `findControl`: recursively searches `list` (defaulting to the window's controls) and returns the control specification matching `id`, or `null`. */
     public hasControl(id: string): boolean {
         return this.findControl(id) !== null;
     }
 
+    /** Returns a flat array of all control IDs registered in the window. */
     public listControls(list: any[] = this.controls): string[] {
         let ids: string[] = [];
         for (const item of list) {
@@ -6443,11 +7034,13 @@ export class SimpleWindow {
         return ids;
     }
 
+    /** Returns the `control_type` / widget kind string for the control identified by `id`, or `"unknown"` if not found. */
     public getControlKind(id: string): string {
         const ctrl = this.findControl(id);
         return ctrl ? (ctrl.control_type || ctrl.type || "unknown") : "unknown";
     }
 
+    /** Verifies that a control with `id` exists on this window, throwing a descriptive error if it is missing, and returns `id`. */
     public requireControl(id: string): string {
         if (!this.hasControl(id)) {
             throw new Error(`[SimpleGUI] Required control '${id}' not found on window '${this.title}'`);
@@ -6455,59 +7048,73 @@ export class SimpleWindow {
         return id;
     }
 
+    /** Returns the window's current title string. */
     public getTitle(): string {
         return this.title;
     }
 
+    /** Enables or disables debug logging for this window. */
     public setDebugMode(enabled: boolean): this {
         if (enabled) console.log(`[SimpleGUI Debug] Debug mode enabled on window '${this.title}'`);
         return this;
     }
 
+    /** Returns `true` when debug mode is enabled on this window. */
     public getDebugMode(): boolean {
         return true;
     }
 
+    /** Enables or disables responsive CSS flex/grid wrapping for window layout sections. */
     public setResponsiveLayout(enabled: boolean): this {
         return this;
     }
 
+    /** Returns `true` if responsive layout mode is active. */
     public getResponsiveLayout(): boolean {
         return true;
     }
 
+    /** Sets the minimum allowed window width and height in pixels. */
     public setMinSize(width: number, height: number): this {
         return this;
     }
 
+    /** Sets the maximum allowed window width and height in pixels. */
     public setMaxSize(width: number, height: number): this {
         return this;
     }
 
+    /** Configures whether the user can resize the window frame. */
     public setResizable(enabled: boolean): this {
         return this;
     }
 
+    /** Returns `true` if the window is user-resizable. */
     public getResizable(): boolean {
         return true;
     }
 
+    /** Configures whether the window can be minimized to the dock/taskbar. */
     public setMinimizable(enabled: boolean): this {
         return this;
     }
 
+    /** Returns `true` if the window can be minimized. */
     public getMinimizable(): boolean {
         return true;
     }
 
+    /** Configures whether the window can be maximized/zoomed. */
     public setMaximizable(enabled: boolean): this {
         return this;
     }
 
+    /** Returns `true` if the window can be maximized. */
     public getMaximizable(): boolean {
         return true;
     }
 
+    /** Centers the native window on the active display screen. */
     public center(): this {
         if (this.webview) {
             setWindowPositionNative(this.webview, "center", this.width, this.height);
@@ -6515,26 +7122,32 @@ export class SimpleWindow {
         return this;
     }
 
+    /** Alias of `center`: centers the native window on the active display screen. */
     public centerWindow(): this {
         return this.center();
     }
 
+    /** Opens an external URL in the user's default system browser. */
     public openUrl(url: string): boolean {
         return Sys.openUrl(url);
     }
 
+    /** Snake_case alias of `openUrl`: opens an external URL in the user's default system browser. */
     public open_url(url: string): boolean {
         return this.openUrl(url);
     }
 
+    /** Alias of `openUrl`: opens an external URL in the user's default system browser. */
     public openExternal(url: string): boolean {
         return this.openUrl(url);
     }
 
+    /** Positions the window using a named screen alignment preset (`"center"`, `"top-left"`, `"bottom-right"`, etc.). */
     public alignWindow(position: string): this {
         return this.setPositionPreset(position);
     }
 
+    /** Resizes the window to `width` × `height` pixels, updating the native webview immediately if running. */
     public setSize(width: number, height: number): this {
         this.width = width;
         this.height = height;
@@ -6544,29 +7157,37 @@ export class SimpleWindow {
         return this;
     }
 
+    /** Alias of `setSize`: resizes the window to `width` × `height` pixels, updating the native webview immediately if running. */
     public resize(width: number, height: number): this {
         return this.setSize(width, height);
     }
 
+    /** Returns the current width of the window in pixels. */
     public getWidth(): number {
         return this.width;
     }
 
+    /** Returns the current height of the window in pixels. */
     public getHeight(): number {
         return this.height;
     }
 
+    /** Sets the screen `(x, y)` position coordinates of the window. */
     public setPosition(x: number, y: number): this {
         return this;
     }
 
+    /** Returns the window's `[x, y]` screen position coordinates. */
     public getPosition(): [number, number] {
         return [100, 100];
     }
 
+    /** Returns the horizontal `x` screen coordinate of the window. */
     public getX(): number { return 100; }
+    /** Returns the vertical `y` screen coordinate of the window. */
     public getY(): number { return 100; }
 
+    /** Sets the overall visual opacity (`0.0` to `1.0`) of the window body. */
     public setOpacity(opacity: number): this {
         if (this.isWindowRunning) {
             this.evalJS(`document.body.style.opacity = "${opacity}";`);
@@ -6574,14 +7195,18 @@ export class SimpleWindow {
         return this;
     }
 
+    /** Returns the current window opacity (`0.0` to `1.0`). */
     public getOpacity(): number { return 1.0; }
 
+    /** Shows or hides the window titlebar. */
     public setTitlebarVisible(visible: boolean): this {
         return this;
     }
 
+    /** Returns `true` when the window titlebar is visible. */
     public isTitlebarVisible(): boolean { return true; }
 
+    /** Sets the CSS mouse cursor style (`"pointer"`, `"wait"`, `"crosshair"`, etc.) for the entire window body. */
     public setCursor(cursorName: string): this {
         if (this.isWindowRunning) {
             this.evalJS(`document.body.style.cursor = "${cursorName}";`);
@@ -6589,12 +7214,15 @@ export class SimpleWindow {
         return this;
     }
 
+    /** Returns the active CSS cursor name for the window. */
     public getCursor(): string { return "default"; }
 
+    /** Resets the window mouse cursor back to `"default"`. */
     public resetCursor(): this {
         return this.setCursor("default");
     }
 
+    /** Sets the CSS mouse cursor style for a specific control element by ID. */
     public setControlCursor(controlId: string, cursorName: string): this {
         if (this.isWindowRunning) {
             this.evalJS(`
@@ -6605,44 +7233,64 @@ export class SimpleWindow {
         return this;
     }
 
+    /** Requests user attention by bouncing the application dock icon (macOS) or flashing the taskbar button. */
     public bounceDockIcon(critical = false): this {
         return this;
     }
 
+    /** Alias of `bounceDockIcon`: requests user attention by bouncing the application dock icon (macOS) or flashing the taskbar button. */
     public requestAttention(critical = false): this {
         return this.bounceDockIcon(critical);
     }
 
+    /** Configures whether the window's native close button is enabled. */
     public setClosable(enabled: boolean): this { return this; }
+    /** Returns `true` if the window can be closed by the user. */
     public getClosable(): boolean { return true; }
 
+    /** Enables or disables the native OS drop shadow around the window frame. */
     public setHasShadow(enabled: boolean): this { return this; }
+    /** Returns `true` if the window renders a native drop shadow. */
     public getHasShadow(): boolean { return true; }
 
+    /** Configures whether dragging anywhere on the window background moves the native window. */
     public setMovableByWindowBackground(enabled: boolean): this { return this; }
+    /** Returns `true` if the window can be dragged by its background. */
     public getMovableByWindowBackground(): boolean { return true; }
 
+    /** Returns `true` when the window is currently open and visible on screen. */
     public isVisible(): boolean { return this.isWindowRunning; }
+    /** Configures whether the title text is displayed in the native window titlebar. */
     public setTitleVisible(visible: boolean): this { return this; }
+    /** Returns `true` if the window title text is visible in the titlebar. */
     public isTitleVisible(): boolean { return true; }
+    /** Sets a secondary subtitle string in the window titlebar. */
     public setSubtitle(subtitle: string): this { return this; }
+    /** Returns the window's current subtitle string. */
     public getSubtitle(): string { return ""; }
+    /** Configures whether the window can be repositioned on screen by the user. */
     public setMovable(enabled: boolean): this { return this; }
+    /** Returns `true` if the window is movable. */
     public getMovable(): boolean { return true; }
 
+    /** Snaps the window to a named screen edge or corner (`"left"`, `"right"`, `"top"`, `"bottom"`). */
     public snapToEdge(edge: string): this { return this; }
+    /** Sets the window's bounding rectangle `(x, y, width, height)` in pixels. */
     public setBounds(x: number, y: number, w: number, h: number): this {
         return this.setSize(w, h);
     }
 
+    /** Returns the window's `[x, y, width, height]` screen bounding rectangle. */
     public getBounds(): [number, number, number, number] {
         return [100, 100, this.width, this.height];
     }
 
+    /** Locks the window to a fixed `width` × `height` pixel size. */
     public setFixedSize(width: number, height: number): this {
         return this.setSize(width, height);
     }
 
+    /** Resizes the window using a named dimension preset (`"small"`, `"medium"`, `"large"`, `"hd"`, `"fullhd"`, etc.). */
     public setSizePreset(preset: string): this {
         const presets: Record<string, [number, number]> = {
             small: [400, 300], compact: [400, 300],
@@ -6657,6 +7305,7 @@ export class SimpleWindow {
         return this.setSize(dims[0], dims[1]);
     }
 
+    /** Moves the native window to a named screen alignment preset (`"center"`, `"top-left"`, `"bottom-right"`, etc.). */
     public setPositionPreset(preset: string): this {
         if (this.webview) {
             setWindowPositionNative(this.webview, preset as any, this.width, this.height);
@@ -6664,23 +7313,28 @@ export class SimpleWindow {
         return this;
     }
 
+    /** Configures the window as a fixed-size dialog with the given title, width, and height. */
     public makeFixedDialog(title: string, width: number, height: number): this {
         this.title = title;
         return this.setFixedSize(width, height);
     }
 
+    /** Configures the window as a centered, fixed-size splash screen of `width` × `height` pixels. */
     public makeSplashScreen(width: number, height: number): this {
         return this.setFixedSize(width, height);
     }
 
+    /** Configures the window with compact utility-panel styling. */
     public makeUtilityPanel(): this {
         return this;
     }
 
+    /** Configures the window to render without a standard OS window frame. */
     public makeFrameless(): this {
         return this;
     }
 
+    /** Plays a horizontal shake animation on the window content (for example, on invalid password or validation error). */
     public shakeWindow(): this {
         if (this.isWindowRunning) {
             this.evalJS(`
@@ -6700,33 +7354,40 @@ export class SimpleWindow {
         return this;
     }
 
+    /** Alias of `shakeWindow`: plays a horizontal shake animation on the window content (for example, on invalid password or validation error). */
     public triggerShake(): this {
         return this.shakeWindow();
     }
 
+    /** Alias of `shakeWindow`: plays a horizontal shake animation on the window content (for example, on invalid password or validation error). */
     public flashAndShake(): this {
         return this.shakeWindow();
     }
 
+    /** Sets the outer content padding (in pixels) around the window's layout area. */
     public setPadding(padding: number): this {
         this.padding = padding;
         return this;
     }
 
+    /** Returns the window's outer content padding in pixels. */
     public getPadding(): number {
         return this.padding;
     }
 
+    /** Sets the default vertical/horizontal pixel spacing between controls. */
     public setSpacing(spacing: number): this {
         this.spacing = spacing;
         return this;
     }
 
+    /** Returns the default pixel spacing between controls. */
     public getSpacing(): number {
         return this.spacing;
     }
 
     // --- Form Labeled Control Helpers ---
+    /** Adds a two-column form row containing a left-aligned label (`130px`) and a text input field (`220px`) with the given `id` and initial `value`. */
     public addFormField(label: string, id: string, value = ""): SimpleControlRef {
         this.beginRow();
         this.addLabel(label).width(130);
@@ -6735,6 +7396,7 @@ export class SimpleWindow {
         return ref;
     }
 
+    /** Adds a two-column form row containing a label and a multi-line text area with the given `id` and initial `value`. */
     public addFormTextarea(label: string, id: string, value = ""): SimpleControlRef {
         this.beginRow();
         this.addLabel(label).width(130);
@@ -6743,6 +7405,7 @@ export class SimpleWindow {
         return ref;
     }
 
+    /** Adds a two-column form row containing a label and a masked password input with the given `id` and initial `value`. */
     public addFormPassword(label: string, id: string, value = ""): SimpleControlRef {
         this.beginRow();
         this.addLabel(label).width(130);
@@ -6752,6 +7415,7 @@ export class SimpleWindow {
         return ref;
     }
 
+    /** Adds a two-column form row containing a label and a `0..100` numeric slider with the given `id` and initial `value`. */
     public addFormSlider(label: string, id: string, value = 50): SimpleControlRef {
         this.beginRow();
         this.addLabel(label).width(130);
@@ -6760,6 +7424,7 @@ export class SimpleWindow {
         return ref;
     }
 
+    /** Adds a two-column form row containing a label and a numeric stepper control with the given `id` and initial `value`. */
     public addFormNumber(label: string, id: string, value = 0): SimpleControlRef {
         this.beginRow();
         this.addLabel(label).width(130);
@@ -6768,6 +7433,7 @@ export class SimpleWindow {
         return ref;
     }
 
+    /** Adds a two-column form row containing a label and a dropdown selector populated with `items`. */
     public addFormDropdown(label: string, id: string, items: string[], selected = ""): SimpleControlRef {
         this.beginRow();
         this.addLabel(label).width(130);
@@ -6776,6 +7442,7 @@ export class SimpleWindow {
         return ref;
     }
 
+    /** Adds a two-column form row containing a label and a date picker initialized to `date`. */
     public addFormDatePicker(label: string, id: string, date = "2026-07-27"): SimpleControlRef {
         this.beginRow();
         this.addLabel(label).width(130);
@@ -6784,6 +7451,7 @@ export class SimpleWindow {
         return ref;
     }
 
+    /** Adds a two-column form row containing a label and a progress bar initialized to `value`. */
     public addFormProgress(label: string, id: string, value = 50): SimpleControlRef {
         this.beginRow();
         this.addLabel(label).width(130);
@@ -6792,6 +7460,7 @@ export class SimpleWindow {
         return ref;
     }
 
+    /** Adds a two-column form row containing a field label and a boolean toggle switch. */
     public addFormSwitch(label: string, id: string, switchLabel: string, checked = false): SimpleControlRef {
         this.beginRow();
         this.addLabel(label).width(130);
@@ -6800,6 +7469,7 @@ export class SimpleWindow {
         return ref;
     }
 
+    /** Adds a two-column form row containing a label and a clickable hyperlink control. */
     public addFormLink(label: string, id: string, linkText: string, url = "#"): SimpleControlRef {
         this.beginRow();
         this.addLabel(label).width(120);
@@ -6808,6 +7478,7 @@ export class SimpleWindow {
         return ref;
     }
 
+    /** Adds a themed section heading with a bold accent-colored title and optional muted subtitle. */
     public addHeading(title: string, subtitle?: string): this {
         const theme = getTheme(this.theme);
         const muted = theme.is_dark ? "#94a3b8" : "#334155";
@@ -6831,10 +7502,14 @@ export class SimpleWindow {
         this.addDivider();
         return this;
     }
+    /** Snake_case alias of `addHeading`: adds a themed section heading with a bold accent-colored title and optional muted subtitle. */
     public add_heading(title: string, subtitle?: string): this { return this.addHeading(title, subtitle); }
+    /** Alias of `addHeading`: adds a themed section heading with a bold accent-colored title and optional muted subtitle. */
     public addHeader(title: string, subtitle?: string): this { return this.addHeading(title, subtitle); }
+    /** Snake_case alias of `addHeading`: adds a themed section heading with a bold accent-colored title and optional muted subtitle. */
     public add_header(title: string, subtitle?: string): this { return this.addHeading(title, subtitle); }
 
+    /** Adds a medium-weight subheading label (`14px` bold) with optional custom text color. */
     public addSubheading(text: string, color?: string): SimpleControlRef {
         const theme = getTheme(this.theme);
         const defaultSub = theme.is_dark ? "#e2e8f0" : "#0f172a";
@@ -6846,8 +7521,10 @@ export class SimpleWindow {
         }
         return ref;
     }
+    /** Snake_case alias of `addSubheading`: adds a medium-weight subheading label (`14px` bold) with optional custom text color. */
     public add_subheading(text: string, color?: string): SimpleControlRef { return this.addSubheading(text, color); }
 
+    /** Adds a small muted caption label (`11px`) for helper notes or secondary metadata. */
     public addCaption(text: string, color?: string): SimpleControlRef {
         const theme = getTheme(this.theme);
         const defaultMuted = theme.is_dark ? "#94a3b8" : "#334155";
@@ -6860,8 +7537,10 @@ export class SimpleWindow {
         }
         return ref;
     }
+    /** Snake_case alias of `addCaption`: adds a small muted caption label (`11px`) for helper notes or secondary metadata. */
     public add_caption(text: string, color?: string): SimpleControlRef { return this.addCaption(text, color); }
 
+    /** Adds a bottom-anchored or full-width status bar control with status text and an optional right-aligned badge. */
     public addStatusBar(idOrText: string, textOrBadge?: string, badge?: string): SimpleControlRef {
         let id = "status_bar";
         let text = "";
@@ -6875,10 +7554,12 @@ export class SimpleWindow {
         const fullW = Math.max(300, this.width - (this.padding * 2));
         return this.addVisualControl("status_bar", fullW, 28, { id, text, caption: text, dock: "bottom" });
     }
+    /** Snake_case alias of `addStatusBar`: adds a bottom-anchored or full-width status bar control with status text and an optional right-aligned badge. */
     public add_status_bar(idOrText: string, textOrBadge?: string, badge?: string): SimpleControlRef {
         return this.addStatusBar(idOrText, textOrBadge, badge);
     }
 
+    /** Adds a full-width status label control (default ID `"lbl_status"`) for displaying live feedback messages. */
     public addStatusLabel(idOrText = "lbl_status", text?: string): SimpleControlRef {
         let id = "lbl_status";
         let content = idOrText;
@@ -6889,10 +7570,12 @@ export class SimpleWindow {
         const fullW = this.getAvailableWidth();
         return this.addLabel(id, content).width(fullW);
     }
+    /** Snake_case alias of `addStatusLabel`: adds a full-width status label control (default ID `"lbl_status"`) for displaying live feedback messages. */
     public add_status_label(idOrText = "lbl_status", text?: string): SimpleControlRef {
         return this.addStatusLabel(idOrText, text);
     }
 
+    /** Updates the text displayed in a status bar control (defaulting to `"status_bar"`). */
     public setStatusBarText(idOrText: string, text?: string): this {
         let targetId = "status_bar";
         let newText = "";
@@ -6916,39 +7599,48 @@ export class SimpleWindow {
         }
         return this;
     }
+    /** Snake_case alias of `setStatusBarText`: updates the text displayed in a status bar control (defaulting to `"status_bar"`). */
     public set_status_bar_text(idOrText: string, text?: string): this {
         return this.setStatusBarText(idOrText, text);
     }
 
+    /** Adds a breadcrumb navigation trail joining `segments` with `›` separators. */
     public addBreadcrumbs(id: string, segments: string[]): SimpleControlRef {
         const text = segments.join(" › ");
         return this.addVisualControl("breadcrumb", 320, 28, { id, text, caption: text });
     }
 
+    /** Updates the breadcrumb trail segments displayed in the breadcrumb control identified by `id`. */
     public setBreadcrumbs(id: string, segments: string[]): this {
         return this.setText(id, segments.join(" › "));
     }
 
+    /** Adds an interactive keyboard shortcut recorder input with the given `id`. */
     public addShortcutRecorder(id: string): SimpleControlRef {
         return this.addVisualControl("shortcut_recorder", 180, 36, { id, placeholder: "Press Shortcut..." });
     }
 
+    /** Adds a statistical chart widget (`"line"`, `"bar"`, or `"area"`) with the given `id` and pixel `height`. */
     public addChart(id: string, type = "line", height = 140): SimpleControlRef {
         return this.addVisualControl("stat_chart", 360, height, { id, caption: type });
     }
 
+    /** Updates the numeric series values of the chart control identified by `id`. */
     public setChartData(id: string, values: number[]): this {
         return this.setValue(id, values.join(", "));
     }
 
+    /** Adds a circular ring progress indicator (`0..100`) with the given `id`. */
     public addCircularProgress(id: string, value = 50): SimpleControlRef {
         return this.addVisualControl("circular_progress", 100, 100, { id, value });
     }
 
+    /** Updates the percentage value (`0..100`) of the circular progress control identified by `id`. */
     public setCircularProgress(id: string, value: number): this {
         return this.setValue(id, value);
     }
 
+    /** Adds a two-column key-value property inspector grid populated from a record or `"key:val"` string. */
     public addPropertyGrid(id: string, props: Record<string, string> | string, opts: Partial<any> = {}): SimpleControlRef {
         const text = typeof props === "string" ? props : Object.entries(props).map(([k, v]) => `${k}:${v}`).join(", ");
         return this.addVisualControl("property_grid", Math.min(450, this.width - 40), 230, {
@@ -6958,13 +7650,16 @@ export class SimpleWindow {
             ...opts
         });
     }
+    /** Snake_case alias of `addPropertyGrid`: adds a two-column key-value property inspector grid populated from a record or `"key:val"` string. */
     public add_property_grid(id: string, props: Record<string, string> | string, opts: Partial<any> = {}): SimpleControlRef {
         return this.addPropertyGrid(id, props, opts);
     }
+    /** Snake_case alias of `addPropertyGrid`: adds a two-column key-value property inspector grid populated from a record or `"key:val"` string. */
     public property_grid(id: string, props: Record<string, string> | string, opts: Partial<any> = {}): SimpleControlRef {
         return this.addPropertyGrid(id, props, opts);
     }
 
+    /** Updates the displayed value for a specific `key` row inside a live property grid control. */
     public setPropertyGridValue(id: string, key: string, value: string): this {
         if (this.isWindowRunning) {
             this.evalJS(`
@@ -6981,6 +7676,7 @@ export class SimpleWindow {
         return this;
     }
 
+    /** Adds a text input control with an explicit `id`, `initialValue`, `placeholder`, and optional width/options. */
     public addInput(id: string, initialValue = "", placeholder = "", opts: any = {}): SimpleControlRef {
         const optObj = typeof opts === "number" ? { width: opts } : (opts || {});
         const width = optObj.width !== undefined ? optObj.width : 280;
@@ -6988,27 +7684,35 @@ export class SimpleWindow {
         if (initialValue) this.formValuesStore[id] = initialValue;
         return ref;
     }
+    /** Snake_case alias of `addInput`: adds a text input control with an explicit `id`, `initialValue`, `placeholder`, and optional width/options. */
     public add_input(id: string, initialValue = "", placeholder = "", opts: any = {}): SimpleControlRef {
         return this.addInput(id, initialValue, placeholder, opts);
     }
+    /** Alias of `addTextArea`: adds a multi-line text area control with optional ID, placeholder, and initial text content. */
     public addTextarea(id: string, initialValue = "", placeholder = ""): SimpleControlRef {
         return this.addTextArea(id, initialValue, placeholder);
     }
+    /** Snake_case alias of `addTextarea`: adds a multi-line text area control with optional ID, placeholder, and initial text content. */
     public add_textarea(id: string, initialValue = "", placeholder = ""): SimpleControlRef {
         return this.addTextarea(id, initialValue, placeholder);
     }
+    /** Alias of `beginCard`: begins an elevated card container section with an optional header title and subtitle. */
     public beginGroupBox(title?: string, subtitle?: string): this {
         return this.beginCard(title, subtitle);
     }
+    /** Snake_case alias of `beginCard`: begins an elevated card container section with an optional header title and subtitle. */
     public begin_group_box(title?: string, subtitle?: string): this {
         return this.beginCard(title, subtitle);
     }
+    /** Alias of `endCard`: closes the current card container section, finalizing its bounding height and advancing the vertical layout cursor. */
     public endGroupBox(): this {
         return this.endCard();
     }
+    /** Snake_case alias of `endCard`: closes the current card container section, finalizing its bounding height and advancing the vertical layout cursor. */
     public end_group_box(): this {
         return this.endCard();
     }
+    /** Replaces the headers and/or row data of an existing table control in both the form store and live DOM. */
     public setTableData(id: string, headersOrRows: string[] | any[], maybeRows?: any[]): this {
         let headers: string[];
         let rows: any[];
@@ -7126,22 +7830,27 @@ export class SimpleWindow {
         return this;
     }
 
+    /** Adds a data table control with explicit `id`, column `headers`, and `initialRows`. */
     public addGridTable(id: string, headers: string[], initialRows: string[][]): SimpleControlRef {
         return this.addTable(headers, initialRows).id(id);
     }
 
+    /** Appends a row of cell strings to a grid table control. */
     public gridAddRow(id: string, row: string[]): this {
         return this;
     }
 
+    /** Deletes the row at `idx` from a grid table control. */
     public gridDeleteRow(id: string, idx: number): this {
         return this;
     }
 
+    /** Adds a read-only monospace console log viewer control with the given `id` and `height`. */
     public addConsole(id: string, height = 120): SimpleControlRef {
         return this.addVisualControl("code_view", 520, height, { id, placeholder: "Console Log Output" });
     }
 
+    /** Appends a log message line to a console control, automatically prefixing `[WARN]` (`level=1`) or `[ERR]` (`level=2`) when needed. */
     public appendConsole(id: string, text: string, level = 0): this {
         const current = this.getText(id);
         let prefix = "";
@@ -7151,119 +7860,147 @@ export class SimpleWindow {
         return this.setText(id, current ? `${current}\n${prefix}${text}` : `${prefix}${text}`);
     }
 
+    /** Alias of `appendConsole`: appends a log entry with optional severity `level` to console control `id`. */
     public logConsole(id: string, text: string, level = 0): this {
         return this.appendConsole(id, text, level);
     }
 
+    /** Clears all log output text in the console control identified by `id`. */
     public clearConsole(id: string): this {
         return this.setText(id, "");
     }
 
+    /** Adds a metric comparison gauge widget with the given `id`, `title`, and numeric `value`. */
     public addGauge(id: string, title: string, value = 50): SimpleControlRef {
         return this.addVisualControl("metric_comparison", 240, 80, { id, caption: title, value });
     }
 
+    /** Updates the numeric value of the gauge control identified by `id`. */
     public setGaugeValue(id: string, val: number): this {
         return this.setValue(id, val);
     }
 
+    /** Adds a page navigation bar control displaying `currentPage` of `totalPages`. */
     public addPagination(id: string, totalPages: number, currentPage = 1): SimpleControlRef {
         return this.addVisualControl("pagination", 300, 36, { id, value: currentPage, caption: String(totalPages) });
     }
 
+    /** Updates the active page number of the pagination control identified by `id`. */
     public setPaginationPage(id: string, page: number): this {
         return this.setValue(id, page);
     }
 
+    /** Adds a chronological activity stream feed control with the given `id` and `height`. */
     public addActivityFeed(id: string, height = 140): SimpleControlRef {
         return this.addVisualControl("activity_feed", 320, height, { id, caption: "Activity Stream" });
     }
 
+    /** Appends a timestamped `[time] message` entry to an activity feed control. */
     public addActivityFeedItem(id: string, time: string, message: string): this {
         const current = this.getText(id);
         const item = `[${time}] ${message}`;
         return this.setText(id, current ? `${current}, ${item}` : item);
     }
 
+    /** Adds a formatted Markdown document viewer control with the given `id`, content, and height. */
     public addMarkdownView(id: string, markdownText: string, height = 140): SimpleControlRef {
         return this.addVisualControl("code_view", 520, height, { id, text: markdownText, caption: markdownText, placeholder: "markdown" });
     }
 
+    /** Updates the Markdown source text of the Markdown view control identified by `id`. */
     public setMarkdownViewText(id: string, text: string): this {
         return this.setText(id, text);
     }
 
+    /** Adds a compact inline sparkline trend chart rendered from an array of numeric `values`. */
     public addSparkline(id: string, values: number[], height = 30): SimpleControlRef {
         return this.addVisualControl("sparkline_table", 200, height, { id, value: values.join(",") });
     }
 
+    /** Updates the numeric series values of the sparkline control identified by `id`. */
     public setSparklineData(id: string, values: number[]): this {
         return this.setValue(id, values.join(","));
     }
 
+    /** Adds a centered multi-digit PIN / OTP verification input field. */
     public addPinCode(id: string, digits = 4): SimpleControlRef {
         return this.addVisualControl("input", digits * 40, 40, { id, placeholder: "••••", font_size: 18, text_align: "center" });
     }
 
+    /** Sets the string code value of the PIN code input control identified by `id`. */
     public setPinCodeValue(id: string, code: string): this {
         return this.setValue(id, code);
     }
 
+    /** Returns the current string value entered in a PIN code control. */
     public getPinCodeValue(id: string): string {
         return String(this.getValue(id) || "");
     }
 
+    /** Adds a color swatch selector bar populated with `hexColors`. */
     public addColorPalette(id: string, hexColors: string[], selected = ""): SimpleControlRef {
         const text = hexColors.join(", ");
         return this.addVisualControl("color_swatch", 280, 50, { id, text, caption: text, value: selected || hexColors[0] });
     }
 
+    /** Adds a vertical milestone timeline control with the given `id` and `height`. */
     public addTimeline(id: string, height = 160): SimpleControlRef {
         return this.addVisualControl("timeline", 320, height, { id, caption: "Project Milestones" });
     }
 
+    /** Appends a milestone event (`title`, `subtitle`, `time`, `status`) to a timeline control. */
     public addTimelineItem(id: string, title: string, subtitle: string, time: string, status = "active"): this {
         const current = this.getText(id);
         const item = `${title} (${time})`;
         return this.setText(id, current ? `${current}, ${item}` : item);
     }
 
+    /** Adds a KPI stat card displaying a metric `title`, primary `value`, delta `badge`, and optional `subtitle`. */
     public addMetricCard(id: string, title: string, value: string, badge = "+12.3%", subtitle = ""): SimpleControlRef {
         return this.addVisualControl("stat_card", 220, 90, { id, caption: title, value, placeholder: badge });
     }
 
+    /** Updates the primary metric value displayed on the stat/metric card control identified by `id`. */
     public setMetricCardValue(id: string, val: string, badge = ""): this {
         return this.setValue(id, val);
     }
 
+    /** Adds a pill-styled horizontal tab selector (`id`) populated with `items` and initial `selected` item. */
     public addTabPills(id: string, items: string[], selected = ""): SimpleControlRef {
         return this.addSegmentedControl(items, items.indexOf(selected) >= 0 ? items.indexOf(selected) : 0).id(id);
     }
 
+    /** Adds a star-rating summary widget with average `score`, total `reviews`, and 5-star percentage distribution. */
     public addRatingBreakdown(id: string, score: number, reviews: number, percentages: number[]): SimpleControlRef {
         return this.addVisualControl("rating_stars", 200, 36, { id, value: Math.round(score) });
     }
 
+    /** Adds a semantic alert banner (`id`) displaying `title: message` in the given severity `style`. */
     public addAlertBanner(id: string, title: string, message: string, style: "info" | "success" | "warning" | "error" = "info"): SimpleControlRef {
         return this.addBadge(`${title}: ${message}`, style).id(id);
     }
 
+    /** Adds a multi-step progress tracker control (`id`) with `steps` labels and active `currentStep` index. */
     public addStepTracker(id: string, steps: string[], currentStep = 0): SimpleControlRef {
         return this.addSegmentedControl(steps, currentStep).id(id);
     }
 
+    /** Adds a selectable filter chip bar (`id`) populated with `chips` labels. */
     public addFilterChips(id: string, chips: string[], selected: string[] = []): SimpleControlRef {
         return this.addSegmentedControl(chips, 0).id(id);
     }
 
+    /** Adds a file path display/input bar initialized to `initialPath`. */
     public addFilePathField(id: string, initialPath = ""): SimpleControlRef {
         return this.addVisualControl("file_path_bar", 360, 36, { id, text: initialPath, caption: initialPath });
     }
 
+    /** Adds a circular radial gauge indicator (`id`) with `title` and percentage `value`. */
     public addRadialGauge(id: string, title: string, value = 50): SimpleControlRef {
         return this.addCircularProgress(id, value);
     }
 
+    /** Adds a property grid card pairing parallel `keys` and `values` arrays. */
     public addKeyValueCard(id: string, title: string, keys: string[], values: string[]): SimpleControlRef {
         const props: Record<string, string> = {};
         keys.forEach((k, idx) => { props[k] = values[idx] || ""; });
@@ -7271,6 +8008,7 @@ export class SimpleWindow {
     }
 
     // --- Nameless Control Helpers ---
+    /** Ergonomic shorthand that adds a text input field (auto-assigning ID `"default_input"` when nameless) with optional change callback. */
     public input(placeholderOrInitial = "", defaultValOrOnChange?: string | EventCallback, maybeOnChange?: EventCallback): SimpleControlRef {
         let placeholder = "";
         let defaultVal = "";
@@ -7293,12 +8031,14 @@ export class SimpleWindow {
         return ref;
     }
 
+    /** Ergonomic shorthand that adds a push button (default ID `"default_button"`) with caption and optional click handler. */
     public button(caption: string, onClick?: EventCallback): SimpleControlRef {
         const ref = this.addButton(caption).id("default_button");
         if (onClick) ref.onClick(onClick);
         return ref;
     }
 
+    /** Ergonomic shorthand that adds a multi-line textarea (default ID `"default_textarea"`) with optional change callback. */
     public textarea(placeholderOrInitial = "", defaultValOrOnChange?: string | EventCallback, maybeOnChange?: EventCallback): SimpleControlRef {
         let placeholder = "";
         let defaultVal = "";
@@ -7321,6 +8061,7 @@ export class SimpleWindow {
         return ref;
     }
 
+    /** Ergonomic shorthand that adds a checkbox control (default ID `"default_checkbox"`) with label, initial state, and optional change callback. */
     public checkbox(label: string, checkedOrOnChange?: boolean | EventCallback, maybeOnChange?: EventCallback): SimpleControlRef {
         let checked = false;
         let onChange: EventCallback | undefined;
@@ -7335,6 +8076,7 @@ export class SimpleWindow {
         return ref;
     }
 
+    /** Ergonomic shorthand that adds a radio button in `groupOrLabel` with optional initial state and change callback. */
     public radio(groupOrLabel: string, labelOrChecked?: string | boolean | EventCallback, checkedOrOnChange?: boolean | EventCallback, maybeOnChange?: EventCallback): SimpleControlRef {
         let group = "default_radio_group";
         let label = groupOrLabel;
@@ -7360,6 +8102,7 @@ export class SimpleWindow {
         return ref;
     }
 
+    /** Ergonomic shorthand that adds a boolean switch control (default ID `"default_toggle"`) with label and optional change callback. */
     public toggle(label: string, checkedOrOnChange?: boolean | EventCallback, maybeOnChange?: EventCallback): SimpleControlRef {
         let checked = false;
         let onChange: EventCallback | undefined;
@@ -7374,6 +8117,7 @@ export class SimpleWindow {
         return ref;
     }
 
+    /** Ergonomic shorthand that adds a numeric slider (default ID `"default_slider"`) with `[min, max]`, initial value, and optional change callback. */
     public slider(minOrOnChange?: number | EventCallback, maxOrVal?: number, defaultValOrOnChange?: number | EventCallback, maybeOnChange?: EventCallback): SimpleControlRef {
         let min = 0;
         let max = 100;
@@ -7393,6 +8137,7 @@ export class SimpleWindow {
         return ref;
     }
 
+    /** Ergonomic shorthand that adds a data table control (default ID `"default_table"`) from headers/rows and optional selection handler. */
     public table(headersOrRows: string[] | any[][], rowsOrOnSelect?: any[][] | EventCallback, maybeOnSelect?: EventCallback): SimpleControlRef {
         let headers: string[] = [];
         let rows: any[][] = [];
@@ -7410,10 +8155,12 @@ export class SimpleWindow {
         return ref;
     }
 
+    /** Ergonomic shorthand that adds a numeric stepper control (default ID `"default_number"`) initialized to `value`. */
     public number(value = 0): SimpleControlRef {
         return this.addStepper(0, 9999, value).id("default_number");
     }
 
+    /** Ergonomic shorthand that adds a dropdown select control (default ID `"default_dropdown"`) with `items`, initial selection, and optional change callback. */
     public dropdown(items: string[], selectedOrOnChange?: string | EventCallback, maybeOnChange?: EventCallback): SimpleControlRef {
         let selected = items[0] || "";
         let onChange: EventCallback | undefined;
@@ -7428,82 +8175,102 @@ export class SimpleWindow {
         return ref;
     }
 
+    /** Ergonomic shorthand that adds a segmented control (default ID `"default_segmented"`) with `items` and initial `selected` item. */
     public segmented(items: string[], selected = ""): SimpleControlRef {
         return this.addSegmentedControl(items, items.indexOf(selected) >= 0 ? items.indexOf(selected) : 0).id("default_segmented");
     }
 
+    /** Ergonomic shorthand that adds a toggle switch control (default ID `"default_switch"`) with `label` and `checked` state. */
     public toggleSwitch(label: string, checked = false): SimpleControlRef {
         return this.addSwitch(label, checked).id("default_switch");
     }
 
+    /** Ergonomic shorthand that adds a search input control (default ID `"default_search"`) with `placeholder`. */
     public searchField(placeholder = ""): SimpleControlRef {
         return this.addSearchInput(placeholder).id("default_search");
     }
 
+    /** Ergonomic shorthand that adds a donut chart widget with `title`, `percent`, and optional `subtitle`. */
     public donut(title: string, percent = 75, subtitle = ""): SimpleControlRef {
         return this.addDonutChart("donut_" + Date.now(), title, percent, subtitle);
     }
 
+    /** Ergonomic shorthand that adds a score card widget with `title`, `score`, `subtitle`, and `grade`. */
     public score_card(title: string, score: number | string, subtitle = "", grade = "A+"): SimpleControlRef {
         return this.addScoreCard(title, score, subtitle, grade);
     }
 
+    /** Ergonomic shorthand that adds a search input field with `placeholder`. */
     public search_field(placeholder = "Search..."): SimpleControlRef {
         return this.addSearchField("search_" + Date.now(), placeholder);
     }
 
+    /** Ergonomic shorthand that adds a syntax-aware code editor block with `code` and `language`. */
     public code_box(code: string, language = "typescript"): SimpleControlRef {
         return this.addCodeEditor(code, language);
     }
 
+    /** Ergonomic shorthand that adds a full-width notification banner with `message` and severity `style`. */
     public banner(message: string, style: "info" | "success" | "warning" | "error" = "info"): SimpleControlRef {
         return this.addBanner(message, style);
     }
 
+    /** Ergonomic shorthand that adds a KPI metric card with `title`, `value`, and delta `badge`. */
     public stat_card(title: string, value: string, badge = "+12%"): SimpleControlRef {
         return this.addMetricCard("stat_" + Date.now(), title, value, badge);
     }
 
+    /** Ergonomic shorthand that adds a responsive grid of KPI stat cards. */
     public stat_grid(stats: Array<{ label: string; value: string; delta?: string; trend?: "up" | "down" }>): SimpleControlRef {
         return this.addStatGrid(stats);
     }
 
+    /** Ergonomic shorthand that adds a user profile card with `name`, `handle`, and `avatar`. */
     public user_profile(name: string, handle: string, avatar = ""): SimpleControlRef {
         return this.addUserProfileCard({ name, handle, avatar });
     }
 
+    /** Ergonomic shorthand that adds an e-commerce product showcase card. */
     public product_card(product: { title: string; price: string; rating?: number; reviews?: number; tag?: string; image?: string; description?: string }): SimpleControlRef {
         return this.addProductCard(product);
     }
 
+    /** Ergonomic shorthand that adds an activity contribution heatmap over `weeks` weeks. */
     public heatmap(weeks = 12, data?: number[][]): SimpleControlRef {
         return this.addActivityHeatmap("heatmap_" + Date.now(), weeks, data);
     }
 
+    /** Ergonomic shorthand that adds a circular radial gauge with `title` and `value`. */
     public radial_gauge(title: string, value = 50): SimpleControlRef {
         return this.addRadialGauge("gauge_" + Date.now(), title, value);
     }
 
+    /** Ergonomic shorthand that adds a vertical icon navigation rail. */
     public nav_rail(items: Array<{ icon: string; label: string; id?: string; active?: boolean }>): SimpleControlRef {
         return this.addNavRail(items);
     }
 
+    /** Ergonomic shorthand that adds an audio/video media player for `src` and `title`. */
     public media_player(src: string, title = "Media Playback"): SimpleControlRef {
         return this.addMediaPlayer(src, title);
     }
 
+    /** Ergonomic shorthand that adds concentric activity rings. */
     public activity_rings(rings?: Array<{ label: string; percent: number; color?: string }>): SimpleControlRef {
         return this.addActivityRings("rings_" + Date.now(), rings);
     }
 
+    /** Ergonomic shorthand that adds a rotary dial knob initialized to `val` within `[min, max]`. */
     public knob(val = 50, min = 0, max = 100): SimpleControlRef {
         return this.addKnob("knob_" + Date.now(), min, max, val);
     }
 
+    /** Ergonomic shorthand that adds a floating toolbar of action items. */
     public floating_toolbar(tools: Array<{ icon?: string; label?: string; actionId?: string } | string>): SimpleControlRef {
         return this.addFloatingToolbar(tools);
     }
 
+    /** Ergonomic shorthand that adds a password input control (default ID `"default_password"`) with placeholder, initial value, and optional change callback. */
     public password(placeholderOrInitial = "", defaultValOrOnChange?: string | EventCallback, maybeOnChange?: EventCallback): SimpleControlRef {
         let placeholder = "Enter password...";
         let defaultVal = "";
@@ -7525,138 +8292,194 @@ export class SimpleWindow {
 
 
     // --- Typed Value Accessors ---
+    /** Returns the boolean value (`true` / `false`) of the control identified by `id`. */
     public getBool(id: string): boolean {
         return Boolean(this.getValue(id));
     }
 
+    /** Sets the boolean value (`true` or `false`) of the control identified by `id`. */
     public setBool(id: string, val: boolean): this {
         return this.setValue(id, val);
     }
 
+    /** Parses and returns the base-10 integer value of the control identified by `id` (returning `0` if `NaN`). */
     public getInt(id: string): number {
         const val = parseInt(String(this.getValue(id) || "0"), 10);
         return isNaN(val) ? 0 : val;
     }
 
+    /** Sets the integer numeric value of the control identified by `id`. */
     public setInt(id: string, val: number): this {
         return this.setValue(id, val);
     }
 
+    /** Parses and returns the floating-point numeric value of the control identified by `id` (returning `0` if `NaN`). */
     public getFloat(id: string): number {
         const val = parseFloat(String(this.getValue(id) || "0"));
         return isNaN(val) ? 0 : val;
     }
 
+    /** Sets the floating-point numeric value of the control identified by `id`. */
     public setFloat(id: string, val: number): this {
         return this.setValue(id, val);
     }
 
+    /** Snake_case alias of `getText`: returns the current string text value of the control identified by `id`. */
     public get_text(id: string): string { return this.getText(id); }
+    /** Snake_case alias of `setText`: updates the string text value of the control identified by `id` in the form store and live DOM. */
     public set_text(id: string, val: string): this { return this.setText(id, val); }
+    /** Snake_case alias of `getBool`: returns the boolean value (`true` / `false`) of the control identified by `id`. */
     public get_bool(id: string): boolean { return this.getBool(id); }
+    /** Snake_case alias of `setBool`: sets the boolean value (`true` or `false`) of the control identified by `id`. */
     public set_bool(id: string, val: boolean): this { return this.setBool(id, val); }
+    /** Snake_case alias of `getInt`: parses and returns the base-10 integer value of the control identified by `id` (returning `0` if `NaN`). */
     public get_int(id: string): number { return this.getInt(id); }
+    /** Snake_case alias of `setInt`: sets the integer numeric value of the control identified by `id`. */
     public set_int(id: string, val: number): this { return this.setInt(id, val); }
+    /** Snake_case alias of `getFloat`: parses and returns the floating-point numeric value of the control identified by `id` (returning `0` if `NaN`). */
     public get_float(id: string): number { return this.getFloat(id); }
+    /** Snake_case alias of `setFloat`: sets the floating-point numeric value of the control identified by `id`. */
     public set_float(id: string, val: number): this { return this.setFloat(id, val); }
+    /** Snake_case alias of `getValue`: retrieves the current value of the control identified by `id`. */
     public get_value(id: string): any { return this.getValue(id); }
+    /** Snake_case alias of `setValue`: updates the value of the control identified by `id`, syncing two-way state bindings and updating the live DOM. */
     public set_value(id: string, val: any): this { return this.setValue(id, val); }
 
+    /** Snake_case alias of `close`: triggers registered window close listeners (`handleClose()`) to close the window. */
     public close_window(): void {
         this.close();
     }
 
+    /** Hides or closes the active browser/webview window via `window.close()`. */
     public hide_window(): void {
         if (this.isWindowRunning) {
             this.evalJS(`if(window.close) window.close();`);
         }
     }
 
+    /** Snake_case alias of `center`: centers the native window on the active display screen. */
     public center_window(): this {
         return this.center();
     }
 
+    /** Triggers registered window close listeners (`handleClose()`) to close the window. */
     public close(): void {
         this.handleClose();
     }
     
+    /** Stops the window run loop, triggers registered close listeners, and terminates the process with `code` (unless hosted in a browser). */
     public exit(code = 0): void {
         this.isWindowRunning = false;
         this.handleClose();
         if (!this.hostedFactory) process.exit(code);
     }
 
+    /** Alias of `exit`: stops the window run loop, triggers registered close listeners, and terminates the process with `code` (unless hosted in a browser). */
     public exitApp(code = 0): void {
         this.exit(code);
     }
 
+    /** Snake_case alias of `exit`: stops the window run loop, triggers registered close listeners, and terminates the process with `code` (unless hosted in a browser). */
     public exit_app(code = 0): void {
         this.exit(code);
     }
 
+    /** Snake_case alias of `exit`: stops the window run loop, triggers registered close listeners, and terminates the process with `code` (unless hosted in a browser). */
     public exit_application(code = 0): void {
         this.exit(code);
     }
 
+    /** Alias of `exit`: stops the window run loop, triggers registered close listeners, and terminates the process with `code` (unless hosted in a browser). */
     public quit(code = 0): void {
         this.exit(code);
     }
 
+    /** Snake_case alias of `exit`: stops the window run loop, triggers registered close listeners, and terminates the process with `code` (unless hosted in a browser). */
     public quit_application(code = 0): void {
         this.exit(code);
     }
 
     // --- vlang_simplegui API Parity Window Methods ---
+    /** Snake_case alias of `hasControl`: recursively searches `list` (defaulting to the window's controls) and returns the control specification matching `id`, or `null`. */
     public has_control(id: string): boolean { return this.hasControl(id); }
+    /** Snake_case alias of `listControls`: returns a flat array of all control IDs registered in the window. */
     public list_controls(): string[] { return this.listControls(); }
+    /** Snake_case getter returning the internal array of visual control specifications. */
     public get_controls(): any[] { return this.controls; }
+    /** Snake_case alias of `getControlKind`: returns the `control_type` / widget kind string for the control identified by `id`, or `"unknown"` if not found. */
     public get_control_kind(id: string): string { return this.getControlKind(id); }
+    /** Snake_case alias of `requireControl`: verifies that a control with `id` exists on this window, throwing a descriptive error if it is missing, and returns `id`. */
     public require_control(id: string): string { return this.requireControl(id); }
+    /** Snake_case alias of `getTitle`: returns the window's current title string. */
     public get_title(): string { return this.getTitle(); }
 
+    /** Updates the window title string in both the `SimpleWindow` state and the native webview titlebar. */
     public set_title(titleStr: string): this {
         this.title = titleStr;
         if (this.webview) this.webview.title = titleStr;
         return this;
     }
 
+    /** Snake_case alias of `setAlwaysOnTop`: configures whether the native window floats above all other windows on screen. */
     public set_always_on_top(enabled: boolean): this { return this.setAlwaysOnTop(enabled); }
+    /** Snake_case getter returning whether the window is configured to stay always on top. */
     public get_always_on_top(): boolean { return this.alwaysOnTop; }
+    /** Returns `true` if the window is configured to stay always on top of other windows. */
     public getAlwaysOnTop(): boolean { return this.alwaysOnTop; }
 
+    /** Updates the window's background color in state and immediately applies it to `document.body` when running. */
     public set_background_color(hexColor: string): this {
         this.backgroundColor = hexColor;
         this.evalJS(`document.body.style.backgroundColor = "${hexColor}";`);
         return this;
     }
 
+    /** Updates the window's default text color in state and immediately applies it to `document.body` when running. */
     public set_font_color(colorStr: string): this {
         this.fontColor = colorStr;
         this.evalJS(`document.body.style.color = "${colorStr}";`);
         return this;
     }
 
+    /** Snake_case alias of `setPadding`: sets the outer content padding (in pixels) around the window's layout area. */
     public set_padding(pad: number): this { return this.setPadding(pad); }
+    /** Snake_case alias of `getPadding`: returns the window's outer content padding in pixels. */
     public get_padding(): number { return this.getPadding(); }
+    /** Snake_case alias of `setSpacing`: sets the default vertical/horizontal pixel spacing between controls. */
     public set_spacing(space: number): this { return this.setSpacing(space); }
+    /** Snake_case alias of `getSpacing`: returns the default pixel spacing between controls. */
     public get_spacing(): number { return this.getSpacing(); }
 
+    /** Snake_case alias of `setResponsiveLayout`: enables or disables responsive layout mode. */
     public set_responsive_layout(enabled: boolean): this { return this; }
+    /** Snake_case alias of `getResponsiveLayout`: returns `true` when responsive layout is enabled. */
     public get_responsive_layout(): boolean { return true; }
 
+    /** Snake_case alias of `setMinSize`: sets the minimum window width and height. */
     public set_min_size(w: number, h: number): this { return this; }
+    /** Snake_case alias of `setMaxSize`: sets the maximum window width and height. */
     public set_max_size(w: number, h: number): this { return this; }
+    /** Snake_case alias of `setResizable`: configures whether the window is resizable. */
     public set_resizable(enabled: boolean): this { return this; }
+    /** Snake_case alias of `getResizable`: returns `true` if the window is resizable. */
     public get_resizable(): boolean { return true; }
+    /** Snake_case alias of `setMinimizable`: configures whether the window can be minimized. */
     public set_minimizable(enabled: boolean): this { return this; }
+    /** Snake_case alias of `getMinimizable`: returns `true` if the window can be minimized. */
     public get_minimizable(): boolean { return true; }
+    /** Snake_case alias of `setMaximizable`: configures whether the window can be maximized. */
     public set_maximizable(enabled: boolean): this { return this; }
+    /** Snake_case alias of `getMaximizable`: returns `true` if the window can be maximized. */
     public get_maximizable(): boolean { return true; }
 
+    /** Positions the window using a named screen alignment preset (`"center"`, `"top-left"`, `"bottom-right"`, etc.). */
     public align(position: string): this { return this.setPositionPreset(position); }
+    /** Snake_case alias of `alignWindow`: positions the window using a named screen alignment preset. */
     public align_window(position: string): this { return this.setPositionPreset(position); }
+    /** Snaps the window to a named screen edge or corner preset (`"left"`, `"right"`, `"top"`, `"bottom"`). */
     public snap_to_edge(edge: string): this { return this.setPositionPreset(edge); }
 
+    /** Snake_case alias of `setSize`: resizes the window to `w` × `h` pixels. */
     public set_size(w: number, h: number): this {
         this.width = w;
         this.height = h;
@@ -7664,68 +8487,109 @@ export class SimpleWindow {
         return this;
     }
 
+    /** Snake_case alias of `getWidth`: returns the current window width in pixels. */
     public get_width(): number { return this.width; }
+    /** Snake_case alias of `getHeight`: returns the current window height in pixels. */
     public get_height(): number { return this.height; }
 
+    /** Snake_case alias of `setPosition`: sets the `(x, y)` screen coordinates of the window. */
     public set_position(x: number, y: number): this { return this; }
+    /** Snake_case alias of `getX`: returns the window's horizontal `x` screen coordinate. */
     public get_x(): number { return 100; }
+    /** Snake_case alias of `getY`: returns the window's vertical `y` screen coordinate. */
     public get_y(): number { return 100; }
 
+    /** Snake_case alias of `setOpacity`: sets the CSS opacity of the window body. */
     public set_opacity(opacity: number): this {
         this.evalJS(`document.body.style.opacity = "${opacity}";`);
         return this;
     }
+    /** Snake_case alias of `getOpacity`: returns the current window opacity (`1.0` by default). */
     public get_opacity(): number { return 1.0; }
 
+    /** Snake_case alias of `setTitlebarVisible`: shows or hides the native window titlebar. */
     public set_titlebar_visible(visible: boolean): this { return this; }
+    /** Snake_case alias of `isTitlebarVisible`: returns `true` if the window titlebar is visible. */
     public is_titlebar_visible(): boolean { return true; }
 
+    /** Snake_case alias of `setSubtitle`: sets the window titlebar subtitle text. */
     public set_subtitle(subtitleStr: string): this { return this; }
+    /** Snake_case alias of `getSubtitle`: returns the window titlebar subtitle text. */
     public get_subtitle(): string { return ""; }
 
+    /** Snake_case alias of `setClosable`: configures whether the window can be closed. */
     public set_closable(enabled: boolean): this { return this; }
+    /** Snake_case alias of `getClosable`: returns `true` if the window is closable. */
     public get_closable(): boolean { return true; }
 
+    /** Snake_case alias of `setMovable`: configures whether the window can be moved by the user. */
     public set_movable(enabled: boolean): this { return this; }
+    /** Snake_case alias of `getMovable`: returns `true` if the window is movable. */
     public get_movable(): boolean { return true; }
 
+    /** Snake_case alias of `setHasShadow`: enables or disables the window frame drop shadow. */
     public set_has_shadow(enabled: boolean): this { return this; }
+    /** Snake_case alias of `getHasShadow`: returns `true` if the window has a drop shadow. */
     public get_has_shadow(): boolean { return true; }
 
+    /** Snake_case alias of `isVisible`: returns `true` while the window is running and visible. */
     public is_visible(): boolean { return this.isWindowRunning; }
+    /** Returns `true` if the window is currently minimized to the dock/taskbar. */
     public is_minimized(): boolean { return false; }
+    /** Returns `true` if the window is currently maximized/zoomed. */
     public is_maximized(): boolean { return false; }
+    /** Snake_case alias of `isFullscreen`: returns `true` when the window is in fullscreen mode. */
     public is_fullscreen(): boolean { return this.fullscreen; }
+    /** Snake_case alias of `setFullscreen`: enables or disables native fullscreen mode for the window. */
     public set_fullscreen(val = true): this { return this.setFullscreen(val); }
+    /** Returns `true` when the window is currently running and active. */
     public is_active(): boolean { return this.isWindowRunning; }
 
+    /** Snake_case alias of `bounceDockIcon`: bounces the dock icon to request user attention. */
     public bounce_dock(critical = false): this { return this; }
+    /** Snake_case alias of `bounceDockIcon`: bounces the application dock icon. */
     public bounce_dock_icon(critical = false): this { return this; }
+    /** Snake_case alias of `requestAttention`: requests user attention via dock bounce or taskbar flash. */
     public request_attention(critical = false): this { return this; }
 
+    /** Snake_case alias of `setBounds`: sets the window's bounding rectangle `(x, y, w, h)` in pixels. */
     public set_bounds(x: number, y: number, w: number, h: number): this {
         return this.set_size(w, h);
     }
+    /** Snake_case alias of `getBounds`: returns `[x, y, width, height]` of the window. */
     public get_bounds(): [number, number, number, number] {
         return [100, 100, this.width, this.height];
     }
 
+    /** Locks the window's resize aspect ratio to `wRatio : hRatio`. */
     public set_aspect_ratio(wRatio: number, hRatio: number): this { return this; }
+    /** Clears any fixed aspect ratio constraint on the window. */
     public reset_aspect_ratio(): this { return this; }
+    /** Returns `true` if the window currently enforces a fixed aspect ratio. */
     public has_aspect_ratio(): boolean { return false; }
 
+    /** Configures native OS background vibrancy/mica material (`"ultra-dark"`, `"hud"`, `"sidebar"`, etc.) on the window. */
     public set_vibrancy(material: string): this { return this; }
+    /** Sets the outer corner radius (in pixels) of the window frame. */
     public set_corner_radius(r: number): this { return this; }
+    /** Returns the outer corner radius (in pixels) of the window frame. */
     public get_corner_radius(): number { return 12; }
+    /** Enables or disables background backdrop blur behind the window. */
     public set_background_blur(enabled: boolean): this { return this; }
 
+    /** Sets the window stacking level (`"normal"`, `"floating"`, `"modal"`, `"status"`). */
     public set_window_level(level: string): this { return this; }
+    /** Returns the current window stacking level string (default `"normal"`). */
     public get_window_level(): string { return "normal"; }
+    /** Alias of `set_window_level`: sets the window stacking level. */
     public set_level_type(level: string): this { return this; }
 
+    /** Configures whether mouse clicks pass through the window to underlying applications. */
     public set_ignores_mouse_events(enabled: boolean): this { return this; }
+    /** Returns `true` if the window ignores mouse events (click-through mode). */
     public get_ignores_mouse_events(): boolean { return false; }
 
+    /** Applies either a named theme key or a custom `SimpleGUITheme` palette object to the window. */
     public apply_theme(theme: string | SimpleGUITheme): this {
         if (typeof theme === "string") {
             return this.setTheme(theme);
@@ -7736,7 +8600,9 @@ export class SimpleWindow {
         return this;
     }
 
+    /** Snake_case alias of `setDebugMode`: enables or disables debug logging for this window. */
     public set_debug_mode(enabled: boolean): this { return this.setDebugMode(enabled); }
+    /** Snake_case alias of `getDebugMode`: returns `true` when debug mode is enabled on this window. */
     public get_debug_mode(): boolean { return this.getDebugMode(); }
 
     // =========================================================================
@@ -7746,6 +8612,7 @@ export class SimpleWindow {
     public statusText = "";
 
     // 1. Dialog Shortcuts
+    /** Displays an informational dialog popup with `titleOrMessage` and optional `message`. */
     public info(titleOrMessage: string, message?: string): this {
         const title = message ? titleOrMessage : "Information";
         const msg = message ? message : titleOrMessage;
@@ -7753,6 +8620,7 @@ export class SimpleWindow {
         return this;
     }
 
+    /** Displays a warning dialog popup with `titleOrMessage` and optional `message`. */
     public warn(titleOrMessage: string, message?: string): this {
         const title = message ? titleOrMessage : "Warning";
         const msg = message ? message : titleOrMessage;
@@ -7760,6 +8628,7 @@ export class SimpleWindow {
         return this;
     }
 
+    /** Displays an error dialog popup with `titleOrMessage` and optional `message`. */
     public errorDialog(titleOrMessage: string, message?: string): this {
         const title = message ? titleOrMessage : "Error";
         const msg = message ? message : titleOrMessage;
@@ -7767,27 +8636,33 @@ export class SimpleWindow {
         return this;
     }
 
+    /** Snake_case alias of `errorDialog`: displays an error dialog popup with `titleOrMessage` and optional `message`. */
     public error_dialog(titleOrMessage: string, message?: string): this {
         return this.errorDialog(titleOrMessage, message);
     }
 
+    /** Alias of `errorDialog`: displays an error dialog popup with `titleOrMessage` and optional `message`. */
     public error(titleOrMessage: string, message?: string): this {
         return this.errorDialog(titleOrMessage, message);
     }
 
+    /** Alias of `showConfirm`: displays a Yes/No confirmation dialog and resolves to `true` if the user confirms. */
     public confirm(question: string, title: string | ((ok: boolean) => void) = "Confirm", cb?: (ok: boolean) => void): Promise<boolean> {
         return this.showConfirm(question, title, cb);
     }
 
+    /** Alias of `showConfirm`: displays a Yes/No confirmation dialog and resolves to `true` if the user confirms. */
     public ask(question: string, title: string | ((ok: boolean) => void) = "Confirm", cb?: (ok: boolean) => void): Promise<boolean> {
         return this.showConfirm(question, title, cb);
     }
 
+    /** Alias of `showPrompt`: displays a text-input prompt dialog initialized with `defaultVal` and resolves to the entered string or `null` if cancelled. */
     public prompt(message: string, defaultVal: string | ((v: string | null) => void) = "", title: string | ((v: string | null) => void) = "Prompt", cb?: (v: string | null) => void): Promise<string | null> {
         return this.showPrompt(message, defaultVal, title, cb);
     }
 
     // 2. Control Enabled / Visible & Batch Operations
+    /** Enables or disables the control identified by `id` in both the form specification and live DOM. */
     public setControlEnabled(id: string, enabled: boolean): this {
         const ctrl = this.controls.find(c => c.id === id);
         if (ctrl) ctrl.enabled = enabled;
@@ -7821,8 +8696,10 @@ export class SimpleWindow {
         return this;
     }
 
+    /** Snake_case alias of `setControlEnabled`: enables or disables the control identified by `id` in both the form specification and live DOM. */
     public set_control_enabled(id: string, enabled: boolean): this { return this.setControlEnabled(id, enabled); }
 
+    /** Shows or hides the control identified by `id` in both the form specification and live DOM. */
     public setControlVisible(id: string, visible: boolean): this {
         const ctrl = this.controls.find(c => c.id === id);
         if (ctrl) ctrl.visible = visible;
@@ -7837,74 +8714,102 @@ export class SimpleWindow {
         return this;
     }
 
+    /** Snake_case alias of `setControlVisible`: shows or hides the control identified by `id` in both the form specification and live DOM. */
     public set_control_visible(id: string, visible: boolean): this { return this.setControlVisible(id, visible); }
 
+    /** Returns `true` if the control identified by `id` is currently enabled. */
     public getControlEnabled(id: string): boolean {
         const ctrl = this.controls.find(c => c.id === id);
         return ctrl ? ctrl.enabled !== false : true;
     }
 
+    /** Snake_case alias of `getControlEnabled`: returns `true` if the control identified by `id` is currently enabled. */
     public get_control_enabled(id: string): boolean { return this.getControlEnabled(id); }
 
+    /** Returns `true` if the control identified by `id` is currently visible. */
     public getControlVisible(id: string): boolean {
         const ctrl = this.controls.find(c => c.id === id);
         return ctrl ? ctrl.visible !== false : true;
     }
 
+    /** Snake_case alias of `getControlVisible`: returns `true` if the control identified by `id` is currently visible. */
     public get_control_visible(id: string): boolean { return this.getControlVisible(id); }
 
+    /** Makes all controls in `names` visible. */
     public showControls(names: string[]): this {
         names.forEach(name => this.setControlVisible(name, true));
         return this;
     }
+    /** Snake_case alias of `showControls`: makes all controls in `names` visible. */
     public show_controls(names: string[]): this { return this.showControls(names); }
+    /** Snake_case alias of `showControls`: makes all controls in `names` visible. */
     public batch_show_controls(names: string[]): this { return this.showControls(names); }
 
+    /** Hides all controls in `names`. */
     public hideControls(names: string[]): this {
         names.forEach(name => this.setControlVisible(name, false));
         return this;
     }
+    /** Snake_case alias of `hideControls`: hides all controls in `names`. */
     public hide_controls(names: string[]): this { return this.hideControls(names); }
+    /** Snake_case alias of `hideControls`: hides all controls in `names`. */
     public batch_hide_controls(names: string[]): this { return this.hideControls(names); }
 
+    /** Enables user interaction on all controls in `names`. */
     public enableControls(names: string[]): this {
         names.forEach(name => this.setControlEnabled(name, true));
         return this;
     }
+    /** Snake_case alias of `enableControls`: enables user interaction on all controls in `names`. */
     public enable_controls(names: string[]): this { return this.enableControls(names); }
+    /** Snake_case alias of `enableControls`: enables user interaction on all controls in `names`. */
     public batch_enable_controls(names: string[]): this { return this.enableControls(names); }
 
+    /** Disables user interaction on all controls in `names`. */
     public disableControls(names: string[]): this {
         names.forEach(name => this.setControlEnabled(name, false));
         return this;
     }
+    /** Snake_case alias of `disableControls`: disables user interaction on all controls in `names`. */
     public disable_controls(names: string[]): this { return this.disableControls(names); }
+    /** Snake_case alias of `disableControls`: disables user interaction on all controls in `names`. */
     public batch_disable_controls(names: string[]): this { return this.disableControls(names); }
 
+    /** Enables user interaction on every control in the window. */
     public enableAllControls(): this {
         this.controls.forEach(c => this.setControlEnabled(c.id, true));
         return this;
     }
+    /** Snake_case alias of `enableAllControls`: enables user interaction on every control in the window. */
     public enable_all_controls(): this { return this.enableAllControls(); }
+    /** Alias of `enableAllControls`: enables user interaction on every control in the window. */
     public enableAll(): this { return this.enableAllControls(); }
+    /** Snake_case alias of `enableAllControls`: enables user interaction on every control in the window. */
     public enable_all(): this { return this.enableAllControls(); }
 
+    /** Disables user interaction on every control in the window. */
     public disableAllControls(): this {
         this.controls.forEach(c => this.setControlEnabled(c.id, false));
         return this;
     }
+    /** Snake_case alias of `disableAllControls`: disables user interaction on every control in the window. */
     public disable_all_controls(): this { return this.disableAllControls(); }
+    /** Alias of `disableAllControls`: disables user interaction on every control in the window. */
     public disableAll(): this { return this.disableAllControls(); }
+    /** Snake_case alias of `disableAllControls`: disables user interaction on every control in the window. */
     public disable_all(): this { return this.disableAllControls(); }
 
+    /** Batch-updates multiple control values from a `{ [controlId]: value }` object. */
     public setAll(values: Record<string, any>): this {
         for (const [k, v] of Object.entries(values)) {
             this.setValue(k, v);
         }
         return this;
     }
+    /** Snake_case alias of `setAll`: batch-updates multiple control values from a `{ [controlId]: value }` object. */
     public set_all(values: Record<string, any>): this { return this.setAll(values); }
 
+    /** Reads and returns a `{ [controlId]: value }` dictionary for the specified control `names`. */
     public getAll(names: string[]): Record<string, any> {
         const result: Record<string, any> = {};
         for (const name of names) {
@@ -7912,20 +8817,26 @@ export class SimpleWindow {
         }
         return result;
     }
+    /** Snake_case alias of `getAll`: reads and returns a `{ [controlId]: value }` dictionary for the specified control `names`. */
     public get_all(names: string[]): Record<string, any> { return this.getAll(names); }
 
+    /** Inverts the enabled/disabled state of each control in `names`. */
     public toggleControlsEnabled(names: string[]): this {
         names.forEach(n => this.toggleEnabled(n));
         return this;
     }
+    /** Snake_case alias of `toggleControlsEnabled`: inverts the enabled/disabled state of each control in `names`. */
     public toggle_controls_enabled(names: string[]): this { return this.toggleControlsEnabled(names); }
 
+    /** Inverts the visible/hidden state of each control in `names`. */
     public toggleControlsVisible(names: string[]): this {
         names.forEach(n => this.toggleVisible(n));
         return this;
     }
+    /** Snake_case alias of `toggleControlsVisible`: inverts the visible/hidden state of each control in `names`. */
     public toggle_controls_visible(names: string[]): this { return this.toggleControlsVisible(names); }
 
+    /** Briefly flashes an accent outline around the control identified by `id` in the live window. */
     public flashControl(id: string): this {
         if (this.isWindowRunning) {
             this.evalJS(`
@@ -7939,14 +8850,18 @@ export class SimpleWindow {
         }
         return this;
     }
+    /** Snake_case alias of `flashControl`: briefly flashes an accent outline around the control identified by `id` in the live window. */
     public flash_control(id: string): this { return this.flashControl(id); }
 
+    /** Briefly flashes an accent outline around every control in `names`. */
     public flashControls(names: string[]): this {
         names.forEach(n => this.flashControl(n));
         return this;
     }
+    /** Snake_case alias of `flashControls`: briefly flashes an accent outline around every control in `names`. */
     public flash_controls(names: string[]): this { return this.flashControls(names); }
 
+    /** Highlights the control identified by `id` with an accent glow for `durationMs` milliseconds. */
     public highlightControl(id: string, durationMs = 1000): this {
         if (this.isWindowRunning) {
             this.evalJS(`
@@ -7960,132 +8875,172 @@ export class SimpleWindow {
         }
         return this;
     }
+    /** Snake_case alias of `highlightControl`: highlights the control identified by `id` with an accent glow for `durationMs` milliseconds. */
     public highlight_control(id: string, durationMs = 1000): this { return this.highlightControl(id, durationMs); }
 
+    /** Highlights every control in `names` with an accent glow for `durationMs` milliseconds. */
     public highlightControls(names: string[], durationMs = 1000): this {
         names.forEach(n => this.highlightControl(n, durationMs));
         return this;
     }
+    /** Snake_case alias of `highlightControls`: highlights every control in `names` with an accent glow for `durationMs` milliseconds. */
     public highlight_controls(names: string[], durationMs = 1000): this { return this.highlightControls(names, durationMs); }
 
+    /** Inverts the visibility of the control identified by `id` and returns its new visibility state. */
     public toggleVisible(id: string): boolean {
         const next = !this.getControlVisible(id);
         this.setControlVisible(id, next);
         return next;
     }
+    /** Snake_case alias of `toggleVisible`: inverts the visibility of the control identified by `id` and returns its new visibility state. */
     public toggle_visible(id: string): boolean { return this.toggleVisible(id); }
 
+    /** Inverts the enabled state of the control identified by `id` and returns its new enabled state. */
     public toggleEnabled(id: string): boolean {
         const next = !this.getControlEnabled(id);
         this.setControlEnabled(id, next);
         return next;
     }
+    /** Snake_case alias of `toggleEnabled`: inverts the enabled state of the control identified by `id` and returns its new enabled state. */
     public toggle_enabled(id: string): boolean { return this.toggleEnabled(id); }
 
     // 3. Value Convenience Accessors & Modifiers
+    /** Adds `delta` (default `1`) to the integer value of control `id` and returns the updated number. */
     public increment(id: string, delta = 1): number {
         const current = this.getInt(id);
         const next = current + delta;
         this.setInt(id, next);
         return next;
     }
+    /** Snake_case alias of `increment`: adds `delta` (default `1`) to the integer value of control `id` and returns the updated number. */
     public increment_value(id: string, delta = 1): number { return this.increment(id, delta); }
 
+    /** Inverts the boolean checked state of control `id` and returns the updated boolean. */
     public toggleChecked(id: string): boolean {
         const current = this.getBool(id);
         const next = !current;
         this.setBool(id, next);
         return next;
     }
+    /** Snake_case alias of `toggleChecked`: inverts the boolean checked state of control `id` and returns the updated boolean. */
     public toggle_checked(id: string): boolean { return this.toggleChecked(id); }
 
+    /** Updates the numeric progress value of the progress bar control identified by `id`. */
     public setProgress(id: string, value: number): this {
         return this.setValue(id, value);
     }
+    /** Snake_case alias of `setProgress`: updates the numeric progress value of the progress bar control identified by `id`. */
     public set_progress(id: string, value: number): this { return this.setProgress(id, value); }
 
+    /** Returns the current integer progress value of the progress bar control identified by `id`. */
     public getProgress(id: string): number {
         return this.getInt(id);
     }
+    /** Snake_case alias of `getProgress`: returns the current integer progress value of the progress bar control identified by `id`. */
     public get_progress(id: string): number { return this.getProgress(id); }
 
+    /** Appends `text` to the current string content of control `id`. */
     public appendText(id: string, text: string): this {
         const current = this.getText(id);
         return this.setText(id, current + text);
     }
+    /** Snake_case alias of `appendText`: appends `text` to the current string content of control `id`. */
     public append_text(id: string, text: string): this { return this.appendText(id, text); }
 
+    /** Appends `line` on a new line at the end of control `id`'s text content. */
     public appendLine(id: string, line: string): this {
         const current = this.getText(id);
         return this.setText(id, current ? `${current}\n${line}` : line);
     }
+    /** Snake_case alias of `appendLine`: appends `line` on a new line at the end of control `id`'s text content. */
     public append_line(id: string, line: string): this { return this.appendLine(id, line); }
 
+    /** Batch-sets the text of multiple controls from a `{ [controlId]: text }` map. */
     public setManyTexts(values: Record<string, string>): this {
         for (const [id, val] of Object.entries(values)) this.setText(id, val);
         return this;
     }
+    /** Snake_case alias of `setManyTexts`: batch-sets the text of multiple controls from a `{ [controlId]: text }` map. */
     public set_many_texts(values: Record<string, string>): this { return this.setManyTexts(values); }
 
+    /** Reads and returns a `{ [controlId]: text }` map for all control IDs in `names`. */
     public getManyTexts(names: string[]): Record<string, string> {
         const res: Record<string, string> = {};
         for (const name of names) res[name] = this.getText(name);
         return res;
     }
+    /** Snake_case alias of `getManyTexts`: reads and returns a `{ [controlId]: text }` map for all control IDs in `names`. */
     public get_many_texts(names: string[]): Record<string, string> { return this.getManyTexts(names); }
 
+    /** Batch-sets the boolean checked state of multiple controls from a `{ [controlId]: checked }` map. */
     public setManyChecked(values: Record<string, boolean>): this {
         for (const [id, val] of Object.entries(values)) this.setBool(id, val);
         return this;
     }
+    /** Snake_case alias of `setManyChecked`: batch-sets the boolean checked state of multiple controls from a `{ [controlId]: checked }` map. */
     public set_many_checked(values: Record<string, boolean>): this { return this.setManyChecked(values); }
 
+    /** Reads and returns a `{ [controlId]: checked }` map for all control IDs in `names`. */
     public getManyChecked(names: string[]): Record<string, boolean> {
         const res: Record<string, boolean> = {};
         for (const name of names) res[name] = this.getBool(name);
         return res;
     }
+    /** Snake_case alias of `getManyChecked`: reads and returns a `{ [controlId]: checked }` map for all control IDs in `names`. */
     public get_many_checked(names: string[]): Record<string, boolean> { return this.getManyChecked(names); }
 
+    /** Batch-sets integer values on multiple controls from a `{ [controlId]: number }` map. */
     public setManyNumbers(values: Record<string, number>): this {
         for (const [id, val] of Object.entries(values)) this.setInt(id, val);
         return this;
     }
+    /** Snake_case alias of `setManyNumbers`: batch-sets integer values on multiple controls from a `{ [controlId]: number }` map. */
     public set_many_numbers(values: Record<string, number>): this { return this.setManyNumbers(values); }
 
+    /** Reads and returns a `{ [controlId]: number }` map for all control IDs in `names`. */
     public getManyNumbers(names: string[]): Record<string, number> {
         const res: Record<string, number> = {};
         for (const name of names) res[name] = this.getInt(name);
         return res;
     }
+    /** Snake_case alias of `getManyNumbers`: reads and returns a `{ [controlId]: number }` map for all control IDs in `names`. */
     public get_many_numbers(names: string[]): Record<string, number> { return this.getManyNumbers(names); }
 
+    /** Batch-sets the visibility of multiple controls from a `{ [controlId]: visible }` map. */
     public setManyVisibility(values: Record<string, boolean>): this {
         for (const [id, val] of Object.entries(values)) this.setControlVisible(id, val);
         return this;
     }
+    /** Snake_case alias of `setManyVisibility`: batch-sets the visibility of multiple controls from a `{ [controlId]: visible }` map. */
     public set_many_visibility(values: Record<string, boolean>): this { return this.setManyVisibility(values); }
 
+    /** Reads and returns a `{ [controlId]: visible }` map for all control IDs in `names`. */
     public getManyVisibility(names: string[]): Record<string, boolean> {
         const res: Record<string, boolean> = {};
         for (const name of names) res[name] = this.getControlVisible(name);
         return res;
     }
+    /** Snake_case alias of `getManyVisibility`: reads and returns a `{ [controlId]: visible }` map for all control IDs in `names`. */
     public get_many_visibility(names: string[]): Record<string, boolean> { return this.getManyVisibility(names); }
 
+    /** Batch-sets the enabled state of multiple controls from a `{ [controlId]: enabled }` map. */
     public setManyEnabled(values: Record<string, boolean>): this {
         for (const [id, val] of Object.entries(values)) this.setControlEnabled(id, val);
         return this;
     }
+    /** Snake_case alias of `setManyEnabled`: batch-sets the enabled state of multiple controls from a `{ [controlId]: enabled }` map. */
     public set_many_enabled(values: Record<string, boolean>): this { return this.setManyEnabled(values); }
 
+    /** Reads and returns a `{ [controlId]: enabled }` map for all control IDs in `names`. */
     public getManyEnabled(names: string[]): Record<string, boolean> {
         const res: Record<string, boolean> = {};
         for (const name of names) res[name] = this.getControlEnabled(name);
         return res;
     }
+    /** Snake_case alias of `getManyEnabled`: reads and returns a `{ [controlId]: enabled }` map for all control IDs in `names`. */
     public get_many_enabled(names: string[]): Record<string, boolean> { return this.getManyEnabled(names); }
 
+    /** Assigns validation error messages to multiple controls from a `{ [controlId]: errorMessage }` map. */
     public setManyErrors(values: Record<string, string>): this {
         for (const [id, err] of Object.entries(values)) {
             const ctrl = this.controls.find(c => c.id === id);
@@ -8093,8 +9048,10 @@ export class SimpleWindow {
         }
         return this;
     }
+    /** Snake_case alias of `setManyErrors`: assigns validation error messages to multiple controls from a `{ [controlId]: errorMessage }` map. */
     public set_many_errors(values: Record<string, string>): this { return this.setManyErrors(values); }
 
+    /** Updates placeholder hint strings on multiple controls from a `{ [controlId]: placeholder }` map. */
     public setManyPlaceholders(values: Record<string, string>): this {
         for (const [id, ph] of Object.entries(values)) {
             const ctrl = this.controls.find(c => c.id === id);
@@ -8102,8 +9059,10 @@ export class SimpleWindow {
         }
         return this;
     }
+    /** Snake_case alias of `setManyPlaceholders`: updates placeholder hint strings on multiple controls from a `{ [controlId]: placeholder }` map. */
     public set_many_placeholders(values: Record<string, string>): this { return this.setManyPlaceholders(values); }
 
+    /** Updates hover tooltip strings on multiple controls from a `{ [controlId]: tooltip }` map. */
     public setManyTooltips(values: Record<string, string>): this {
         for (const [id, hint] of Object.entries(values)) {
             const ctrl = this.controls.find(c => c.id === id);
@@ -8111,8 +9070,10 @@ export class SimpleWindow {
         }
         return this;
     }
+    /** Snake_case alias of `setManyTooltips`: updates hover tooltip strings on multiple controls from a `{ [controlId]: tooltip }` map. */
     public set_many_tooltips(values: Record<string, string>): this { return this.setManyTooltips(values); }
 
+    /** Updates the window's status text and syncs it to any standard status bar or status label control (`lbl_status`, `status_bar`, etc.). */
     public setStatus(text: string): this {
         this.statusText = text;
         const targetIds = ["lbl_status", "lblStatus", "status", "lbl_status_bar", "status_bar"];
@@ -8137,18 +9098,23 @@ export class SimpleWindow {
         }
         return this;
     }
+    /** Snake_case alias of `setStatus`: updates the window's status text and syncs it to any standard status bar or status label control (`lbl_status`, `status_bar`, etc.). */
     public set_status(text: string): this { return this.setStatus(text); }
 
+    /** Snake_case alias of `withBusyState`: disables the target controls in `names`, updates the window status bar to `statusText`, runs `callback`, and automatically re-enables the controls and restores status text upon completion. */
     public with_busy_state(names: string[], statusText: string, callback: (win: SimpleWindow) => any | Promise<any>): Promise<this> {
         return this.withBusyState(names, statusText, callback);
     }
 
+    /** Clears the values of all controls listed in `names` to empty strings. */
     public clearMany(names: string[]): this {
         names.forEach(name => this.setValue(name, ""));
         return this;
     }
+    /** Snake_case alias of `clearMany`: clears the values of all controls listed in `names` to empty strings. */
     public clear_many(names: string[]): this { return this.clearMany(names); }
 
+    /** Resets all controls listed in `names` to their type-appropriate default values (`false` for checkboxes/switches, `min` for sliders, `""` for text inputs). */
     public resetMany(names: string[]): this {
         for (const name of names) {
             const ctrl = this.controls.find(c => c.id === name);
@@ -8164,23 +9130,30 @@ export class SimpleWindow {
         }
         return this;
     }
+    /** Snake_case alias of `resetMany`: resets all controls listed in `names` to their type-appropriate default values (`false` for checkboxes/switches, `min` for sliders, `""` for text inputs). */
     public reset_many(names: string[]): this { return this.resetMany(names); }
 
+    /** Moves DOM keyboard focus to the control element identified by `id`. */
     public setFocus(id: string): this {
         if (this.isWindowRunning) {
             this.evalJS(`const el = document.getElementById("${id}"); if(el) el.focus();`);
         }
         return this;
     }
+    /** Snake_case alias of `setFocus`: moves DOM keyboard focus to the control element identified by `id`. */
     public set_focus(id: string): this { return this.setFocus(id); }
+    /** Alias of `setFocus`: moves DOM keyboard focus to the control element identified by `id`. */
     public focus(id: string): this { return this.setFocus(id); }
 
     // 4. List Box & Dynamic Item Management
+    /** Returns the array of option/item strings currently stored for list or dropdown control `id`. */
     public getListItems(id: string): string[] {
         return this.listItemsStore[id] || [];
     }
+    /** Snake_case alias of `getListItems`: returns the array of option/item strings currently stored for list or dropdown control `id`. */
     public get_list_items(id: string): string[] { return this.getListItems(id); }
 
+    /** Replaces the option/item strings for list or dropdown control `id` and refreshes its live DOM `<select>` or list container. */
     public setListItems(id: string, items: string[]): this {
         this.listItemsStore[id] = [...items];
         const currentVal = this.getValue(id);
@@ -8221,10 +9194,14 @@ export class SimpleWindow {
         }
         return this;
     }
+    /** Snake_case alias of `setListItems`: replaces the option/item strings for list or dropdown control `id` and refreshes its live DOM `<select>` or list container. */
     public set_list_items(id: string, items: string[]): this { return this.setListItems(id, items); }
+    /** Alias of `setListItems`: replaces the option/item strings for list or dropdown control `id` and refreshes its live DOM `<select>` or list container. */
     public updateListItems(id: string, items: string[]): this { return this.setListItems(id, items); }
+    /** Snake_case alias of `setListItems`: replaces the option/item strings for list or dropdown control `id` and refreshes its live DOM `<select>` or list container. */
     public update_list_items(id: string, items: string[]): this { return this.setListItems(id, items); }
 
+    /** Appends a single non-empty, non-duplicate item string to list or dropdown control `id`. */
     public addListItem(id: string, item: string): this {
         const clean = (item || "").trim();
         if (!clean) return this;
@@ -8235,8 +9212,10 @@ export class SimpleWindow {
         this.setValue(id, clean);
         return this.setListItems(id, items);
     }
+    /** Snake_case alias of `addListItem`: appends a single non-empty, non-duplicate item string to list or dropdown control `id`. */
     public add_list_item(id: string, item: string): this { return this.addListItem(id, item); }
 
+    /** Appends multiple non-empty, non-duplicate item strings to list or dropdown control `id`. */
     public addListItems(id: string, newItems: string[]): this {
         const items = this.getListItems(id);
         const valid = newItems.map(i => (i || "").trim()).filter(Boolean);
@@ -8248,8 +9227,10 @@ export class SimpleWindow {
         }
         return this.setListItems(id, items);
     }
+    /** Snake_case alias of `addListItems`: appends multiple non-empty, non-duplicate item strings to list or dropdown control `id`. */
     public add_list_items(id: string, newItems: string[]): this { return this.addListItems(id, newItems); }
 
+    /** Removes the item at zero-based `index` from list or dropdown control `id`. */
     public removeListItem(id: string, index: number): this {
         const items = this.getListItems(id);
         if (index >= 0 && index < items.length) {
@@ -8258,25 +9239,33 @@ export class SimpleWindow {
         }
         return this;
     }
+    /** Snake_case alias of `removeListItem`: removes the item at zero-based `index` from list or dropdown control `id`. */
     public remove_list_item(id: string, index: number): this { return this.removeListItem(id, index); }
 
+    /** Removes all option items from the list or dropdown control identified by `id`. */
     public clearListItems(id: string): this {
         return this.setListItems(id, []);
     }
+    /** Snake_case alias of `clearListItems`: removes all option items from the list or dropdown control identified by `id`. */
     public clear_list_items(id: string): this { return this.clearListItems(id); }
 
+    /** Returns the total number of items currently in the list or dropdown control identified by `id`. */
     public getListCount(id: string): number {
         return this.getListItems(id).length;
     }
+    /** Snake_case alias of `getListCount`: returns the total number of items currently in the list or dropdown control identified by `id`. */
     public get_list_count(id: string): number { return this.getListCount(id); }
 
+    /** Returns the currently selected item text (or first selected item) of list or dropdown control `id`. */
     public getListSelectedText(id: string): string {
         const val = this.getValue(id);
         if (Array.isArray(val)) return val[0] || "";
         return String(val || "");
     }
+    /** Snake_case alias of `getListSelectedText`: returns the currently selected item text (or first selected item) of list or dropdown control `id`. */
     public get_list_selected_text(id: string): string { return this.getListSelectedText(id); }
 
+    /** Removes the currently selected item from list or dropdown control `id`. */
     public removeSelectedListItem(id: string): this {
         const selectedText = this.getListSelectedText(id);
         const items = this.getListItems(id);
@@ -8286,8 +9275,10 @@ export class SimpleWindow {
         }
         return this;
     }
+    /** Snake_case alias of `removeSelectedListItem`: removes the currently selected item from list or dropdown control `id`. */
     public remove_selected_list_item(id: string): this { return this.removeSelectedListItem(id); }
 
+    /** Enables or disables multi-selection mode on a list box control in the live DOM. */
     public setListMultiSelect(id: string, enabled: boolean): this {
         if (this.isWindowRunning) {
             this.evalJS(`
@@ -8300,8 +9291,10 @@ export class SimpleWindow {
         }
         return this;
     }
+    /** Snake_case alias of `setListMultiSelect`: enables or disables multi-selection mode on a list box control in the live DOM. */
     public set_list_multi_select(id: string, enabled: boolean): this { return this.setListMultiSelect(id, enabled); }
 
+    /** Returns a sorted array of zero-based indexes for all currently selected items in list control `id`. */
     public getListSelectedIndexes(id: string): number[] {
         const items = this.getListItems(id);
         const val = this.getValue(id);
@@ -8313,8 +9306,10 @@ export class SimpleWindow {
         }
         return [];
     }
+    /** Snake_case alias of `getListSelectedIndexes`: returns a sorted array of zero-based indexes for all currently selected items in list control `id`. */
     public get_list_selected_indexes(id: string): number[] { return this.getListSelectedIndexes(id); }
 
+    /** Selects the items at the specified zero-based `indexes` in list control `id`. */
     public setListSelectedIndexes(id: string, indexes: number[]): this {
         const items = this.getListItems(id);
         const selectedVals = indexes.map(i => items[i]).filter(Boolean);
@@ -8335,14 +9330,18 @@ export class SimpleWindow {
         }
         return this;
     }
+    /** Snake_case alias of `setListSelectedIndexes`: selects the items at the specified zero-based `indexes` in list control `id`. */
     public set_list_selected_indexes(id: string, indexes: number[]): this { return this.setListSelectedIndexes(id, indexes); }
 
+    /** Returns an array of item strings currently selected in list control `id`. */
     public getListSelectedTexts(id: string): string[] {
         const items = this.getListItems(id);
         return this.getListSelectedIndexes(id).map(i => items[i]).filter((x): x is string => Boolean(x));
     }
+    /** Snake_case alias of `getListSelectedTexts`: returns an array of item strings currently selected in list control `id`. */
     public get_list_selected_texts(id: string): string[] { return this.getListSelectedTexts(id); }
 
+    /** Selects all items in multi-select list control `id`. */
     public selectAllListItems(id: string): this {
         const items = this.getListItems(id);
         this.setValue(id, [...items]);
@@ -8359,8 +9358,10 @@ export class SimpleWindow {
         }
         return this;
     }
+    /** Snake_case alias of `selectAllListItems`: selects all items in multi-select list control `id`. */
     public select_all_list_items(id: string): this { return this.selectAllListItems(id); }
 
+    /** Deselects all items in list control `id`. */
     public clearListSelection(id: string): this {
         this.setValue(id, "");
         if (this.isWindowRunning) {
@@ -8377,8 +9378,10 @@ export class SimpleWindow {
         }
         return this;
     }
+    /** Snake_case alias of `clearListSelection`: deselects all items in list control `id`. */
     public clear_list_selection(id: string): this { return this.clearListSelection(id); }
 
+    /** Removes all currently selected items from list control `id` and returns the array of removed item strings. */
     public removeSelectedListItems(id: string): string[] {
         const selectedIndexes = this.getListSelectedIndexes(id);
         const items = this.getListItems(id);
@@ -8391,21 +9394,27 @@ export class SimpleWindow {
         this.setListItems(id, remaining);
         return removed;
     }
+    /** Snake_case alias of `removeSelectedListItems`: removes all currently selected items from list control `id` and returns the array of removed item strings. */
     public remove_selected_list_items(id: string): string[] { return this.removeSelectedListItems(id); }
 
+    /** Registers a double-click event callback on list control `id`. */
     public onListDoubleClick(id: string, callback: EventCallback): this {
         this.bindControlEvent(id, "onDoubleClick", callback);
         return this;
     }
+    /** Snake_case alias of `onListDoubleClick`: registers a double-click event callback on list control `id`. */
     public on_list_double_click(id: string, callback: EventCallback): this { return this.onListDoubleClick(id, callback); }
 
     // 5. Settings Persistence (JSON File)
+    /** Writes all current form control values (`getFormValues()`) as formatted JSON to `filePath`. */
     public saveValuesToFile(filePath: string): void {
         const values = this.getFormValues();
         fs.writeFileSync(filePath, JSON.stringify(values, null, 2), "utf-8");
     }
+    /** Snake_case alias of `saveValuesToFile`: writes all current form control values (`getFormValues()`) as formatted JSON to `filePath`. */
     public save_values_to_file(pathStr: string): void { this.saveValuesToFile(pathStr); }
 
+    /** Loads form control values from a JSON file at `filePath` and applies them to the window's controls. */
     public loadValuesFromFile(filePath: string): void {
         if (fs.existsSync(filePath)) {
             const content = fs.readFileSync(filePath, "utf-8");
@@ -8417,12 +9426,14 @@ export class SimpleWindow {
             }
         }
     }
+    /** Snake_case alias of `loadValuesFromFile`: loads form control values from a JSON file at `filePath` and applies them to the window's controls. */
     public load_values_from_file(pathStr: string): void { this.loadValuesFromFile(pathStr); }
 
     // =========================================================================
     // Reactive & Key-Value State Store API
     // =========================================================================
 
+    /** Sets `key` to `String(val)` in the window's reactive state store, notifies state listeners, and updates any bound controls. */
     public setState(key: string, val: any): this {
         const strVal = String(val ?? "");
         this.stateStore[key] = strVal;
@@ -8447,13 +9458,17 @@ export class SimpleWindow {
 
         return this;
     }
+    /** Snake_case alias of `setState`: sets `key` to `String(val)` in the window's reactive state store, notifies state listeners, and updates any bound controls. */
     public set_state(key: string, val: any): this { return this.setState(key, val); }
 
+    /** Returns the string value stored at `key` in the window's reactive state store, or `defaultVal` if unset. */
     public getState(key: string, defaultVal = ""): string {
         return this.getStateOr(key, defaultVal);
     }
+    /** Snake_case alias of `getState`: returns the string value stored at `key` in the window's reactive state store, or `defaultVal` if unset. */
     public get_state(key: string, defaultVal = ""): string { return this.getState(key, defaultVal); }
 
+    /** Returns the string value stored at `key` in the window's state store, or `fallback` if unset or empty. */
     public getStateOr(key: string, fallback: string): string {
         if (key in this.stateStore) {
             const val = this.stateStore[key];
@@ -8461,35 +9476,47 @@ export class SimpleWindow {
         }
         return fallback;
     }
+    /** Snake_case alias of `getStateOr`: returns the string value stored at `key` in the window's state store, or `fallback` if unset or empty. */
     public get_state_or(key: string, fallback: string): string { return this.getStateOr(key, fallback); }
 
+    /** Returns `true` if `key` exists in the window's reactive state store. */
     public hasState(key: string): boolean {
         return key in this.stateStore;
     }
+    /** Snake_case alias of `hasState`: returns `true` if `key` exists in the window's reactive state store. */
     public has_state(key: string): boolean { return this.hasState(key); }
 
+    /** Deletes `key` from the window's reactive state store. */
     public removeState(key: string): this {
         delete this.stateStore[key];
         return this;
     }
+    /** Snake_case alias of `removeState`: deletes `key` from the window's reactive state store. */
     public remove_state(key: string): this { return this.removeState(key); }
 
+    /** Removes all entries from the window's reactive state store. */
     public clearState(): this {
         this.stateStore = {};
         return this;
     }
+    /** Snake_case alias of `clearState`: removes all entries from the window's reactive state store. */
     public clear_state(): this { return this.clearState(); }
 
+    /** Stores an integer value (`Math.floor(val)`) at `key` in the window's reactive state store. */
     public setStateInt(key: string, val: number): this {
         return this.setState(key, String(Math.floor(val)));
     }
+    /** Snake_case alias of `setStateInt`: stores an integer value (`Math.floor(val)`) at `key` in the window's reactive state store. */
     public set_state_int(key: string, val: number): this { return this.setStateInt(key, val); }
 
+    /** Returns the integer value stored at `key` in the window's reactive state store, or `defaultVal` if unset. */
     public getStateInt(key: string, defaultVal = 0): number {
         return this.getStateIntOr(key, defaultVal);
     }
+    /** Snake_case alias of `getStateInt`: returns the integer value stored at `key` in the window's reactive state store, or `defaultVal` if unset. */
     public get_state_int(key: string, defaultVal = 0): number { return this.getStateInt(key, defaultVal); }
 
+    /** Parses and returns the integer value stored at `key` in the state store, or `fallback` if missing or invalid. */
     public getStateIntOr(key: string, fallback: number): number {
         if (key in this.stateStore) {
             const trimmed = (this.stateStore[key] || "").trim();
@@ -8500,18 +9527,24 @@ export class SimpleWindow {
         }
         return fallback;
     }
+    /** Snake_case alias of `getStateIntOr`: parses and returns the integer value stored at `key` in the state store, or `fallback` if missing or invalid. */
     public get_state_int_or(key: string, fallback: number): number { return this.getStateIntOr(key, fallback); }
 
+    /** Stores a boolean value (`"true"` or `"false"`) at `key` in the window's reactive state store. */
     public setStateBool(key: string, val: boolean): this {
         return this.setState(key, val ? "true" : "false");
     }
+    /** Snake_case alias of `setStateBool`: stores a boolean value (`"true"` or `"false"`) at `key` in the window's reactive state store. */
     public set_state_bool(key: string, val: boolean): this { return this.setStateBool(key, val); }
 
+    /** Returns the boolean value stored at `key` in the window's reactive state store, or `defaultVal` if unset. */
     public getStateBool(key: string, defaultVal = false): boolean {
         return this.getStateBoolOr(key, defaultVal);
     }
+    /** Snake_case alias of `getStateBool`: returns the boolean value stored at `key` in the window's reactive state store, or `defaultVal` if unset. */
     public get_state_bool(key: string, defaultVal = false): boolean { return this.getStateBool(key, defaultVal); }
 
+    /** Parses and returns the boolean value (`"true"`/`"1"`/`"yes"`/`"on"` vs `"false"`/`"0"`/`"no"`/`"off"`) at `key`, or `fallback`. */
     public getStateBoolOr(key: string, fallback: boolean): boolean {
         if (key in this.stateStore) {
             const val = (this.stateStore[key] || "").toLowerCase().trim();
@@ -8520,20 +9553,28 @@ export class SimpleWindow {
         }
         return fallback;
     }
+    /** Snake_case alias of `getStateBoolOr`: parses and returns the boolean value (`"true"`/`"1"`/`"yes"`/`"on"` vs `"false"`/`"0"`/`"no"`/`"off"`) at `key`, or `fallback`. */
     public get_state_bool_or(key: string, fallback: boolean): boolean { return this.getStateBoolOr(key, fallback); }
 
+    /** Stores a floating-point number at `key` in the window's reactive state store. */
     public setStateFloat(key: string, val: number): this {
         return this.setState(key, String(val));
     }
+    /** Alias of `setStateFloat`: stores a floating-point number at `key` in the window's reactive state store. */
     public setStateF64(key: string, val: number): this { return this.setStateFloat(key, val); }
+    /** Snake_case alias of `setStateFloat`: stores a floating-point number at `key` in the window's reactive state store. */
     public set_state_f64(key: string, val: number): this { return this.setStateFloat(key, val); }
 
+    /** Returns the floating-point number stored at `key` in the window's reactive state store, or `defaultVal` if unset. */
     public getStateFloat(key: string, defaultVal = 0.0): number {
         return this.getStateFloatOr(key, defaultVal);
     }
+    /** Alias of `getStateFloat`: returns the floating-point number stored at `key` in the window's reactive state store, or `defaultVal` if unset. */
     public getStateF64(key: string, defaultVal = 0.0): number { return this.getStateFloat(key, defaultVal); }
+    /** Snake_case alias of `getStateFloat`: returns the floating-point number stored at `key` in the window's reactive state store, or `defaultVal` if unset. */
     public get_state_f64(key: string, defaultVal = 0.0): number { return this.getStateFloat(key, defaultVal); }
 
+    /** Parses and returns the floating-point value stored at `key` in the state store, or `fallback` if missing or invalid. */
     public getStateFloatOr(key: string, fallback: number): number {
         if (key in this.stateStore) {
             const trimmed = (this.stateStore[key] || "").trim();
@@ -8544,24 +9585,31 @@ export class SimpleWindow {
         }
         return fallback;
     }
+    /** Alias of `getStateFloatOr`: parses and returns the floating-point value stored at `key` in the state store, or `fallback` if missing or invalid. */
     public getStateF64Or(key: string, fallback: number): number { return this.getStateFloatOr(key, fallback); }
+    /** Snake_case alias of `getStateFloatOr`: parses and returns the floating-point value stored at `key` in the state store, or `fallback` if missing or invalid. */
     public get_state_f64_or(key: string, fallback: number): number { return this.getStateFloatOr(key, fallback); }
 
+    /** Inverts the boolean state value at `key`, updates listeners/bound controls, and returns the new boolean. */
     public toggleStateBool(key: string): boolean {
         const next = !this.getStateBool(key);
         this.setStateBool(key, next);
         return next;
     }
+    /** Snake_case alias of `toggleStateBool`: inverts the boolean state value at `key`, updates listeners/bound controls, and returns the new boolean. */
     public toggle_state_bool(key: string): boolean { return this.toggleStateBool(key); }
 
+    /** Adds `delta` (default `1`) to the integer state value at `key` and returns the updated integer. */
     public incrementStateInt(key: string, delta = 1): number {
         const curr = this.getStateInt(key);
         const next = curr + delta;
         this.setStateInt(key, next);
         return next;
     }
+    /** Snake_case alias of `incrementStateInt`: adds `delta` (default `1`) to the integer state value at `key` and returns the updated integer. */
     public increment_state_int(key: string, delta = 1): number { return this.incrementStateInt(key, delta); }
 
+    /** Subscribes a listener callback invoked whenever the reactive state key `key` changes (and immediately if `key` already has a value). */
     public onStateChange(key: string, cb: (win: SimpleWindow, val: string) => void): this {
         let list = this.stateListeners.get(key);
         if (!list) {
@@ -8574,6 +9622,7 @@ export class SimpleWindow {
         }
         return this;
     }
+    /** Snake_case alias of `onStateChange`: subscribes a listener callback invoked whenever the reactive state key `key` changes (and immediately if `key` already has a value). */
     public on_state_change(key: string, cb: (win: SimpleWindow, val: string) => void): this {
         return this.onStateChange(key, cb);
     }
@@ -8582,12 +9631,15 @@ export class SimpleWindow {
     // App State & Window Session Persistence API
     // =========================================================================
 
+    /** Atomically saves the window's reactive `stateStore` as JSON to `filePath` (expanding `~` and env vars). */
     public saveStateJson(filePath: string): void {
         const resolved = resolveUserPath(filePath);
         saveStateToFile(resolved, this.stateStore);
     }
+    /** Snake_case alias of `saveStateJson`: atomically saves the window's reactive `stateStore` as JSON to `filePath` (expanding `~` and env vars). */
     public save_state_json(filePath: string): void { this.saveStateJson(filePath); }
 
+    /** Loads key-value pairs from a JSON file at `filePath` into the window's reactive `stateStore`, triggering bindings. */
     public loadStateJson(filePath: string): void {
         const resolved = resolveUserPath(filePath);
         const loaded = loadStateFromFile(resolved);
@@ -8595,15 +9647,19 @@ export class SimpleWindow {
             this.setState(k, v);
         }
     }
+    /** Snake_case alias of `loadStateJson`: loads key-value pairs from a JSON file at `filePath` into the window's reactive `stateStore`, triggering bindings. */
     public load_state_json(filePath: string): void { this.loadStateJson(filePath); }
 
+    /** Saves the window's reactive `stateStore` to the platform-standard application state file (`<appStateDir>/<fileName>`). */
     public saveAppState(appName?: string, fileName = "state.json"): void {
         const appId = appName || this.getAppId();
         const targetFile = getAppStateFile(appId, fileName);
         this.saveStateJson(targetFile);
     }
+    /** Snake_case alias of `saveAppState`: saves the window's reactive `stateStore` to the platform-standard application state file (`<appStateDir>/<fileName>`). */
     public save_app_state(appName?: string, fileName = "state.json"): void { this.saveAppState(appName, fileName); }
 
+    /** Attempts to save the application state via `saveAppState`, returning `true` on success or `false` if an I/O error occurs. */
     public saveAppStateOr(appName?: string, fileName = "state.json"): boolean {
         try {
             this.saveAppState(appName, fileName);
@@ -8612,8 +9668,10 @@ export class SimpleWindow {
             return false;
         }
     }
+    /** Snake_case alias of `saveAppStateOr`: attempts to save the application state via `saveAppState`, returning `true` on success or `false` if an I/O error occurs. */
     public save_app_state_or(appName?: string, fileName = "state.json"): boolean { return this.saveAppStateOr(appName, fileName); }
 
+    /** Loads the application's saved state file from `<appStateDir>/<fileName>` (or fallback config dir), returning `true` if loaded. */
     public loadAppState(appName?: string, fileName = "state.json"): boolean {
         const appId = appName || this.getAppId();
         let targetFile = getAppStateFile(appId, fileName);
@@ -8626,8 +9684,10 @@ export class SimpleWindow {
         this.loadStateJson(targetFile);
         return true;
     }
+    /** Snake_case alias of `loadAppState`: loads the application's saved state file from `<appStateDir>/<fileName>` (or fallback config dir), returning `true` if loaded. */
     public load_app_state(appName?: string, fileName = "state.json"): boolean { return this.loadAppState(appName, fileName); }
 
+    /** Attempts to load the application state via `loadAppState`, returning `false` instead of throwing on error. */
     public loadAppStateOr(appName?: string, fileName = "state.json"): boolean {
         try {
             return this.loadAppState(appName, fileName);
@@ -8635,8 +9695,10 @@ export class SimpleWindow {
             return false;
         }
     }
+    /** Snake_case alias of `loadAppStateOr`: attempts to load the application state via `loadAppState`, returning `false` instead of throwing on error. */
     public load_app_state_or(appName?: string, fileName = "state.json"): boolean { return this.loadAppStateOr(appName, fileName); }
 
+    /** Returns `true` if a saved state file exists for `appName` in the app state or config directory. */
     public hasSavedAppState(appName?: string, fileName = "state.json"): boolean {
         const appId = appName || this.getAppId();
         const targetFile = getAppStateFile(appId, fileName);
@@ -8644,8 +9706,10 @@ export class SimpleWindow {
         const configFile = getAppConfigFile(appId, fileName);
         return fs.existsSync(configFile);
     }
+    /** Snake_case alias of `hasSavedAppState`: returns `true` if a saved state file exists for `appName` in the app state or config directory. */
     public has_saved_app_state(appName?: string, fileName = "state.json"): boolean { return this.hasSavedAppState(appName, fileName); }
 
+    /** Deletes the saved state file (`state.json`) for `appName` from disk and clears the in-memory `stateStore`. */
     public clearAppState(appName?: string, fileName = "state.json"): void {
         const appId = appName || this.getAppId();
         const targetFile = getAppStateFile(appId, fileName);
@@ -8657,8 +9721,10 @@ export class SimpleWindow {
             try { fs.unlinkSync(configFile); } catch (e) {}
         }
     }
+    /** Snake_case alias of `clearAppState`: deletes the saved state file (`state.json`) for `appName` from disk and clears the in-memory `stateStore`. */
     public clear_app_state(appName?: string, fileName = "state.json"): void { this.clearAppState(appName, fileName); }
 
+    /** Persists the window's reactive state store, dimensions, and theme to `<appStateDir>/session.json`. */
     public saveWindowSession(appName?: string): void {
         const appId = appName || this.getAppId();
         const sessionData: Record<string, any> = { ...this.stateStore };
@@ -8669,8 +9735,10 @@ export class SimpleWindow {
         const targetFile = getAppStateFile(appId, "session.json");
         saveStateToFile(targetFile, sessionData);
     }
+    /** Snake_case alias of `saveWindowSession`: persists the window's reactive state store, dimensions, and theme to `<appStateDir>/session.json`. */
     public save_window_session(appName?: string): void { this.saveWindowSession(appName); }
 
+    /** Restores window dimensions, theme, and reactive state store from `<appStateDir>/session.json`. */
     public restoreWindowSession(appName?: string): boolean {
         const appId = appName || this.getAppId();
         let targetFile = getAppStateFile(appId, "session.json");
@@ -8701,8 +9769,10 @@ export class SimpleWindow {
             return false;
         }
     }
+    /** Snake_case alias of `restoreWindowSession`: restores window dimensions, theme, and reactive state store from `<appStateDir>/session.json`. */
     public restore_window_session(appName?: string): boolean { return this.restoreWindowSession(appName); }
 
+    /** Registers a window close listener that automatically saves the reactive `stateStore` to `<fileName>` when the window closes. */
     public enableAutoSaveState(appName?: string, fileName = "state.json"): this {
         const appId = appName || this.getAppId();
         this.onClose((w) => {
@@ -8710,6 +9780,7 @@ export class SimpleWindow {
         });
         return this;
     }
+    /** Snake_case alias of `enableAutoSaveState`: registers a window close listener that automatically saves the reactive `stateStore` to `<fileName>` when the window closes. */
     public enable_auto_save_state(appName?: string, fileName = "state.json"): this {
         return this.enableAutoSaveState(appName, fileName);
     }
@@ -8718,6 +9789,7 @@ export class SimpleWindow {
     // Universal Theme & Form State Auto-Persistence API
     // =========================================================================
 
+    /** Applies the user's globally saved theme from `~/.config/simplegui/theme.txt` if one exists. */
     public restoreSavedTheme(): this {
         const saved = getSavedTheme();
         if (saved) {
@@ -8725,8 +9797,10 @@ export class SimpleWindow {
         }
         return this;
     }
+    /** Snake_case alias of `restoreSavedTheme`: applies the user's globally saved theme from `~/.config/simplegui/theme.txt` if one exists. */
     public restore_saved_theme(): this { return this.restoreSavedTheme(); }
 
+    /** Returns the explicit `appId` if set, or derives a sanitized snake_case identifier from the window title. */
     public getAppId(): string {
         if (this.appId && this.appId.length > 0) {
             return this.appId;
@@ -8742,26 +9816,34 @@ export class SimpleWindow {
         }
         return "default_app";
     }
+    /** Snake_case alias of `getAppId`: returns the explicit `appId` if set, or derives a sanitized snake_case identifier from the window title. */
     public get_app_id(): string { return this.getAppId(); }
 
+    /** Sets the application identifier used to namespace config, state, and form-persistence files on disk. */
     public setAppId(id: string): this {
         this.appId = id;
         return this;
     }
+    /** Snake_case alias of `setAppId`: sets the application identifier used to namespace config, state, and form-persistence files on disk. */
     public set_app_id(id: string): this { return this.setAppId(id); }
 
+    /** Enables automatic saving and restoration of form control values and window theme across sessions. */
     public enableAutoSave(): this {
         this.autoSaveState = true;
         return this;
     }
+    /** Snake_case alias of `enableAutoSave`: enables automatic saving and restoration of form control values and window theme across sessions. */
     public enable_auto_save(): this { return this.enableAutoSave(); }
 
+    /** Disables automatic form-state persistence for this window. */
     public disableAutoSave(): this {
         this.autoSaveState = false;
         return this;
     }
+    /** Snake_case alias of `disableAutoSave`: disables automatic form-state persistence for this window. */
     public disable_auto_save(): this { return this.disableAutoSave(); }
 
+    /** Persists eligible form control values, reactive state, window dimensions, and active theme to `<appStateDir>/form_state.json`. */
     public saveAppFormState(appName?: string): void {
         const appId = appName || this.getAppId();
         const data: Record<string, any> = {};
@@ -8796,8 +9878,10 @@ export class SimpleWindow {
         const targetFile = getAppStateFile(appId, "form_state.json");
         saveStateToFile(targetFile, data);
     }
+    /** Snake_case alias of `saveAppFormState`: persists eligible form control values, reactive state, window dimensions, and active theme to `<appStateDir>/form_state.json`. */
     public save_app_form_state(appName?: string): void { this.saveAppFormState(appName); }
 
+    /** Attempts to persist form state via `saveAppFormState`, returning `true` on success or `false` on error. */
     public saveAppFormStateOr(appName?: string): boolean {
         try {
             this.saveAppFormState(appName);
@@ -8806,8 +9890,10 @@ export class SimpleWindow {
             return false;
         }
     }
+    /** Snake_case alias of `saveAppFormStateOr`: attempts to persist form state via `saveAppFormState`, returning `true` on success or `false` on error. */
     public save_app_form_state_or(appName?: string): boolean { return this.saveAppFormStateOr(appName); }
 
+    /** Restores previously saved window dimensions, theme, reactive state, and eligible control values from `form_state.json`. */
     public restoreAppFormState(appName?: string): boolean {
         const appId = appName || this.getAppId();
         let targetFile = getAppStateFile(appId, "form_state.json");
@@ -8880,8 +9966,10 @@ export class SimpleWindow {
 
         return true;
     }
+    /** Snake_case alias of `restoreAppFormState`: restores previously saved window dimensions, theme, reactive state, and eligible control values from `form_state.json`. */
     public restore_app_form_state(appName?: string): boolean { return this.restoreAppFormState(appName); }
 
+    /** Deletes the persisted `form_state.json` file for `appName` from disk. */
     public clearAppFormState(appName?: string): void {
         const appId = appName || this.getAppId();
         const stateFile = getAppStateFile(appId, "form_state.json");
@@ -8893,12 +9981,14 @@ export class SimpleWindow {
             try { fs.unlinkSync(configFile); } catch (e) {}
         }
     }
+    /** Snake_case alias of `clearAppFormState`: deletes the persisted `form_state.json` file for `appName` from disk. */
     public clear_app_form_state(appName?: string): void { this.clearAppFormState(appName); }
 
     // =========================================================================
     // Two-Way Data & Event Binding API
     // =========================================================================
 
+    /** Binds the control named `controlName` to reactive state key `stateKey` for automatic two-way synchronization. */
     public bindState(controlName: string, stateKey: string): this {
         this.controlStateBindings.set(controlName, stateKey);
 
@@ -8927,92 +10017,137 @@ export class SimpleWindow {
 
         return this;
     }
+    /** Snake_case alias of `bindState`: binds the control named `controlName` to reactive state key `stateKey` for automatic two-way synchronization. */
     public bind_state(controlName: string, stateKey: string): this { return this.bindState(controlName, stateKey); }
+    /** Alias of `bindState`: binds the control named `controlName` to reactive state key `stateKey` for automatic two-way synchronization. */
     public bindControl(controlName: string, stateKey: string): this { return this.bindState(controlName, stateKey); }
+    /** Snake_case alias of `bindState`: binds the control named `controlName` to reactive state key `stateKey` for automatic two-way synchronization. */
     public bind_control(controlName: string, stateKey: string): this { return this.bindState(controlName, stateKey); }
+    /** Alias of `bindState`: binds the control named `controlName` to reactive state key `stateKey` for automatic two-way synchronization. */
     public bindValue(controlName: string, stateKey: string): this { return this.bindState(controlName, stateKey); }
+    /** Snake_case alias of `bindState`: binds the control named `controlName` to reactive state key `stateKey` for automatic two-way synchronization. */
     public bind_value(controlName: string, stateKey: string): this { return this.bindState(controlName, stateKey); }
 
+    /** Registers a click event callback for the control identified by `controlId`. */
     public onClick(controlId: string, callback: EventCallback): this {
         this.bindControlEvent(controlId, "onClick", callback);
         return this;
     }
+    /** Snake_case alias of `onClick`: registers a click event callback for the control identified by `controlId`. */
     public on_click(controlId: string, callback: EventCallback): this { return this.onClick(controlId, callback); }
+    /** Alias of `onClick`: registers a click event callback for the control identified by `controlId`. */
     public bindClick(controlId: string, callback: EventCallback): this { return this.onClick(controlId, callback); }
+    /** Snake_case alias of `onClick`: registers a click event callback for the control identified by `controlId`. */
     public bind_click(controlId: string, callback: EventCallback): this { return this.onClick(controlId, callback); }
 
+    /** Registers a value-change event callback for the control identified by `controlId`. */
     public onChange(controlId: string, callback: EventCallback): this {
         this.bindControlEvent(controlId, "onChange", callback);
         return this;
     }
+    /** Snake_case alias of `onChange`: registers a value-change event callback for the control identified by `controlId`. */
     public on_change(controlId: string, callback: EventCallback): this { return this.onChange(controlId, callback); }
+    /** Alias of `onChange`: registers a value-change event callback for the control identified by `controlId`. */
     public bindChange(controlId: string, callback: EventCallback): this { return this.onChange(controlId, callback); }
+    /** Snake_case alias of `onChange`: registers a value-change event callback for the control identified by `controlId`. */
     public bind_change(controlId: string, callback: EventCallback): this { return this.onChange(controlId, callback); }
 
+    /** Registers an Enter-key event callback for the control identified by `controlId`. */
     public onEnter(controlId: string, callback: EventCallback): this {
         this.bindControlEvent(controlId, "onEnter", callback);
         return this;
     }
+    /** Snake_case alias of `onEnter`: registers an Enter-key event callback for the control identified by `controlId`. */
     public on_enter(controlId: string, callback: EventCallback): this { return this.onEnter(controlId, callback); }
+    /** Alias of `onEnter`: registers an Enter-key event callback for the control identified by `controlId`. */
     public bindEnter(controlId: string, callback: EventCallback): this { return this.onEnter(controlId, callback); }
+    /** Snake_case alias of `onEnter`: registers an Enter-key event callback for the control identified by `controlId`. */
     public bind_enter(controlId: string, callback: EventCallback): this { return this.onEnter(controlId, callback); }
 
+    /** Registers a pointer-hover event callback for the control identified by `controlId`. */
     public onHover(controlId: string, callback: EventCallback): this {
         this.bindControlEvent(controlId, "onHover", callback);
         return this;
     }
+    /** Snake_case alias of `onHover`: registers a pointer-hover event callback for the control identified by `controlId`. */
     public on_hover(controlId: string, callback: EventCallback): this { return this.onHover(controlId, callback); }
+    /** Alias of `onHover`: registers a pointer-hover event callback for the control identified by `controlId`. */
     public bindHover(controlId: string, callback: EventCallback): this { return this.onHover(controlId, callback); }
+    /** Snake_case alias of `onHover`: registers a pointer-hover event callback for the control identified by `controlId`. */
     public bind_hover(controlId: string, callback: EventCallback): this { return this.onHover(controlId, callback); }
 
+    /** Registers a double-click event callback for the control identified by `controlId`. */
     public onDblClick(controlId: string, callback: EventCallback): this {
         this.bindControlEvent(controlId, "onDoubleClick", callback);
         return this;
     }
+    /** Alias of `onDblClick`: registers a double-click event callback for the control identified by `controlId`. */
     public onDoubleClick(controlId: string, callback: EventCallback): this { return this.onDblClick(controlId, callback); }
+    /** Snake_case alias of `onDblClick`: registers a double-click event callback for the control identified by `controlId`. */
     public on_double_click(controlId: string, callback: EventCallback): this { return this.onDblClick(controlId, callback); }
+    /** Snake_case alias of `onDblClick`: registers a double-click event callback for the control identified by `controlId`. */
     public on_dblclick(controlId: string, callback: EventCallback): this { return this.onDblClick(controlId, callback); }
+    /** Alias of `onDblClick`: registers a double-click event callback for the control identified by `controlId`. */
     public bindDblClick(controlId: string, callback: EventCallback): this { return this.onDblClick(controlId, callback); }
+    /** Snake_case alias of `onDblClick`: registers a double-click event callback for the control identified by `controlId`. */
     public bind_dblclick(controlId: string, callback: EventCallback): this { return this.onDblClick(controlId, callback); }
 
+    /** Registers a right-click (context menu) event callback for the control identified by `controlId`. */
     public onRightClick(controlId: string, callback: EventCallback): this {
         this.bindControlEvent(controlId, "onContextMenu", callback);
         return this;
     }
+    /** Snake_case alias of `onRightClick`: registers a right-click (context menu) event callback for the control identified by `controlId`. */
     public on_right_click(controlId: string, callback: EventCallback): this { return this.onRightClick(controlId, callback); }
+    /** Alias of `onRightClick`: registers a right-click (context menu) event callback for the control identified by `controlId`. */
     public bindRightClick(controlId: string, callback: EventCallback): this { return this.onRightClick(controlId, callback); }
+    /** Snake_case alias of `onRightClick`: registers a right-click (context menu) event callback for the control identified by `controlId`. */
     public bind_right_click(controlId: string, callback: EventCallback): this { return this.onRightClick(controlId, callback); }
 
+    /** Registers a callback for an arbitrary event name on the control identified by `controlId`. */
     public onEvent(controlId: string, eventName: string, callback: EventCallback): this {
         this.bindControlEvent(controlId, eventName, callback);
         return this;
     }
+    /** Alias of `onEvent`: registers a callback for an arbitrary event name on the control identified by `controlId`. */
     public on(controlId: string, eventName: string, callback: EventCallback): this { return this.onEvent(controlId, eventName, callback); }
+    /** Snake_case alias of `onEvent`: registers a callback for an arbitrary event name on the control identified by `controlId`. */
     public on_event(controlId: string, eventName: string, callback: EventCallback): this { return this.onEvent(controlId, eventName, callback); }
+    /** Alias of `onEvent`: registers a callback for an arbitrary event name on the control identified by `controlId`. */
     public bindEvent(controlId: string, eventName: string, callback: EventCallback): this { return this.onEvent(controlId, eventName, callback); }
+    /** Snake_case alias of `onEvent`: registers a callback for an arbitrary event name on the control identified by `controlId`. */
     public bind_event(controlId: string, eventName: string, callback: EventCallback): this { return this.onEvent(controlId, eventName, callback); }
 
+    /** Registers a global keyboard shortcut handler (for example, `"ctrl+s"` or `"cmd+k"`) on the window. */
     public onShortcut(shortcut: string, callback: EventCallback): this {
         const key = `shortcut_${shortcut.toLowerCase()}`;
         this.eventHandlersMap.set(key, callback);
         return this;
     }
+    /** Snake_case alias of `onShortcut`: registers a global keyboard shortcut handler (for example, `"ctrl+s"` or `"cmd+k"`) on the window. */
     public on_shortcut(shortcut: string, callback: EventCallback): this { return this.onShortcut(shortcut, callback); }
+    /** Alias of `onShortcut`: registers a global keyboard shortcut handler (for example, `"ctrl+s"` or `"cmd+k"`) on the window. */
     public bindShortcut(shortcut: string, callback: EventCallback): this { return this.onShortcut(shortcut, callback); }
+    /** Snake_case alias of `onShortcut`: registers a global keyboard shortcut handler (for example, `"ctrl+s"` or `"cmd+k"`) on the window. */
     public bind_shortcut(shortcut: string, callback: EventCallback): this { return this.onShortcut(shortcut, callback); }
+    /** Alias of `onShortcut`: registers a global keyboard shortcut handler (for example, `"ctrl+s"` or `"cmd+k"`) on the window. */
     public bindKey(key: string, callback: EventCallback): this { return this.onShortcut(key, callback); }
+    /** Snake_case alias of `bindKey`: registers a global keyboard shortcut handler (for example, `"ctrl+s"` or `"cmd+k"`) on the window. */
     public bind_key(key: string, callback: EventCallback): this { return this.bindKey(key, callback); }
 
     // =========================================================================
     // Window Lifecycle & Close Handling API
     // =========================================================================
 
+    /** Registers a lifecycle callback invoked when the window is about to close; returning `false` cancels closure. */
     public onClose(cb: (win: SimpleWindow) => boolean | void): this {
         this.closeListeners.push(cb);
         return this;
     }
+    /** Snake_case alias of `onClose`: registers a lifecycle callback invoked when the window is about to close; returning `false` cancels closure. */
     public on_close(cb: (win: SimpleWindow) => boolean | void): this { return this.onClose(cb); }
 
+    /** Executes all registered `onClose` listeners and persists form state if `autoSaveState` is enabled. */
     public handleClose(): void {
         for (const cb of this.closeListeners) {
             try {
@@ -9040,11 +10175,13 @@ export class SimpleWindow {
         return this.controls.find(c => c && (c.id === this.lastControlId || c.name === this.lastControlId)) || null;
     }
 
+    /** Returns the mutable `ControlSpec` object for the control matching `id`, or `null` if not found. */
     public getControlSpec(id: string): ControlSpec | null {
         return this.controls.find(c => c && (c.id === id || c.name === id)) || null;
     }
 
     // --- Window-Level Fluent Modifiers (operate on last created control) ---
+    /** Sets the pixel width of `ctrlId` (or the most recently added control when `ctrlId` is omitted). */
     public setControlWidth(w: number, ctrlId?: string): this {
         const ctrl = ctrlId ? this.getControlSpec(ctrlId) : this.getLastControl();
         if (ctrl) {
@@ -9053,6 +10190,7 @@ export class SimpleWindow {
         }
         return this;
     }
+    /** Sets the pixel width of a named control `(name, width)` or of the most recently added control `(width)`. */
     public set_control_width(nameOrWidth: string | number, width?: number): this {
         if (typeof nameOrWidth === "string" && width !== undefined) {
             return this.setControlWidth(width, nameOrWidth);
@@ -9060,6 +10198,7 @@ export class SimpleWindow {
         return this.setControlWidth(Number(nameOrWidth));
     }
 
+    /** Sets the pixel height of `ctrlId` (or the most recently added control when `ctrlId` is omitted). */
     public setControlHeight(h: number, ctrlId?: string): this {
         const ctrl = ctrlId ? this.getControlSpec(ctrlId) : this.getLastControl();
         if (ctrl) {
@@ -9068,6 +10207,7 @@ export class SimpleWindow {
         }
         return this;
     }
+    /** Sets the pixel height of a named control `(name, height)` or of the most recently added control `(height)`. */
     public set_control_height(nameOrHeight: string | number, height?: number): this {
         if (typeof nameOrHeight === "string" && height !== undefined) {
             return this.setControlHeight(height, nameOrHeight);
@@ -9075,18 +10215,21 @@ export class SimpleWindow {
         return this.setControlHeight(Number(nameOrHeight));
     }
 
+    /** Sets the placeholder text on the most recently added control. */
     public placeholder(p: string): this {
         const ctrl = this.getLastControl();
         if (ctrl) ctrl.placeholder = p;
         return this;
     }
 
+    /** Sets the hover tooltip text on the most recently added control. */
     public tooltip(t: string): this {
         const ctrl = this.getLastControl();
         if (ctrl) ctrl.tooltip = t;
         return this;
     }
 
+    /** Sets the font size in pixels on the most recently added control. */
     public fontSize(sz: number): this {
         const ctrl = this.getLastControl();
         if (ctrl) {
@@ -9095,10 +10238,12 @@ export class SimpleWindow {
         }
         return this;
     }
+    /** Snake_case alias of `fontSize`: sets the font size in pixels on the most recently added control. */
     public font_size(sz: number): this {
         return this.fontSize(sz);
     }
 
+    /** Enables or disables bold text styling on the most recently added control. */
     public bold(b: boolean = true): this {
         const ctrl = this.getLastControl();
         if (ctrl) {
@@ -9108,6 +10253,7 @@ export class SimpleWindow {
         return this;
     }
 
+    /** Sets the foreground text color on the most recently added control. */
     public font_color(color: string): this {
         const ctrl = this.getLastControl();
         if (ctrl) {
@@ -9117,6 +10263,7 @@ export class SimpleWindow {
         return this;
     }
 
+    /** Sets the background fill color on the most recently added control. */
     public background_color(color: string): this {
         const ctrl = this.getLastControl();
         if (ctrl) {
@@ -9126,6 +10273,7 @@ export class SimpleWindow {
         return this;
     }
 
+    /** Configures whether the most recently added control expands horizontally to fill its row. */
     public expandFill(expand: boolean = true): this {
         const ctrl = this.getLastControl();
         if (ctrl) {
@@ -9134,10 +10282,12 @@ export class SimpleWindow {
         }
         return this;
     }
+    /** Snake_case alias of `expandFill`: configures whether the most recently added control expands horizontally to fill its row. */
     public expand_fill(expand: boolean = true): this {
         return this.expandFill(expand);
     }
 
+    /** Binds a click callback to the most recently added control. */
     public onclick(cb: EventCallback): this {
         if (this.lastControlId) {
             this.eventHandlersMap.set(`${this.lastControlId}:click`, cb);
@@ -9146,6 +10296,7 @@ export class SimpleWindow {
         return this;
     }
 
+    /** Binds a value-change callback to the most recently added control. */
     public onchange(cb: EventCallback): this {
         if (this.lastControlId) {
             this.eventHandlersMap.set(`${this.lastControlId}:change`, cb);
@@ -9154,6 +10305,7 @@ export class SimpleWindow {
         return this;
     }
 
+    /** Binds an Enter-key callback to the most recently added control. */
     public onenter(cb: EventCallback): this {
         if (this.lastControlId) {
             this.eventHandlersMap.set(`${this.lastControlId}:enter`, cb);
@@ -9162,29 +10314,36 @@ export class SimpleWindow {
         return this;
     }
 
+    /** Alias of `on_change`: registers a value-change event callback for the control identified by `controlId`. */
     public onSelectItem(name: string, cb: EventCallback): this {
         return this.on_change(name, cb);
     }
+    /** Snake_case alias of `onSelectItem`: registers a value-change event callback for the control identified by `controlId`. */
     public on_select_item(name: string, cb: EventCallback): this {
         return this.onSelectItem(name, cb);
     }
 
+    /** Sets the horizontal alignment (`"left"`, `"center"`, `"right"`) of the control named `name`. */
     public setControlAlignment(name: string, alignment: string): this {
         const ctrl = this.controls.find(c => c && (c.id === name || c.name === name));
         if (ctrl) ctrl.alignment = alignment;
         return this;
     }
+    /** Snake_case alias of `setControlAlignment`: sets the horizontal alignment (`"left"`, `"center"`, `"right"`) of the control named `name`. */
     public set_control_alignment(name: string, alignment: string): this {
         return this.setControlAlignment(name, alignment);
     }
+    /** Returns the horizontal alignment of the control named `name` (defaulting to `"left"`). */
     public getControlAlignment(name: string): string {
         const ctrl = this.controls.find(c => c && (c.id === name || c.name === name));
         return ctrl ? (ctrl.alignment || "left") : "left";
     }
+    /** Snake_case alias of `getControlAlignment`: returns the horizontal alignment of the control named `name` (defaulting to `"left"`). */
     public get_control_alignment(name: string): string {
         return this.getControlAlignment(name);
     }
 
+    /** Configures whether the control named `name` stretches horizontally to fill available row space. */
     public setControlExpandFill(name: string, expand: boolean): this {
         const ctrl = this.controls.find(c => c && (c.id === name || c.name === name));
         if (ctrl) {
@@ -9193,40 +10352,50 @@ export class SimpleWindow {
         }
         return this;
     }
+    /** Snake_case alias of `setControlExpandFill`: configures whether the control named `name` stretches horizontally to fill available row space. */
     public set_control_expand_fill(name: string, expand: boolean): this {
         return this.setControlExpandFill(name, expand);
     }
+    /** Returns `true` if the control named `name` is configured to expand and fill available row space. */
     public getControlExpandFill(name: string): boolean {
         const ctrl = this.controls.find(c => c && (c.id === name || c.name === name));
         return !!(ctrl && (ctrl.expandFill || ctrl.expand_fill));
     }
+    /** Snake_case alias of `getControlExpandFill`: returns `true` if the control named `name` is configured to expand and fill available row space. */
     public get_control_expand_fill(name: string): boolean {
         return this.getControlExpandFill(name);
     }
 
+    /** Marks the button control named `name` as the form's default primary button. */
     public setDefaultButton(name: string): this {
         const ctrl = this.controls.find(c => c && (c.id === name || c.name === name));
         if (ctrl) ctrl.is_default = true;
         return this;
     }
+    /** Snake_case alias of `setDefaultButton`: marks the button control named `name` as the form's default primary button. */
     public set_default_button(name: string): this {
         return this.setDefaultButton(name);
     }
 
     // --- Containers & Layout Helpers ---
+    /** Alias of `beginFlex`: begins a flex layout container along the specified `direction` (`"row"` or `"column"`). */
     public beginFlexBox(name = "", direction: "row" | "column" = "row", justify = "start", align = "center"): this {
         return this.beginFlex(direction, justify, align);
     }
+    /** Snake_case alias of `beginFlexBox`: begins a flex layout container along the specified `direction` (`"row"` or `"column"`). */
     public begin_flex_box(name = "", direction: "row" | "column" = "row", justify = "start", align = "center"): this {
         return this.beginFlexBox(name, direction, justify, align);
     }
+    /** Alias of `endFlex`: closes the active flex layout container. */
     public endFlexBox(): this {
         return this.endFlex();
     }
+    /** Snake_case alias of `endFlex`: closes the active flex layout container. */
     public end_flex_box(): this {
         return this.endFlex();
     }
 
+    /** Executes `callback(this)` inside a `beginRow()` / `endRow()` horizontal layout block. */
     public row(nameOrCallback: string | ((win: SimpleWindow) => void), maybeCallback?: (win: SimpleWindow) => void): this {
         const cb = typeof nameOrCallback === "function" ? nameOrCallback : maybeCallback;
         this.beginRow();
@@ -9235,6 +10404,7 @@ export class SimpleWindow {
         return this;
     }
 
+    /** Executes `callback(this)` inside a `beginCard()` / `endCard()` elevated card container block. */
     public card(nameOrCallback: string | ((win: SimpleWindow) => void), maybeCallback?: (win: SimpleWindow) => void): this {
         const cb = typeof nameOrCallback === "function" ? nameOrCallback : maybeCallback;
         this.beginCard();
@@ -9243,6 +10413,7 @@ export class SimpleWindow {
         return this;
     }
 
+    /** Executes a builder callback inside a titled `beginCard(title)` / `endCard()` container block. */
     public cardWithTitle(nameOrTitle: string, titleOrCallback?: string | ((win: SimpleWindow) => void), maybeCallback?: (win: SimpleWindow) => void): this {
         let title = typeof nameOrTitle === "string" ? nameOrTitle : "";
         let cb: ((win: SimpleWindow) => void) | undefined;
@@ -9260,18 +10431,25 @@ export class SimpleWindow {
         this.endCard();
         return this;
     }
+    /** Snake_case alias of `cardWithTitle`: executes a builder callback inside a titled `beginCard(title)` / `endCard()` container block. */
     public card_with_title(nameOrTitle: string, titleOrCallback?: string | ((win: SimpleWindow) => void), maybeCallback?: (win: SimpleWindow) => void): this {
         return this.cardWithTitle(nameOrTitle, titleOrCallback, maybeCallback);
     }
 
+    /** Alias of `cardWithTitle`: executes a builder callback inside a titled `beginCard(title)` / `endCard()` container block. */
     public group(name: string, title: string, callback: (win: SimpleWindow) => void): this {
         return this.cardWithTitle(name, title, callback);
     }
 
+    /** Alias of `beginRow`: begins a horizontal row layout container where subsequent controls are placed side-by-side from left to right. */
     public rowStart(): this { return this.beginRow(); }
+    /** Snake_case alias of `beginRow`: begins a horizontal row layout container where subsequent controls are placed side-by-side from left to right. */
     public row_start(): this { return this.beginRow(); }
+    /** Alias of `endRow`: closes the current horizontal row layout container and advances vertical cursor flow to the next line. */
     public rowEnd(): this { return this.endRow(); }
+    /** Snake_case alias of `endRow`: closes the current horizontal row layout container and advances vertical cursor flow to the next line. */
     public row_end(): this { return this.endRow(); }
+    /** Begins a card container block and optionally prepends a bold header label. */
     public boxStart(title = ""): this {
         this.beginCard();
         if (title) {
@@ -9279,30 +10457,39 @@ export class SimpleWindow {
         }
         return this;
     }
+    /** Snake_case alias of `boxStart`: begins a card container block and optionally prepends a bold header label. */
     public box_start(title = ""): this { return this.boxStart(title); }
+    /** Alias of `endCard`: closes the current card container section, finalizing its bounding height and advancing the vertical layout cursor. */
     public boxEnd(): this { return this.endCard(); }
+    /** Snake_case alias of `endCard`: closes the current card container section, finalizing its bounding height and advancing the vertical layout cursor. */
     public box_end(): this { return this.endCard(); }
 
     // --- Control Addition Parity Methods ---
+    /** Adds a text label control with explicit ID `name` and display `text`. */
     public add_label(name: string, text: string): SimpleControlRef {
         return this.addLabel(text).id(name);
     }
 
+    /** Adds a checkbox control with explicit ID `name`, `label`, and initial `checked` state. */
     public add_checkbox(name: string, label: string, checked = false): SimpleControlRef {
         return this.addCheckbox(label, checked).id(name);
     }
 
+    /** Adds a boolean toggle switch control with explicit ID `name`, `label`, and initial `checked` state. */
     public add_switch(name: string, label: string, checked = false): SimpleControlRef {
         return this.addSwitch(label, checked).id(name);
     }
 
+    /** Adds a boolean toggle switch control with explicit ID `name`, `label`, and initial `checked` state. */
     public addToggle(name: string, label: string, checked = false): SimpleControlRef {
         return this.addSwitch(label, checked).id(name);
     }
+    /** Snake_case alias of `addToggle`: adds a boolean toggle switch control with explicit ID `name`, `label`, and initial `checked` state. */
     public add_toggle(name: string, label: string, checked = false): SimpleControlRef {
         return this.addToggle(name, label, checked);
     }
 
+    /** Adds a horizontal numeric slider control, accepting either `(name, min, max, val)` or `(min, max, val)`. */
     public add_slider(nameOrMin: string | number = 0, minOrMax: number = 100, maxOrVal: number = 50, val?: number): SimpleControlRef {
         if (typeof nameOrMin === "string") {
             const min = minOrMax;
@@ -9313,137 +10500,173 @@ export class SimpleWindow {
         return this.addSlider(nameOrMin, minOrMax, maxOrVal);
     }
 
+    /** Adds a numeric stepper control with explicit ID `name`, `[min, max]` range, and initial `value`. */
     public add_stepper(name: string, min = 0, max = 100, value = 0): SimpleControlRef {
         return this.addStepper(min, max, value).id(name);
     }
 
+    /** Adds a compact numeric input field with `id = name`, bounded by `[min, max]` and initialized to `value`. */
     public addNumberInput(name: string, min = 0, max = 100, value = 0): SimpleControlRef {
         return this.addVisualControl("input", 120, 32, { id: name, min, max, value: String(value), text: String(value) });
     }
+    /** Snake_case alias of `addNumberInput`: adds a compact numeric input field with `id = name`, bounded by `[min, max]` and initialized to `value`. */
     public add_number_input(name: string, min = 0, max = 100, value = 0): SimpleControlRef {
         return this.addNumberInput(name, min, max, value);
     }
 
+    /** Adds a progress bar control with explicit ID `name` and initial `value` (`0..100`). */
     public add_progress_bar(name: string, value = 0): SimpleControlRef {
         return this.addProgressIndicator(name, value, 100);
     }
+    /** Adds a progress bar indicator with explicit ID `name`, `value`, and `max`. */
     public addProgress(name: string, value = 0, max = 100): SimpleControlRef {
         return this.addProgressIndicator(name, value, max);
     }
+    /** Snake_case alias of `addProgress`: adds a progress bar indicator with explicit ID `name`, `value`, and `max`. */
     public add_progress(name: string, value = 0, max = 100): SimpleControlRef {
         return this.addProgress(name, value, max);
     }
 
+    /** Snake_case alias of `addCircularProgress`: adds a circular ring progress indicator (`0..100`) with the given `id`. */
     public add_circular_progress(name: string, value = 50): SimpleControlRef {
         return this.addCircularProgress(name, value);
     }
 
+    /** Adds a KPI metric summary card with `id = name`, `title`, primary `value`, and `subtitle`. */
     public addKpiCard(name: string, title: string, value: string, subtitle = ""): SimpleControlRef {
         return this.addVisualControl("kpi_card", 220, 90, { id: name, text: title, caption: title, value, secondary_text: subtitle, change: subtitle });
     }
+    /** Snake_case alias of `addKpiCard`: adds a KPI metric summary card with `id = name`, `title`, primary `value`, and `subtitle`. */
     public add_kpi_card(name: string, title: string, value: string, subtitle = ""): SimpleControlRef {
         return this.addKpiCard(name, title, value, subtitle);
     }
 
+    /** Adds a named semantic badge control (`id = name`) with `text` and semantic or hex `color`. */
     public add_badge(name: string, text: string, color = "#0a84ff"): SimpleControlRef {
         const validTypes = ["info", "success", "warning", "error"] as const;
         const type = (validTypes as readonly string[]).includes(color) ? (color as "info" | "success" | "warning" | "error") : "info";
         return this.addBadge(text, type, { id: name, color, background_color: color });
     }
 
+    /** Adds a horizontal divider control with an optional explicit `name`. */
     public add_divider(name = ""): SimpleControlRef {
         return this.addVisualControl("divider", 400, 2, { id: name || undefined });
     }
+    /** Alias of `add_divider`: adds a horizontal divider control with an optional explicit `name`. */
     public addDividerLine(): SimpleControlRef {
         return this.add_divider();
     }
+    /** Snake_case alias of `addDividerLine`: adds a horizontal divider control with an optional explicit `name`. */
     public add_divider_line(): SimpleControlRef {
         return this.addDividerLine();
     }
 
+    /** Adds a vertical spacer control of `height` pixels with an optional explicit `name`. */
     public addSpacer(nameOrHeight: string | number = 16, height = 16): SimpleControlRef {
         let h = typeof nameOrHeight === "number" ? nameOrHeight : height;
         let id = typeof nameOrHeight === "string" ? nameOrHeight : "";
         return this.addVisualControl("raw_html", 100, h, { id: id || undefined, text: `<div style="height:${h}px;"></div>` });
     }
+    /** Snake_case alias of `addSpacer`: adds a vertical spacer control of `height` pixels with an optional explicit `name`. */
     public add_spacer(nameOrHeight: string | number = 16, height = 16): SimpleControlRef {
         return this.addSpacer(nameOrHeight, height);
     }
+    /** Alias of `addSpacer`: adds a vertical spacer control of `height` pixels with an optional explicit `name`. */
     public addSpace(height = 16): SimpleControlRef {
         return this.addSpacer("", height);
     }
+    /** Snake_case alias of `addSpace`: adds a vertical spacer control of `height` pixels with an optional explicit `name`. */
     public add_space(height = 16): SimpleControlRef {
         return this.addSpace(height);
     }
 
+    /** Adds a date picker control with explicit ID `name` and initial `date`. */
     public add_date_picker(name: string, date = ""): SimpleControlRef {
         return this.addDatePicker(date).id(name);
     }
 
+    /** Adds a color well picker control with explicit ID `name` and `defaultColor`. */
     public addColorPicker(name: string, defaultColor = "#0a84ff"): SimpleControlRef {
         return this.addColorWell(defaultColor, undefined, { id: name });
     }
+    /** Snake_case alias of `addColorPicker`: adds a color well picker control with explicit ID `name` and `defaultColor`. */
     public add_color_picker(name: string, defaultColor = "#0a84ff"): SimpleControlRef {
         return this.addColorPicker(name, defaultColor);
     }
 
+    /** Adds an image control with explicit ID `name`, image `src`, `width`, and `height`. */
     public add_image(name: string, src: string, width = 200, height = 150): SimpleControlRef {
         return this.addImage(src, width, height, { id: name });
     }
 
+    /** Adds a Markdown display block with `id = name` and Markdown content `mdText`. */
     public addMarkdown(name: string, mdText: string): SimpleControlRef {
         return this.addVisualControl("markdown", 400, 100, { id: name, text: mdText, caption: mdText });
     }
+    /** Snake_case alias of `addMarkdown`: adds a Markdown display block with `id = name` and Markdown content `mdText`. */
     public add_markdown(name: string, mdText: string): SimpleControlRef {
         return this.addMarkdown(name, mdText);
     }
 
+    /** Adds a read-only syntax-highlighted code viewer with explicit ID `name`, `code`, and `language`. */
     public add_code_view(name: string, code: string, language = "typescript"): SimpleControlRef {
         return this.addCodeView(code, language, { id: name });
     }
 
+    /** Snake_case alias of `addAlertBanner`: adds a semantic alert banner (`id`) displaying `title: message` in the given severity `style`. */
     public add_alert_banner(name: string, title: string, message: string, level: "info" | "success" | "warning" | "error" = "info"): SimpleControlRef {
         return this.addAlertBanner(name, title, message, level);
     }
 
     // --- Direct Chaining Helpers ---
+    /** Ergonomic shorthand that adds a text label control displaying `text`. */
     public label(text: string): SimpleControlRef {
         return this.addLabel(text);
     }
 
+    /** Adds a bold `22px` heading control displaying `title`. */
     public heading(title: string): SimpleControlRef {
         return this.addVisualControl("heading", 400, 36, { text: title, caption: title, font_size: 22, is_bold: true });
     }
 
+    /** Adds a bold `16px` subheading control displaying `title`. */
     public subheading(title: string): SimpleControlRef {
         return this.addVisualControl("subheading", 400, 28, { text: title, caption: title, font_size: 16, is_bold: true });
     }
 
+    /** Ergonomic shorthand that adds a horizontal divider line. */
     public divider(): SimpleControlRef {
         return this.add_divider();
     }
 
+    /** Ergonomic shorthand that adds a window status bar initialized to `text`. */
     public statusBar(text: string): SimpleControlRef {
         return this.addStatusBar(text);
     }
+    /** Snake_case alias of `statusBar`: ergonomic shorthand that adds a window status bar initialized to `text`. */
     public status_bar(text: string): SimpleControlRef {
         return this.statusBar(text);
     }
 
+    /** Ergonomic shorthand that adds a KPI metric card with `title`, `value`, and `change` subtitle. */
     public kpiCard(title: string, value: string, change = ""): SimpleControlRef {
         return this.addKpiCard("", title, value, change);
     }
+    /** Snake_case alias of `kpiCard`: ergonomic shorthand that adds a KPI metric card with `title`, `value`, and `change` subtitle. */
     public kpi_card(title: string, value: string, change = ""): SimpleControlRef {
         return this.kpiCard(title, value, change);
     }
 
+    /** Ergonomic shorthand that adds a progress bar initialized to `val` out of `max`. */
     public progress(val: number, max = 100): SimpleControlRef {
         return this.addProgress("", val, max);
     }
 
+    /** Adds a raw HTML block control rendering custom `html` markup. */
     public rawHtml(html: string): SimpleControlRef {
         return this.addVisualControl("raw_html", 400, 40, { text: html });
     }
+    /** Snake_case alias of `rawHtml`: adds a raw HTML block control rendering custom `html` markup. */
     public raw_html(html: string): SimpleControlRef {
         return this.rawHtml(html);
     }
@@ -9483,7 +10706,9 @@ export class SimpleWindow {
     public result(status: string, title: string, subtitle = "", opts: UIOpts = {}) { return this.ui("result", { status, title, subtitle, ...opts }); }
     /** Full-screen dim + spinner. Show with `showBackdrop(id)`. */
     public backdrop(opts: UIOpts = {}) { return this.ui("backdrop", opts); }
+    /** Shows the full-screen backdrop component identified by `id` via `uiCall(id, "show")`. */
     public showBackdrop(id: string) { return this.uiCall(id, "show"); }
+    /** Hides the full-screen backdrop component identified by `id` via `uiCall(id, "hide")`. */
     public hideBackdrop(id: string) { return this.uiCall(id, "hide"); }
 
     // --- Navigation ---
@@ -9501,8 +10726,11 @@ export class SimpleWindow {
     public scrollProgress(opts: UIOpts = {}) { return this.ui("scrollProgress", opts); }
     /** Slide-in panel. `drawer("Menu", { anchor: "left"|"right"|"top"|"bottom", items: [...], html, trigger: "Open" })`. Control with openDrawer/closeDrawer/toggleDrawer. */
     public drawer(title: string, opts: UIOpts = {}) { return this.ui("drawer", { title, ...opts }); }
+    /** Opens the slide-in drawer component identified by `id` via `uiCall(id, "open")`. */
     public openDrawer(id: string) { return this.uiCall(id, "open"); }
+    /** Closes the slide-in drawer component identified by `id` via `uiCall(id, "close")`. */
     public closeDrawer(id: string) { return this.uiCall(id, "close"); }
+    /** Toggles the open/closed state of the slide-in drawer component identified by `id` via `uiCall(id, "toggle")`. */
     public toggleDrawer(id: string) { return this.uiCall(id, "toggle"); }
     /** Anchored popup. `popover("Info", { title, text | html, trigger: "click"|"hover", placement })`. Use `{ name, avatar, text }` for a hover profile card. */
     public popover(label: string, opts: UIOpts = {}) { return this.ui("popover", { label, ...opts }); }
@@ -9512,7 +10740,9 @@ export class SimpleWindow {
     public popconfirm(label: string, title = "Are you sure?", opts: UIOpts = {}) { return this.ui("popconfirm", { label, title, ...opts }); }
     /** Guided onboarding tour. `tour([{target:"btn_save", title:"Save", text:"Click here"}], { trigger: "Start tour" })`. Start with `startTour(id)`. */
     public tour(steps: Array<{ target?: string; title?: string; text?: string; placement?: string }>, opts: UIOpts = {}) { return this.ui("tour", { steps, ...opts }); }
+    /** Starts the guided onboarding tour component identified by `id` at `step` (default `0`). */
     public startTour(id: string, step = 0) { return this.uiCall(id, "start", step); }
+    /** Stops and closes the guided onboarding tour component identified by `id`. */
     public stopTour(id: string) { return this.uiCall(id, "stop"); }
     /** Anchor links that smooth-scroll to controls/elements. `anchorLinks([{label:"Intro", target:"intro"}])` */
     public anchorLinks(links: any[], opts: UIOpts = {}) { return this.ui("anchor", { links, ...opts }); }
@@ -9534,6 +10764,7 @@ export class SimpleWindow {
     public copyButton(label = "Copy", text = "", opts: UIOpts = {}) { return this.ui("copyButton", { label, text, ...opts }); }
     /** Button with a built-in spinner. `loadingButton("Save", { autoLoadingMs: 1500 })`; control with `setLoading(id, bool)`. */
     public loadingButton(label: string, opts: UIOpts = {}) { return this.ui("loadingButton", { label, ...opts }); }
+    /** Sets the loading spinner state (`true` or `false`) on the loading button component identified by `id`. */
     public setLoading(id: string, loading = true) { return this.uiCall(id, "setLoading", loading); }
 
     // --- Data display ---
@@ -9561,32 +10792,39 @@ export class SimpleWindow {
     public virtualList(items: any[], opts: UIOpts = {}) { return this.ui("virtualList", { items, ...opts }); }
 
 
+    /** Adds a single-line text input with explicit ID `name`, `placeholder`, `defaultVal`, and optional `onChange` handler. */
     public input_named(name: string, placeholder = "", defaultVal = "", onChange?: EventCallback): SimpleControlRef {
         const ref = this.addTextInput(placeholder, defaultVal).id(name);
         if (onChange) ref.onChange(onChange);
         return ref;
     }
+    /** Alias of `input_named`: adds a single-line text input with explicit ID `name`, `placeholder`, `defaultVal`, and optional `onChange` handler. */
     public inputNamed(name: string, placeholder = "", defaultVal = "", onChange?: EventCallback): SimpleControlRef {
         return this.input_named(name, placeholder, defaultVal, onChange);
     }
 
+    /** Adds a multi-line textarea with explicit ID `name`, `placeholder`, `defaultVal`, and optional `onChange` handler. */
     public textarea_named(name: string, placeholder = "", defaultVal = "", onChange?: EventCallback): SimpleControlRef {
         const ref = this.addTextArea(placeholder, defaultVal).id(name);
         if (onChange) ref.onChange(onChange);
         return ref;
     }
+    /** Alias of `textarea_named`: adds a multi-line textarea with explicit ID `name`, `placeholder`, `defaultVal`, and optional `onChange` handler. */
     public textareaNamed(name: string, placeholder = "", defaultVal = "", onChange?: EventCallback): SimpleControlRef {
         return this.textarea_named(name, placeholder, defaultVal, onChange);
     }
 
+    /** Adds a data table control with explicit ID `name`, column `headers`, `rows`, and optional `onSelect` callback. */
     public table_named(name: string, headers: string[], rows: any[][], onSelect?: EventCallback): SimpleControlRef {
         return this.addTable(name, headers, rows, onSelect);
     }
+    /** Alias of `table_named`: adds a data table control with explicit ID `name`, column `headers`, `rows`, and optional `onSelect` callback. */
     public tableNamed(name: string, headers: string[], rows: any[][], onSelect?: EventCallback): SimpleControlRef {
         return this.table_named(name, headers, rows, onSelect);
     }
 
     // --- Table Operations ---
+    /** Replaces the 2D `rows` data array of the table control named `name` and re-renders its live DOM `<tbody>`. */
     public setTableRows(name: string, rows: any[][]): this {
         const ctrl = this.controls.find(c => c && (c.id === name || c.name === name || (!name && (c.type === "table" || c.type === "data_table"))));
         if (ctrl) {
@@ -9596,10 +10834,12 @@ export class SimpleWindow {
         }
         return this;
     }
+    /** Snake_case alias of `setTableRows`: replaces the 2D `rows` data array of the table control named `name` and re-renders its live DOM `<tbody>`. */
     public set_table_rows(name: string, rows: any[][]): this {
         return this.setTableRows(name, rows);
     }
 
+    /** Appends a single `row` array to the table control named `name` and updates its live DOM. */
     public addTableRow(name: string, row: any[]): this {
         const ctrl = this.controls.find(c => c && (c.id === name || c.name === name));
         if (ctrl) {
@@ -9611,10 +10851,12 @@ export class SimpleWindow {
         }
         return this;
     }
+    /** Snake_case alias of `addTableRow`: appends a single `row` array to the table control named `name` and updates its live DOM. */
     public add_table_row(name: string, row: any[]): this {
         return this.addTableRow(name, row);
     }
 
+    /** Removes the row at zero-based `rowIndex` from the table control named `name` and updates its live DOM. */
     public removeTableRow(name: string, rowIndex: number): this {
         const ctrl = this.controls.find(c => c && (c.id === name || c.name === name));
         if (ctrl) {
@@ -9631,10 +10873,12 @@ export class SimpleWindow {
         }
         return this;
     }
+    /** Snake_case alias of `removeTableRow`: removes the row at zero-based `rowIndex` from the table control named `name` and updates its live DOM. */
     public remove_table_row(name: string, rowIndex: number): this {
         return this.removeTableRow(name, rowIndex);
     }
 
+    /** Returns the current number of rows in the table control named `name`. */
     public tableRowCount(name: string): number {
         const ctrl = this.controls.find(c => c && (c.id === name || c.name === name));
         if (ctrl) {
@@ -9643,93 +10887,116 @@ export class SimpleWindow {
         }
         return 0;
     }
+    /** Snake_case alias of `tableRowCount`: returns the current number of rows in the table control named `name`. */
     public table_row_count(name: string): number {
         return this.tableRowCount(name);
     }
 
+    /** Highlights and selects the row at zero-based `rowIndex` in the table control named `name`. */
     public selectTableRow(name: string, rowIndex: number): this {
         if (this.webview) {
             this.webview.eval(`const t=document.getElementById("${name}");if(t){t.querySelectorAll("tbody tr").forEach((r,i)=>r.classList.toggle("sg-table-selected", i===${rowIndex}));}`);
         }
         return this;
     }
+    /** Snake_case alias of `selectTableRow`: highlights and selects the row at zero-based `rowIndex` in the table control named `name`. */
     public select_table_row(name: string, rowIndex: number): this {
         return this.selectTableRow(name, rowIndex);
     }
 
     // --- Value Accessors ---
+    /** Returns the integer value of the control named `name` (or `0` if not a valid integer). */
     public getValueInt(name: string): number {
         const val = this.getValue(name);
         return parseInt(String(val ?? 0), 10) || 0;
     }
+    /** Snake_case alias of `getValueInt`: returns the integer value of the control named `name` (or `0` if not a valid integer). */
     public get_value_int(name: string): number {
         return this.getValueInt(name);
     }
 
+    /** Returns `true` if the checkbox, switch, or toggle control named `name` is currently checked. */
     public getChecked(name: string): boolean {
         const val = this.getValue(name);
         return val === true || val === "true" || val === 1 || val === "1";
     }
+    /** Snake_case alias of `getChecked`: returns `true` if the checkbox, switch, or toggle control named `name` is currently checked. */
     public get_checked(name: string): boolean {
         return this.getChecked(name);
     }
 
+    /** Sets the boolean checked state of the checkbox, switch, or toggle control named `name`. */
     public setChecked(name: string, val: boolean): this {
         return this.setValue(name, val);
     }
+    /** Snake_case alias of `setChecked`: sets the boolean checked state of the checkbox, switch, or toggle control named `name`. */
     public set_checked(name: string, val: boolean): this {
         return this.setChecked(name, val);
     }
 
+    /** Returns the string value of the control named `name` (shorthand for `String(getValue(name) ?? "")`). */
     public get(name: string): string {
         return String(this.getValue(name) ?? "");
     }
+    /** Sets the string value of the control named `name` (shorthand for `setValue(name, val)`). */
     public set(name: string, val: string): this {
         return this.setValue(name, val);
     }
 
     // --- Theming Operations ---
+    /** Returns the active theme identifier of the window. */
     public getTheme(): string {
         return this.theme;
     }
+    /** Snake_case alias of `getTheme`: returns the active theme identifier of the window. */
     public get_theme(): string {
         return this.theme;
     }
 
+    /** Alias of `setTheme`: applies a registered SimpleGUI theme by name or key, updating window/control palettes in place (including live DOM CSS variables when running) and optionally persisting the selection. */
     public applyTheme(themeName: string): this {
         return this.setTheme(themeName);
     }
+    /** Alias of `applyTheme`: applies a registered SimpleGUI theme by name or key, updating window/control palettes in place (including live DOM CSS variables when running) and optionally persisting the selection. */
     public applyThemeByName(themeName: string): this {
         return this.applyTheme(themeName);
     }
+    /** Snake_case alias of `applyThemeByName`: applies a registered SimpleGUI theme by name or key, updating window/control palettes in place (including live DOM CSS variables when running) and optionally persisting the selection. */
     public apply_theme_by_name(themeName: string): this {
         return this.applyThemeByName(themeName);
     }
 
+    /** Returns `true` if the window's currently active theme is a dark-mode palette. */
     public isDarkTheme(): boolean {
         const t = getTheme(this.theme);
         return t ? t.is_dark : true;
     }
+    /** Snake_case alias of `isDarkTheme`: returns `true` if the window's currently active theme is a dark-mode palette. */
     public is_dark_theme(): boolean {
         return this.isDarkTheme();
     }
 
+    /** Switches the window to the default dark theme (`"monokai_pro"`) when `dark` is `true`, or light theme (`"apple_light"`) when `false`. */
     public setDarkTheme(dark: boolean): this {
         return this.setTheme(dark ? "monokai_pro" : "apple_light");
     }
+    /** Snake_case alias of `setDarkTheme`: switches the window to the default dark theme (`"monokai_pro"`) when `dark` is `true`, or light theme (`"apple_light"`) when `false`. */
     public set_dark_theme(dark: boolean): this {
         return this.setDarkTheme(dark);
     }
 
+    /** Toggles the window between dark mode and light mode. */
     public toggleWindowTheme(): this {
         return this.setDarkTheme(!this.isDarkTheme());
     }
+    /** Snake_case alias of `toggleWindowTheme`: toggles the window between dark mode and light mode. */
     public toggle_window_theme(): this {
         return this.toggleWindowTheme();
     }
 }
 
 // Production Theme Specification Lookup Table
+/** Complete color, typography, semantic status, and visual effects (FX) specification for a registered SimpleGUI theme. */
 export interface SimpleGUITheme {
     name: string;
     short_name?: string;
@@ -9749,6 +11016,7 @@ export interface SimpleGUITheme {
 
 export type { ThemeFx, FxMode, SyntaxPalette };
 
+/** Produces a compact, UI-friendly display name for a theme key or full theme title (for example, `"JetBrains Darcula"` -> `"Darcula"`). */
 export function autoShortThemeName(themeNameOrKey: string): string {
     if (!themeNameOrKey || typeof themeNameOrKey !== "string") return "";
     const trimmed = themeNameOrKey.trim();
@@ -9797,15 +11065,21 @@ export function autoShortThemeName(themeNameOrKey: string): string {
     }
     return shortName;
 }
+/** Snake_case alias of `autoShortThemeName`: returns a compact display name for a theme key or title. */
 export const auto_short_theme_name = autoShortThemeName;
+/** Alias of `autoShortThemeName`: returns a concise display label for a theme key or title. */
 export const getShortThemeName = autoShortThemeName;
+/** Snake_case alias of `getShortThemeName`: returns a concise display label for a theme key or title. */
 export const get_short_theme_name = autoShortThemeName;
 
+/** Returns a sorted list of all unique human-readable theme display names registered in `SIMPLEGUI_THEMES`. */
 export function listThemes(): string[] {
     return Array.from(new Set(Object.values(SIMPLEGUI_THEMES).map(t => t.name))).sort((a, b) => a.localeCompare(b));
 }
+/** Snake_case alias of `listThemes`: returns a sorted list of all unique theme display names. */
 export const list_themes = listThemes;
 
+/** Returns a sorted list of unique short display names for all registered themes. */
 export function listShortThemes(): string[] {
     const seen = new Set<string>();
     const res: string[] = [];
@@ -9818,15 +11092,19 @@ export function listShortThemes(): string[] {
     }
     return res.sort((a, b) => a.localeCompare(b));
 }
+/** Snake_case alias of `listShortThemes`: returns a sorted list of unique short theme display names. */
 export const list_short_themes = listShortThemes;
 
+/** Returns all canonical snake_case theme keys in `SIMPLEGUI_THEMES` sorted alphabetically. */
 export function getThemeKeys(): string[] {
     return Object.keys(SIMPLEGUI_THEMES).sort((a, b) => a.localeCompare(b));
 }
+/** Snake_case alias of `getThemeKeys`: returns all canonical theme keys sorted alphabetically. */
 export function get_theme_keys(): string[] {
     return getThemeKeys();
 }
 
+/** Sorted catalog of all canonical Vlang SimpleGUI, OS heritage, and FX theme identifiers. */
 export const VLANG_THEME_NAMES: string[] = [
     'abyss',
     'adwaita_dark',
@@ -9906,16 +11184,21 @@ export const VLANG_THEME_NAMES: string[] = [
     'win95'
 ].concat(OS_THEME_KEYS, FX_THEME_KEYS).sort((a, b) => a.localeCompare(b));
 
+/** Returns a sorted array of all supported theme identifiers (canonical, OS heritage, and FX themes). */
 export function getThemeNames(): string[] {
     return [...VLANG_THEME_NAMES].sort((a, b) => a.localeCompare(b));
 }
+/** Snake_case alias of `getThemeNames`: returns a sorted array of all supported theme identifiers. */
 export const get_theme_names = getThemeNames;
 
+/** Alias of `getThemeNames`: returns a sorted array of all registered theme identifiers. */
 export function getThemes(): string[] {
     return getThemeNames();
 }
+/** Snake_case alias of `getThemes`: returns a sorted array of all registered theme identifiers. */
 export const get_themes = getThemes;
 
+/** Resolves a theme key, display name, short name, or common alias to its `SimpleGUITheme` specification, falling back to `"monokai_pro"`. */
 export function getTheme(themeName: string): SimpleGUITheme {
     if (!themeName) return SIMPLEGUI_THEMES["monokai_pro"] || SIMPLEGUI_THEMES["apple_light"]!;
     const key = themeName.toLowerCase().trim().replace(/[\s\-_]+/g, "_");
@@ -10039,29 +11322,35 @@ export function getSemanticColors(themeName: string): SemanticPalette {
         overrides: overridesForTheme(t),
     });
 }
+/** Snake_case alias of `getSemanticColors`: returns contrast-checked danger, warning, success, and info palettes for a theme. */
 export const get_semantic_colors = getSemanticColors;
 
 /** The effects descriptor of a theme (glow, glass, motion), or undefined for the themes that have none. */
 export function getThemeFx(themeName: string): ThemeFx | undefined {
     return getTheme(themeName).fx;
 }
+/** Snake_case alias of `getThemeFx`: returns the `ThemeFx` descriptor of a theme, or `undefined` if it has none. */
 export const get_theme_fx = getThemeFx;
 
+/** Returns `true` when the specified theme defines an `fx` visual effects descriptor (glassmorphism, glow, or ambient motion). */
 export function isFxTheme(themeName: string): boolean {
     return !!getTheme(themeName).fx;
 }
+/** Snake_case alias of `isFxTheme`: returns `true` when a theme includes an `fx` visual effects descriptor. */
 export const is_fx_theme = isFxTheme;
 
 /** Code colors (keyword, string, number, comment, function, type) for any theme, each readable on its canvas. */
 export function getSyntaxPalette(themeName: string): SyntaxPalette {
     return syntaxPalette(getTheme(themeName));
 }
+/** Snake_case alias of `getSyntaxPalette`: returns contrast-checked syntax highlighting colors for a theme. */
 export const get_syntax_palette = getSyntaxPalette;
 
 /** The `--fx-*` custom properties for a theme as CSS declarations; "" for a theme without `fx`. Accepts a theme object or a name. */
 export function fxCssVars(theme: SimpleGUITheme | string): string {
     return buildFxCssVars(typeof theme === "string" ? getTheme(theme) : theme);
 }
+/** Snake_case alias of `fxCssVars`: generates the `--fx-*` CSS custom property declarations for a theme. */
 export const fx_css_vars = fxCssVars;
 
 export {
@@ -10075,8 +11364,11 @@ export {
     type FxNativeBackdrop,
     type HardwareResolvedTheme,
 };
+/** Snake_case alias of `detectThemeHardware`: probes host CPU/GPU/platform capabilities to classify theme FX hardware tier. */
 export const detect_theme_hardware = detectThemeHardware;
+/** Snake_case alias of `getFallbackThemeKey`: returns the lightweight non-FX fallback theme key for a given FX theme. */
 export const get_fallback_theme_key = getFallbackThemeKey;
+/** Snake_case alias of `srgbToDisplayP3`: converts an sRGB hex color to a wide-gamut `color(display-p3 ...)` CSS value. */
 export const srgb_to_display_p3 = srgbToDisplayP3;
 
 /**
@@ -10090,40 +11382,53 @@ export function resolveThemeForHardware(
 ): HardwareResolvedTheme<SimpleGUITheme> {
     return resolveFxThemeForHardware(themeName, getTheme, hw, opts);
 }
+/** Snake_case alias of `resolveThemeForHardware`: resolves a theme and adapts or downgrades FX settings to match hardware capabilities. */
 export const resolve_theme_for_hardware = resolveThemeForHardware;
 
 // OS Path Utilities
+/** Returns the current user's home directory path (`$HOME` or `"/Users"`). */
 export function homeDir(): string { return process.env.HOME || "/Users"; }
+/** Returns the system temporary directory path (`$TMPDIR` or `"/tmp"`). */
 export function tempDir(): string { return process.env.TMPDIR || "/tmp"; }
+/** Returns the path to the current user's `Desktop` directory. */
 export function desktopDir(): string { return `${homeDir()}/Desktop`; }
+/** Returns the path to the current user's `Documents` directory. */
 export function documentsDir(): string { return `${homeDir()}/Documents`; }
+/** Returns the path to the current user's `Downloads` directory. */
 export function downloadsDir(): string { return `${homeDir()}/Downloads`; }
 
 // Global Factory & Alias Exports matching vlang_simplegui API style
+/** Factory function that creates and returns a new `SimpleWindow` with the given title, dimensions, and options. */
 export function createWindow(title = "SimpleGUI Application", width = 800, height = 600, options: SimpleWindowOptions = {}): SimpleWindow {
     return new SimpleWindow(title, width, height, options);
 }
 
+/** Alias of `createWindow` that instantiates and returns a new `SimpleWindow`. */
 export function newWindow(title = "SimpleGUI Application", width = 800, height = 600, options: SimpleWindowOptions = {}): SimpleWindow {
     return createWindow(title, width, height, options);
 }
 
+/** Alias of `createWindow` that instantiates and returns a new `SimpleWindow`. */
 export function newSimpleWindow(title = "SimpleGUI Application", width = 800, height = 600, options: SimpleWindowOptions = {}): SimpleWindow {
     return createWindow(title, width, height, options);
 }
 
+/** Snake_case factory alias of `createWindow` for Vlang SimpleGUI API parity. */
 export function new_simple_window(title = "SimpleGUI Application", width = 800, height = 600, options: SimpleWindowOptions = {}): SimpleWindow {
     return createWindow(title, width, height, options);
 }
 
+/** Opens an external URL or URI in the user's default system browser or protocol handler. */
 export function openUrl(url: string): boolean {
     return Sys.openUrl(url);
 }
 
+/** Alias of `openUrl` that launches an external URL or file in the system's default application. */
 export function openExternal(url: string): boolean {
     return Sys.openUrl(url);
 }
 
+/** Namespace facade aggregating window factories, theme utilities, XDG/OS directory helpers, state persistence functions, and core SimpleGUI classes. */
 export const simplegui = {
     createWindow,
     newWindow,

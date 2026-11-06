@@ -9,9 +9,12 @@ import type { SourceColumn } from "./reader";
 import type { ColumnRule, ImportPlan, TargetColumn, TargetTable, TypeClass } from "./types";
 import { suggestSteps } from "./mapping";
 
+/** Supported logical column kinds when creating a brand-new table from imported data. */
 export const NEW_KINDS = ["text", "integer", "decimal", "boolean", "date", "timestamp", "json", "uuid"] as const;
+/** Logical column kind for a newly created table column. */
 export type NewKind = (typeof NEW_KINDS)[number];
 
+/** Column specification for a table created directly from an imported dataset. */
 export interface NewColumnSpec {
   name: string;
   kind: NewKind;
@@ -22,6 +25,7 @@ export interface NewColumnSpec {
   scale?: number;
 }
 
+/** Specification of columns and primary key generation for a newly created target table. */
 export interface NewTableSpec {
   columns: NewColumnSpec[];
   /** Add an automatic `id` primary key column. */
@@ -61,6 +65,7 @@ export function suggestNewTable(columns: SourceColumn[]): { spec: NewTableSpec; 
   return { spec: { columns: specs, autoId: !hasId }, rules };
 }
 
+/** Validates and normalizes untrusted user input into a clean `NewTableSpec`. */
 export function sanitizeNewTable(input: unknown, existingNames?: string[]): NewTableSpec {
   const raw = input as any;
   if (!raw || !Array.isArray(raw.columns) || raw.columns.length === 0) throw new StagingError("The new table needs at least one column.", "BAD_REQUEST");
@@ -103,6 +108,7 @@ function typeSql(engine: Engine, c: NewColumnSpec): string {
 
 const CLASS: Record<NewKind, TypeClass> = { text: "text", integer: "integer", decimal: "decimal", boolean: "boolean", date: "date", timestamp: "timestamp", json: "json", uuid: "uuid" };
 
+/** Converts a `NewColumnSpec` into an engine-specific `TargetColumn` descriptor. */
 export function toTargetColumn(c: NewColumnSpec, engine: Engine, pk?: number): TargetColumn {
   const dataType = typeSql(engine, c);
   return {
@@ -143,6 +149,7 @@ export function newTableTarget(db: Pick<StageDb, "engine" | "schema">, name: str
   return { target, ddl: `CREATE TABLE ${refOf(db, name)} (${defs.join(", ")})${e === "mysql" ? " ENGINE=InnoDB DEFAULT CHARSET=utf8mb4" : ""}` };
 }
 
+/** Returns the given `ImportPlan` typed for downstream consumers. */
 export function planFor(plan: ImportPlan): ImportPlan {
   return plan;
 }

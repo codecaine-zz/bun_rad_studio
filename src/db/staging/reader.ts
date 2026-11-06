@@ -11,6 +11,7 @@ import { StagingError, limitMessage, limits } from "./limits";
 import { decodeChunks, detectEncoding, ENCODING_LABELS, isEncodingName, type ByteSource, type EncodingInfo, type EncodingName } from "./source";
 import { inferColumn, parseBoolean, parseDate, parseNumber, type InferredColumn } from "./values";
 
+/** Supported input file formats for staging imports. */
 export type SourceFormat =
   | "csv"
   | "json"
@@ -28,6 +29,7 @@ export type SourceFormat =
   | "properties"
   | "plist";
 
+/** List of all supported source formats for staging imports. */
 export const SOURCE_FORMATS: SourceFormat[] = [
   "csv",
   "json",
@@ -46,8 +48,10 @@ export const SOURCE_FORMATS: SourceFormat[] = [
   "plist",
 ];
 
+/** Type guard checking whether an unknown value is a supported `SourceFormat`. */
 export const isSourceFormat = (v: unknown): v is SourceFormat => typeof v === "string" && (SOURCE_FORMATS as string[]).includes(v);
 
+/** Reader settings controlling how an input file is parsed into records and columns. */
 export interface SourceSettings {
   format: SourceFormat;
   /** One character; "" for a file with a single column. Ignored for JSON. */
@@ -60,6 +64,7 @@ export interface SourceSettings {
   sheet?: string;
 }
 
+/** A single record yielded by `readRows` while streaming a source file. */
 export interface SourceRow {
   /** Row number as a spreadsheet shows it: the header is row 1 when there is one. */
   n: number;
@@ -72,12 +77,14 @@ export interface SourceRow {
   extra?: Record<string, string | null>;
 }
 
+/** Mutable diagnostic state collecting parser warnings and replacement character counts during a read pass. */
 export interface ReadContext {
   warnings: Set<string>;
   /** Characters that could not be decoded. */
   replaced: { replaced: number };
 }
 
+/** Creates a fresh `ReadContext` for a file analysis or streaming pass. */
 export const newReadContext = (): ReadContext => ({ warnings: new Set(), replaced: { replaced: 0 } });
 
 const esc = (c: string) => c.replace(/[\\\]^-]/g, "\\$&");
@@ -397,6 +404,7 @@ const DELIMS: [string, string][] = [
   ["|", "pipe"],
 ];
 
+/** Human-readable display names for supported CSV/TSV delimiter characters. */
 export const DELIMITER_NAMES: Record<string, string> = { ",": "comma", "\t": "tab", ";": "semicolon", "|": "pipe", "": "no separator (one column)" };
 
 async function* once(text: string): AsyncGenerator<string> {
@@ -413,6 +421,7 @@ async function sampleRecords(text: string, delimiter: string, quote: string, max
   return out;
 }
 
+/** Detects the most consistent field delimiter and quote character from a sample of delimited text. */
 export async function detectDelimited(text: string): Promise<{ delimiter: string; quote: string }> {
   const quote = /(^|[,;\t|\n])"/.test(text) ? '"' : /(^|[,;\t|\n])'[^'\n]*'([,;\t|\n]|$)/.test(text) ? "'" : '"';
   let best = { delimiter: "", score: 0 };
@@ -447,6 +456,7 @@ export function looksLikeHeader(first: string[], rest: string[][]): boolean {
   return true;
 }
 
+/** Detected column from an input file along with its inferred type metadata and sample values. */
 export interface SourceColumn {
   name: string;
   index: number;
@@ -455,6 +465,7 @@ export interface SourceColumn {
   samples: string[];
 }
 
+/** Complete inspection result of an incoming byte source including detected format, columns, and preview rows. */
 export interface Analysis {
   fileName: string;
   size: number;
@@ -666,6 +677,7 @@ const STRUCTURED_FORMATS = new Set<SourceFormat>([
   "plist",
 ]);
 
+/** Human-readable format descriptions used in analysis summaries and error messages. */
 export const FORMAT_DESCRIPTIONS: Record<SourceFormat, string> = {
   csv: "delimited text",
   json: "a JSON list",

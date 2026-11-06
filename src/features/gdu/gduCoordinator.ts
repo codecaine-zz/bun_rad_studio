@@ -1,3 +1,7 @@
+/**
+ * High-level coordinator for `gdu` workflows, managing recursive directory analysis
+ * (async and sync), mounted disk reporting, and summary/table/JSON report formatting.
+ */
 import { basename, resolve } from "node:path";
 import type { DiskUsageItem, GduOptions, MountedDisk } from "./gduTypes.ts";
 import {
@@ -14,18 +18,27 @@ import {
 import { renderTable, type ColumnDef } from "../../shared/table.ts";
 import { colors } from "../../shared/colors.ts";
 
+/**
+ * Asynchronously scans the target directory specified in `options` and returns the root `DiskUsageItem` tree.
+ */
 export async function analyzeDirectory(options: GduOptions): Promise<DiskUsageItem> {
   const fullPath = resolve(options.targetDir);
   const name = basename(fullPath) || fullPath;
   return await scanItem(fullPath, name, options.ignoreDirs ?? [], options.noHidden ?? false, 0, options.maxDepth);
 }
 
+/**
+ * Synchronously scans the target directory specified in `options` and returns the root `DiskUsageItem` tree.
+ */
 export function analyzeDirectorySync(options: GduOptions): DiskUsageItem {
   const fullPath = resolve(options.targetDir);
   const name = basename(fullPath) || fullPath;
   return scanItemSync(fullPath, name, options.ignoreDirs ?? [], options.noHidden ?? false, 0, options.maxDepth);
 }
 
+/**
+ * Formats an array of `MountedDisk` entries as a colorized terminal table.
+ */
 export function formatDisksTable(disks: MountedDisk[]): string {
   const columns: ColumnDef<MountedDisk>[] = [
     { header: "Filesystem", align: "left", getValue: (d) => colors.bold(d.filesystem) },
@@ -38,6 +51,9 @@ export function formatDisksTable(disks: MountedDisk[]): string {
   return renderTable(columns, disks);
 }
 
+/**
+ * Formats a scanned `DiskUsageItem` tree into report lines (JSON, summary line, or sorted/filtered child rows).
+ */
 export function formatReport(root: DiskUsageItem, options: GduOptions): string[] {
   if (options.json) {
     return [formatGduJson(root)];
@@ -60,6 +76,9 @@ export function formatReport(root: DiskUsageItem, options: GduOptions): string[]
   return limit.map((item) => formatGduLine(item, maxSize, options));
 }
 
+/**
+ * Runs the non-interactive `gdu` workflow (either listing mounted disks or scanning and formatting a directory report).
+ */
 export async function runGduCoordinator(options: GduOptions): Promise<string[]> {
   if (options.showDisks) {
     const disks = await fetchMountedDisks();

@@ -13,8 +13,10 @@ import type { SecretsHooks } from "./fmSecretsHooks";
 import { LIMITS, type AuditEvent, type Db } from "./fmSecretsModel";
 import { writeAtomic } from "./fmSecretsStore";
 
+/** Computes the lowercase hex-encoded SHA-256 digest of `data`. */
 export const sha256Hex = (data: Uint8Array): string => createHash("sha256").update(data).digest("hex");
 
+/** Staged password-export import awaiting user confirmation before being merged into the vault. */
 export interface PendingImport {
   token: string;
   items: Array<Record<string, any>>;
@@ -22,8 +24,10 @@ export interface PendingImport {
   warnings: string[];
 }
 
+/** Method by which the current vault session was unlocked (`"password"`, `"recovery"`, or `"device"`). */
 export type Via = "password" | "recovery" | "device";
 
+/** Active in-memory session for an unlocked Secrets vault, managing keys, database state, atomic saves, and auto-lock timers. */
 export class Session {
   db: Db | null;
   keys: VaultKeys;
@@ -39,6 +43,7 @@ export class Session {
   private saveTimer: unknown = null;
   private idleTimer: unknown = null;
 
+  /** Creates a new unlocked vault `Session` and arms the idle auto-lock timer. */
   constructor(
     private readonly path: string,
     private readonly hooks: SecretsHooks,
@@ -56,10 +61,12 @@ export class Session {
     this.armIdle();
   }
 
+  /** Whether this session has been destroyed and its keys and database wiped from memory. */
   get destroyed(): boolean {
     return this.db === null;
   }
 
+  /** Returns the unlocked vault `Db`, or throws a `LOCKED` `FmError` if the session has been destroyed. */
   database(): Db {
     if (!this.db) throw new FmError("LOCKED", "The vault is locked. Unlock it first.");
     return this.db;
@@ -99,6 +106,7 @@ export class Session {
     return ms > 0 ? Math.max(0, Math.ceil((this.lastActivity + ms - this.hooks.now()) / 1000)) : null;
   }
 
+  /** Re-arms the idle auto-lock timer after the vault's auto-lock settings have been updated. */
   settingsChanged(): void {
     this.armIdle();
   }
@@ -190,6 +198,7 @@ export class Session {
     }
   }
 
+  /** Appends a timestamped audit event (`ev` and optional count `n`) to the database's bounded audit log. */
   audit(ev: string, n?: number): void {
     const db = this.database();
     const e: AuditEvent = { t: this.hooks.now(), ev, ...(n === undefined ? {} : { n }) };

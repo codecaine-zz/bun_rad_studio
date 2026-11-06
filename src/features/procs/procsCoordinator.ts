@@ -1,3 +1,7 @@
+/**
+ * High-level coordinator for the `procs` tool, bridging OS process collection, filtering,
+ * port enrichment, signal sending, and table/tree/JSON output formatting.
+ */
 import type { ProcsOptions, ProcessInfo } from "./procsTypes.ts";
 import {
   attachListeningPorts,
@@ -14,6 +18,9 @@ import {
   sortProcesses,
 } from "./procsDoers.ts";
 
+/**
+ * Fetches the current OS process list and applies optional user filtering, keyword search, sorting, and row limits.
+ */
 export async function getProcesses(
   keyword?: string,
   sortBy?: ProcsOptions["sortBy"],
@@ -28,6 +35,9 @@ export async function getProcesses(
   return limit && limit > 0 ? sorted.slice(0, limit) : sorted;
 }
 
+/**
+ * Executes the non-interactive `procs` workflow (process termination or process listing in JSON, tree, or table format).
+ */
 export async function runProcsCoordinator(options: ProcsOptions): Promise<string> {
   if (options.killPid) {
     killProcess(options.killPid, (options.signal ?? "SIGTERM") as NodeJS.Signals);

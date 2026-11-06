@@ -1,3 +1,6 @@
+/**
+ * Interactive UI help tooltips and audit skip rules for Process Monitor Studio (`procs_studio`), covering live OS process listing, CPU/memory sorting, and signal controls.
+ */
 import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Procs Studio: a process viewer with ports, a tree view and signals. */

@@ -1,3 +1,7 @@
+/**
+ * Unit tests for `gdu` byte/count formatting, relative size bars, `df` output parsing,
+ * recursive directory scanning, and item sorting helpers.
+ */
 import { describe, expect, it } from "bun:test";
 import {
   formatBytes,

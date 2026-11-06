@@ -20,10 +20,12 @@ const CUSTOM: Record<string, () => Promise<string>> = {
 /** Pages that are not an `applications/*_studio.ts` file. */
 const EXTRA_APPS = ["designer"];
 
+/** Lists the base IDs of all `*_studio.ts` application modules in `applications/`. */
 export function appFiles(): string[] {
   return readdirSync(APPLICATIONS).filter((f) => f.endsWith("_studio.ts")).map((f) => f.replace(/\.ts$/, ""));
 }
 
+/** Builds and returns the full HTML page string for the given `appId` without starting a window or server. */
 export async function pageFor(appId: string): Promise<string> {
   if (CUSTOM[appId]) return await CUSTOM[appId]!();
   const mod: any = await import(join(APPLICATIONS, `${appId}.ts`));
@@ -57,6 +59,7 @@ export const GAME_APPS = new Set([
 /** Apps with their own page and tooltips, outside this system (the File Manager serves a locked-down page and has its own). */
 export const OTHER_HELP = new Set(["file_manager_studio"]);
 
+/** Returns the sorted list of all Studio application IDs that participate in the shared help tooltip system. */
 export function helpApps(): string[] {
   return [...appFiles().filter((a) => !GAME_APPS.has(a) && !OTHER_HELP.has(a)), ...EXTRA_APPS].sort();
 }

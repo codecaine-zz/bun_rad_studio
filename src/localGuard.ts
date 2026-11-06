@@ -1,4 +1,8 @@
 /**
+ * Loopback request security guard and cross-platform clipboard utilities for local studio HTTP servers.
+ */
+
+/**
  * Guard for the loopback-only HTTP servers behind the desktop studios.
  *
  * These servers expose powerful endpoints (run SQL, write files, kill processes, ...) and used to answer

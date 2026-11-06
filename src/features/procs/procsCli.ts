@@ -1,9 +1,15 @@
 #!/usr/bin/env bun
+/**
+ * Command-line entry point and argument parser for the `procs` modern process viewer.
+ */
 import { parseArgs } from "node:util";
 import { runProcsCoordinator } from "./procsCoordinator.ts";
 import { runProcsTui } from "./procsTui.ts";
 import type { ProcsOptions, SortField } from "./procsTypes.ts";
 
+/**
+ * Parses CLI flags and positional arguments into a structured `ProcsOptions` object.
+ */
 export function parseProcsArguments(args: string[]): ProcsOptions {
   const { values, positionals } = parseArgs({
     args,
@@ -53,6 +59,9 @@ export function parseProcsArguments(args: string[]): ProcsOptions {
   };
 }
 
+/**
+ * Prints usage instructions and flag documentation for the `procs` CLI to stdout.
+ */
 export function printProcsHelp(): void {
   console.log(`Usage: procs [options] [keyword]
 

@@ -6,6 +6,7 @@
  * and is also unit-tested directly in Bun.
  */
 
+/** Flattens nested objects and arrays into dot/bracket-indexed key-value pairs up to `limit` entries. */
 export function flattenData(value: any, prefix: string = "", out: Record<string, any> = {}, limit: number = 5000): Record<string, any> {
   let count = Object.keys(out).length;
   function walk(v: any, p: string): void {
@@ -39,6 +40,7 @@ export function flattenData(value: any, prefix: string = "", out: Record<string,
   return out;
 }
 
+/** Path-level diff summary between two flattened system telemetry payloads. */
 export interface DataDiff {
   added: { path: string; value: any }[];
   removed: { path: string; value: any }[];
@@ -60,6 +62,7 @@ export function diffData(before: any, after: any): DataDiff {
   return d;
 }
 
+/** Formats an array of record objects or a nested telemetry payload as a CSV string. */
 export function toCsv(data: any): string {
   const cell = (v: any): string => {
     if (v === null || v === undefined) return "";
@@ -75,6 +78,7 @@ export function toCsv(data: any): string {
   return ["path,value", ...Object.keys(flat).map((k) => cell(k) + "," + cell(flat[k]))].join("\n");
 }
 
+/** Formats system telemetry data into a Markdown report with tables grouped by top-level key. */
 export function toMarkdown(method: string, data: any, meta: { platform?: string; generated?: string } = {}): string {
   const md = (v: any): string => String(v === null || v === undefined ? "" : typeof v === "object" ? JSON.stringify(v) : v).replace(/\|/g, "\\|").replace(/\n/g, " ");
   const lines: string[] = [];
@@ -101,6 +105,7 @@ export function toMarkdown(method: string, data: any, meta: { platform?: string;
   return lines.join("\n");
 }
 
+/** Formats system telemetry data into a standalone styled HTML report document. */
 export function toHtmlReport(method: string, data: any, meta: { platform?: string; generated?: string } = {}): string {
   const esc = (v: any): string =>
     String(v === null || v === undefined ? "" : typeof v === "object" ? JSON.stringify(v) : v)

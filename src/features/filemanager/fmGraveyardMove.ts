@@ -12,6 +12,7 @@ import * as nodePath from "path";
 import type { GraveyardHooks } from "./fmGraveyardHooks";
 import { FmError } from "./fmPaths";
 
+/** Execution context for moving items into or out of the graveyard, with cancellation and progress hooks. */
 export interface MoveEnv {
   signal?: AbortSignal;
   hooks: GraveyardHooks;
@@ -23,6 +24,7 @@ const BIG_FILE = 32 * 1024 * 1024;
 const CHUNK = 4 * 1024 * 1024;
 const NOFOLLOW = (constants as Record<string, number>).O_NOFOLLOW ?? 0;
 
+/** Throws a `CANCELLED` `FmError` if the environment's `AbortSignal` has been triggered. */
 export function checkAbort(env: { signal?: AbortSignal }): void {
   if (env.signal?.aborted) throw new FmError("CANCELLED", "Stopped. Nothing was lost.");
 }
@@ -187,6 +189,7 @@ async function isThere(target: string): Promise<boolean> {
   }
 }
 
+/** Result of moving a file or directory tree via atomic rename or verified cross-device copy. */
 export interface Placed {
   via: "rename" | "copy";
   /** Set when the item is safely in its new place but the original couldn't be fully removed. */

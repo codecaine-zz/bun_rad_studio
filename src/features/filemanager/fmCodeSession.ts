@@ -9,9 +9,12 @@ import * as nodePath from "path";
 import { pathApi, type FmContext } from "./fmCore";
 import { FmError } from "./fmPaths";
 
+/** Maximum byte size accepted when loading the persisted Code editor session file. */
 export const MAX_SESSION_BYTES = 200 * 1024;
+/** Allowed color theme identifiers for the Code editor. */
 export const THEMES = ["auto", "dracula", "github", "monokai", "nordic", "onedark", "solarized"] as const;
 
+/** Persisted state of the Code editor, including open tabs, active tab, editor settings, recent files, and bookmarks. */
 export interface CodeSession {
   version: 1;
   root: string;
@@ -22,11 +25,13 @@ export interface CodeSession {
   bookmarks: Record<string, number[]>;
 }
 
+/** Default visual and behavioral settings for the Code editor. */
 export const DEFAULT_SETTINGS: CodeSession["settings"] = { theme: "auto", fontSize: 14, wrap: false, lineNumbers: true, minimap: false, whitespace: false, indentGuides: true, ruler: false, wordHighlight: true, autosave: false, autosaveDelay: 1500, autosaveOnBlur: true, tabSize: 2, showHidden: false, explorer: true, preview: false, completion: true, autoOpen: true, recentsEnabled: true };
 
 const num = (v: unknown, min: number, max: number, fallback: number) => (typeof v === "number" && Number.isFinite(v) ? Math.round(Math.min(max, Math.max(min, v))) : fallback);
 const bool = (v: unknown, fallback: boolean) => (typeof v === "boolean" ? v : fallback);
 
+/** Validates and clamps an untrusted session payload into a safe `CodeSession` object. */
 export function sanitizeSession(raw: unknown, ctx: FmContext): CodeSession {
   const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, any>;
   const p = pathApi(ctx);
@@ -88,6 +93,7 @@ export function sanitizeSession(raw: unknown, ctx: FmContext): CodeSession {
 
 const sessionFile = (ctx: FmContext) => nodePath.join(ctx.dataDir, "file_manager_code.json");
 
+/** Loads and sanitizes the persisted Code editor session from the app data directory. */
 export async function loadCodeSession(ctx: FmContext): Promise<CodeSession> {
   try {
     const text = await fsp.readFile(sessionFile(ctx), "utf8");

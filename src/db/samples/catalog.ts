@@ -14,8 +14,10 @@ import projectTracker from "./datasets/project_tracker";
 import iotTelemetry from "./datasets/iot_telemetry";
 import saasBilling from "./datasets/saas_billing";
 
+/** Ordered registry of all built-in synthetic sample dataset definitions. */
 export const DATASETS: DatasetDef[] = [medicareFormulary, hospitalEhr, claimsAdjudication, ecommerceMarketplace, retailBanking, hrPayroll, wmsSupplyChain, airlineReservations, projectTracker, iotTelemetry, saasBilling];
 
+/** Looks up a sample dataset definition by its catalog ID, or returns `undefined` if not found. */
 export function getDataset(id: string): DatasetDef | undefined {
   return DATASETS.find((d) => d.id === id);
 }
@@ -23,10 +25,12 @@ export function getDataset(id: string): DatasetDef | undefined {
 /** Rows per second the engines sustain when loading (measured on a laptop with Docker MySQL 8 / PostgreSQL 16; used for the time estimate only). */
 const LOAD_RATE: Record<Dialect, number> = { sqlite: 160_000, mysql: 30_000, postgres: 40_000 };
 
+/** Estimates the wall-clock time in seconds required to seed `rows` into the given database dialect. */
 export function estimateSeconds(dialect: Dialect, rows: number): number {
   return Math.max(1, Math.round(1 + rows / LOAD_RATE[dialect]));
 }
 
+/** Summary metadata for a single table in a sample dataset catalog entry. */
 export interface CatalogTable {
   name: string;
   comment: string;
@@ -34,6 +38,7 @@ export interface CatalogTable {
   rows: Record<Scale, number>;
 }
 
+/** Dialect-rendered catalog metadata for a sample dataset displayed in the studio UI. */
 export interface CatalogEntry {
   id: string;
   title: string;
@@ -55,6 +60,7 @@ export interface CatalogEntry {
 
 const countCache = new Map<string, Record<Scale, Record<string, number>>>();
 
+/** Returns cached per-table row counts across all three `Scale` tiers (`small`, `medium`, `large`) for a dataset. */
 export function datasetCounts(ds: DatasetDef): Record<Scale, Record<string, number>> {
   let c = countCache.get(ds.id);
   if (!c) {
@@ -64,10 +70,12 @@ export function datasetCounts(ds: DatasetDef): Record<Scale, Record<string, numb
   return c;
 }
 
+/** Returns the total number of rows across all tables in a dataset at the specified `scale`. */
 export function totalRows(ds: DatasetDef, scale: Scale): number {
   return Object.values(datasetCounts(ds)[scale]).reduce((a, b) => a + b, 0);
 }
 
+/** Builds a dialect-specific `CatalogEntry` for a single sample dataset. */
 export function catalogEntry(ds: DatasetDef, dialect: Dialect): CatalogEntry {
   const counts = datasetCounts(ds);
   const h = sqlHelpers(dialect);
@@ -100,6 +108,7 @@ export function catalogEntry(ds: DatasetDef, dialect: Dialect): CatalogEntry {
   };
 }
 
+/** Returns the full list of sample dataset catalog entries rendered for the given SQL dialect. */
 export function catalog(dialect: Dialect): CatalogEntry[] {
   return DATASETS.map((d) => catalogEntry(d, dialect));
 }

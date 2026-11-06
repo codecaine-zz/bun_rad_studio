@@ -1,3 +1,6 @@
+/**
+ * Interactive UI help tooltips and audit skip rules for Postgres Workbench Studio (`postgres_studio`), covering PostgreSQL connections, schema inspection, SQL query execution, and data staging.
+ */
 import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Help tips for `postgres_studio`. Keys: see src/shared/helpTips.ts. Check with: bun run scripts/help_controls.ts <app file> --missing */

@@ -5,9 +5,24 @@
 import { isIP } from "node:net";
 import { domainToASCII, domainToUnicode } from "node:url";
 
+/**
+ * Maximum total length of a full ASCII domain name per RFC 1035.
+ */
 export const MAX_DOMAIN_LENGTH = 253;
+
+/**
+ * Maximum length of a single dot-separated DNS label per RFC 1035.
+ */
 export const MAX_LABEL_LENGTH = 63;
+
+/**
+ * Maximum number of distinct TCP ports allowed in a single subdomain scan.
+ */
 export const MAX_PORTS = 20;
+
+/**
+ * Maximum number of characters retained when sanitizing an HTML `<title>` string.
+ */
 export const MAX_TITLE_CHARS = 120;
 
 /** Control, zero-width and bidirectional-control characters: never part of a real host name, and used to disguise text. */
@@ -50,6 +65,9 @@ export function isPublicSuffix(ascii: string): boolean {
   return labels.length === 2 && /^[a-z]{2}$/.test(labels[1]!) && GENERIC_SECOND_LEVEL.has(labels[0]!);
 }
 
+/**
+ * Result of validating a user-supplied target domain (`ascii` + `unicode` forms when valid, or a human-readable `reason` when invalid).
+ */
 export type DomainCheck = { ok: true; ascii: string; unicode: string } | { ok: false; reason: string };
 
 const HELP = "Type just the name of the site, like example.com.";
@@ -158,6 +176,9 @@ export function extractTitle(html: string): string {
   return cleanTitle(close >= 0 ? head.slice(from, from + close) : head.slice(from, from + 4000));
 }
 
+/**
+ * Result of validating and expanding a port list specification (`ports` array when valid, or a human-readable `reason` when invalid).
+ */
 export type PortsCheck = { ok: true; ports: number[] } | { ok: false; reason: string };
 
 /** "80,443,8000-8003" (or a list of numbers) to a sorted list of at most MAX_PORTS distinct ports. */

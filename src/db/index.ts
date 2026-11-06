@@ -1,3 +1,7 @@
+/**
+ * Public entry point for the shared database layer (`src/db`), re-exporting types, error helpers,
+ * SQL quoting/splitting utilities, wire encoders, and concrete engine adapters.
+ */
 import type { ConnectionConfig, DbAdapter } from "./types";
 import { SqliteAdapter } from "./adapters/sqlite";
 import { MysqlAdapter } from "./adapters/mysql";
@@ -10,6 +14,7 @@ export { splitStatements, statementAt, leadingKeyword } from "./splitter";
 export { toWire, decodeParam, decodeParams, csvCell } from "./wire";
 export { SqliteAdapter, MysqlAdapter, PostgresAdapter };
 
+/** Instantiates a `SqliteAdapter`, `MysqlAdapter`, or `PostgresAdapter` matching `config.engine`. */
 export function createAdapter(config: ConnectionConfig): DbAdapter {
   switch (config.engine) {
     case "sqlite":

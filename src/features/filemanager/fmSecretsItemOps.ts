@@ -48,6 +48,7 @@ const dedupeKey = (i: SecretItem): string => [i.type, i.title, i.fields.username
 
 const MAX_TEXT_IMPORT = 900_000;
 
+/** File Manager API handlers (`secrets/*`) for CRUD, search, TOTP generation, health/breach checks, import/export, and attachments on vault items. */
 export const itemOperations: Record<string, FmHandler> = {
   "secrets/list": secretsOp((svc, _ctx, b) => {
     const trash = b.trash === true;

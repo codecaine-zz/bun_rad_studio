@@ -1,3 +1,7 @@
+/**
+ * Global desktop window keyboard shortcut handler injected into Studio webviews
+ * (fullscreen toggle, theme cycling, window close/quit, and Escape handling).
+ */
 interface ShortcutKeyEvent {
     code: string;
     key: string;
@@ -298,4 +302,5 @@ function desktopShortcutsClient() {
     });
 }
 
+/** Self-invoking browser script string that attaches global desktop keyboard shortcuts to `window`. */
 export const DESKTOP_SHORTCUTS_SCRIPT = `(${desktopShortcutsClient.toString()})();`;

@@ -1,8 +1,15 @@
 #!/usr/bin/env bun
+/**
+ * Command-line interface for `tokei`, parsing CLI arguments and flags to count
+ * lines of code across target directories and files.
+ */
 import { parseArgs } from "node:util";
 import { runTokeiCoordinator } from "./tokeiCoordinator.ts";
 import type { TokeiOptions, TokeiSortField } from "./tokeiTypes.ts";
 
+/**
+ * Parses raw command-line arguments into validated `TokeiOptions`.
+ */
 export function parseTokeiArguments(args: string[]): TokeiOptions {
   const { values, positionals } = parseArgs({
     args,
@@ -42,6 +49,9 @@ export function parseTokeiArguments(args: string[]): TokeiOptions {
   };
 }
 
+/**
+ * Prints usage instructions and available CLI options for `tokei` to stdout.
+ */
 export function printTokeiHelp(): void {
   console.log(`Usage: tokei [options] [paths...]
 

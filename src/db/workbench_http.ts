@@ -1,3 +1,6 @@
+/**
+ * HTTP request router and security boundary for the Database Workbench (`/workbench` and `/api/v2/*`).
+ */
 import { randomBytes, timingSafeEqual } from "crypto";
 import { format as formatSql } from "sql-formatter";
 import { DbError, normalizeError } from "./errors";
@@ -69,6 +72,7 @@ function confirmOf(o: Record<string, unknown>) {
   return { token: optStr(o, "confirmToken", 100), typed: optStr(o, "confirmTyped", 200) };
 }
 
+/** Configuration options for `createWorkbenchHandler`. */
 export interface WorkbenchHandlerOptions {
   /** Per-process secret that the page must send back. Generated when omitted. */
   token?: string;
@@ -76,6 +80,7 @@ export interface WorkbenchHandlerOptions {
   title?: string;
 }
 
+/** Mounted HTTP handler instance owning the `WorkbenchService` and per-process authentication token. */
 export interface WorkbenchHandler {
   token: string;
   service: WorkbenchService;

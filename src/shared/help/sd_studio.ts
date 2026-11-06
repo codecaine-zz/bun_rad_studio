@@ -1,3 +1,6 @@
+/**
+ * Interactive UI help tooltips and audit skip rules for Search & Replace Studio (`sd_studio`), covering regex/literal find-and-replace previews and batch file updates.
+ */
 import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Sd Studio: find and replace across many files, with diffs, backups and undo. */

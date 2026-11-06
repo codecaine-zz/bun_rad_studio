@@ -84,6 +84,7 @@ function inferMimeType(filePath: string): string {
   return map[ext] || 'application/octet-stream';
 }
 
+/** Serializes a key-value map into a URL-encoded query string prefixed with `?` (or empty string if empty). */
 export function buildQueryString(params?: Record<string, any>): string {
   if (!params) return '';
   const parts: string[] = [];
@@ -103,6 +104,7 @@ export function buildQueryString(params?: Record<string, any>): string {
   return parts.length > 0 ? `?${parts.join('&')}` : '';
 }
 
+/** Parses a URL or query string into a decoded key-value dictionary while ignoring unsafe prototype keys. */
 export function parseQueryString(queryStr: string): Record<string, string> {
   const raw = String(queryStr ?? '').trim();
   const qIdx = raw.indexOf('?');
@@ -121,6 +123,7 @@ export function parseQueryString(queryStr: string): Record<string, string> {
   return out;
 }
 
+/** Replaces `{{variable}}` and built-in dynamic placeholders (`$timestamp`, `$isoTimestamp`, `$uuid`, `$randomInt`) in a template string. */
 export function interpolateVars(input: string, vars: Record<string, string> = {}): string {
   if (!input || !input.includes('{{')) return input;
   const now = new Date();
@@ -143,6 +146,7 @@ export function interpolateVars(input: string, vars: Record<string, string> = {}
   });
 }
 
+/** Extracts the `rel="next"` target URL from an RFC 5988 `Link` HTTP response header, if present. */
 export function parseLinkNextHeader(linkHeader?: string): string | null {
   if (!linkHeader) return null;
   const segments = linkHeader.split(',');
@@ -168,6 +172,7 @@ export class BackendApiError<T = any> extends Error {
   public readonly body: string;
   public readonly headers: Record<string, string>;
 
+  /** Creates a `BackendApiError` from an HTTP method, a `BackendResponse`, and an optional custom message. */
   constructor(method: string, response: BackendResponse<T>, customMessage?: string) {
     const msg =
       customMessage ||
@@ -194,6 +199,7 @@ export class ResourceClient<T = any, ID = string | number> {
   private readonly client: BackendClient;
   public readonly resourcePath: string;
 
+  /** Creates a `ResourceClient` bound to the given `BackendClient` and collection path. */
   constructor(client: BackendClient, resourcePath: string) {
     this.client = client;
     this.resourcePath = resourcePath.replace(/\/+$/, '');
@@ -205,6 +211,7 @@ export class ResourceClient<T = any, ID = string | number> {
     return `${this.resourcePath}/${encodedId}${cleanSuffix}`;
   }
 
+  /** Fetches the collection of items via `GET <resourcePath>`. */
   public async list(query?: Record<string, any>, options?: RequestOptions): Promise<T[]> {
     return this.client.getJson<T[]>(this.resourcePath, {
       ...options,
@@ -212,6 +219,7 @@ export class ResourceClient<T = any, ID = string | number> {
     });
   }
 
+  /** Fetches a single resource item by ID via `GET <resourcePath>/<id>`. */
   public async get(id: ID, query?: Record<string, any>, options?: RequestOptions): Promise<T> {
     return this.client.getJson<T>(this.itemPath(id), {
       ...options,
@@ -219,23 +227,28 @@ export class ResourceClient<T = any, ID = string | number> {
     });
   }
 
+  /** Creates a new resource item via `POST <resourcePath>`. */
   public async create(payload: Partial<T> | Record<string, any>, options?: RequestOptions): Promise<T> {
     return this.client.postJson<T>(this.resourcePath, payload, options);
   }
 
+  /** Replaces an existing resource item by ID via `PUT <resourcePath>/<id>`. */
   public async update(id: ID, payload: Partial<T> | Record<string, any>, options?: RequestOptions): Promise<T> {
     return this.client.putJson<T>(this.itemPath(id), payload, options);
   }
 
+  /** Partially updates a resource item by ID via `PATCH <resourcePath>/<id>`. */
   public async patch(id: ID, payload: Partial<T> | Record<string, any>, options?: RequestOptions): Promise<T> {
     return this.client.patchJson<T>(this.itemPath(id), payload, options);
   }
 
+  /** Deletes a resource item by ID via `DELETE <resourcePath>/<id>` and returns `true` on a 2xx response. */
   public async remove(id: ID, options?: RequestOptions): Promise<boolean> {
     const res = await this.client.delete(this.itemPath(id), undefined, options);
     return res.ok;
   }
 
+  /** Invokes a custom sub-resource action via `<method> <resourcePath>/<id>/<actionName>`. */
   public async action<R = any>(
     id: ID,
     actionName: string,
@@ -254,6 +267,7 @@ export class ResourceClient<T = any, ID = string | number> {
   }
 }
 
+/** Parsed cURL command descriptor with a preconfigured `BackendClient` and an `execute()` helper. */
 export interface ParsedCurlClientRequest {
   client: BackendClient;
   method: string;
@@ -293,6 +307,7 @@ export class BackendClient {
   private responseInterceptors: ResponseInterceptor[] = [];
   private errorInterceptors: ErrorInterceptor[] = [];
 
+  /** Creates a `BackendClient` configured with a base URL string or a `BackendClientOptions` object. */
   constructor(baseUrlOrOptions?: string | BackendClientOptions) {
     if (typeof baseUrlOrOptions === 'string') {
       this.setBaseUrl(baseUrlOrOptions);
@@ -329,6 +344,7 @@ export class BackendClient {
     }
   }
 
+  /** Static factory method that instantiates a new `BackendClient`. */
   public static new(baseUrlOrOptions?: string | BackendClientOptions): BackendClient {
     return new BackendClient(baseUrlOrOptions);
   }
@@ -337,11 +353,13 @@ export class BackendClient {
   // 1. Fluent Configuration & Auth
   // ===========================================================================
 
+  /** Sets the base URL prepended to relative request paths. */
   public setBaseUrl(url: string): this {
     this.baseUrl = String(url ?? '').trim().replace(/\/+$/, '');
     return this;
   }
 
+  /** Sets or clears the `Authorization: Bearer <token>` header. */
   public setBearerToken(token: string): this {
     const clean = String(token ?? '').trim();
     if (clean) {
@@ -352,10 +370,12 @@ export class BackendClient {
     return this;
   }
 
+  /** Fluent alias for `setBearerToken`. */
   public withBearer(token: string): this {
     return this.setBearerToken(token);
   }
 
+  /** Sets or clears the `Authorization: Basic <base64>` header from `username:password` credentials. */
   public setBasicAuth(usernameOrCombo: string, password?: string): this {
     const combo = password !== undefined ? `${usernameOrCombo}:${password}` : usernameOrCombo;
     if (combo) {
@@ -366,10 +386,12 @@ export class BackendClient {
     return this;
   }
 
+  /** Fluent alias for `setBasicAuth`. */
   public withBasicAuth(usernameOrCombo: string, password?: string): this {
     return this.setBasicAuth(usernameOrCombo, password);
   }
 
+  /** Sets or clears an API key header (defaults to `X-API-Key`). */
   public setApiKey(key: string, headerName: string = 'X-API-Key'): this {
     if (isUnsafeKey(headerName)) return this;
     this.customApiKeyHeader = headerName;
@@ -382,10 +404,12 @@ export class BackendClient {
     return this;
   }
 
+  /** Fluent alias for `setApiKey`. */
   public withApiKey(key: string, headerName: string = 'X-API-Key'): this {
     return this.setApiKey(key, headerName);
   }
 
+  /** Sets a single default request header. */
   public setHeader(name: string, value: string): this {
     if (!isUnsafeKey(name)) {
       this.defaultHeaders[name] = value;
@@ -393,6 +417,7 @@ export class BackendClient {
     return this;
   }
 
+  /** Merges multiple default request headers into the client. */
   public setHeaders(headers: Record<string, string>): this {
     for (const [k, v] of Object.entries(headers)) {
       if (!isUnsafeKey(k)) {
@@ -402,6 +427,7 @@ export class BackendClient {
     return this;
   }
 
+  /** Removes a default request header (case-insensitive). */
   public removeHeader(name: string): this {
     const lower = name.toLowerCase();
     for (const k of Object.keys(this.defaultHeaders)) {
@@ -412,6 +438,7 @@ export class BackendClient {
     return this;
   }
 
+  /** Sets a single default URL query parameter appended to every request. */
   public setQueryParam(key: string, value: any): this {
     if (!isUnsafeKey(key)) {
       this.defaultQuery[key] = value;
@@ -419,6 +446,7 @@ export class BackendClient {
     return this;
   }
 
+  /** Merges multiple default URL query parameters into the client. */
   public setQueryParams(params: Record<string, any>): this {
     for (const [k, v] of Object.entries(params)) {
       if (!isUnsafeKey(k)) {
@@ -428,11 +456,13 @@ export class BackendClient {
     return this;
   }
 
+  /** Sets the default per-request timeout in milliseconds. */
   public setTimeout(timeoutMs: number): this {
     this.timeoutMs = Math.max(0, timeoutMs);
     return this;
   }
 
+  /** Configures automatic exponential-backoff retries for transient failures and retryable HTTP status codes. */
   public setRetries(
     maxRetries: number,
     backoffMs: number = 200,
@@ -444,11 +474,13 @@ export class BackendClient {
     return this;
   }
 
+  /** Enables or disables throwing `BackendApiError` on non-2xx HTTP responses. */
   public setThrowOnError(throwOnError: boolean = true): this {
     this.throwOnError = throwOnError;
     return this;
   }
 
+  /** Sets a single template variable for `{{var}}` interpolation in URLs, headers, and bodies. */
   public setVar(key: string, value: string): this {
     if (!isUnsafeKey(key)) {
       this.vars[key] = value;
@@ -456,6 +488,7 @@ export class BackendClient {
     return this;
   }
 
+  /** Merges multiple template variables for `{{var}}` interpolation. */
   public setVars(vars: Record<string, string>): this {
     for (const [k, v] of Object.entries(vars)) {
       if (!isUnsafeKey(k)) {
@@ -465,6 +498,7 @@ export class BackendClient {
     return this;
   }
 
+  /** Enables in-memory LRU caching for `GET` responses with the specified TTL and capacity. */
   public enableCache(ttlMs: number = 60_000, maxEntries: number = 256): this {
     this.cacheEnabled = true;
     this.cacheTtlMs = Math.max(1, ttlMs);
@@ -472,32 +506,38 @@ export class BackendClient {
     return this;
   }
 
+  /** Disables in-memory `GET` response caching without clearing existing entries. */
   public disableCache(): this {
     this.cacheEnabled = false;
     return this;
   }
 
+  /** Clears all cached `GET` responses from memory. */
   public clearCache(): this {
     this.responseCache.clear();
     return this;
   }
 
+  /** Sets a sliding-window client-side rate limit (`maxRequests` per `windowMs`). */
   public setRateLimit(maxRequests: number, windowMs: number = 1000): this {
     this.rateLimitMaxRequests = Math.max(0, Math.floor(maxRequests));
     this.rateLimitWindowMs = Math.max(1, windowMs);
     return this;
   }
 
+  /** Registers a request interceptor invoked before each HTTP call is sent. */
   public useRequestInterceptor(fn: RequestInterceptor): this {
     this.requestInterceptors.push(fn);
     return this;
   }
 
+  /** Registers a response interceptor invoked after each HTTP response is received. */
   public useResponseInterceptor(fn: ResponseInterceptor): this {
     this.responseInterceptors.push(fn);
     return this;
   }
 
+  /** Registers an error interceptor invoked whenever a request fails or throws `BackendApiError`. */
   public onError(fn: ErrorInterceptor): this {
     this.errorInterceptors.push(fn);
     return this;
@@ -541,6 +581,7 @@ export class BackendClient {
   // 2. URL Resolution & Internal Helpers
   // ===========================================================================
 
+  /** Resolves a relative path or full URL against `baseUrl`, interpolating `{{vars}}` and appending merged query parameters. */
   public resolveUrl(pathOrUrl: string, query?: Record<string, any>, extraVars?: Record<string, string>): string {
     const mergedVars = { ...this.vars, ...(extraVars || {}) };
     const interpolatedBase = interpolateVars(this.baseUrl, mergedVars);
@@ -708,6 +749,7 @@ export class BackendClient {
   // 3. Core Request Execution Engine
   // ===========================================================================
 
+  /** Executes an HTTP request with automatic variable interpolation, interceptors, rate limiting, caching, and retries. */
   public async request<T = any>(
     method: string,
     pathOrUrl: string,
@@ -923,30 +965,37 @@ export class BackendClient {
   // 4. Standard Verb Methods (Return Full BackendResponse<T>)
   // ===========================================================================
 
+  /** Sends an HTTP `GET` request and returns the full `BackendResponse<T>`. */
   public get<T = any>(path: string, options?: RequestOptions): Promise<BackendResponse<T>> {
     return this.request<T>('GET', path, options);
   }
 
+  /** Sends an HTTP `POST` request with an optional body and returns the full `BackendResponse<T>`. */
   public post<T = any>(path: string, body?: any, options?: RequestOptions): Promise<BackendResponse<T>> {
     return this.request<T>('POST', path, { ...options, body: body !== undefined ? body : options?.body });
   }
 
+  /** Sends an HTTP `PUT` request with an optional body and returns the full `BackendResponse<T>`. */
   public put<T = any>(path: string, body?: any, options?: RequestOptions): Promise<BackendResponse<T>> {
     return this.request<T>('PUT', path, { ...options, body: body !== undefined ? body : options?.body });
   }
 
+  /** Sends an HTTP `PATCH` request with an optional body and returns the full `BackendResponse<T>`. */
   public patch<T = any>(path: string, body?: any, options?: RequestOptions): Promise<BackendResponse<T>> {
     return this.request<T>('PATCH', path, { ...options, body: body !== undefined ? body : options?.body });
   }
 
+  /** Sends an HTTP `DELETE` request with an optional body and returns the full `BackendResponse<T>`. */
   public delete<T = any>(path: string, body?: any, options?: RequestOptions): Promise<BackendResponse<T>> {
     return this.request<T>('DELETE', path, { ...options, body: body !== undefined ? body : options?.body });
   }
 
+  /** Sends an HTTP `HEAD` request and returns the response headers and status with a `null` body. */
   public head(path: string, options?: RequestOptions): Promise<BackendResponse<null>> {
     return this.request<null>('HEAD', path, options);
   }
 
+  /** Sends an HTTP `OPTIONS` request and returns the full `BackendResponse<T>`. */
   public options<T = any>(path: string, options?: RequestOptions): Promise<BackendResponse<T>> {
     return this.request<T>('OPTIONS', path, options);
   }
@@ -988,26 +1037,32 @@ export class BackendClient {
     }
   }
 
+  /** Sends a `GET` request and returns the parsed JSON body directly, throwing `BackendApiError` on non-2xx unless `fallback` is set. */
   public getJson<T = any>(path: string, options?: RequestOptions & { fallback?: T }): Promise<T> {
     return this.unwrapData<T>('GET', path, undefined, options);
   }
 
+  /** Sends a `POST` request and returns the parsed JSON body directly, throwing `BackendApiError` on non-2xx unless `fallback` is set. */
   public postJson<T = any>(path: string, body?: any, options?: RequestOptions & { fallback?: T }): Promise<T> {
     return this.unwrapData<T>('POST', path, body, options);
   }
 
+  /** Sends a `PUT` request and returns the parsed JSON body directly, throwing `BackendApiError` on non-2xx unless `fallback` is set. */
   public putJson<T = any>(path: string, body?: any, options?: RequestOptions & { fallback?: T }): Promise<T> {
     return this.unwrapData<T>('PUT', path, body, options);
   }
 
+  /** Sends a `PATCH` request and returns the parsed JSON body directly, throwing `BackendApiError` on non-2xx unless `fallback` is set. */
   public patchJson<T = any>(path: string, body?: any, options?: RequestOptions & { fallback?: T }): Promise<T> {
     return this.unwrapData<T>('PATCH', path, body, options);
   }
 
+  /** Sends a `DELETE` request and returns the parsed JSON body directly, throwing `BackendApiError` on non-2xx unless `fallback` is set. */
   public deleteJson<T = any>(path: string, body?: any, options?: RequestOptions & { fallback?: T }): Promise<T> {
     return this.unwrapData<T>('DELETE', path, body, options);
   }
 
+  /** Sends a `GET` request and returns the raw response text, throwing `BackendApiError` on non-2xx unless `fallback` is set. */
   public async getText(path: string, options?: RequestOptions & { fallback?: string }): Promise<string> {
     try {
       const res = await this.get(path, options);
@@ -1022,6 +1077,7 @@ export class BackendClient {
     }
   }
 
+  /** Sends a `GET` request and returns the raw response payload as a `Uint8Array`. */
   public async getBytes(path: string, options?: RequestOptions): Promise<Uint8Array> {
     const resolvedUrl = this.resolveUrl(path, options?.query, options?.vars);
     const headers = { ...this.defaultHeaders, ...(options?.headers || {}) };
@@ -1037,6 +1093,7 @@ export class BackendClient {
   // 6. Non-Throwing Safe Result Helpers (`try*`)
   // ===========================================================================
 
+  /** Executes an HTTP request that never throws, returning a `SafeApiResult<T>` with `{ ok, data, error, statusCode }`. */
   public async tryRequest<T = any>(
     method: string,
     path: string,
@@ -1065,22 +1122,27 @@ export class BackendClient {
     }
   }
 
+  /** Non-throwing `GET` request returning a `SafeApiResult<T>`. */
   public tryGet<T = any>(path: string, options?: RequestOptions): Promise<SafeApiResult<T>> {
     return this.tryRequest<T>('GET', path, options);
   }
 
+  /** Non-throwing `POST` request returning a `SafeApiResult<T>`. */
   public tryPost<T = any>(path: string, body?: any, options?: RequestOptions): Promise<SafeApiResult<T>> {
     return this.tryRequest<T>('POST', path, { ...options, body: body !== undefined ? body : options?.body });
   }
 
+  /** Non-throwing `PUT` request returning a `SafeApiResult<T>`. */
   public tryPut<T = any>(path: string, body?: any, options?: RequestOptions): Promise<SafeApiResult<T>> {
     return this.tryRequest<T>('PUT', path, { ...options, body: body !== undefined ? body : options?.body });
   }
 
+  /** Non-throwing `PATCH` request returning a `SafeApiResult<T>`. */
   public tryPatch<T = any>(path: string, body?: any, options?: RequestOptions): Promise<SafeApiResult<T>> {
     return this.tryRequest<T>('PATCH', path, { ...options, body: body !== undefined ? body : options?.body });
   }
 
+  /** Non-throwing `DELETE` request returning a `SafeApiResult<T>`. */
   public tryDelete<T = any>(path: string, body?: any, options?: RequestOptions): Promise<SafeApiResult<T>> {
     return this.tryRequest<T>('DELETE', path, { ...options, body: body !== undefined ? body : options?.body });
   }
@@ -1089,6 +1151,7 @@ export class BackendClient {
   // 7. Forms, Multipart File Uploads & Streaming Downloads
   // ===========================================================================
 
+  /** Submits an `application/x-www-form-urlencoded` `POST` request with the given form fields. */
   public postForm<T = any>(
     path: string,
     fields: Record<string, string | number | boolean>,
@@ -1106,6 +1169,7 @@ export class BackendClient {
     });
   }
 
+  /** Submits a `multipart/form-data` `POST` upload containing files (from disk paths, buffers, or Blobs) and form fields. */
   public async upload<T = any>(
     targetPath: string,
     files: Record<string, UploadFileInput>,
@@ -1158,6 +1222,7 @@ export class BackendClient {
     });
   }
 
+  /** Streams a remote file download to `destPath` on disk with optional byte-progress reporting and size limits. */
   public async download(
     targetPath: string,
     destPath: string,
@@ -1230,10 +1295,12 @@ export class BackendClient {
   // 8. CRUD Resource Builder & GraphQL Client
   // ===========================================================================
 
+  /** Creates a `ResourceClient<T, ID>` bound to the specified REST collection path. */
   public resource<T = any, ID = string | number>(resourcePath: string): ResourceClient<T, ID> {
     return new ResourceClient<T, ID>(this, resourcePath);
   }
 
+  /** Executes a GraphQL query or mutation against `endpointPath` (default `/graphql`) and returns a `GraphQLResult<T>`. */
   public async graphql<T = any>(
     query: string,
     variables?: Record<string, any>,
@@ -1274,6 +1341,7 @@ export class BackendClient {
     return [];
   }
 
+  /** Asynchronously iterates through paginated API responses using page, offset, cursor, or RFC 5988 `Link` header pagination. */
   public async *paginate<T = any>(
     targetPath: string,
     options: PaginationOptions<T> = {}
@@ -1339,6 +1407,7 @@ export class BackendClient {
     }
   }
 
+  /** Fetches all pages from a paginated endpoint and returns the concatenated array of items. */
   public async fetchAllPages<T = any>(targetPath: string, options: PaginationOptions<T> = {}): Promise<T[]> {
     const all: T[] = [];
     for await (const batch of this.paginate<T>(targetPath, options)) {
@@ -1389,6 +1458,7 @@ export class BackendClient {
     };
   }
 
+  /** Connects to a Server-Sent Events (`text/event-stream`) endpoint and invokes `onEvent` for each parsed SSE block. */
   public async streamSse(
     targetPath: string,
     onEvent: (event: SseEvent) => void | Promise<void>,
@@ -1453,6 +1523,7 @@ export class BackendClient {
     }
   }
 
+  /** Streams an HTTP response body line-by-line, invoking `onLine` for each non-empty line. */
   public async streamLines(
     targetPath: string,
     onLine: (line: string) => void | Promise<void>,
@@ -1514,6 +1585,7 @@ export class BackendClient {
     }
   }
 
+  /** Streams an NDJSON / JSON Lines HTTP response, parsing each line as JSON and passing it to `onItem`. */
   public async streamJsonLines<T = any>(
     targetPath: string,
     onItem: (item: T) => void | Promise<void>,
@@ -1533,6 +1605,7 @@ export class BackendClient {
   // 10. Health Checks, Readiness Probes, Batching, Benchmarking & cURL
   // ===========================================================================
 
+  /** Performs a non-throwing health check `GET` against `path` (default `/health`) and measures latency. */
   public async healthCheck(path: string = '/health', expectedStatus: number = 200): Promise<HealthCheckResult> {
     const start = performance.now();
     const resolvedUrl = this.resolveUrl(path);
@@ -1557,6 +1630,7 @@ export class BackendClient {
     }
   }
 
+  /** Polls `path` at `intervalMs` until a 2xx/3xx status is returned or `timeoutMs` elapses. */
   public async waitForReady(
     path: string = '/health',
     timeoutMs: number = 10_000,
@@ -1574,6 +1648,7 @@ export class BackendClient {
     return false;
   }
 
+  /** Concurrently probes multiple endpoint paths and returns their status codes and latencies in order. */
   public async probeEndpoints(endpoints: string[], concurrency: number = 5): Promise<EndpointProbeResult[]> {
     const results: EndpointProbeResult[] = new Array(endpoints.length);
     let idx = 0;
@@ -1598,6 +1673,7 @@ export class BackendClient {
     return results;
   }
 
+  /** Executes a batch of heterogeneous HTTP requests with bounded concurrency and preserves result order. */
   public async batch<T = any>(
     requests: BatchRequestItem[],
     concurrency: number = 5
@@ -1621,6 +1697,7 @@ export class BackendClient {
     return results;
   }
 
+  /** Runs a concurrent load benchmark against `targetPath` and computes latency percentiles (`p50`, `p95`, `p99`) and RPS. */
   public async benchmark(targetPath: string, options: BenchmarkOptions = {}): Promise<BenchmarkStats> {
     const totalRequests = Math.max(1, options.requests ?? 20);
     const concurrency = Math.max(1, Math.min(options.concurrency ?? 5, totalRequests));
@@ -1683,6 +1760,7 @@ export class BackendClient {
     };
   }
 
+  /** Renders an equivalent shell-escaped `curl` command string for the specified request. */
   public toCurl(method: string, targetPath: string, options: RequestOptions = {}): string {
     const upper = String(method || 'GET').toUpperCase();
     const mergedVars = { ...this.vars, ...(options.vars || {}) };
@@ -1717,6 +1795,7 @@ export class BackendClient {
     return parts.join(' ');
   }
 
+  /** Parses a `curl` command string into a `ParsedCurlClientRequest` with a configured `BackendClient`. */
   public static fromCurl(curlCommand: string): ParsedCurlClientRequest {
     const clean = String(curlCommand || '')
       .trim()
@@ -1814,13 +1893,17 @@ export class BackendClient {
   }
 }
 
+/** Value alias for `BackendClient` for API client consumers. */
 export const ApiClient = BackendClient;
+/** Type alias for `BackendClient` for API client consumers. */
 export type ApiClient = BackendClient;
 
+/** Factory function that creates a new `BackendClient` instance. */
 export function createBackendClient(baseUrlOrOptions?: string | BackendClientOptions): BackendClient {
   return new BackendClient(baseUrlOrOptions);
 }
 
+/** Alias factory function that creates a new `BackendClient` (`ApiClient`) instance. */
 export function createApiClient(baseUrlOrOptions?: string | BackendClientOptions): BackendClient {
   return new BackendClient(baseUrlOrOptions);
 }

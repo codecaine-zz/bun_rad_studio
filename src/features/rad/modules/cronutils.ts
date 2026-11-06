@@ -1,3 +1,10 @@
+/**
+ * Five-field cron expression parser, schedule matcher, next-run calculator, and human-readable formatter.
+ */
+
+/**
+ * Expanded integer sets representing each field of a standard 5-field cron schedule.
+ */
 export interface CronSchedule {
   minutes: Set<number>;
   hours: Set<number>;
@@ -38,6 +45,11 @@ function parseCronField(field: string, min: number, max: number): Set<number> {
 }
 
 // Coordinator: Parse standard 5-field cron expression
+/**
+ * Parses a standard 5-field cron expression (`minute hour dayOfMonth month dayOfWeek`) into a {@link CronSchedule}.
+ * @param expr - Five-field cron string.
+ * @returns Parsed schedule sets.
+ */
 export function parseCron(expr: string): CronSchedule {
   const fields = expr.trim().split(/\s+/);
   if (fields.length !== 5) {
@@ -54,6 +66,11 @@ export function parseCron(expr: string): CronSchedule {
 }
 
 // Doer: Check if specific date matches parsed cron schedule
+/**
+ * Checks whether a given `Date` satisfies all fields of a parsed {@link CronSchedule}.
+ * @param cron - Parsed cron schedule.
+ * @param date - Date to test (defaults to `new Date()`).
+ */
 export function matchesCron(cron: CronSchedule, date = new Date()): boolean {
   return (
     cron.minutes.has(date.getMinutes()) &&
@@ -65,6 +82,11 @@ export function matchesCron(cron: CronSchedule, date = new Date()): boolean {
 }
 
 // Coordinator: Calculate next date/time matching cron schedule
+/**
+ * Computes the next `Date` (at minute precision, searching up to 366 days ahead) that matches `cron`.
+ * @param cron - Parsed cron schedule.
+ * @param fromDate - Starting timestamp (defaults to `new Date()`).
+ */
 export function nextCronRun(cron: CronSchedule, fromDate = new Date()): Date {
   const d = new Date(fromDate.getTime());
   d.setSeconds(0, 0);
@@ -81,6 +103,10 @@ export function nextCronRun(cron: CronSchedule, fromDate = new Date()): Date {
 }
 
 // Doer: Convert standard cron expression to readable English description
+/**
+ * Formats a 5-field cron expression into a concise human-readable English summary.
+ * @param expr - Five-field cron expression string.
+ */
 export function cronToHuman(expr: string): string {
   const fields = expr.trim().split(/\s+/);
   if (fields.length !== 5) return expr;
@@ -102,6 +128,9 @@ export function cronToHuman(expr: string): string {
   return `At ${hr}:${min?.padStart(2, "0")}, day of month: ${dom}, month: ${mon}, day of week: ${dow}`;
 }
 
+/**
+ * Namespace of cron expression parsing, matching, scheduling, and human-formatting utilities.
+ */
 export const cronutils = {
   parseCron,
   matchesCron,

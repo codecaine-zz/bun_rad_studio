@@ -1,3 +1,7 @@
+/**
+ * Coordinator workflows for `tokei`, providing both asynchronous and synchronous
+ * directory scanning, file reading, line-of-code aggregation, and report formatting.
+ */
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
@@ -13,6 +17,9 @@ import {
   sortReports,
 } from "./tokeiDoers.ts";
 
+/**
+ * Recursively scans a directory asynchronously for files, respecting hidden-file and ignore filters.
+ */
 export async function scanCodeFiles(
   dirPath: string,
   hidden: boolean,
@@ -39,6 +46,9 @@ export async function scanCodeFiles(
   return matchedFiles;
 }
 
+/**
+ * Reads and analyzes a single source file asynchronously, returning its `FileStat` or `null` if unsupported/unreadable.
+ */
 export async function processFile(filePath: string): Promise<FileStat | null> {
   const lang = detectLanguage(filePath);
   if (!lang) return null;
@@ -52,6 +62,9 @@ export async function processFile(filePath: string): Promise<FileStat | null> {
   }
 }
 
+/**
+ * Asynchronously collects, analyzes, aggregates, and sorts line-of-code statistics across all target paths.
+ */
 export async function computeCodeStats(options: TokeiOptions): Promise<LanguageReport[]> {
   const allFiles: string[] = [];
   const defaultIgnores = ["node_modules", ".git", ".graveyard", "dist", "build"];
@@ -77,6 +90,9 @@ export async function computeCodeStats(options: TokeiOptions): Promise<LanguageR
   return sortReports(reports, options.sort);
 }
 
+/**
+ * Synchronously and recursively scans a directory for files, respecting hidden-file and ignore filters.
+ */
 export function scanCodeFilesSync(
   dirPath: string,
   hidden: boolean,
@@ -101,6 +117,9 @@ export function scanCodeFilesSync(
   return matchedFiles;
 }
 
+/**
+ * Synchronously reads and analyzes a single source file, returning its `FileStat` or `null` if unsupported/unreadable.
+ */
 export function processFileSync(filePath: string): FileStat | null {
   const lang = detectLanguage(filePath);
   if (!lang) return null;
@@ -114,6 +133,9 @@ export function processFileSync(filePath: string): FileStat | null {
   }
 }
 
+/**
+ * Synchronously collects, analyzes, aggregates, and sorts line-of-code statistics across all target paths.
+ */
 export function computeCodeStatsSync(options: TokeiOptions): LanguageReport[] {
   const allFiles: string[] = [];
   const defaultIgnores = ["node_modules", ".git", ".graveyard", "dist", "build"];
@@ -140,6 +162,9 @@ export function computeCodeStatsSync(options: TokeiOptions): LanguageReport[] {
   return sortReports(reports, options.sort);
 }
 
+/**
+ * Executes the full `tokei` analysis workflow and formats the output according to `options` (table, JSON, Markdown, or file breakdown).
+ */
 export async function runTokeiCoordinator(options: TokeiOptions): Promise<string> {
   const reports = await computeCodeStats(options);
   if (reports.length === 0) {

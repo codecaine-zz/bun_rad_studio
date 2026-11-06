@@ -7,6 +7,7 @@
  * queryDesignerState). It never uses the browser full-screen API and never contacts anything except the studio's own /api/samples/*.
  */
 
+/** Stylesheet rules for the "Sample databases" modal dialog injected into the studio page. */
 export const SAMPLES_STYLE = `
     /* ===== Sample databases dialog ===== */
     .sdb-overlay { position: fixed; inset: 0; z-index: 10060; display: none; align-items: center; justify-content: center; padding: 16px; background: rgba(3, 7, 18, 0.78); backdrop-filter: blur(6px); }
@@ -86,6 +87,10 @@ export const SAMPLES_STYLE = `
     @media (prefers-reduced-motion: reduce) { .sdb-bar > div { transition: none; } }
 `;
 
+/**
+ * Browser-side entry point that builds and controls the Sample Databases modal dialog,
+ * catalog filtering, progress polling, and sample query execution.
+ */
 export function samplesClientMain(cfg) {
   var S = { catalog: null, selected: null, scale: "small", tag: "", query: "", job: null, poll: null, lastResult: null, open: false, opener: null, queryText: "" };
   var overlay = null, el = {};
@@ -458,10 +463,16 @@ export function samplesClientMain(cfg) {
   window.__sampleDatabases = S;
 }
 
+/**
+ * Serializes `samplesClientMain` as a self-invoking script string configured for a specific studio dialect and localStorage key.
+ */
 export function samplesScript(studio: string, storageKey: string): string {
   return `(${samplesClientMain.toString()})(${JSON.stringify({ studio, storageKey })});`;
 }
 
+/** Pre-rendered client script for the SQLite Studio sample database picker. */
 export const SAMPLES_SCRIPT_SQLITE = samplesScript("sqlite", "sqlite_studio_saved_queries");
+/** Pre-rendered client script for the MySQL Studio sample database picker. */
 export const SAMPLES_SCRIPT_MYSQL = samplesScript("mysql", "mysql_studio_saved_queries");
+/** Pre-rendered client script for the PostgreSQL Studio sample database picker. */
 export const SAMPLES_SCRIPT_POSTGRES = samplesScript("postgres", "postgres_studio_saved_queries");

@@ -1,8 +1,14 @@
+/**
+ * SQL statement classification (`read`, `write`, `ddl`, `destructive`, `transaction`, `admin`, `other`)
+ * used to determine when user confirmation is required before execution.
+ */
 import type { Engine } from "./types";
 import { leadingKeyword } from "./splitter";
 
+/** High-level risk and effect category of a SQL statement. */
 export type StatementKind = "read" | "write" | "ddl" | "destructive" | "transaction" | "admin" | "other";
 
+/** Result of classifying a SQL statement, pairing its `StatementKind` with human-readable explanations. */
 export interface Classification {
   kind: StatementKind;
   /** Human-readable reasons, shown in the confirmation dialog. */

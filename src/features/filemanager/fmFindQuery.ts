@@ -30,6 +30,7 @@ function depth(value: unknown, what: string): number | undefined {
   return Math.max(0, Math.min(64, n));
 }
 
+/** Validated search root path and `FdSearchOptions` parsed from a Find request payload. */
 export interface ParsedSearch {
   root: string;
   options: FdSearchOptions;
@@ -99,6 +100,7 @@ export async function parseSearch(ctx: FmContext, b: Record<string, any>): Promi
 // Recent results (kept here because a request can only carry 1 MB)
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Caches a search result list in the session state under a generated ID, evicting the oldest entry when full. */
 export function storeResults(ctx: FmContext, root: string, items: FindItem[]): string {
   const { results } = findState(ctx);
   const id = randomBytes(8).toString("hex");
@@ -111,6 +113,7 @@ export function storeResults(ctx: FmContext, root: string, items: FindItem[]): s
   return id;
 }
 
+/** Retrieves cached search results by `id` and refreshes their recency order, or throws if expired. */
 export function getResults(ctx: FmContext, id: unknown): StoredResults {
   const { results } = findState(ctx);
   const found = typeof id === "string" ? results.get(id) : undefined;
@@ -125,6 +128,7 @@ export function getResults(ctx: FmContext, id: unknown): StoredResults {
 // Which items?
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Resolved list of target paths, optional `FindItem` descriptors, and search root for a bulk operation. */
 export interface Targets {
   paths: string[];
   items: FindItem[];

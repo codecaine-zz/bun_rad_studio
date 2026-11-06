@@ -33,6 +33,10 @@ import { dirname, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 
+/**
+ * Core command-line application builder providing flag parsing, subcommand routing,
+ * rich terminal UI widgets, interactive prompts, state persistence, and system helpers.
+ */
 export class SimpleCLI {
   public appName: string = 'SimpleCLI Application';
   public version: string = '1.0.0';
@@ -52,6 +56,9 @@ export class SimpleCLI {
   private posArgs: string[] = [];
   private benchStart: number = performance.now();
 
+  /**
+   * Creates a new SimpleCLI application instance with default logger, config store, and HTTP client.
+   */
   constructor(appName: string = 'SimpleCLI Application', version: string = '1.0.0') {
     this.appName = appName;
     this.version = version;
@@ -60,14 +67,23 @@ export class SimpleCLI {
     this.http = new BackendClient();
   }
 
+  /**
+   * Instantiates a new SimpleCLI application with the specified name.
+   */
   public static new(appName: string): SimpleCLI {
     return new SimpleCLI(appName);
   }
 
+  /**
+   * Instantiates a new SimpleCLI application with the specified name and version string.
+   */
   public static newApp(appName: string, version: string): SimpleCLI {
     return new SimpleCLI(appName, version);
   }
 
+  /**
+   * Instantiates a SimpleCLI application whose name is inferred from the current script filename.
+   */
   public static initApp(): SimpleCLI {
     const scriptPath = process.argv[1] || 'app';
     const baseName = scriptPath.split(/[/\\]/).pop()?.replace(/\.(ts|js)$/, '') || 'SimpleCLI';
@@ -79,21 +95,33 @@ export class SimpleCLI {
   // Fluent Configuration
   // ===========================================================================
 
+  /**
+   * Sets the application version string and returns `this` for fluent chaining.
+   */
   public setVersion(ver: string): this {
     this.version = ver;
     return this;
   }
 
+  /**
+   * Sets the application author attribution and returns `this` for fluent chaining.
+   */
   public setAuthor(author: string): this {
     this.author = author;
     return this;
   }
 
+  /**
+   * Sets the application summary description shown in help and documentation output.
+   */
   public setDescription(desc: string): this {
     this.description = desc;
     return this;
   }
 
+  /**
+   * Enables or disables debug mode and updates the logger verbosity accordingly.
+   */
   public setDebug(debug: boolean): this {
     this.debugMode = debug;
     if (debug) {
@@ -102,12 +130,18 @@ export class SimpleCLI {
     return this;
   }
 
+  /**
+   * Enables or disables ANSI color output across UI helpers and the attached logger.
+   */
   public setNoColor(noColor: boolean): this {
     this.noColor = noColor;
     this.logger.setNoColor(noColor);
     return this;
   }
 
+  /**
+   * Enables or disables silent mode, suppressing standard terminal and logger output when active.
+   */
   public setSilent(silent: boolean): this {
     this.silentMode = silent;
     if (silent) {
@@ -116,11 +150,17 @@ export class SimpleCLI {
     return this;
   }
 
+  /**
+   * Sets the minimum log level for the application's logger.
+   */
   public setLogLevel(level: LogLevel | LogLevelName): this {
     this.logger.setLevel(level);
     return this;
   }
 
+  /**
+   * Configures a file path where plain-text log entries are appended alongside console output.
+   */
   public setLogFile(filePath: string): this {
     this.logger.setLogFile(filePath);
     return this;
@@ -130,36 +170,54 @@ export class SimpleCLI {
   // Flag Registration & CLI Parsing
   // ===========================================================================
 
+  /**
+   * Registers a string command-line flag with optional short alias, default value, and allowed choices.
+   */
   public addFlagString(name: string, short: string, defaultVal: string = '', desc: string = '', choices?: string[]): this {
     this.flagsDef.set(name, { name, short, kind: 'string', defaultVal, desc, choices });
     this.flagsVal.set(name, defaultVal);
     return this;
   }
 
+  /**
+   * Registers an integer command-line flag with optional short alias and default value.
+   */
   public addFlagInt(name: string, short: string, defaultVal: number = 0, desc: string = ''): this {
     this.flagsDef.set(name, { name, short, kind: 'int', defaultVal, desc });
     this.flagsVal.set(name, defaultVal);
     return this;
   }
 
+  /**
+   * Registers a floating-point command-line flag with optional short alias and default value.
+   */
   public addFlagFloat(name: string, short: string, defaultVal: number = 0.0, desc: string = ''): this {
     this.flagsDef.set(name, { name, short, kind: 'float', defaultVal, desc });
     this.flagsVal.set(name, defaultVal);
     return this;
   }
 
+  /**
+   * Registers a boolean command-line flag with optional short alias and default value.
+   */
   public addFlagBool(name: string, short: string, defaultVal: boolean = false, desc: string = ''): this {
     this.flagsDef.set(name, { name, short, kind: 'bool', defaultVal, desc });
     this.flagsVal.set(name, defaultVal);
     return this;
   }
 
+  /**
+   * Registers a repeatable string-array command-line flag with optional short alias and default array.
+   */
   public addFlagArray(name: string, short: string, defaultVal: string[] = [], desc: string = ''): this {
     this.flagsDef.set(name, { name, short, kind: 'array', defaultVal, desc });
     this.flagsVal.set(name, defaultVal);
     return this;
   }
 
+  /**
+   * Defines and registers a subcommand with an optional description and configuration callback.
+   */
   public command(
     name: string,
     descriptionOrSetup?: string | ((sub: SimpleCLI) => void),
@@ -184,15 +242,24 @@ export class SimpleCLI {
     return sub;
   }
 
+  /**
+   * Registers the callback handler invoked when this command or subcommand is executed via `run()`.
+   */
   public action(fn: CommandAction): this {
     this.actionHandler = fn;
     return this;
   }
 
+  /**
+   * Returns the map of registered subcommands keyed by subcommand name.
+   */
   public getSubcommands(): Map<string, SimpleCLI> {
     return this.subcommands;
   }
 
+  /**
+   * Returns a shallow object containing all currently parsed flag names and values.
+   */
   public getAllFlags(): Record<string, any> {
     const result: Record<string, any> = {};
     for (const [key, val] of this.flagsVal.entries()) {
@@ -201,6 +268,9 @@ export class SimpleCLI {
     return result;
   }
 
+  /**
+   * Finds the closest matching candidate string using Levenshtein distance for typo suggestions.
+   */
   public suggestMatch(input: string, choices: string[], maxDistance: number = 3): string | undefined {
     let bestMatch: string | undefined;
     let minDistance = Infinity;
@@ -223,11 +293,17 @@ export class SimpleCLI {
   }
 
 
+  /**
+   * Parses command-line arguments from `rawArgs` or `process.argv.slice(2)` and populates flag and positional state.
+   */
   public parseCli(rawArgs?: string[]): boolean {
     const args = rawArgs ?? process.argv.slice(2);
     return this.parseArgs(args);
   }
 
+  /**
+   * Parses command-line arguments, routes to any matched subcommand, and executes the registered action handler.
+   */
   public async run(rawArgs?: string[]): Promise<boolean> {
     const args = rawArgs ?? process.argv.slice(2);
     const parsed = this.parseArgs(args);
@@ -251,6 +327,9 @@ export class SimpleCLI {
     return true;
   }
 
+  /**
+   * Parses an explicit array of CLI argument tokens, handling built-in `--help`, `--version`, and `--completion` flags.
+   */
   public parseArgs(args: string[]): boolean {
     const shortToName = new Map<string, string>();
     for (const [name, opt] of this.flagsDef.entries()) {
@@ -377,30 +456,51 @@ export class SimpleCLI {
     }
   }
 
+  /**
+   * Returns the parsed string value for the specified flag name.
+   */
   public getFlagString(name: string): string {
     return String(this.flagsVal.get(name) ?? '');
   }
 
+  /**
+   * Returns the parsed integer value for the specified flag name.
+   */
   public getFlagInt(name: string): number {
     return Number(this.flagsVal.get(name) ?? 0);
   }
 
+  /**
+   * Returns the parsed floating-point value for the specified flag name.
+   */
   public getFlagFloat(name: string): number {
     return Number(this.flagsVal.get(name) ?? 0.0);
   }
 
+  /**
+   * Returns the parsed boolean value for the specified flag name.
+   */
   public getFlagBool(name: string): boolean {
     return Boolean(this.flagsVal.get(name) ?? false);
   }
 
+  /**
+   * Returns the parsed string array for the specified repeatable flag name.
+   */
   public getFlagArray(name: string): string[] {
     return (this.flagsVal.get(name) as string[]) ?? [];
   }
 
+  /**
+   * Returns the list of positional arguments collected during CLI parsing.
+   */
   public getPositionalArgs(): string[] {
     return this.posArgs;
   }
 
+  /**
+   * Prints formatted usage, command, and flag help information to standard output.
+   */
   public printHelp(): void {
     console.log(`\n${Ansi.bold(this.appName)} ${Ansi.cyan(`v${this.version}`)}`);
     if (this.description) {
@@ -458,6 +558,9 @@ export class SimpleCLI {
   // Console UI & ANSI Color RAD Components
   // ===========================================================================
 
+  /**
+   * Writes arguments to stdout without a trailing newline unless silent mode is enabled.
+   */
   public print(...args: any[]): void {
     if (!this.silentMode) {
       if (args.length === 0) return;
@@ -465,6 +568,9 @@ export class SimpleCLI {
     }
   }
 
+  /**
+   * Prints arguments to stdout with a trailing newline unless silent mode is enabled.
+   */
   public println(...args: any[]): void {
     if (!this.silentMode) {
       if (args.length === 0) console.log('');
@@ -472,53 +578,93 @@ export class SimpleCLI {
     }
   }
 
+  /** Applies bold styling to text unless `noColor` is enabled. */
   public bold(t: string): string { return this.noColor ? t : Ansi.bold(t); }
+  /** Applies dim/faint styling to text unless `noColor` is enabled. */
   public dim(t: string): string { return this.noColor ? t : Ansi.dim(t); }
+  /** Applies italic styling to text unless `noColor` is enabled. */
   public italic(t: string): string { return this.noColor ? t : Ansi.italic(t); }
+  /** Applies underline styling to text unless `noColor` is enabled. */
   public underline(t: string): string { return this.noColor ? t : Ansi.underline(t); }
+  /** Applies inverse foreground/background styling to text unless `noColor` is enabled. */
   public inverse(t: string): string { return this.noColor ? t : Ansi.inverse(t); }
+  /** Applies strikethrough styling to text unless `noColor` is enabled. */
   public strike(t: string): string { return this.noColor ? t : Ansi.strike(t); }
 
+  /** Colors text black unless `noColor` is enabled. */
   public black(t: string): string { return this.noColor ? t : Ansi.black(t); }
+  /** Colors text red unless `noColor` is enabled. */
   public red(t: string): string { return this.noColor ? t : Ansi.red(t); }
+  /** Colors text green unless `noColor` is enabled. */
   public green(t: string): string { return this.noColor ? t : Ansi.green(t); }
+  /** Colors text yellow unless `noColor` is enabled. */
   public yellow(t: string): string { return this.noColor ? t : Ansi.yellow(t); }
+  /** Colors text blue unless `noColor` is enabled. */
   public blue(t: string): string { return this.noColor ? t : Ansi.blue(t); }
+  /** Colors text magenta unless `noColor` is enabled. */
   public magenta(t: string): string { return this.noColor ? t : Ansi.magenta(t); }
+  /** Colors text cyan unless `noColor` is enabled. */
   public cyan(t: string): string { return this.noColor ? t : Ansi.cyan(t); }
+  /** Colors text white unless `noColor` is enabled. */
   public white(t: string): string { return this.noColor ? t : Ansi.white(t); }
+  /** Colors text gray unless `noColor` is enabled. */
   public gray(t: string): string { return this.noColor ? t : Ansi.gray(t); }
 
+  /** Colors text bright red unless `noColor` is enabled. */
   public brightRed(t: string): string { return this.noColor ? t : Ansi.brightRed(t); }
+  /** Colors text bright green unless `noColor` is enabled. */
   public brightGreen(t: string): string { return this.noColor ? t : Ansi.brightGreen(t); }
+  /** Colors text bright yellow unless `noColor` is enabled. */
   public brightYellow(t: string): string { return this.noColor ? t : Ansi.brightYellow(t); }
+  /** Colors text bright blue unless `noColor` is enabled. */
   public brightBlue(t: string): string { return this.noColor ? t : Ansi.brightBlue(t); }
+  /** Colors text bright magenta unless `noColor` is enabled. */
   public brightMagenta(t: string): string { return this.noColor ? t : Ansi.brightMagenta(t); }
+  /** Colors text bright cyan unless `noColor` is enabled. */
   public brightCyan(t: string): string { return this.noColor ? t : Ansi.brightCyan(t); }
+  /** Colors text bright white unless `noColor` is enabled. */
   public brightWhite(t: string): string { return this.noColor ? t : Ansi.brightWhite(t); }
 
+  /**
+   * Colors text with a 24-bit RGB foreground color unless `noColor` is enabled.
+   */
   public rgb(r: number, g: number, b: number, t: string): string {
     return this.noColor ? t : Ansi.rgb(r, g, b, t);
   }
 
+  /**
+   * Colors text with a `#RRGGBB` or `#RGB` hex color unless `noColor` is enabled.
+   */
   public hex(hexCode: string, t: string): string {
     return this.noColor ? t : Ansi.hex(hexCode, t);
   }
 
+  /**
+   * Colors text using HSL color values unless `noColor` is enabled.
+   */
   public hsl(h: number, s: number, l: number, t: string): string {
     return this.noColor ? t : Ansi.hsl(h, s, l, t);
   }
 
+  /**
+   * Prints a numbered step badge and bold title to the terminal.
+   */
   public step(num: number, title: string): void {
     const badge = this.noColor ? `[Step ${num}]` : Ansi.bgCyan(Ansi.black(` STEP ${num} `));
     this.println(`\n${badge} ${this.bold(title)}`);
   }
 
+  /**
+   * Prints a horizontal divider line across the terminal up to `width` columns.
+   */
   public divider(char: string = '─', width: number = 60): void {
     const cols = Math.min(width, process.stdout.columns || 80);
     this.println(this.dim(char.repeat(cols)));
   }
 
+  /**
+   * Prints a boxed banner header with a bold title and optional dimmed subtitle.
+   */
   public banner(title: string, subtitle: string = ''): void {
     const termWidth = Math.min(68, (process.stdout.columns || 80) - 4);
     const top = '┌' + '─'.repeat(termWidth) + '┐';
@@ -536,6 +682,9 @@ export class SimpleCLI {
     this.println(this.cyan(bot));
   }
 
+  /**
+   * Renders a titled box panel around multi-line text content.
+   */
   public panel(title: string, content: string): void {
     const termWidth = Math.min(64, (process.stdout.columns || 80) - 4);
     const top = `┌─ ${this.bold(title)} ${'─'.repeat(Math.max(0, termWidth - Ansi.stringWidth(title) - 4))}┐`;
@@ -549,10 +698,16 @@ export class SimpleCLI {
     this.println(`${this.cyan(bot)}\n`);
   }
 
+  /**
+   * Alias for `panel()` that renders a titled box card around multi-line text content.
+   */
   public card(title: string, content: string): void {
     this.panel(title, content);
   }
 
+  /**
+   * Prints a vertically aligned key-value dictionary to the terminal.
+   */
   public printKv(data: Record<string, any>): void {
     const keys = Object.keys(data);
     if (keys.length === 0) return;
@@ -566,6 +721,9 @@ export class SimpleCLI {
     }
   }
 
+  /**
+   * Renders an ASCII/Unicode box-drawing table with column headers and rows.
+   */
   public table(headers: string[], rows: (string | number | boolean)[][]): void {
     if (headers.length === 0 && rows.length === 0) return;
 
@@ -605,6 +763,9 @@ export class SimpleCLI {
     this.println(this.cyan(botBorder));
   }
 
+  /**
+   * Renders an in-place horizontal progress bar on stdout, printing a newline once `current >= total`.
+   */
   public progressBar(current: number, total: number, label: string = '', width: number = 30): void {
     if (this.silentMode) return;
     const ratio = Math.max(0, Math.min(1, total > 0 ? current / total : 0));
@@ -623,6 +784,9 @@ export class SimpleCLI {
     }
   }
 
+  /**
+   * Displays an animated Braille terminal spinner with a label for `durationMs` milliseconds.
+   */
   public async spinner(label: string, durationMs: number = 1000): Promise<void> {
     if (this.silentMode) return;
     const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
@@ -648,6 +812,9 @@ export class SimpleCLI {
     });
   }
 
+  /**
+   * Formats a numeric series into a single-line Unicode block sparkline string.
+   */
   public sparkline(values: number[]): string {
     if (values.length === 0) return '';
     const glyphs = [' ', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
@@ -663,6 +830,9 @@ export class SimpleCLI {
     }).join('');
   }
 
+  /**
+   * Prints a horizontal bar chart comparing labeled numeric values.
+   */
   public barChart(title: string, data: Record<string, number>, maxBarWidth: number = 30): void {
     this.println(`\n${this.bold(title)}`);
     const entries = Object.entries(data);
@@ -681,6 +851,9 @@ export class SimpleCLI {
     this.println('');
   }
 
+  /**
+   * Prints a threshold-colored meter gauge with a status badge (`OK`, `WARN`, or `CRITICAL`).
+   */
   public gauge(label: string, value: number, max: number, unit: string = ''): void {
     const ratio = Math.max(0, Math.min(1, max > 0 ? value / max : 0));
     const width = 20;
@@ -707,6 +880,9 @@ export class SimpleCLI {
     this.println(`  ${this.bold(label)}: ${bar} ${value}/${max}${unitStr} (${pct}%) ${badgeStr}`);
   }
 
+  /**
+   * Recursively prints a hierarchical `TreeNode` structure using box-drawing branch connectors.
+   */
   public tree(root: TreeNode, prefix: string = '', isLast: boolean = true): void {
     if (!prefix) {
       this.println(`${this.bold(this.cyan(root.label))}`);
@@ -723,6 +899,9 @@ export class SimpleCLI {
     }
   }
 
+  /**
+   * Computes a line-by-line colored unified diff string between `oldText` and `newText`.
+   */
   public diffText(oldText: string, newText: string): string {
     const oldLines = oldText.split('\n');
     const newLines = newText.split('\n');
@@ -747,10 +926,16 @@ export class SimpleCLI {
     return out.join('\n');
   }
 
+  /**
+   * Prints a line-by-line colored diff between `oldText` and `newText` to the terminal.
+   */
   public diff(oldText: string, newText: string): void {
     this.println(this.diffText(oldText, newText));
   }
 
+  /**
+   * Formats a two-segment pill badge with severity coloring (`INFO`, `SUCCESS`, `WARNING`, `CAUTION`, `TIP`).
+   */
   public badge(prefix: string, text: string, kind: AlertKind = AlertKind.INFO): string {
     if (this.noColor) return `[${prefix}: ${text}]`;
 
@@ -763,6 +948,9 @@ export class SimpleCLI {
     return `${Ansi.style(` ${prefix} `, Ansi.BG_GRAY + Ansi.WHITE)}${Ansi.style(` ${text} `, style)}`;
   }
 
+  /**
+   * Prints a highlighted callout alert block with a severity tag, bold title, and message body.
+   */
   public alert(kind: AlertKind, title: string, message: string): void {
     let tag = '[NOTE]';
     let colorFn = (t: string) => this.cyan(t);
@@ -786,6 +974,9 @@ export class SimpleCLI {
     this.println(`  ${this.dim(message)}\n`);
   }
 
+  /**
+   * Prints a single task status line with an icon (`DONE`, `RUNNING`, `FAILED`, `SKIPPED`) and optional duration.
+   */
   public taskItem(name: string, status: TaskStatus, durationMs: number = 0): void {
     let icon = '○';
     let statusText = '';
@@ -807,6 +998,9 @@ export class SimpleCLI {
     this.println(`  ${icon} ${name} ${statusText}`);
   }
 
+  /**
+   * Serializes tabular headers and rows into RFC 4180-compatible CSV text.
+   */
   public tableToCsv(headers: string[], rows: (string | number | boolean)[][]): string {
     const escape = (val: any) => {
       const s = String(val ?? '');
@@ -822,6 +1016,9 @@ export class SimpleCLI {
     return lines.join('\n');
   }
 
+  /**
+   * Formats tabular headers and rows into a GitHub Flavored Markdown table string.
+   */
   public tableToMarkdown(headers: string[], rows: (string | number | boolean)[][]): string {
     const colCount = Math.max(headers.length, ...rows.map(r => r.length));
     const lines: string[] = [];
@@ -834,6 +1031,9 @@ export class SimpleCLI {
     return lines.join('\n');
   }
 
+  /**
+   * Converts tabular headers and rows into a pretty-printed JSON array of objects keyed by header name.
+   */
   public tableToJson(headers: string[], rows: (string | number | boolean)[][]): string {
     const objects = rows.map(row => {
       const obj: Record<string, any> = {};
@@ -845,6 +1045,9 @@ export class SimpleCLI {
     return JSON.stringify(objects, null, 2);
   }
 
+  /**
+   * Applies ANSI syntax highlighting to a formatted JSON string unless `noColor` is enabled.
+   */
   public jsonHighlight(jsonStr: string): string {
     if (this.noColor) return jsonStr;
     return jsonStr.replace(
@@ -867,6 +1070,9 @@ export class SimpleCLI {
     );
   }
 
+  /**
+   * Renders basic Markdown headings, bullet lists, and blockquotes to the terminal with ANSI styling.
+   */
   public renderMarkdown(markdownText: string): void {
     const lines = markdownText.split('\n');
     for (const line of lines) {
@@ -890,46 +1096,79 @@ export class SimpleCLI {
   // Interactive Prompts Proxies
   // ===========================================================================
 
+  /**
+   * Prompts the user for a single line of text input with an optional default value.
+   */
   public prompt(message: string, defaultVal: string = ''): Promise<string> {
     return Prompts.prompt(message, defaultVal);
   }
 
+  /**
+   * Prompts the user for sensitive password input with masked terminal echo.
+   */
   public promptPassword(message: string): Promise<string> {
     return Prompts.promptPassword(message);
   }
 
+  /**
+   * Prompts the user for an email address, validating the format before resolving.
+   */
   public promptEmail(message: string, defaultVal: string = ''): Promise<string> {
     return Prompts.promptEmail(message, defaultVal);
   }
 
+  /**
+   * Prompts the user for a URL, validating `http://` or `https://` syntax before resolving.
+   */
   public promptUrl(message: string, defaultVal: string = ''): Promise<string> {
     return Prompts.promptUrl(message, defaultVal);
   }
 
+  /**
+   * Prompts the user for a numeric value within the optional `[min, max]` bounds.
+   */
   public promptNumber(message: string, defaultVal: number = 0, min: number = -Infinity, max: number = Infinity): Promise<number> {
     return Prompts.promptNumber(message, defaultVal, min, max);
   }
 
+  /**
+   * Prompts the user for a boolean yes/no confirmation.
+   */
   public confirm(message: string, defaultVal: boolean = false): Promise<boolean> {
     return Prompts.confirm(message, defaultVal);
   }
 
+  /**
+   * Displays an interactive single-choice menu and resolves with the selected choice string.
+   */
   public select(message: string, choices: string[], defaultIdx: number = 0): Promise<string> {
     return Prompts.select(message, choices, defaultIdx);
   }
 
+  /**
+   * Displays an interactive multi-choice selection menu and resolves with the selected items.
+   */
   public multiSelect(message: string, choices: string[], defaultSelected: number[] = []): Promise<string[]> {
     return Prompts.multiSelect(message, choices, defaultSelected);
   }
 
+  /**
+   * Displays an interactive fuzzy-filtered selection prompt and resolves with the chosen item.
+   */
   public fuzzySelect(message: string, choices: string[]): Promise<string> {
     return Prompts.fuzzySelect(message, choices);
   }
 
+  /**
+   * Prompts the user for a filesystem path validated against the requested `PathMode`.
+   */
   public promptPath(message: string, defaultVal: string = '', mode: PathMode = PathMode.ANY): Promise<string> {
     return Prompts.promptPath(message, defaultVal, mode);
   }
 
+  /**
+   * Runs a sequential multi-field terminal form and resolves with a map of field keys to string values.
+   */
   public form(title: string, fields: FormField[]): Promise<Record<string, string>> {
     return Prompts.form(title, fields);
   }
@@ -938,6 +1177,9 @@ export class SimpleCLI {
   // Task Pipeline
   // ===========================================================================
 
+  /**
+   * Creates a new sequential/parallel task `Pipeline` runner inheriting this app's color settings.
+   */
   public newPipeline(title: string): Pipeline {
     return new Pipeline(title, this.noColor);
   }
@@ -946,26 +1188,42 @@ export class SimpleCLI {
   // Multi-Level Logging
   // ===========================================================================
 
+  /** Logs a `TRACE`-level diagnostic message through the application logger. */
   public trace(msg: string, ...args: any[]): void { this.logger.trace(msg, ...args); }
+  /** Logs a `DEBUG`-level diagnostic message through the application logger. */
   public debug(msg: string, ...args: any[]): void { this.logger.debug(msg, ...args); }
+  /** Logs an `INFO`-level message through the application logger. */
   public info(msg: string, ...args: any[]): void { this.logger.info(msg, ...args); }
+  /** Logs a `SUCCESS`-level message through the application logger. */
   public success(msg: string, ...args: any[]): void { this.logger.success(msg, ...args); }
+  /** Logs a `WARN`-level message through the application logger. */
   public warn(msg: string, ...args: any[]): void { this.logger.warn(msg, ...args); }
+  /** Logs an `ERROR`-level message through the application logger. */
   public error(msg: string, ...args: any[]): void { this.logger.error(msg, ...args); }
+  /** Logs a `FATAL`-level error message and terminates the process with exit code `1`. */
   public fatal(msg: string, ...args: any[]): never { this.logger.fatal(msg, ...args); }
 
   // ===========================================================================
   // Benchmark & Execution Timing
   // ===========================================================================
 
+  /**
+   * Resets the internal high-resolution benchmark timer to the current timestamp.
+   */
   public resetTimer(): void {
     this.benchStart = performance.now();
   }
 
+  /**
+   * Returns the rounded number of milliseconds elapsed since app creation or the last `resetTimer()` call.
+   */
   public elapsedMs(): number {
     return Math.round(performance.now() - this.benchStart);
   }
 
+  /**
+   * Returns the number of seconds (to 3 decimal places) elapsed since app creation or the last `resetTimer()` call.
+   */
   public elapsedSeconds(): number {
     return Number(((performance.now() - this.benchStart) / 1000).toFixed(3));
   }
@@ -974,19 +1232,31 @@ export class SimpleCLI {
   // Reactive State Store & File Persistence
   // ===========================================================================
 
+  /**
+   * Sets a string value in the in-memory application state store and returns `this`.
+   */
   public setState(key: string, value: string): this {
     this.state[key] = value;
     return this;
   }
 
+  /**
+   * Retrieves a string value from the in-memory state store, or `defaultVal` if unset.
+   */
   public getState(key: string, defaultVal: string = ''): string {
     return this.state[key] ?? defaultVal;
   }
 
+  /**
+   * Returns a shallow copy of all key-value pairs stored in the application state.
+   */
   public getAllState(): Record<string, string> {
     return { ...this.state };
   }
 
+  /**
+   * Persists the in-memory state store as pretty-printed JSON to `filePath` with owner-only permissions.
+   */
   public saveState(filePath: string): void {
     const dir = dirname(filePath);
     if (!existsSync(dir)) {
@@ -995,6 +1265,9 @@ export class SimpleCLI {
     writeFileSync(filePath, JSON.stringify(this.state, null, 2), { encoding: 'utf8', mode: 0o600 });
   }
 
+  /**
+   * Loads persisted JSON state from `filePath` into the in-memory state store if the file exists.
+   */
   public loadState(filePath: string): void {
     if (!existsSync(filePath)) return;
     try {
@@ -1007,6 +1280,9 @@ export class SimpleCLI {
     }
   }
 
+  /**
+   * Resolves a default state file path inside `~/.<appName>/<fileName>`.
+   */
   public getAppStateFile(appName: string, fileName: string = 'state.json'): string {
     const dir = resolve(homedir(), `.${appName.toLowerCase()}`);
     return resolve(dir, fileName);
@@ -1016,6 +1292,9 @@ export class SimpleCLI {
   // Namespaced Redis Client Helper
   // ===========================================================================
 
+  /**
+   * Creates a `NamespacedRedis` client scoped to `namespace` (or a sanitized slug of `appName`).
+   */
   public redis(namespace?: string, options?: Omit<NamespacedRedisOptions, 'namespace'>): NamespacedRedis {
     const ns = namespace || this.appName.toLowerCase().replace(/[^a-z0-9_-]/g, '_');
     return new NamespacedRedis({
@@ -1029,6 +1308,9 @@ export class SimpleCLI {
   // Interactive File Picker Proxy
   // ===========================================================================
 
+  /**
+   * Launches an interactive terminal directory browser and file picker, resolving with the chosen path.
+   */
   public filePicker(message?: string, options?: FilePickerOptions): Promise<string> {
     return Prompts.filePicker(message, options);
   }
@@ -1037,6 +1319,9 @@ export class SimpleCLI {
   // Shell Auto-Completion Generator
   // ===========================================================================
 
+  /**
+   * Generates a shell completion script (`zsh`, `bash`, or `fish`) for all registered commands and flags.
+   */
   public generateCompletions(shell: ShellType = 'zsh'): string {
     const commands = Array.from(this.subcommands.entries()).map(([k, v]) => ({ name: k, desc: v.description }));
     const flags: string[] = [];
@@ -1090,6 +1375,9 @@ complete -F _${this.appName.toLowerCase()}_completions ${this.appName.toLowerCas
   // Smart Output & Pipe Auto-Detection
   // ===========================================================================
 
+  /**
+   * Outputs structured data as a rich table/key-value view on interactive TTYs or as JSON when piped or `--json` is set.
+   */
   public output(data: any, options?: { format?: OutputFormat; title?: string }): void {
     const isJsonRequested = this.getFlagBool('json') || options?.format === 'json';
     const isPiped = !process.stdout.isTTY;
@@ -1126,6 +1414,9 @@ complete -F _${this.appName.toLowerCase()}_completions ${this.appName.toLowerCas
   // Pretty Error Formatter & Global Error Handling
   // ===========================================================================
 
+  /**
+   * Formats an `Error` or unknown thrown value with colored message headers and dimmed internal stack frames.
+   */
   public formatError(err: unknown): string {
     const error = err instanceof Error ? err : new Error(String(err));
     const title = `✖ ${error.name || 'Error'}: ${error.message}`;
@@ -1143,6 +1434,9 @@ complete -F _${this.appName.toLowerCase()}_completions ${this.appName.toLowerCas
     return `${this.red(this.bold(title))}${stackClean}`;
   }
 
+  /**
+   * Registers global `uncaughtException` and `unhandledRejection` handlers that pretty-print errors and exit with code `1`.
+   */
   public handleErrors(): this {
     process.on('uncaughtException', (err) => {
       console.error(`\n${this.formatError(err)}`);
@@ -1159,6 +1453,9 @@ complete -F _${this.appName.toLowerCase()}_completions ${this.appName.toLowerCas
   // Markdown Documentation & Man-Page Generator
   // ===========================================================================
 
+  /**
+   * Generates Markdown reference documentation covering application usage, flags, and subcommands.
+   */
   public generateMarkdownDocs(): string {
     let md = `# \`${this.appName}\`\n\n`;
     if (this.description) md += `> ${this.description}\n\n`;
@@ -1200,6 +1497,9 @@ complete -F _${this.appName.toLowerCase()}_completions ${this.appName.toLowerCas
     return md;
   }
 
+  /**
+   * Generates a `roff` manual page (`man` section 1) describing the CLI application, options, and subcommands.
+   */
   public generateManPage(): string {
     const appUpper = this.appName.toUpperCase();
     const date = new Date().toISOString().slice(0, 10);
@@ -1234,50 +1534,86 @@ complete -F _${this.appName.toLowerCase()}_completions ${this.appName.toLowerCas
   // Bun System & File Helpers
   // ===========================================================================
 
+  /**
+   * Resolves the absolute path to an executable binary on `PATH`, or `null` if not found.
+   */
   public which(binName: string): string | null {
     return Sys.which(binName);
   }
 
+  /**
+   * Checks whether the given executable binary exists on the system `PATH`.
+   */
   public hasBinary(binName: string): boolean {
     return Sys.hasBinary(binName);
   }
 
+  /**
+   * Asynchronously pauses execution for `ms` milliseconds.
+   */
   public async sleep(ms: number): Promise<void> {
     return Sys.sleep(ms);
   }
 
+  /**
+   * Asynchronously reads the UTF-8 text contents of `filePath`.
+   */
   public async readFile(filePath: string): Promise<string> {
     return Sys.readText(filePath);
   }
 
+  /**
+   * Synchronously reads the UTF-8 text contents of `filePath`.
+   */
   public readFileSync(filePath: string): string {
     return Sys.readTextSync(filePath);
   }
 
+  /**
+   * Asynchronously reads and parses a JSON file, returning `fallback` if reading or parsing fails.
+   */
   public async readJson<T = any>(filePath: string, fallback?: T): Promise<T> {
     return Sys.readJson<T>(filePath, fallback);
   }
 
+  /**
+   * Asynchronously writes string or binary data to `filePath` and returns the number of bytes written.
+   */
   public async writeFile(filePath: string, content: string | Uint8Array): Promise<number> {
     return Sys.write(filePath, content);
   }
 
+  /**
+   * Asynchronously serializes `data` as JSON and writes it to `filePath`.
+   */
   public async writeJson(filePath: string, data: any, indent: number = 2): Promise<number> {
     return Sys.writeJson(filePath, data, indent);
   }
 
+  /**
+   * Executes a synchronous function and measures its elapsed execution time in milliseconds and nanoseconds.
+   */
   public measure<T>(fn: () => T): { result: T; durationMs: number; durationNs: number } {
     return Sys.measure(fn);
   }
 
+  /**
+   * Executes an asynchronous function and measures its elapsed execution time in milliseconds and nanoseconds.
+   */
   public async measureAsync<T>(fn: () => Promise<T>): Promise<{ result: T; durationMs: number; durationNs: number }> {
     return Sys.measureAsync(fn);
   }
 
+  /**
+   * Starts a local Bun HTTP server serving static files from `directory`.
+   */
   public serveStatic(directory: string, port: number = 3000, hostname: string = '127.0.0.1'): any {
     return Sys.serveStatic(directory, port, hostname);
   }
 
+  /**
+   * Starts a local Bun HTTP server responding with JSON from a route map or request handler.
+   */
   public serveJson(
     routesOrHandler: Record<string, any> | ((req: Request) => any),
     port: number = 3000,
@@ -1286,10 +1622,16 @@ complete -F _${this.appName.toLowerCase()}_completions ${this.appName.toLowerCas
     return Sys.serveJson(routesOrHandler, port, hostname);
   }
 
+  /**
+   * Polls a TCP `host:port` endpoint until a connection succeeds or `timeoutMs` elapses.
+   */
   public waitForPort(host: string, port: number, timeoutMs: number = 10000, intervalMs: number = 200): Promise<boolean> {
     return Sys.waitForPort(host, port, timeoutMs, intervalMs);
   }
 
+  /**
+   * Polls an HTTP URL until it responds (optionally matching `expectedStatus`) or `timeoutMs` elapses.
+   */
   public waitForHttp(
     url: string,
     timeoutMs: number = 10000,
@@ -1303,22 +1645,37 @@ complete -F _${this.appName.toLowerCase()}_completions ${this.appName.toLowerCas
   // Backend & REST API Client Ergonomics
   // ===========================================================================
 
+  /**
+   * Creates a new `BackendClient` configured with the given base URL or client options.
+   */
   public api(baseUrlOrOptions?: string | BackendClientOptions): BackendClient {
     return new BackendClient(baseUrlOrOptions);
   }
 
+  /**
+   * Alias for `api()` that creates a new `BackendClient` instance.
+   */
   public client(baseUrlOrOptions?: string | BackendClientOptions): BackendClient {
     return new BackendClient(baseUrlOrOptions);
   }
 
+  /**
+   * Performs a simple HTTP `GET` request and resolves with the response body as a string.
+   */
   public httpGet(url: string, headers: Record<string, string> = {}): Promise<string> {
     return Stdlib.httpGet(url, headers);
   }
 
+  /**
+   * Performs a simple HTTP `POST` request with a string or JSON body and resolves with the response text.
+   */
   public httpPost(url: string, body: string | object, headers: Record<string, string> = {}): Promise<string> {
     return Stdlib.httpPost(url, body, headers);
   }
 
+  /**
+   * Executes a full-featured HTTP request and resolves with a structured `BackendResponse<T>`.
+   */
   public httpRequest<T = any>(
     method: string,
     url: string,
@@ -1328,6 +1685,9 @@ complete -F _${this.appName.toLowerCase()}_completions ${this.appName.toLowerCas
     return Stdlib.httpRequest<T>(method, url, body, headersOrOptions);
   }
 
+  /**
+   * Performs an HTTP `GET` request and resolves directly with the parsed JSON payload.
+   */
   public httpGetJson<T = any>(
     url: string,
     headersOrOptions?: Record<string, string> | RequestOptions
@@ -1335,6 +1695,9 @@ complete -F _${this.appName.toLowerCase()}_completions ${this.appName.toLowerCas
     return Stdlib.httpGetJson<T>(url, headersOrOptions);
   }
 
+  /**
+   * Performs an HTTP `POST` request with a JSON payload and resolves with the parsed JSON response.
+   */
   public httpPostJson<T = any>(
     url: string,
     body?: any,
@@ -1343,6 +1706,9 @@ complete -F _${this.appName.toLowerCase()}_completions ${this.appName.toLowerCas
     return Stdlib.httpPostJson<T>(url, body, headersOrOptions);
   }
 
+  /**
+   * Performs an HTTP `PUT` request with a JSON payload and resolves with the parsed JSON response.
+   */
   public httpPutJson<T = any>(
     url: string,
     body?: any,
@@ -1351,6 +1717,9 @@ complete -F _${this.appName.toLowerCase()}_completions ${this.appName.toLowerCas
     return Stdlib.httpPutJson<T>(url, body, headersOrOptions);
   }
 
+  /**
+   * Performs an HTTP `PATCH` request with a JSON payload and resolves with the parsed JSON response.
+   */
   public httpPatchJson<T = any>(
     url: string,
     body?: any,
@@ -1359,6 +1728,9 @@ complete -F _${this.appName.toLowerCase()}_completions ${this.appName.toLowerCas
     return Stdlib.httpPatchJson<T>(url, body, headersOrOptions);
   }
 
+  /**
+   * Performs an HTTP `DELETE` request and resolves with the parsed JSON response.
+   */
   public httpDeleteJson<T = any>(
     url: string,
     headersOrOptions?: Record<string, string> | RequestOptions
@@ -1366,6 +1738,9 @@ complete -F _${this.appName.toLowerCase()}_completions ${this.appName.toLowerCas
     return Stdlib.httpDeleteJson<T>(url, headersOrOptions);
   }
 
+  /**
+   * Downloads a remote resource to `destPath`, invoking `onProgress` with byte counts as chunks arrive.
+   */
   public downloadFile(
     url: string,
     destPath: string,
@@ -1378,6 +1753,9 @@ complete -F _${this.appName.toLowerCase()}_completions ${this.appName.toLowerCas
   // Standalone Single-Binary Compilation
   // ===========================================================================
 
+  /**
+   * Compiles a TypeScript/JavaScript entrypoint into a standalone executable binary via `bun build --compile`.
+   */
   public static async compileBinary(entrypoint: string, outName: string, target?: string): Promise<boolean> {
     const args = ['build', '--compile', entrypoint, '--outfile', outName];
     if (target) {

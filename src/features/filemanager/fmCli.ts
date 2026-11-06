@@ -31,6 +31,7 @@ async function computeFileDigests(ctx: FmContext, targetPath: string) {
   };
 }
 
+/** Custom standard output/error writers, working directory, and context options for running the File Manager CLI in tests or headless mode. */
 export interface FmCliIo {
   stdout?: (line: string) => void;
   stderr?: (line: string) => void;

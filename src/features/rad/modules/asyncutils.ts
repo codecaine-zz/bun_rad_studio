@@ -1,4 +1,11 @@
+/**
+ * Asynchronous concurrency primitives including bounded `parallelMap`/`parallelFilter`/`parallelEach`,
+ * Go-style `WaitGroup`, `timeoutPromise`, and a bounded `WorkerPool`.
+ */
 // Coordinator: Bounded concurrency map preserving original index order
+/**
+ * Maps `items` asynchronously with at most `concurrency` in-flight tasks, preserving input order.
+ */
 export async function parallelMap<T, R>(
   items: T[],
   concurrency: number,
@@ -22,6 +29,9 @@ export async function parallelMap<T, R>(
 }
 
 // Coordinator: Bounded concurrency filter
+/**
+ * Filters `items` using an async `predicate` with at most `concurrency` concurrent evaluations.
+ */
 export async function parallelFilter<T>(
   items: T[],
   concurrency: number,
@@ -32,6 +42,9 @@ export async function parallelFilter<T>(
 }
 
 // Coordinator: Bounded concurrency iteration
+/**
+ * Executes async callback `fn` for each item in `items` with at most `concurrency` concurrent tasks.
+ */
 export async function parallelEach<T>(
   items: T[],
   concurrency: number,
@@ -41,12 +54,18 @@ export async function parallelEach<T>(
 }
 
 // Synchronization primitive: WaitGroup
+/**
+ * Go-inspired synchronization counter that resolves `wait()` when all `add()`ed tasks have called `done()`.
+ */
 export interface WaitGroup {
   add(delta?: number): void;
   done(): void;
   wait(): Promise<void>;
 }
 
+/**
+ * Creates a new {@link WaitGroup} synchronization primitive.
+ */
 export function createWaitGroup(): WaitGroup {
   let counter = 0;
   let resolveFn: (() => void) | null = null;
@@ -75,6 +94,9 @@ export function createWaitGroup(): WaitGroup {
 }
 
 // Coordinator: Timeout wrapper for Promise
+/**
+ * Races `promise` against a timer of `ms` milliseconds, rejecting with `errorMsg` if the timer fires first.
+ */
 export function timeoutPromise<T>(
   promise: Promise<T>,
   ms: number,
@@ -95,16 +117,26 @@ export function timeoutPromise<T>(
 }
 
 // Generic bounded WorkerPool
+/**
+ * Bounded async task queue that runs at most `concurrency` submitted tasks simultaneously.
+ */
 export class WorkerPool {
   private running = 0;
   private queue: (() => void)[] = [];
   readonly concurrency: number;
 
+  /**
+   * Creates a worker pool with a maximum concurrency limit.
+   * @param concurrency - Maximum number of tasks allowed to run in parallel (must be > 0).
+   */
   constructor(concurrency: number) {
     if (concurrency <= 0) throw new Error("[asyncutils] Concurrency must be > 0");
     this.concurrency = concurrency;
   }
 
+  /**
+   * Submits an async `task` to the pool and returns a promise for its result.
+   */
   submit<T>(task: () => Promise<T>): Promise<T> {
     return new Promise<T>((resolve, reject) => {
       const execute = async () => {
@@ -131,6 +163,9 @@ export class WorkerPool {
     });
   }
 
+  /**
+   * Waits until all currently running and queued tasks in the pool have completed.
+   */
   async waitAll(): Promise<void> {
     while (this.running > 0 || this.queue.length > 0) {
       await Bun.sleep(10);
@@ -138,6 +173,9 @@ export class WorkerPool {
   }
 }
 
+/**
+ * Namespace of asynchronous concurrency utilities (`parallelMap`, `parallelFilter`, `parallelEach`, `createWaitGroup`, `timeoutPromise`, `WorkerPool`).
+ */
 export const asyncutils = {
   parallelMap,
   parallelFilter,

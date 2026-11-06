@@ -1,3 +1,6 @@
+/**
+ * Resource directory resolution utilities for studios that serve static HTML and assets from disk.
+ */
 import { existsSync } from "fs";
 import { join } from "path";
 

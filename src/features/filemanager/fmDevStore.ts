@@ -10,11 +10,15 @@ import { FmError } from "./fmPaths";
 import type { LangRow, StatsTotals } from "./fmDevTypes";
 import { sumTotals } from "./fmDevTypes";
 
+/** Maximum number of saved code-statistics snapshots retained on disk. */
 export const MAX_SNAPSHOTS = 50;
+/** Maximum number of language rows stored within a single saved code-statistics snapshot. */
 export const MAX_SNAPSHOT_LANGUAGES = 400;
+/** Maximum character length of a saved snapshot display name. */
 export const MAX_SNAPSHOT_NAME = 60;
 const FILE_NAME = "file_manager_dev_snapshots.json";
 
+/** Saved point-in-time code statistics snapshot for comparing line-count deltas over time. */
 export interface Snapshot {
   id: string;
   name: string;
@@ -52,6 +56,7 @@ export function validateSnapshot(raw: unknown): Snapshot | null {
 const storeFile = (ctx: FmContext) => nodePath.join(ctx.dataDir, FILE_NAME);
 let queue: Promise<unknown> = Promise.resolve();
 
+/** Loads and sanitizes all saved code-statistics snapshots from the app data directory. */
 export async function loadSnapshots(ctx: FmContext): Promise<Snapshot[]> {
   try {
     const parsed = JSON.parse(await fsp.readFile(storeFile(ctx), "utf8"));
@@ -77,12 +82,14 @@ function locked<T>(fn: () => Promise<T>): Promise<T> {
   return run;
 }
 
+/** Sanitizes and validates a user-provided snapshot name, throwing `BAD_NAME` if empty. */
 export function cleanName(input: unknown): string {
   const name = typeof input === "string" ? input.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim() : "";
   if (!name) throw new FmError("BAD_NAME", "Give the snapshot a name.");
   return name.slice(0, MAX_SNAPSHOT_NAME);
 }
 
+/** Saves a new code-statistics snapshot and prunes oldest entries beyond `MAX_SNAPSHOTS`. */
 export function saveSnapshot(ctx: FmContext, input: { name: unknown; root: string; engine: string; languages: LangRow[] }): Promise<Snapshot> {
   const name = cleanName(input.name);
   return locked(async () => {
@@ -97,6 +104,7 @@ export function saveSnapshot(ctx: FmContext, input: { name: unknown; root: strin
   });
 }
 
+/** Deletes a saved code-statistics snapshot by ID and returns true if an entry was removed. */
 export function deleteSnapshot(ctx: FmContext, id: unknown): Promise<boolean> {
   return locked(async () => {
     const all = await loadSnapshots(ctx);
@@ -107,6 +115,7 @@ export function deleteSnapshot(ctx: FmContext, id: unknown): Promise<boolean> {
   });
 }
 
+/** Per-language line and file count delta between a baseline snapshot (or folder) and current stats. */
 export interface DiffRow {
   name: string;
   status: "added" | "removed" | "changed" | "same";

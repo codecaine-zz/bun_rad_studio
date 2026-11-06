@@ -82,6 +82,9 @@ export function nonPublicReason(ip: string): string | null {
 // Limiting and pacing
 // ---------------------------------------------------------------------------------------------------------------
 
+/**
+ * Concurrency semaphore that bounds the number of in-flight asynchronous operations and honors `AbortSignal`.
+ */
 export interface Limiter {
   /** Waits for a free slot, runs `fn`, frees the slot. Resolves to `undefined` without running `fn` when `signal` is aborted first. */
   run<T>(fn: () => Promise<T>, signal?: AbortSignal): Promise<T | undefined>;
@@ -161,7 +164,13 @@ export const sharedLimiter: Limiter = createLimiter(16);
 // Reading answers with a size limit
 // ---------------------------------------------------------------------------------------------------------------
 
+/**
+ * Error thrown by `readCappedText` when an HTTP response body exceeds the configured byte limit.
+ */
 export class TooLargeError extends Error {
+  /**
+   * Creates a `TooLargeError` recording the maximum `limit` in bytes that was exceeded.
+   */
   constructor(readonly limit: number) {
     super(`The answer was larger than ${limit} bytes.`);
     this.name = "TooLargeError";
@@ -254,6 +263,9 @@ export function realTcp(ip: string, port: number, timeoutMs: number, signal?: Ab
   });
 }
 
+/**
+ * Parameters for a single pinned-IP HTTP/HTTPS `GET /` probe request.
+ */
 export interface HttpRequest {
   scheme: "http" | "https";
   host: string;
@@ -266,6 +278,9 @@ export interface HttpRequest {
   verifyTls?: boolean;
 }
 
+/**
+ * Parsed HTTP response status, redirect `location`, `contentType`, and truncated text `body` from a probe request.
+ */
 export interface HttpAnswer {
   status: number;
   location?: string;
@@ -274,8 +289,14 @@ export interface HttpAnswer {
   body: string;
 }
 
+/**
+ * Function signature for performing a single pinned-IP HTTP/HTTPS probe request.
+ */
 export type HttpClient = (req: HttpRequest) => Promise<HttpAnswer>;
 
+/**
+ * Maximum header and body byte counts read by `realHttp` before closing the socket.
+ */
 export const HTTP_LIMITS = { headerBytes: 16 * 1024, bodyBytes: 64 * 1024 } as const;
 
 /** Decodes a chunked body prefix; stops quietly at the first thing that doesn't parse. */

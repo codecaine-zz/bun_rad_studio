@@ -1,3 +1,7 @@
+/**
+ * Unit tests for `tokei` helper functions, covering language detection, line
+ * classification, aggregation, sorting, and output formatters.
+ */
 import { describe, expect, it } from "bun:test";
 import {
   aggregateStats,

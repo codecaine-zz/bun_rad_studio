@@ -5,8 +5,10 @@
 import { createHash, createHmac, randomInt, timingSafeEqual } from "node:crypto";
 import * as fs from "node:fs";
 
+/** Tuple of `[algorithmLabel, hexDigest]` representing a computed hash row. */
 export type HashRow = [string, string];
 
+/** Supported hash algorithms computed in parallel when hashing a file. */
 export const FILE_HASH_ALGOS: { label: string; algo: string }[] = [
   { label: "SHA-256", algo: "sha256" },
   { label: "SHA-512", algo: "sha512" },
@@ -46,6 +48,7 @@ export function matchChecksum(expectedRaw: string, rows: HashRow[]): { match: st
   return { match: null, normalized };
 }
 
+/** Character set and length options for generating random passwords. */
 export interface PasswordOptions {
   length: number;
   lower?: boolean;
@@ -62,6 +65,7 @@ const DIGITS = "0123456789";
 const SYMBOLS = "!@#$%^&*()-_=+[]{};:,.?";
 const AMBIGUOUS = /[O0oIl1|`'"]/g;
 
+/** Clamps a requested password length to the valid integer range `[4, 256]`, defaulting to `20`. */
 export function clampPasswordLength(n: number): number {
   if (!Number.isFinite(n)) return 20;
   return Math.max(4, Math.min(256, Math.floor(n)));
@@ -87,10 +91,12 @@ export function generatePassword(opts: PasswordOptions, rand: (max: number) => n
   return out.slice(0, len).join("");
 }
 
+/** Encodes a UTF-8 string into standard Base64. */
 export function toBase64(s: string): string {
   return Buffer.from(s, "utf8").toString("base64");
 }
 
+/** Decodes a standard or URL-safe Base64 string into UTF-8 text, throwing on invalid input. */
 export function fromBase64(s: string): string {
   const t = s.trim().replace(/\s+/g, "");
   if (!t) throw new Error("Nothing to decode");
@@ -98,10 +104,12 @@ export function fromBase64(s: string): string {
   return Buffer.from(t.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
 }
 
+/** Encodes a UTF-8 string into a lowercase hexadecimal string. */
 export function toHex(s: string): string {
   return Buffer.from(s, "utf8").toString("hex");
 }
 
+/** Decodes a hexadecimal string (ignoring whitespace, `0x` prefixes, and colons) into UTF-8 text. */
 export function fromHex(s: string): string {
   const t = s.trim().replace(/^0x/i, "").replace(/[\s:]/g, "");
   if (!t) throw new Error("Nothing to decode");

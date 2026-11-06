@@ -3,6 +3,7 @@
  * Everything here works on text and never uses floating point for numbers, so no digit is changed.
  */
 
+/** Component order for ambiguous numeric date strings (Year-Month-Day, Day-Month-Year, or Month-Day-Year). */
 export type DateOrder = "YMD" | "DMY" | "MDY";
 
 const MONTHS: Record<string, number> = {
@@ -10,6 +11,7 @@ const MONTHS: Record<string, number> = {
   aug: 8, august: 8, sep: 9, sept: 9, september: 9, oct: 10, october: 10, nov: 11, november: 11, dec: 12, december: 12,
 };
 
+/** Decomposed calendar date and optional time-of-day parsed from human-entered text. */
 export interface ParsedDate {
   y: number;
   m: number;
@@ -20,6 +22,7 @@ export interface ParsedDate {
   ambiguous?: boolean;
 }
 
+/** Returns the number of days in month `m` (1..12) of Gregorian year `y`. */
 export function daysInMonth(y: number, m: number): number {
   return m === 2 ? (y % 4 === 0 && (y % 100 !== 0 || y % 400 === 0) ? 29 : 28) : [4, 6, 9, 11].includes(m) ? 30 : 31;
 }
@@ -113,8 +116,10 @@ export function parseDate(text: string, order: DateOrder | "auto" = "auto"): Par
   return null;
 }
 
+/** Formats a `ParsedDate` into an ISO `YYYY-MM-DD` date string. */
 export const formatDate = (p: ParsedDate): string => `${pad(p.y, 4)}-${pad(p.m)}-${pad(p.d)}`;
 
+/** Formats a `ParsedDate` into an ISO-like `YYYY-MM-DD HH:MM:SS` timestamp string with optional fraction and timezone. */
 export function formatDateTime(p: ParsedDate): string {
   const t = p.time ?? { h: 0, mi: 0, s: 0, frac: "" };
   return `${formatDate(p)} ${pad(t.h)}:${pad(t.mi)}:${pad(t.s)}${t.frac ? "." + t.frac : ""}${p.tz && p.tz !== "Z" ? p.tz : p.tz ?? ""}`;
@@ -145,6 +150,7 @@ export function detectDateOrder(values: string[]): { order: DateOrder | "unknown
   return { order: "unknown", iso: false };
 }
 
+/** Decimal and thousands-separator convention used when parsing formatted numbers (`us`, `eu`, or `auto`). */
 export type NumberLocale = "us" | "eu" | "auto";
 
 /**
@@ -225,12 +231,15 @@ export function parseBoolean(text: string): "true" | "false" | null {
   return null;
 }
 
+/** Converts text to Title Case while preserving word separators and punctuation. */
 export function titleCase(text: string): string {
   return text.toLowerCase().replace(/(^|[\s\-'’(/])(\p{L})/gu, (_m, a: string, b: string) => a + b.toUpperCase());
 }
 
+/** Logical data type inferred from a sample of column values. */
 export type InferredKind = "integer" | "decimal" | "boolean" | "date" | "timestamp" | "uuid" | "json" | "text";
 
+/** Statistical and type inference summary computed from a sample of values in a source column. */
 export interface InferredColumn {
   kind: InferredKind;
   nullable: boolean;

@@ -17,13 +17,16 @@
 import { randomBytes } from "crypto";
 import { promises as fsp } from "fs";
 
+/** Lifecycle status of a background job in the JobHub. */
 export type JobState = "waiting" | "running" | "done" | "failed" | "cancelled";
+/** Execution status of an individual step within a background job. */
 export type StepState = "waiting" | "running" | "done" | "failed" | "skipped";
 /** Why a step is "skipped": the person cancelled, or chose to leave that item alone. Only the first kind is retried. */
 export type SkipReason = "cancelled" | "policy";
 
 /** Thrown by a step's `work` to say "I chose not to do this item" (for example the person picked Skip for a name clash). */
 export class StepSkip extends Error {
+  /** Creates a `StepSkip` error with the human-readable reason why the item was skipped. */
   constructor(message: string) {
     super(message);
     this.name = "StepSkip";
@@ -58,6 +61,7 @@ export interface StepItem {
   files: number | null;
 }
 
+/** Prepared execution hooks and command arguments for a single job step. */
 export interface PreparedStep {
   /** The program to run. Left out for a step that does its work in this process (see `work`). */
   argv?: string[];
@@ -69,6 +73,7 @@ export interface PreparedStep {
   cleanup?: () => Promise<void>;
 }
 
+/** Specification for a single step within a background job. */
 export interface JobStepSpec {
   label: string;
   argv?: string[];
@@ -89,6 +94,7 @@ export interface JobStepSpec {
   explain?: (errorText: string, exitCode: number | null) => string;
 }
 
+/** Definition of a multi-step background job submitted to the JobHub. */
 export interface JobSpec {
   kind: "convert" | "install" | "permissions" | "graveyard" | "copy" | "move" | "rename" | "delete" | "mixed";
   title: string;
@@ -97,6 +103,7 @@ export interface JobSpec {
   retryable?: boolean;
 }
 
+/** Publicly observable status and outcome of a single job step. */
 export interface StepView {
   label: string;
   state: StepState;
@@ -106,6 +113,7 @@ export interface StepView {
   skipReason: SkipReason | null;
 }
 
+/** Aggregate file and byte progress counters for a running or completed job. */
 export interface JobProgress {
   /** True while the items are being sized, before anything is changed. */
   measuring: boolean;
@@ -116,6 +124,7 @@ export interface JobProgress {
   filesTotal: number | null;
 }
 
+/** Snapshot of a background job's state, step statuses, progress, and recent log output. */
 export interface JobView {
   id: string;
   kind: JobSpec["kind"];
@@ -152,6 +161,7 @@ export interface JobHooks {
   onFinish?: (view: JobView) => void | Promise<void>;
 }
 
+/** Manager that queues, runs, monitors, cancels, and retries background jobs. */
 export interface JobHub {
   start(spec: JobSpec): JobView;
   /** Runs again only the steps of a finished job that failed or were cancelled. Returns null if there is nothing to retry. */
@@ -200,6 +210,7 @@ interface InternalJob {
   release: () => void;
 }
 
+/** Creates a `JobHub` that runs at most `maxRunning` jobs concurrently and notifies optional `hooks`. */
 export function createJobHub(maxRunning = 2, hooks: JobHooks = {}): JobHub {
   const jobs: InternalJob[] = [];
   let running = 0;

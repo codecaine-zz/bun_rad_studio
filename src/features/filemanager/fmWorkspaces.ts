@@ -27,8 +27,11 @@ import { FmError, isSameOrInside } from "./fmPaths";
 import { loadHistory, type HistoryEntry } from "./fmOpHistory";
 import { makeFile } from "./fmOps";
 
+/** Current schema version for persisted and exported File Manager workspace files. */
 export const WORKSPACE_VERSION = 1;
+/** Format identifier string stored in exported `.workspace.json` files. */
 export const WORKSPACE_FORMAT = "bun-rad-file-manager-workspace";
+/** Maximum number of saved workspaces permitted per File Manager instance. */
 export const MAX_WORKSPACES = 100;
 const MAX_FOLDERS = 40;
 const MAX_COMMANDS = 30;
@@ -36,6 +39,7 @@ const MAX_IGNORE = 200;
 const MAX_IMPORT_BYTES = 256 * 1024;
 const VIEWS = ["files", "home", "tools", "split", "dual"] as const;
 
+/** A favorite single-line shell command stored in a workspace (never auto-executed by the server). */
 export interface WorkspaceCommand {
   id: string;
   label: string;
@@ -45,12 +49,14 @@ export interface WorkspaceCommand {
   trusted: boolean;
 }
 
+/** Reference to a saved database connection associated with a workspace (stores no credentials). */
 export interface WorkspaceDatabaseRef {
   id: string;
   name: string;
   engine: string;
 }
 
+/** Saved search and filter settings remembered as part of a workspace. */
 export interface WorkspaceSearch {
   pattern: string;
   mode: string;
@@ -64,6 +70,7 @@ export interface WorkspaceSearch {
   noIgnore: boolean;
 }
 
+/** Complete persisted File Manager workspace definition. */
 export interface Workspace {
   id: string;
   name: string;
@@ -194,6 +201,7 @@ function commandOf(ctx: FmContext, raw: unknown, mode: Mode, previous?: Workspac
   return { id: idOf(c.id), label, command, cwd, trusted };
 }
 
+/** Validates, normalizes, and strips any suspected secrets from an incoming or stored workspace object. */
 export function sanitizeWorkspace(ctx: FmContext, raw: unknown, options: { mode: Mode; previous?: Workspace }): Workspace {
   if (!raw || typeof raw !== "object") throw new FmError("BAD_REQUEST", "That isn't a workspace.");
   const w = raw as Record<string, unknown>;
@@ -241,6 +249,7 @@ export function sanitizeWorkspace(ctx: FmContext, raw: unknown, options: { mode:
 // The file
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Returns the path to `file_manager_workspaces.json` inside the File Manager's `dataDir`. */
 export const workspaceFile = (ctx: FmContext) => nodePath.join(ctx.dataDir, "file_manager_workspaces.json");
 
 interface Loaded {
@@ -289,6 +298,7 @@ async function save(ctx: FmContext, loaded: Loaded, workspaces: Workspace[]): Pr
 // Operations
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Availability status of a workspace folder on disk (`ok`, `missing`, `not-folder`, or `no-access`). */
 export type FolderStatus = "ok" | "missing" | "not-folder" | "no-access";
 
 async function folderStatus(path: string): Promise<FolderStatus> {
@@ -331,6 +341,7 @@ const find = (loaded: Loaded, id: unknown): Workspace => {
   return w;
 };
 
+/** JSON envelope written when exporting a single workspace to a `.workspace.json` file. */
 export interface ExportFile {
   format: typeof WORKSPACE_FORMAT;
   version: number;
@@ -350,6 +361,7 @@ function exportFile(w: Workspace): { text: string; fileName: string } {
   return { text: JSON.stringify(file, null, 2), fileName: `${w.name.replace(/[^\w.-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "workspace"}.workspace.json` };
 }
 
+/** File Manager RPC handlers for the `workspace/*` operations. */
 export const workspaceOperations: Record<string, FmHandler> = {
   async "workspace/list"(ctx) {
     const loaded = await load(ctx);

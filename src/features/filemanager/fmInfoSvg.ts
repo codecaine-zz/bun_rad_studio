@@ -2,6 +2,7 @@
 import { clip, Rows, type InfoGroup } from "./fmInfoCommon";
 import { decodeEntities } from "./fmInfoMeta";
 
+/** Dimensions, element count, title, and security-relevant construct counts extracted from an SVG document. */
 export interface SvgInfo {
   width: string;
   height: string;
@@ -59,6 +60,7 @@ function rootAttributes(xml: string): Record<string, string> | null {
   return attrs;
 }
 
+/** Returns `true` if the first 8 KB of `text` contains an opening `<svg` root element tag. */
 export function looksLikeSvg(text: string): boolean {
   return /<svg(?=[\s>/])/i.test(text.slice(0, 8192));
 }
@@ -102,6 +104,7 @@ function removeDoctypes(text: string): string {
   }
 }
 
+/** Tokenizes an SVG text document to extract its dimensions, `viewBox`, element count, title, and safety indicators. */
 export function parseSvg(text: string): SvgInfo | null {
   const xml = text.slice(0, 2 * 1024 * 1024);
   const root = rootAttributes(xml);
@@ -129,6 +132,7 @@ export function parseSvg(text: string): SvgInfo | null {
   };
 }
 
+/** Formats parsed `SvgInfo` into general image rows and an SVG safety check `InfoGroup`. */
 export function svgGroups(s: SvgInfo): { rows: Rows; groups: InfoGroup[] } {
   const rows = new Rows();
   rows.add("Width", s.width || "not set", "The size the picture asks for. Without it, programs use the viewBox.");

@@ -1,8 +1,13 @@
+/**
+ * Contrast-checked semantic status color derivation (`danger`, `warning`, `success`, `info`) for Studio themes.
+ */
 // Semantic status colors (danger, warning, success, info) derived per theme.
 // Every pair is contrast-checked: `text` reads on the page and card, `on` reads on `solid`.
 
+/** Standard semantic status category used across Studio badges, banners, and buttons. */
 export type SemanticKind = "danger" | "warning" | "success" | "info";
 
+/** Derived contrast-safe color tokens (`solid`, `on`, `text`, `soft`, `border`) for a single `SemanticKind`. */
 export interface SemanticColor {
     /** Fill for buttons, badges and dots. */
     solid: string;
@@ -16,10 +21,13 @@ export interface SemanticColor {
     border: string;
 }
 
+/** Complete semantic color map for all four status categories (`danger`, `warning`, `success`, `info`). */
 export type SemanticPalette = Record<SemanticKind, SemanticColor>;
+/** Optional per-kind base hex color overrides for a theme. */
 export type SemanticOverrides = Partial<Record<SemanticKind, string>>;
 
 // Published status colors of well-known palettes, keyed by theme display name (aliases share the name).
+/** Curated semantic base color overrides for well-known named themes (Dracula, Nord, Gruvbox, Solarized, Catppuccin, etc.). */
 export const NAMED_SEMANTICS: Record<string, SemanticOverrides> = {
     "Dracula": { danger: "#ff5555", warning: "#f1fa8c", success: "#50fa7b", info: "#8be9fd" },
     "Nord": { danger: "#bf616a", warning: "#ebcb8b", success: "#a3be8c", info: "#88c0d0" },
@@ -42,10 +50,12 @@ export const NAMED_SEMANTICS: Record<string, SemanticOverrides> = {
     "Windows Terminal Campbell": { danger: "#e74856", warning: "#f9f1a5", success: "#16c60c", info: "#61d6d6" },
 };
 
+/** Returns the explicit `theme.semantic` overrides if present, or looks up curated overrides in `NAMED_SEMANTICS` by theme name. */
 export function overridesForTheme(theme: { name: string; semantic?: SemanticOverrides }): SemanticOverrides | undefined {
     return theme.semantic ?? NAMED_SEMANTICS[theme.name];
 }
 
+/** Ordered tuple of all supported `SemanticKind` keys. */
 export const SEMANTIC_KINDS: readonly SemanticKind[] = ["danger", "warning", "success", "info"];
 
 // Light themes need deeper tones, dark ones need lighter tones, so each mode has its own base.
@@ -58,6 +68,7 @@ function clamp(n: number): number {
     return Math.max(0, Math.min(255, Math.round(n)));
 }
 
+/** Parses a `#rgb`, `#rrggbb`, or `rgb(...)`/`rgba(...)` color string into a clamped `[r, g, b]` tuple, returning `fallback` on invalid input. */
 export function parseColor(input: string | undefined, fallback: RGB = [128, 128, 128]): RGB {
     if (!input) return fallback;
     const s = input.trim();
@@ -72,6 +83,7 @@ export function parseColor(input: string | undefined, fallback: RGB = [128, 128,
     return fallback;
 }
 
+/** Formats an `[r, g, b]` tuple as a lowercase 6-digit `#rrggbb` hex string. */
 export function toHex([r, g, b]: RGB): string {
     return "#" + [r, g, b].map((v) => clamp(v).toString(16).padStart(2, "0")).join("");
 }
@@ -84,6 +96,7 @@ function luminance([r, g, b]: RGB): number {
     return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
 }
 
+/** Computes the WCAG 2.x relative luminance contrast ratio (`1` to `21`) between two CSS color strings. */
 export function contrastRatio(a: string, b: string): number {
     const la = luminance(parseColor(a));
     const lb = luminance(parseColor(b));
@@ -112,6 +125,7 @@ function pickOn(solid: string): string {
     return contrastRatio(solid, "#ffffff") >= contrastRatio(solid, "#111111") ? "#ffffff" : "#111111";
 }
 
+/** Input parameters describing a theme's surface colors and dark/light polarity for `buildSemanticPalette`. */
 export interface SemanticInput {
     background: string;
     card?: string;
@@ -119,6 +133,7 @@ export interface SemanticInput {
     overrides?: SemanticOverrides;
 }
 
+/** Builds a WCAG-contrast-checked `SemanticPalette` tailored to the given theme background and card surfaces. */
 export function buildSemanticPalette(input: SemanticInput): SemanticPalette {
     const bg = parseColor(input.background, input.isDark ? [15, 23, 42] : [248, 250, 252]);
     const cardRgb = parseColor(input.card, bg);
@@ -157,6 +172,7 @@ export function semanticCssVars(p: SemanticPalette): string {
     }).join(" ");
 }
 
+/** Maps common status aliases (`error`, `warn`, `ok`, `notice`, etc.) to a canonical `SemanticKind`, or `null` if unrecognized. */
 export function normalizeKind(v: unknown): SemanticKind | null {
     switch (String(v ?? "").toLowerCase()) {
         case "danger":

@@ -10,6 +10,7 @@
  */
 import { markdownPage, markdownToHtml, safeUrl } from "./fmConvText";
 
+/** Identifier for the Markdown rendering engine (`bun` for `Bun.markdown.html` or `builtin` for the fallback parser). */
 export type MarkdownEngine = "bun" | "builtin";
 
 const OPTIONS = { noHtmlBlocks: true, noHtmlSpans: true, tagFilter: true, autolinks: true, headings: { ids: true } } as const;

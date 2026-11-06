@@ -1,3 +1,7 @@
+/**
+ * Unit and integration tests for `rip` graveyard workflows, covering burying,
+ * restoring, decomposing, record inspection, age-based pruning, and size summaries.
+ */
 import { describe, expect, it } from "bun:test";
 import { join } from "node:path";
 import { tmpdir } from "node:os";

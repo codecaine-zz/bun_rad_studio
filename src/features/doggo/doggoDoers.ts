@@ -1,12 +1,22 @@
+/**
+ * DNS resolution, DNS-over-HTTPS (DoH), argument parsing, and output formatting
+ * helpers (both asynchronous and synchronous) for the `doggo` DNS client.
+ */
 import { Resolver } from "node:dns/promises";
 import type { DnsAnswer, DnsRecordType, DoggoResponse } from "./doggoTypes.ts";
 import { colors } from "../../shared/colors.ts";
 import { renderTable, type ColumnDef } from "../../shared/table.ts";
 
+/**
+ * List of all DNS record types recognized by positional argument parsing.
+ */
 export const RECORD_TYPES: DnsRecordType[] = [
   "A", "AAAA", "CNAME", "MX", "TXT", "NS", "SOA", "PTR", "CAA", "SRV"
 ];
 
+/**
+ * Extracts a target domain, record type, and `@nameserver` from free-order positional CLI arguments.
+ */
 export function parseTargetArgs(args: string[]): {
   domain?: string;
   type?: DnsRecordType;
@@ -29,10 +39,16 @@ export function parseTargetArgs(args: string[]): {
   return { domain, type, nameserver };
 }
 
+/**
+ * Returns `true` if `target` looks like an IPv4 dotted-quad or IPv6 address.
+ */
 export function isIpAddress(target: string): boolean {
   return /^(\d{1,3}\.){3}\d{1,3}$/.test(target) || target.includes(":");
 }
 
+/**
+ * Normalizes a raw `node:dns` resolver record item into a display string and optional TTL.
+ */
 export function formatRecordData(type: DnsRecordType, item: any): { data: string; ttl?: number } {
   if (typeof item === "string") return { data: item };
   if (Array.isArray(item)) return { data: `"${item.join(" ")}"` };
@@ -51,6 +67,10 @@ export function formatRecordData(type: DnsRecordType, item: any): { data: string
   return { data: JSON.stringify(item) };
 }
 
+/**
+ * Performs an asynchronous UDP DNS lookup for `domain` and `type` using `node:dns/promises`,
+ * with an optional custom `nameserver` and a 3.5-second timeout.
+ */
 export async function performDnsLookup(
   domain: string,
   type: DnsRecordType,
@@ -110,10 +130,16 @@ export async function performDnsLookup(
   return { domain: cleanDomain, queryType: type, answers, queryTimeMs, server: activeServer, protocol: "UDP" };
 }
 
+/**
+ * Mapping of numeric IANA DNS RR type codes to their mnemonic string names for DoH JSON responses.
+ */
 export const DNS_TYPE_MAP: Record<number, string> = {
   1: "A", 2: "NS", 5: "CNAME", 6: "SOA", 12: "PTR", 15: "MX", 16: "TXT", 28: "AAAA", 33: "SRV", 257: "CAA"
 };
 
+/**
+ * Performs an asynchronous DNS-over-HTTPS (DoH) query using the JSON DNS API (`application/dns-json`).
+ */
 export async function performDohLookup(
   domain: string,
   type: string = "A",
@@ -138,6 +164,9 @@ export async function performDohLookup(
   return { domain, queryType: type, answers, queryTimeMs, server: dohUrl, protocol: "DoH" };
 }
 
+/**
+ * Queries common DNS record types (`A`, `AAAA`, `MX`, `TXT`, `NS`) in parallel and combines their answers.
+ */
 export async function performAllLookup(
   domain: string,
   nameserver?: string,
@@ -158,6 +187,9 @@ export async function performAllLookup(
   return { domain, queryType: "ALL", answers, queryTimeMs, server, protocol: isDoh ? "DoH" : "UDP" };
 }
 
+/**
+ * Formats a `DoggoResponse` as a colorized terminal table with an optional query-time footer.
+ */
 export function formatDoggoTable(res: DoggoResponse, showTime: boolean = true): string {
   const proto = res.protocol ? ` (${res.protocol})` : "";
   const footer = showTime ? `\n${colors.dim(`Query time: ${res.queryTimeMs}ms  Server: ${res.server}${proto}`)}` : "";
@@ -177,14 +209,23 @@ export function formatDoggoTable(res: DoggoResponse, showTime: boolean = true): 
   return `${table}${footer}`;
 }
 
+/**
+ * Formats a `DoggoResponse` in short mode, returning only newline-separated record data values.
+ */
 export function formatShortOutput(res: DoggoResponse): string {
   return res.answers.map((a) => a.data).join("\n");
 }
 
+/**
+ * Serializes a `DoggoResponse` as pretty-printed JSON.
+ */
 export function formatJsonOutput(res: DoggoResponse): string {
   return JSON.stringify(res, null, 2);
 }
 
+/**
+ * Synchronously resolves DNS records for `domain` and `type` via `curl` (DoH) or `dig` fallback.
+ */
 export function performDnsLookupSync(
   domain: string,
   type: DnsRecordType | string = "A",
@@ -253,6 +294,9 @@ export function performDnsLookupSync(
   };
 }
 
+/**
+ * Synchronously queries common DNS record types (`A`, `AAAA`, `MX`, `TXT`, `NS`) and aggregates all answers.
+ */
 export function performAllLookupSync(
   domain: string,
   nameserver?: string,

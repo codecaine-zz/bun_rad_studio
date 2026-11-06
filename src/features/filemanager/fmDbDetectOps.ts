@@ -18,8 +18,10 @@ import { checkSqlitePath, dbState, envView, guarded, profileFingerprint, sameSec
 import type { DbProfile, ProfileMeta, PublicDbProfile, RedisProfile } from "./fmDbStore";
 import { FmError } from "./fmPaths";
 
+/** State of a detected environment connection relative to saved and dismissed profiles. */
 export type CardStatus = "new" | "changed" | "saved" | "dismissed" | "snoozed";
 
+/** Public UI card representing a detected database connection and any field differences against a saved profile. */
 export interface Card extends ReturnType<typeof publicConnection> {
   status: CardStatus;
   profileId?: string;
@@ -169,6 +171,7 @@ async function viewOfFile(ctx: FmContext, input: unknown): Promise<{ view: EnvVi
   return { view: { vars, files: [{ file: name, where: "start", shown, count: entries.length }], nodeEnv: "" }, name, shown, count: entries.length };
 }
 
+/** File Manager API handlers for detecting environment/`.env` database connections and saving, snoozing, or dismissing them. */
 export const detectOperations: Record<string, FmHandler> = {
   async "db/detect"(ctx, b) {
     const st = dbState(ctx);

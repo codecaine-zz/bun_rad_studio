@@ -11,6 +11,7 @@ import { tick } from "./fmCore";
 import { setProgress, type DevJob } from "./fmDevJobs";
 import { HARD_MAX_SECONDS, VENDORED_DIRS, resolveLimits, type WalkLimits } from "./fmDevWalk";
 
+/** Well-known build output and dependency directory names highlighted by the Disk Usage analyzer. */
 export const HEAVY_FOLDERS = ["node_modules", "target", ".venv", "dist", "build", ".next", "__pycache__", "Pods", ".gradle", "DerivedData"];
 const TOP = 25;
 const EMPTY_LIST = 100;
@@ -116,6 +117,7 @@ interface HeavyAcc {
   files: number;
 }
 
+/** Summary of folder sizes, largest files, heavy dependency directories, and extension breakdowns under a root path. */
 export interface DiskReport {
   root: string;
   files: number;
@@ -134,6 +136,7 @@ export interface DiskReport {
   oldest: Entry[];
 }
 
+/** Scans `job.root` to compute disk usage breakdowns, largest files, heavy folders, and empty files/folders. */
 export async function runDisk(job: DevJob, limits?: Partial<WalkLimits>): Promise<DiskReport> {
   const started = Date.now();
   const root = job.root;
@@ -190,10 +193,13 @@ export async function runDisk(job: DevJob, limits?: Partial<WalkLimits>): Promis
 // Duplicates
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Maximum size of an individual file eligible for full content hashing during duplicate detection. */
 export const DUPE_MAX_FILE_BYTES = 512 * 1024 * 1024;
+/** Maximum cumulative bytes hashed across all candidate files during a duplicate scan. */
 export const DUPE_MAX_HASH_BYTES = 8 * 1024 ** 3;
 const QUICK = 64 * 1024;
 
+/** A group of two or more identical files sharing the same byte size and cryptographic content hash. */
 export interface DupeGroup {
   size: number;
   files: string[];
@@ -203,6 +209,7 @@ export interface DupeGroup {
   wasted: number;
 }
 
+/** Duplicate file scan report containing all duplicate groups, total reclaimable wasted bytes, and scan statistics. */
 export interface DupeReport {
   root: string;
   filesScanned: number;
@@ -266,6 +273,7 @@ async function fullHash(abs: string, signal: { cancelled: boolean }): Promise<st
   }
 }
 
+/** Finds duplicate files under `job.root` using a two-stage size + partial/full SHA-256 hashing pipeline. */
 export async function runDupes(job: DevJob, o: { minBytes: number; vendored: boolean; limits?: Partial<WalkLimits> }): Promise<DupeReport> {
   const started = Date.now();
   const bySize = new Map<number, string[]>();

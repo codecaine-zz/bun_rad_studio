@@ -26,6 +26,7 @@ import { loadIntoStaging, LoadCancelled } from "./staging";
 import type { ImportPlan, PromoteMode, Step, TargetTable, UserRule } from "./types";
 import { validateStaging } from "./validate";
 
+/** Host studio context supplying the active database and connection protection status to the staging router. */
 export interface StagingContext {
   engine: "sqlite" | "mysql" | "postgres";
   /** The studio's current database. Called on every request so a switched database is picked up. */
@@ -102,6 +103,7 @@ interface JobState {
   finishedAt?: number;
 }
 
+/** HTTP request handler and lifecycle interface for the studio staging import routes. */
 export interface StagingHandler {
   /** Returns null for paths it does not own. */
   handle(req: Request): Promise<Response | null>;
@@ -110,6 +112,7 @@ export interface StagingHandler {
   dispose(): void;
 }
 
+/** Creates and returns the private temporary scratch directory used for staging file uploads. */
 export function scratchDir(): string {
   const dir = join(tmpdir(), `bunrad-staging-${process.getuid?.() ?? "user"}`);
   mkdirSync(dir, { recursive: true, mode: 0o700 });
@@ -132,6 +135,7 @@ function sweepScratch(dir: string): void {
   }
 }
 
+/** Creates a new `StagingHandler` serving `/api/staging/*` endpoints for the given studio context. */
 export function createStagingHandler(ctx: StagingContext, opts: { token?: string; scratch?: string } = {}): StagingHandler {
   const sources = new Map<string, SourceEntry>();
   const uploads = new Map<string, { path: string; name: string; size: number; received: number; fd: number }>();

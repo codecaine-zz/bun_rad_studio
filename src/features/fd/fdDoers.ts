@@ -1,12 +1,23 @@
+/**
+ * Pure filtering predicates, recursive filesystem traversal helpers, colorized path
+ * formatters, and external command execution utilities for the `fd` file finder.
+ */
 import { readdir, stat, lstat } from "node:fs/promises";
 import { join, resolve, relative, extname } from "node:path";
 import type { EntryTypeFilter, FdEntry } from "./fdTypes.ts";
 import { colors } from "../../shared/colors.ts";
 
+/**
+ * Checks whether a POSIX file mode bitmask has any executable permission bit (`0o111`) set.
+ */
 export function isEntryExecutable(mode: number): boolean {
   return (mode & 0o111) !== 0;
 }
 
+/**
+ * Builds a predicate function that tests whether an entry's name or path matches `pattern`
+ * using smart-case or explicit case sensitivity (falling back to substring match if regex compilation fails).
+ */
 export function buildMatcher(
   pattern?: string,
   caseSensitive?: boolean
@@ -25,6 +36,9 @@ export function buildMatcher(
   }
 }
 
+/**
+ * Checks whether an `FdEntry` satisfies the requested `EntryTypeFilter` (`f`, `d`, `l`, or `x`).
+ */
 export function matchesType(entry: FdEntry, filter?: EntryTypeFilter): boolean {
   if (!filter) return true;
   if (filter === "f") return entry.isFile;
@@ -34,6 +48,9 @@ export function matchesType(entry: FdEntry, filter?: EntryTypeFilter): boolean {
   return true;
 }
 
+/**
+ * Checks whether a filename's extension matches `ext` (case-insensitively, with or without a leading dot).
+ */
 export function matchesExtension(name: string, ext?: string): boolean {
   if (!ext) return true;
   const targetExt = ext.startsWith(".") ? ext.slice(1) : ext;
@@ -41,6 +58,10 @@ export function matchesExtension(name: string, ext?: string): boolean {
   return currentExt.toLowerCase() === targetExt.toLowerCase();
 }
 
+/**
+ * Parses a human-readable file size filter expression (e.g. `"+10M"`, `"-1k"`, `"500"`)
+ * into a comparison operator and threshold in bytes, or returns `null` if invalid.
+ */
 export function parseSizeFilter(filter: string): { op: ">" | "<" | "="; bytes: number } | null {
   const match = filter.trim().match(/^([+-]?)([\d.]+)\s*([kKmMgGtT]?[bB]?)$/);
   if (!match) return null;
@@ -59,6 +80,9 @@ export function parseSizeFilter(filter: string): { op: ">" | "<" | "="; bytes: n
   return { op, bytes };
 }
 
+/**
+ * Checks whether a file's byte `size` satisfies the given size `filter` expression.
+ */
 export function matchesSize(size: number | undefined, filter?: string): boolean {
   if (!filter) return true;
   if (size === undefined) return false;
@@ -69,11 +93,18 @@ export function matchesSize(size: number | undefined, filter?: string): boolean 
   return Math.abs(size - parsed.bytes) < 512;
 }
 
+/**
+ * Returns `true` if `path` contains any of the specified `excludes` substrings.
+ */
 export function matchesExclude(path: string, excludes?: string[]): boolean {
   if (!excludes || excludes.length === 0) return false;
   return excludes.some((ex) => path.includes(ex));
 }
 
+/**
+ * Parses a duration string (e.g. `"10m"`, `"2h"`, `"7d"`, `"1w"`, `"1y"`) into milliseconds,
+ * returning `null` if the string does not match a valid duration format.
+ */
 export function parseDurationMs(duration: string): number | null {
   const match = duration.trim().match(/^(\d+(?:\.\d+)?)\s*([smhdwy]?)$/i);
   if (!match) return null;
@@ -88,6 +119,9 @@ export function parseDurationMs(duration: string): number | null {
   return val * 1000;
 }
 
+/**
+ * Checks whether an entry's modification time (`mtime`) falls within `duration` prior to `Date.now()`.
+ */
 export function matchesChangedWithin(mtime?: Date, duration?: string): boolean {
   if (!duration || !mtime) return true;
   const ms = parseDurationMs(duration);
@@ -95,17 +129,26 @@ export function matchesChangedWithin(mtime?: Date, duration?: string): boolean {
   return mtime.getTime() >= Date.now() - ms;
 }
 
+/**
+ * Checks whether the current directory traversal `depth` is at least `minDepth`.
+ */
 export function matchesMinDepth(depth: number, minDepth?: number): boolean {
   if (minDepth === undefined) return true;
   return depth >= minDepth;
 }
 
+/**
+ * Checks whether `entry` is an empty (0-byte) file when `emptyOnly` is enabled.
+ */
 export function matchesEmpty(entry: FdEntry, emptyOnly?: boolean): boolean {
   if (!emptyOnly) return true;
   if (entry.isFile) return entry.size === 0;
   return false;
 }
 
+/**
+ * Reads direct child entries of `dirPath` and populates their `FdEntry` metadata (stat size, mtime, permissions).
+ */
 export async function readDirectoryEntries(
   dirPath: string,
   currentDepth: number,
@@ -159,6 +202,9 @@ export async function readDirectoryEntries(
   }
 }
 
+/**
+ * Recursively collects all `FdEntry` items under `currentDir` up to `maxDepth`.
+ */
 export async function collectAllEntries(
   currentDir: string,
   currentDepth: number,
@@ -186,6 +232,9 @@ export async function collectAllEntries(
   return subLists.flat();
 }
 
+/**
+ * Formats an `FdEntry` path with ANSI colors indicating directory, executable, symlink, or regular file status.
+ */
 export function formatFdEntry(entry: FdEntry, useAbsolute: boolean): string {
   const p = useAbsolute ? entry.path : entry.displayPath;
   if (entry.isDirectory) return colors.blue(colors.bold(p));
@@ -194,6 +243,10 @@ export function formatFdEntry(entry: FdEntry, useAbsolute: boolean): string {
   return p;
 }
 
+/**
+ * Spawns an external command for `targetPath`, substituting `"{}"` placeholders in `cmdTemplate`,
+ * and returns the process exit code.
+ */
 export async function executeCommand(
   cmdTemplate: string[],
   targetPath: string

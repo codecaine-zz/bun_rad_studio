@@ -10,8 +10,10 @@ import { FmError } from "./fmPaths";
 
 const V6_MAX = (1n << 128n) - 1n;
 
+/** IP address family identifier (`"v4"` for IPv4 or `"v6"` for IPv6). */
 export type Family = "v4" | "v6";
 
+/** Determines whether `ip` is a valid IPv4 (`"v4"`) or zone-free IPv6 (`"v6"`) literal, or `null` if invalid. */
 export const familyOf = (ip: string): Family | null => {
   const k = isIP(ip);
   return k === 4 ? "v4" : k === 6 && !ip.includes("%") ? "v6" : null;
@@ -86,6 +88,7 @@ export function classifyAny(ip: string): IpClassification {
   return classifyIp(expandV6(n));
 }
 
+/** Computed network boundaries, mask, and host counts for an IPv6 CIDR block. */
 export interface SubnetV6 {
   cidr: string;
   family: "v6";
@@ -108,6 +111,7 @@ export function parseCidrV6(cidr: string): { ip: bigint; prefix: number } {
 
 const hostMask = (prefix: number, bits: number): bigint => (1n << BigInt(bits - prefix)) - 1n;
 
+/** Calculates network address, last address, netmask, and total host count for an IPv6 CIDR string. */
 export function subnetV6(cidr: string): SubnetV6 {
   const { ip, prefix } = parseCidrV6(cidr);
   const host = hostMask(prefix, 128);
@@ -128,12 +132,14 @@ export function subnetV6(cidr: string): SubnetV6 {
   };
 }
 
+/** Returns `true` when the IPv6 address `ip` falls within the IPv6 CIDR block `cidr`. */
 export const containsV6 = (cidr: string, ip: string): boolean => {
   const { ip: base, prefix } = parseCidrV6(cidr);
   const host = hostMask(prefix, 128);
   return ((base & ~host) & V6_MAX) === ((parseV6(ip) & ~host) & V6_MAX);
 };
 
+/** Splits an IPv6 CIDR block into smaller subnets of length `newPrefix`, returning up to `limit` blocks. */
 export function splitV6(cidr: string, newPrefix: number, limit: number): { blocks: string[]; total: string; truncated: boolean } {
   const { ip, prefix } = parseCidrV6(cidr);
   if (!Number.isInteger(newPrefix) || newPrefix > 128 || newPrefix <= prefix) throw new FmError("BAD_PREFIX", `Pick a prefix longer than /${prefix} and at most /128.`);

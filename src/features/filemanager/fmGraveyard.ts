@@ -19,8 +19,10 @@ import { assertWritable, claim, createRecorder, entriesDirOf, graveyardDirOf, pa
 import { FmError, describeFsError, isSameOrInside, uniqueName } from "./fmPaths";
 import { moveToTrash } from "./fmTrash";
 
+/** Result of an individual graveyard operation, either succeeding with `value` or failing with an error code and message. */
 export type Outcome<T> = { ok: true; value: T } | { ok: false; code: string; message: string };
 
+/** Builds a `MoveEnv` carrying the active graveyard hooks, optional abort signal, and progress reporter. */
 export const moveEnv = (ctx: FmContext, signal?: AbortSignal, progress?: MoveEnv["progress"]): MoveEnv => ({ signal, hooks: graveyardHooksOf(ctx), progress });
 
 const SHA_LIMIT = 25 * 1024 * 1024;
@@ -29,6 +31,7 @@ const SHA_LIMIT = 25 * 1024 * 1024;
 // Bury
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Metadata returned after moving a single file, folder, or symlink into the Rip graveyard. */
 export interface BuryValue {
   path: string;
   id: string;
@@ -116,6 +119,7 @@ export async function buryOne(ctx: FmContext, path: string, env: MoveEnv, record
   return { path, id, name, type, sizeBytes: metrics.sizeBytes, via: placed.via, ...(placed.warning ? { warning: placed.warning } : {}) };
 }
 
+/** Converts a filesystem or guard error encountered during burial into a user-facing `FmError` description. */
 export const describeBury = (err: unknown) => describeFsError(err, "bury that");
 
 /** Buries each path in turn; one that fails (or is refused) doesn't stop the rest. */
@@ -134,8 +138,10 @@ export async function buryPaths(ctx: FmContext, paths: string[], env: MoveEnv): 
 // Restore
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Policy for handling an existing item at the destination path when restoring from the graveyard. */
 export type ConflictChoice = "ask" | "replace" | "rename" | "skip";
 
+/** Options controlling where and how buried items are restored from the graveyard. */
 export interface RestoreOptions {
   /** A folder to restore into, instead of where each item came from. */
   to?: string;
@@ -144,6 +150,7 @@ export interface RestoreOptions {
   makeFolders: boolean;
 }
 
+/** Result details for a single item restored (or skipped) from the graveyard. */
 export interface RestoreValue {
   id: string;
   name: string;
@@ -176,6 +183,7 @@ export async function restoreTarget(ctx: FmContext, item: GraveyardItem, to: str
   return { parent: p.dirname(target), target };
 }
 
+/** Restores a single buried `GraveyardItem` to its original or chosen folder, handling conflicts according to `options`. */
 export async function restoreOne(ctx: FmContext, item: GraveyardItem, options: RestoreOptions, env: MoveEnv): Promise<RestoreValue> {
   const dir = graveyardDirOf(ctx);
   const p = pathApi(ctx);
@@ -222,6 +230,7 @@ export async function markRestored(ctx: FmContext, ids: string[]): Promise<void>
   });
 }
 
+/** Converts a filesystem or guard error encountered during restoration into a user-facing `FmError` description. */
 export const describeRestore = (err: unknown) => describeFsError(err, "restore that");
 
 /** Restores each item in turn and records the ones that worked. Per-item problems are reported, not thrown. */
@@ -253,6 +262,7 @@ export async function restoreItems(ctx: FmContext, items: GraveyardItem[], optio
 // Empty (decompose)
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Summary of permanently deleted items, freed bytes, and any failures after emptying graveyard entries. */
 export interface DecomposeSummary {
   deleted: number;
   freedBytes: number;

@@ -9,6 +9,7 @@ import type { TargetColumn } from "./types";
 
 const TRUE_WORDS = ["true", "t", "yes", "y", "1", "on"];
 const FALSE_WORDS = ["false", "f", "no", "n", "0", "off"];
+/** All lowercase word tokens recognized as boolean literals in staging SQL expressions. */
 export const BOOLEAN_WORDS = [...TRUE_WORDS, ...FALSE_WORDS];
 const sqlList = (words: string[]) => words.map((w) => `'${w}'`).join(", ");
 
@@ -65,6 +66,7 @@ export function sameExpr(engine: Engine, a: string, b: string): string {
   return engine === "sqlite" ? `${a} IS ${b}` : engine === "mysql" ? `${a} <=> ${b}` : `${a} IS NOT DISTINCT FROM ${b}`;
 }
 
+/** Returns a NULL-safe SQL inequality expression (`a` is distinct from `b`) for the target engine. */
 export function differentExpr(engine: Engine, a: string, b: string): string {
   return engine === "sqlite" ? `${a} IS NOT ${b}` : engine === "mysql" ? `NOT (${a} <=> ${b})` : `${a} IS DISTINCT FROM ${b}`;
 }
@@ -73,10 +75,12 @@ export function differentExpr(engine: Engine, a: string, b: string): string {
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
+/** Formats a `Date` as a compact `yyyymmdd_hhmm` timestamp suffix for staging table names. */
 export function stamp(d = new Date()): string {
   return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}`;
 }
 
+/** Converts arbitrary text into a lowercase ASCII identifier slug of at most `max` characters. */
 export function slug(text: string, max = 28): string {
   const s = text
     .normalize("NFD")
@@ -96,9 +100,12 @@ export function stagingName(target: string, existing: Iterable<string>, now = ne
   return name;
 }
 
+/** Name of the batch ledger table tracking staging imports. */
 export const LEDGER = "_import_batches";
+/** Name of the change-log table storing row snapshots for batch undo. */
 export const CHANGES = "_import_batch_changes";
 
+/** Generates a unique time-ordered identifier for a new import batch. */
 export function newBatchId(now = new Date()): string {
   return `b${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}${Math.random().toString(16).slice(2, 6)}`;
 }
@@ -119,6 +126,7 @@ export function safeColumnNames(names: string[]): string[] {
 
 // ---- DDL ---------------------------------------------------------------------------------------------------------
 
+/** Builds the `CREATE TABLE` DDL statement for a staging table with TEXT data columns and `_stg_*` metadata columns. */
 export function stagingDdl(db: Pick<StageDb, "engine" | "schema">, name: string, dataColumns: string[]): string {
   const e = db.engine;
   const text = e === "mysql" ? "LONGTEXT NULL" : "TEXT";
@@ -149,6 +157,7 @@ export function stagingDdl(db: Pick<StageDb, "engine" | "schema">, name: string,
   return `CREATE TABLE ${refOf(db, name)} (${cols.join(", ")})${e === "mysql" ? " ENGINE=InnoDB DEFAULT CHARSET=utf8mb4" : ""}`;
 }
 
+/** Builds the `CREATE TABLE IF NOT EXISTS` and `CREATE INDEX` DDL statements for the staging ledger tables. */
 export function ledgerDdl(db: Pick<StageDb, "engine" | "schema">): string[] {
   const e = db.engine;
   const t = (n: string) => q(e, n);
@@ -210,7 +219,9 @@ export const isOwnTable = (name: string): boolean => name === LEDGER || name ===
 /** Collects bound values and hands out the right placeholder (`?` or a typed `$n`). */
 export class Params {
   readonly values: unknown[] = [];
+  /** Creates a new parameter collector for the specified database engine. */
   constructor(readonly engine: Engine) {}
+  /** Appends a parameter value and returns its engine-appropriate SQL placeholder. */
   add(value: unknown, type?: "text" | "bigint"): string {
     this.values.push(value);
     return ph(this.engine, this.values.length, type);

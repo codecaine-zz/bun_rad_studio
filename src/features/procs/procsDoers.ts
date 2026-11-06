@@ -1,7 +1,15 @@
+/**
+ * Low-level process management helpers ("doers") for `procs`: `ps` and `lsof` output parsing,
+ * keyword/user filtering, column sorting, parent-child tree building, signal delivery, and CLI formatting.
+ */
 import type { ProcessInfo, ProcessTreeNode, SortField } from "./procsTypes.ts";
 import { colors } from "../../shared/colors.ts";
 import { renderTable, type ColumnDef } from "../../shared/table.ts";
 
+/**
+ * Parses a single line of `ps -axo pid,ppid,user,%cpu,%mem,stat,time,command` output into a `ProcessInfo` record,
+ * or returns `null` for header/malformed lines.
+ */
 export function parsePsLine(line: string): ProcessInfo | null {
   const trimmed = line.trim();
   if (!trimmed || trimmed.startsWith("PID")) return null;
@@ -23,6 +31,9 @@ export function parsePsLine(line: string): ProcessInfo | null {
   return { pid, ppid, user, cpu, mem, stat, time, command };
 }
 
+/**
+ * Parses multi-line `ps` output into an array of valid `ProcessInfo` records.
+ */
 export function parsePsOutput(raw: string): ProcessInfo[] {
   return raw
     .split("\n")
@@ -30,6 +41,9 @@ export function parsePsOutput(raw: string): ProcessInfo[] {
     .filter((p): p is ProcessInfo => p !== null);
 }
 
+/**
+ * Executes `ps` synchronously to retrieve the raw process table (or returns deterministic mock output in screenshot mode).
+ */
 export function fetchRawProcessList(): string {
   if (process.env.SCREENSHOT_MODE === "1") {
     return `PID PPID USER %CPU %MEM STAT TIME COMMAND
@@ -51,6 +65,9 @@ export function fetchRawProcessList(): string {
   }
 }
 
+/**
+ * Filters processes whose PID, owner username, or command line matches `keyword` (case-insensitive).
+ */
 export function filterProcesses(
   procs: ProcessInfo[],
   keyword?: string
@@ -66,12 +83,18 @@ export function filterProcesses(
   });
 }
 
+/**
+ * Filters processes to those owned by the specified username (case-insensitive exact match).
+ */
 export function filterProcessesByUser(procs: ProcessInfo[], user?: string): ProcessInfo[] {
   if (!user) return procs;
   const target = user.toLowerCase();
   return procs.filter((p) => p.user.toLowerCase() === target);
 }
 
+/**
+ * Parses `lsof -iTCP -sTCP:LISTEN -P -n` output into a map from PID to an array of listening TCP port numbers.
+ */
 export function parseLsofOutput(raw: string): Map<number, string[]> {
   const map = new Map<number, string[]>();
   const lines = raw.split("\n").slice(1);
@@ -91,6 +114,9 @@ export function parseLsofOutput(raw: string): Map<number, string[]> {
   return map;
 }
 
+/**
+ * Invokes `lsof` synchronously to discover listening TCP ports keyed by owning process PID.
+ */
 export function fetchListeningPorts(): Map<number, string[]> {
   try {
     const proc = Bun.spawnSync(["lsof", "-iTCP", "-sTCP:LISTEN", "-P", "-n"]);
@@ -101,6 +127,9 @@ export function fetchListeningPorts(): Map<number, string[]> {
   }
 }
 
+/**
+ * Returns a new array of `ProcessInfo` entries enriched with any listening TCP ports found in `portMap`.
+ */
 export function attachListeningPorts(
   processes: ProcessInfo[],
   portMap: Map<number, string[]>
@@ -111,6 +140,9 @@ export function attachListeningPorts(
   });
 }
 
+/**
+ * Returns a shallow-copied array of processes sorted by CPU, memory, PID, or username.
+ */
 export function sortProcesses(
   procs: ProcessInfo[],
   sortBy?: SortField
@@ -123,6 +155,9 @@ export function sortProcesses(
   return copy;
 }
 
+/**
+ * Organizes a flat list of `ProcessInfo` items into a forest of parent-child `ProcessTreeNode` roots.
+ */
 export function buildProcessTree(procs: ProcessInfo[]): ProcessTreeNode[] {
   const nodeMap = new Map<number, ProcessTreeNode>();
   for (const p of procs) {
@@ -141,6 +176,9 @@ export function buildProcessTree(procs: ProcessInfo[]): ProcessTreeNode[] {
   return roots;
 }
 
+/**
+ * Formats a hierarchy of `ProcessTreeNode` items into box-drawing tree lines for terminal display.
+ */
 export function formatTreeLines(
   nodes: ProcessTreeNode[],
   prefix: string = ""
@@ -159,6 +197,9 @@ export function formatTreeLines(
   return lines;
 }
 
+/**
+ * Renders an array of `ProcessInfo` items as a colorized, column-aligned terminal table.
+ */
 export function formatProcessTable(procs: ProcessInfo[]): string {
   const hasPorts = procs.some((p) => p.ports && p.ports.length > 0);
   const columns: ColumnDef<ProcessInfo>[] = [
@@ -191,6 +232,9 @@ export function formatProcessTable(procs: ProcessInfo[]): string {
   return renderTable(columns, procs);
 }
 
+/**
+ * Sends a POSIX signal (default `SIGTERM`) to a target process PID, rejecting PIDs `<= 1`.
+ */
 export function killProcess(pid: number, signal: NodeJS.Signals = "SIGTERM"): boolean {
   if (!Number.isInteger(pid) || pid <= 1) {
     throw new Error(`[ProcsKill] Refusing to signal invalid PID ${pid}`);
@@ -203,6 +247,9 @@ export function killProcess(pid: number, signal: NodeJS.Signals = "SIGTERM"): bo
   }
 }
 
+/**
+ * Serializes an array of `ProcessInfo` records as pretty-printed JSON.
+ */
 export function formatJsonProcesses(procs: ProcessInfo[]): string {
   return JSON.stringify(procs, null, 2);
 }

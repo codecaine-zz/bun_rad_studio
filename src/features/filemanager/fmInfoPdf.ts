@@ -8,6 +8,7 @@ import { clip, Rows, type InfoGroup, type Source } from "./fmInfoCommon";
 const FULL_READ = 24 * 1024 * 1024;
 const PART = 8 * 1024 * 1024;
 
+/** Decodes a PDF literal string `(...)` or hex string `<...>`, handling escape sequences and UTF-16BE BOMs. */
 export function pdfString(raw: string): string {
   let s = raw.trim();
   if (s.startsWith("<") && s.endsWith(">")) {
@@ -30,6 +31,7 @@ export function pdfString(raw: string): string {
   return clip(b[0] === 0xfe && b[1] === 0xff ? Buffer.from(b.subarray(2)).swap16().toString("utf16le") : s, 500).trim();
 }
 
+/** Formats a PDF date string (`D:YYYYMMDDHHmmSSOHH'mm'`) into a human-readable date and time string. */
 export function pdfDate(v: string): string {
   const m = /^D:(\d{4})(\d{2})?(\d{2})?(\d{2})?(\d{2})?(\d{2})?([Zz]|[+-]\d{2}'?(?:\d{2}'?)?)?/.exec(v.trim());
   if (!m) return v;
@@ -63,6 +65,7 @@ function dictValue(dict: string, key: string): string | null {
   return m ? m[0] : null;
 }
 
+/** Extracted structural metadata, Info dictionary fields, and safety flags from a PDF document. */
 export interface PdfInfo {
   version: string;
   pages: number | null;
@@ -108,6 +111,7 @@ function objectStreamText(text: string): string {
   return out.join("\n");
 }
 
+/** Scans a PDF binary source for version, page count, dimensions, Info dictionary entries, and active-content flags. */
 export async function parsePdf(src: Source): Promise<PdfInfo> {
   const { text, partial } = await readText(src);
   const first = text.indexOf("%PDF-");
@@ -172,6 +176,7 @@ export async function parsePdf(src: Source): Promise<PdfInfo> {
   return info;
 }
 
+/** Converts parsed `PdfInfo` into display `InfoGroup` sections for document details and safety checks. */
 export function pdfGroups(p: PdfInfo): InfoGroup[] {
   const groups: InfoGroup[] = [];
   const r = new Rows();

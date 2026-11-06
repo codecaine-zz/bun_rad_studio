@@ -1,6 +1,10 @@
+/**
+ * Shared CSS selector groups and target lists used by both `fxCss.ts` and `fxPointer.ts`.
+ */
 // Selector groups shared by the fx CSS (fxCss.ts) and the pointer helper (fxPointer.ts), so the two cannot drift apart.
 // Each group lists the drop-in `fx-` class first, then the markup SimpleGUI and the Designer canvas already produce.
 
+/** Categorized CSS selector arrays for interactive FX surfaces (buttons, cards, panels, inputs, magnets, pills, modals, rows). */
 export const FX_SEL = {
     /** Buttons: scale, press, cursor glow, bloom. */
     button: [".fx-button", "button.rad-button", "button.rad-dropdown-btn", '.designer-control[data-ctype="button"]'],
@@ -20,10 +24,14 @@ export const FX_SEL = {
     row: [".fx-table tbody tr", "table tbody tr"],
 } as const;
 
+/** Joins a list of CSS selectors with an optional `prefix` and `suffix` on each selector, separated by `,\n`. */
 export const joinSel = (list: readonly string[], prefix = "", suffix = ""): string => list.map((s) => `${prefix}${s}${suffix}`).join(",\n");
 
 /** Elements the pointer helper tracks for the cursor glow. */
 export const FX_POINTER_TARGETS = [...FX_SEL.button, ...FX_SEL.card, ...FX_SEL.panel].join(",");
+/** Comma-joined CSS selector string matching card elements that tilt toward the pointer. */
 export const FX_TILT_TARGETS = FX_SEL.card.join(",");
+/** Comma-joined CSS selector string matching toolbar/navigation items that magnetically drift toward the pointer. */
 export const FX_MAGNET_TARGETS = FX_SEL.magnet.join(",");
+/** Comma-joined CSS selector string matching navigation/tab bars that render a sliding active pill indicator. */
 export const FX_PILL_BARS = FX_SEL.pill.join(",");

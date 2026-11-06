@@ -1,3 +1,6 @@
+/**
+ * Interactive UI help tooltips and audit skip rules for Markdown Studio (`markdown_studio`), covering live Markdown preview, formatting toolbar, and HTML/PDF export.
+ */
 import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Markdown & Documentation Studio. */

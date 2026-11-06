@@ -1,3 +1,7 @@
+/**
+ * Serialization and deserialization between database driver values, JSON-safe `WireValue` payloads,
+ * tagged query `Param` inputs, and RFC 4180 CSV cells.
+ */
 import type { Param, WireValue } from "./types";
 
 const INT_RE = /^[+-]?\d+$/;
@@ -28,7 +32,9 @@ export function toWire(value: unknown): WireValue {
   return out;
 }
 
+/** Error thrown when a client-supplied query parameter fails type or format validation. */
 export class ParamError extends Error {
+  /** Creates a `ParamError` with a descriptive validation message. */
   constructor(message: string) {
     super(message);
     this.name = "ParamError";
@@ -70,6 +76,7 @@ export function decodeParam(p: unknown, engine?: string): unknown {
   }
 }
 
+/** Validates and decodes an array of client-supplied `Param` objects into driver-ready parameter values. */
 export function decodeParams(params: unknown[] | undefined, engine?: string): unknown[] {
   if (params === undefined) return [];
   if (!Array.isArray(params)) throw new ParamError("params must be an array");

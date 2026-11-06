@@ -16,8 +16,10 @@ import {
   EXPORT_PACK_FORMAT,
 } from "./fmThemeStore";
 
+/** Hardware performance tier classification determining shader, blur, and 3D animation budgets for a custom theme. */
 export type HardwareTier = "low" | "medium" | "high" | "ultra";
 
+/** Complete descriptor for a built-in Master Designer custom theme and its target hardware tier metadata. */
 export interface MasterCustomThemeEntry {
   id: string;
   slug: string;
@@ -1359,4 +1361,5 @@ export const ALL_US_HOLIDAY_ULTRA_THEME_KEYS = [
   "holiday_christmas_nutcracker_hearth",
 ] as const;
 
+/** Union of all valid US Holiday Celebration Ultra Theme identifier keys. */
 export type UsHolidayUltraThemeKey = (typeof ALL_US_HOLIDAY_ULTRA_THEME_KEYS)[number];

@@ -2,6 +2,9 @@
  * Zero-dependency ANSI styling, TrueColor, and terminal cursor control engine for Bun
  */
 
+/**
+ * Static utility class for ANSI terminal text styling, TrueColor/256-color formatting, display width calculation, and cursor control.
+ */
 export class Ansi {
   public static readonly ESC = '\x1b[';
   public static readonly RESET = '\x1b[0m';
@@ -47,87 +50,128 @@ export class Ansi {
   public static readonly BG_GRAY = '\x1b[100m';
 
   // Formatting helpers
+  /** Wraps `text` between `openCode` and `closeCode` (defaulting to `Ansi.RESET`). */
   public static style(text: string, openCode: string, closeCode: string = Ansi.RESET): string {
     return `${openCode}${text}${closeCode}`;
   }
 
+  /** Formats `text` in bold. */
   public static bold(text: string): string { return Ansi.style(text, Ansi.BOLD); }
+  /** Formats `text` with dim/faint intensity. */
   public static dim(text: string): string { return Ansi.style(text, Ansi.DIM); }
+  /** Formats `text` in italics. */
   public static italic(text: string): string { return Ansi.style(text, Ansi.ITALIC); }
+  /** Formats `text` with an underline. */
   public static underline(text: string): string { return Ansi.style(text, Ansi.UNDERLINE); }
+  /** Formats `text` with inverted foreground and background colors. */
   public static inverse(text: string): string { return Ansi.style(text, Ansi.INVERSE); }
+  /** Formats `text` with a strikethrough line. */
   public static strike(text: string): string { return Ansi.style(text, Ansi.STRIKETHROUGH); }
 
+  /** Colors `text` with standard black foreground. */
   public static black(text: string): string { return Ansi.style(text, Ansi.BLACK); }
+  /** Colors `text` with standard red foreground. */
   public static red(text: string): string { return Ansi.style(text, Ansi.RED); }
+  /** Colors `text` with standard green foreground. */
   public static green(text: string): string { return Ansi.style(text, Ansi.GREEN); }
+  /** Colors `text` with standard yellow foreground. */
   public static yellow(text: string): string { return Ansi.style(text, Ansi.YELLOW); }
+  /** Colors `text` with standard blue foreground. */
   public static blue(text: string): string { return Ansi.style(text, Ansi.BLUE); }
+  /** Colors `text` with standard magenta foreground. */
   public static magenta(text: string): string { return Ansi.style(text, Ansi.MAGENTA); }
+  /** Colors `text` with standard cyan foreground. */
   public static cyan(text: string): string { return Ansi.style(text, Ansi.CYAN); }
+  /** Colors `text` with standard white foreground. */
   public static white(text: string): string { return Ansi.style(text, Ansi.WHITE); }
+  /** Colors `text` with gray (bright black) foreground. */
   public static gray(text: string): string { return Ansi.style(text, Ansi.GRAY); }
 
+  /** Colors `text` with bright red foreground. */
   public static brightRed(text: string): string { return Ansi.style(text, Ansi.BRIGHT_RED); }
+  /** Colors `text` with bright green foreground. */
   public static brightGreen(text: string): string { return Ansi.style(text, Ansi.BRIGHT_GREEN); }
+  /** Colors `text` with bright yellow foreground. */
   public static brightYellow(text: string): string { return Ansi.style(text, Ansi.BRIGHT_YELLOW); }
+  /** Colors `text` with bright blue foreground. */
   public static brightBlue(text: string): string { return Ansi.style(text, Ansi.BRIGHT_BLUE); }
+  /** Colors `text` with bright magenta foreground. */
   public static brightMagenta(text: string): string { return Ansi.style(text, Ansi.BRIGHT_MAGENTA); }
+  /** Colors `text` with bright cyan foreground. */
   public static brightCyan(text: string): string { return Ansi.style(text, Ansi.BRIGHT_CYAN); }
+  /** Colors `text` with bright white foreground. */
   public static brightWhite(text: string): string { return Ansi.style(text, Ansi.BRIGHT_WHITE); }
 
+  /** Formats `text` with a black background. */
   public static bgBlack(text: string): string { return Ansi.style(text, Ansi.BG_BLACK); }
+  /** Formats `text` with a red background. */
   public static bgRed(text: string): string { return Ansi.style(text, Ansi.BG_RED); }
+  /** Formats `text` with a green background. */
   public static bgGreen(text: string): string { return Ansi.style(text, Ansi.BG_GREEN); }
+  /** Formats `text` with a yellow background. */
   public static bgYellow(text: string): string { return Ansi.style(text, Ansi.BG_YELLOW); }
+  /** Formats `text` with a blue background. */
   public static bgBlue(text: string): string { return Ansi.style(text, Ansi.BG_BLUE); }
+  /** Formats `text` with a magenta background. */
   public static bgMagenta(text: string): string { return Ansi.style(text, Ansi.BG_MAGENTA); }
+  /** Formats `text` with a cyan background. */
   public static bgCyan(text: string): string { return Ansi.style(text, Ansi.BG_CYAN); }
+  /** Formats `text` with a white background. */
   public static bgWhite(text: string): string { return Ansi.style(text, Ansi.BG_WHITE); }
+  /** Formats `text` with a gray background. */
   public static bgGray(text: string): string { return Ansi.style(text, Ansi.BG_GRAY); }
 
   // 24-bit TrueColor (RGB)
+  /** Colors `text` using a 24-bit TrueColor RGB foreground (`r`, `g`, `b` in `0`–`255`). */
   public static rgb(r: number, g: number, b: number, text: string): string {
     return `\x1b[38;2;${Math.round(r)};${Math.round(g)};${Math.round(b)}m${text}${Ansi.RESET}`;
   }
 
+  /** Formats `text` using a 24-bit TrueColor RGB background (`r`, `g`, `b` in `0`–`255`). */
   public static bgRgb(r: number, g: number, b: number, text: string): string {
     return `\x1b[48;2;${Math.round(r)};${Math.round(g)};${Math.round(b)}m${text}${Ansi.RESET}`;
   }
 
   // Hex color (#RRGGBB or #RGB)
+  /** Colors `text` using a CSS hex color string (`#RGB` or `#RRGGBB`) for the foreground. */
   public static hex(hexCode: string, text: string): string {
     const { r, g, b } = Ansi.hexToRgb(hexCode);
     return Ansi.rgb(r, g, b, text);
   }
 
+  /** Formats `text` using a CSS hex color string (`#RGB` or `#RRGGBB`) for the background. */
   public static bgHex(hexCode: string, text: string): string {
     const { r, g, b } = Ansi.hexToRgb(hexCode);
     return Ansi.bgRgb(r, g, b, text);
   }
 
   // HSL color (h: 0-360, s: 0-100, l: 0-100)
+  /** Colors `text` using HSL coordinates (`h` in `0`–`360`, `s` and `l` in `0`–`100`). */
   public static hsl(h: number, s: number, l: number, text: string): string {
     const { r, g, b } = Ansi.hslToRgb(h, s, l);
     return Ansi.rgb(r, g, b, text);
   }
 
   // 256-color palette (0-255)
+  /** Colors `text` using an 8-bit xterm 256-color palette index (`0`–`255`) for the foreground. */
   public static color256(code: number, text: string): string {
     return `\x1b[38;5;${code}m${text}${Ansi.RESET}`;
   }
 
+  /** Formats `text` using an 8-bit xterm 256-color palette index (`0`–`255`) for the background. */
   public static bgColor256(code: number, text: string): string {
     return `\x1b[48;5;${code}m${text}${Ansi.RESET}`;
   }
 
   // Strip ANSI escape codes
+  /** Removes all ANSI CSI and OSC escape sequences from `text`. */
   public static stripAnsi(text: string): string {
     // eslint-disable-next-line no-control-regex
     return text.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '').replace(/\x1b\].*?\x07/g, '');
   }
 
   // Accurate visible string width handling ANSI and unicode
+  /** Computes the visible terminal column width of `text`, ignoring ANSI codes and counting full-width CJK/emoji characters as 2 columns. */
   public static stringWidth(text: string): string extends '' ? 0 : number {
     const clean = Ansi.stripAnsi(text);
     let width = 0;
@@ -157,18 +201,29 @@ export class Ansi {
   }
 
   // Cursor and Terminal Control
+  /** Returns the ANSI sequence to move the cursor up `n` lines. */
   public static cursorUp(n = 1): string { return `\x1b[${n}A`; }
+  /** Returns the ANSI sequence to move the cursor down `n` lines. */
   public static cursorDown(n = 1): string { return `\x1b[${n}B`; }
+  /** Returns the ANSI sequence to move the cursor forward (right) `n` columns. */
   public static cursorForward(n = 1): string { return `\x1b[${n}C`; }
+  /** Returns the ANSI sequence to move the cursor backward (left) `n` columns. */
   public static cursorBack(n = 1): string { return `\x1b[${n}D`; }
+  /** Returns the ANSI sequence to move the cursor to 0-based column `x` (and optional 0-based row `y`). */
   public static cursorTo(x: number, y?: number): string {
     return y !== undefined ? `\x1b[${y + 1};${x + 1}H` : `\x1b[${x + 1}G`;
   }
+  /** Returns the ANSI sequence to hide the terminal cursor. */
   public static cursorHide(): string { return '\x1b[?25l'; }
+  /** Returns the ANSI sequence to show the terminal cursor. */
   public static cursorShow(): string { return '\x1b[?25h'; }
+  /** Returns the ANSI sequence to save the current cursor position. */
   public static cursorSave(): string { return '\x1b[s'; }
+  /** Returns the ANSI sequence to restore the previously saved cursor position. */
   public static cursorRestore(): string { return '\x1b[u'; }
+  /** Returns the ANSI sequence to erase the entire current line and return the cursor to column 0. */
   public static clearLine(): string { return '\x1b[2K\r'; }
+  /** Returns the ANSI sequence to clear the screen, scrollback buffer, and home the cursor. */
   public static clearScreen(): string { return '\x1b[2J\x1b[3J\x1b[H'; }
 
   // Helpers

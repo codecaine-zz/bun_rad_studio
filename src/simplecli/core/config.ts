@@ -6,11 +6,15 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync } from '
 import { dirname, resolve } from 'node:path';
 import { homedir, platform } from 'node:os';
 
+/**
+ * Persistent JSON configuration and dot-path key-value store backed by the user's OS config directory.
+ */
 export class ConfigStore {
   public readonly appName: string;
   public readonly configPath: string;
   private data: Record<string, any> = {};
 
+  /** Creates and loads a `ConfigStore` for `appName` or at an explicit `customPath`. */
   constructor(appName: string = 'simplcli', customPath?: string) {
     this.appName = appName.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
     this.configPath = customPath ? resolve(customPath) : this.resolveDefaultConfigPath(this.appName);
@@ -27,10 +31,12 @@ export class ConfigStore {
     return resolve(xdgConfig, name, 'config.json');
   }
 
+  /** Returns the resolved filesystem path of the JSON configuration file. */
   public get path(): string {
     return this.configPath;
   }
 
+  /** Loads configuration data from disk into memory, returning an empty object if missing or invalid. */
   public load(): Record<string, any> {
     if (!existsSync(this.configPath)) {
       this.data = {};
@@ -45,6 +51,7 @@ export class ConfigStore {
     return this.data;
   }
 
+  /** Persists the current in-memory configuration object to `configPath` with `0600` permissions. */
   public save(): void {
     const dir = dirname(this.configPath);
     if (!existsSync(dir)) {
@@ -53,8 +60,11 @@ export class ConfigStore {
     writeFileSync(this.configPath, JSON.stringify(this.data, null, 2), { encoding: 'utf8', mode: 0o600 });
   }
 
+  /** Retrieves a configuration value by key or dot-separated path. */
   public get(key: string): any;
+  /** Retrieves a configuration value by key or dot-separated path, returning `defaultVal` when undefined. */
   public get<T>(key: string, defaultVal: T): T;
+  /** Retrieves a configuration value by key or dot-separated path, returning `defaultVal` when undefined. */
   public get<T = any>(key: string, defaultVal?: T): any {
     if (key.includes('.')) {
       const parts = key.split('.');
@@ -70,6 +80,7 @@ export class ConfigStore {
     return this.data[key] !== undefined ? this.data[key] : (defaultVal as T);
   }
 
+  /** Sets a configuration value by key or dot-separated path and immediately saves to disk. */
   public set(key: string, value: any): this {
     if (key.includes('.')) {
       const parts = key.split('.');
@@ -94,10 +105,12 @@ export class ConfigStore {
     return this;
   }
 
+  /** Returns `true` if `key` (or dot-separated path) exists in the configuration store. */
   public has(key: string): boolean {
     return this.get(key) !== undefined;
   }
 
+  /** Deletes a key or dot-separated path from the configuration store and persists the change. */
   public delete(key: string): boolean {
     if (key.includes('.')) {
       const parts = key.split('.');
@@ -120,6 +133,7 @@ export class ConfigStore {
     return true;
   }
 
+  /** Clears all configuration entries and removes the backing file from disk. */
   public clear(): this {
     this.data = {};
     if (existsSync(this.configPath)) {
@@ -132,6 +146,7 @@ export class ConfigStore {
     return this;
   }
 
+  /** Returns a shallow copy of all top-level key-value pairs in the configuration store. */
   public all(): Record<string, any> {
     return { ...this.data };
   }

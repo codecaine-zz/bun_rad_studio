@@ -1,3 +1,6 @@
+/**
+ * Interactive UI help tooltips and audit skip rules for Paint Studio (`paint_studio`), covering raster canvas drawing tools, layers, filters, color palettes, and image export.
+ */
 import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Help tips for `paint_studio` (Chroma Studio Pro). Keys: see src/shared/helpTips.ts. Check with: bun run scripts/help_controls.ts <app file> --missing */

@@ -15,9 +15,13 @@ import { isSameOrInside, type Platform } from "./fmPaths";
 import { LIVE_SCRIPT_PATH, LIVE_CLIENT_JS, LiveHub, injectLive } from "./fmServeLive";
 import { isHtmlName, mimeFor } from "./fmServeMime";
 
+/** Maximum allowed URL length in characters for incoming HTTP requests. */
 export const MAX_URL_LENGTH = 4096;
+/** Maximum allowed number of HTTP request headers. */
 export const MAX_HEADERS = 100;
+/** Maximum number of concurrent in-flight file requests per static server. */
 export const MAX_INFLIGHT = 64;
+/** Maximum number of entries shown in an auto-generated directory listing page. */
 export const MAX_LISTING = 5000;
 const MAX_INJECT_BYTES = 8 * 1024 * 1024;
 const WINDOWS_RESERVED = /^(con|prn|aux|nul|com[0-9¹²³]|lpt[0-9¹²³])(\..*)?$/i;
@@ -26,6 +30,7 @@ const BAD_NAME = /[\\/\x00-\x1f\x7f]/;
 const INDEX_FILES = ["index.html", "index.htm"];
 const PAGE_CSP = "default-src 'none'; style-src 'unsafe-inline'; script-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'";
 
+/** Configuration options for starting a read-only static HTTP server via `startStaticServer`. */
 export interface StaticOptions {
   /** The folder to serve (absolute). */
   root: string;
@@ -47,6 +52,7 @@ export interface StaticOptions {
   liveOptions?: { debounceMs?: number; maxDirs?: number; heartbeatMs?: number; maxClients?: number };
 }
 
+/** Running read-only static HTTP server instance with optional live-reload hub. */
 export interface StaticServer {
   readonly port: number;
   readonly host: string;
@@ -76,6 +82,7 @@ function formatBytes(n: number): string {
   return `${v >= 100 ? Math.round(v) : Math.round(v * 10) / 10} ${units[i]}`;
 }
 
+/** Returns the first non-internal IPv4 network address of this machine, or `null` if none is active. */
 export function lanAddress(): string | null {
   for (const list of Object.values(networkInterfaces())) {
     for (const a of list ?? []) if (a.family === "IPv4" && !a.internal) return a.address;
@@ -366,6 +373,7 @@ class Site {
   }
 }
 
+/** Starts a read-only `Bun.serve` static HTTP server for `options.root` with optional live reload. */
 export async function startStaticServer(options: StaticOptions): Promise<StaticServer> {
   const live = options.liveReload ? new LiveHub({ root: options.root, allowDotfiles: options.dotfiles, onNote: (t) => options.log?.(`Note: ${t}`), ...options.liveOptions }) : null;
   const site = new Site(options, live);

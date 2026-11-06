@@ -1,8 +1,14 @@
 #!/usr/bin/env bun
+/**
+ * Command-line entry point and argument normalizer/parser for the `subfinder` subdomain discovery tool.
+ */
 import { parseArgs } from "node:util";
 import { runSubfinderCoordinator } from "./subfinderCoordinator.ts";
 import type { SubfinderOptions } from "./subfinderTypes.ts";
 
+/**
+ * Normalizes single-dash ProjectDiscovery-style flags (`-silent`, `-active`, `-nW`, `-oJ`, etc.) into standard `--` long flags.
+ */
 export function normalizeSubfinderArgs(args: string[]): string[] {
   return args.map((arg) => {
     if (arg === "-silent") return "--silent";
@@ -16,6 +22,9 @@ export function normalizeSubfinderArgs(args: string[]): string[] {
   });
 }
 
+/**
+ * Parses CLI flags and positional domain arguments into a structured `SubfinderOptions` configuration.
+ */
 export function parseSubfinderArguments(args: string[]): SubfinderOptions {
   const normalized = normalizeSubfinderArgs(args);
   const { values, positionals } = parseArgs({
@@ -69,6 +78,9 @@ export function parseSubfinderArguments(args: string[]): SubfinderOptions {
   };
 }
 
+/**
+ * Prints usage instructions and flag descriptions for the `subfinder` CLI to stdout.
+ */
 export function printSubfinderHelp(): void {
   console.log(`Usage: subfinder [flags]
 

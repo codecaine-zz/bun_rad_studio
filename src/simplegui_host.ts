@@ -20,6 +20,7 @@ import type { SimpleWindow } from "./simplegui";
 export const MAX_HOST_MESSAGE = 8 * 1024 * 1024;
 const MAX_BACKLOG = 2000;
 
+/** WebSocket peer capable of receiving serialized messages from a hosted `SimpleWindow` session. */
 export interface HostedPeer {
   send(text: string): void;
 }
@@ -58,6 +59,9 @@ class HostedWebview {
   destroy(): void {}
 }
 
+/**
+ * Active browser-hosted session for a `SimpleWindow` instance, managing RPC bindings, queued evaluations, and connected WebSocket peers.
+ */
 export class HostedSession {
   /** The page's own secret: whoever fetches its page or opens its socket must know it. */
   readonly secret = randomBytes(24).toString("base64url");
@@ -69,6 +73,7 @@ export class HostedSession {
   private readonly peers = new Set<HostedPeer>();
   private backlog: string[] = [];
 
+  /** Creates a new `HostedSession` identified by `id` with an associated virtual webview. */
   constructor(readonly id: string) {
     this.webview = new HostedWebview(this);
   }
@@ -90,6 +95,7 @@ export class HostedSession {
     }
   }
 
+  /** Attaches a connected WebSocket peer to this session and flushes any queued backlog messages. */
   attach(peer: HostedPeer): void {
     if (this.closed) return;
     this.peers.add(peer);
@@ -105,6 +111,7 @@ export class HostedSession {
     }
   }
 
+  /** Removes a disconnected WebSocket peer from this session. */
   detach(peer: HostedPeer): void {
     this.peers.delete(peer);
   }
@@ -136,6 +143,7 @@ export class HostedSession {
     }
   }
 
+  /** Closes the session, clearing all connected peers, queued messages, and RPC bindings. */
   close(): void {
     this.closed = true;
     this.peers.clear();
@@ -144,6 +152,7 @@ export class HostedSession {
   }
 }
 
+/** Manager for opening, looking up, and closing browser-hosted `SimpleWindow` sessions. */
 export interface HostedHub {
   /** Starts a fresh window for `key` (an earlier one with the same key is closed first). */
   open(key: string, create: () => SimpleWindow): HostedSession;
@@ -152,6 +161,7 @@ export interface HostedHub {
   closeAll(): void;
 }
 
+/** Creates a `HostedHub` that allows up to `maxOpen` concurrent browser-hosted `SimpleWindow` sessions. */
 export function createHostedHub(maxOpen = 6): HostedHub {
   const open = new Map<string, { session: HostedSession; win: SimpleWindow }>();
 

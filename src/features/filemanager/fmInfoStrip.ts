@@ -9,8 +9,10 @@ import { ascii, be16, be32, le32, regularFile, writeNewFile } from "./fmInfoComm
 import { exifNumber, parseExifBlock } from "./fmInfoExif";
 import { FmError, splitName } from "./fmPaths";
 
+/** Maximum file size in bytes (256 MB) accepted by the built-in image metadata stripper. */
 export const STRIP_MAX_BYTES = 256 * 1024 * 1024;
 
+/** Cleaned image buffer along with descriptions of removed metadata blocks and any stripped trailing bytes. */
 export interface StripResult {
   bytes: Buffer;
   removed: string[];
@@ -31,6 +33,7 @@ function orientationOnly(orientation: number): Buffer {
   return tiff;
 }
 
+/** Strips metadata segments (EXIF, XMP, IPTC, comments, trailing bytes) from a JPEG buffer without re-encoding image data. */
 export function stripJpeg(input: Buffer, keepOrientation = false): StripResult {
   if (input.length < 4 || input[0] !== 0xff || input[1] !== 0xd8) throw new FmError("NOT_SUPPORTED", "That isn't a JPEG picture.");
   const parts: Buffer[] = [input.subarray(0, 2)];
@@ -112,6 +115,7 @@ function pngChunk(type: string, data: Buffer): Buffer {
   return out;
 }
 
+/** Strips ancillary metadata chunks (eXIf, text chunks, tIME, trailing data) from a PNG buffer without re-encoding pixels. */
 export function stripPng(input: Buffer, keepOrientation = false): StripResult {
   if (input.length < 8 || input[0] !== 0x89 || ascii(input, 1, 3) !== "PNG") throw new FmError("NOT_SUPPORTED", "That isn't a PNG picture.");
   const parts: Buffer[] = [input.subarray(0, 8)];
@@ -150,6 +154,7 @@ export function stripPng(input: Buffer, keepOrientation = false): StripResult {
   return { bytes: Buffer.concat(parts), removed, trailingBytes };
 }
 
+/** Strips EXIF and XMP RIFF chunks from a WebP image buffer and updates the container header flags. */
 export function stripWebp(input: Buffer): StripResult {
   if (input.length < 12 || ascii(input, 0, 4) !== "RIFF" || ascii(input, 8, 4) !== "WEBP") throw new FmError("NOT_SUPPORTED", "That isn't a WebP picture.");
   const removed: string[] = [];
@@ -177,6 +182,7 @@ export function stripWebp(input: Buffer): StripResult {
   return { bytes: Buffer.concat([head, body]), removed, trailingBytes: 0 };
 }
 
+/** Summary of a completed metadata-stripping operation saved as a new sibling file. */
 export interface StripDone {
   path: string;
   name: string;

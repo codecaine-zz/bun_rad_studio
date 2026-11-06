@@ -1,3 +1,7 @@
+/**
+ * Synchronous and file-based compression utilities supporting Gzip, raw DEFLATE, Brotli, and Zstandard,
+ * plus Base64 string helpers, magic-byte codec detection, and compression ratio calculation.
+ */
 // Feature: RAD - compressutils
 // Synchronous, zero-dependency compression on Bun's native codecs: gzip, raw deflate, zstd
 // (Bun.*Sync) and brotli (node:zlib). Includes Base64 string helpers, a format-dispatching
@@ -213,6 +217,9 @@ export function compressionRatio(uncompressedLen: number, compressedLen: number)
   return Number((((uncompressedLen - compressedLen) / uncompressedLen) * 100).toFixed(1));
 }
 
+/**
+ * Namespace of Gzip, DEFLATE, Brotli, and Zstandard compression and decompression utilities.
+ */
 export const compressutils = {
   gzipCompress,
   gzipDecompress,

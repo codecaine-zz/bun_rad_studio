@@ -1,3 +1,7 @@
+/**
+ * Executable integration test suite mirroring every code recipe in `src/features/rad/README.md`
+ * and the "RAD Master-Upgrade Integration Recipes" in `docs/API.md`.
+ */
 // Executable mirrors of every code recipe in src/features/rad/README.md and the
 // "RAD Master-Upgrade Integration Recipes" in docs/API.md. Disk paths are redirected to temp dirs.
 import { describe, expect, it } from "bun:test";

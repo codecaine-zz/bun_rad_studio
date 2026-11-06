@@ -10,13 +10,20 @@
 import { VaultError } from "./fmVaultFormat";
 import { platformName, validateName, type Platform } from "./fmPaths";
 
+/** Maximum number of files and directories allowed inside a single RADENC container (`2,000,000`). */
 export const MAX_ENTRIES = 2_000_000;
+/** Maximum directory nesting depth allowed inside a RADENC container (`64`). */
 export const MAX_DEPTH = 64;
+/** Maximum UTF-8 byte length of a relative entry path inside a RADENC container (`1024`). */
 export const MAX_PATH_BYTES = 1024;
+/** Maximum UTF-8 byte length of a single path component name (`255`). */
 export const MAX_NAME_BYTES = 255;
+/** Maximum UTF-8 byte length of the serialized JSON manifest (`65,536`). */
 export const MAX_MANIFEST_BYTES = 64 * 1024;
+/** Maximum number of individual skipped-item warnings kept before summarizing the rest (`50`). */
 export const MAX_WARNINGS = 50;
 
+/** Metadata header stored at the start of an encrypted RADENC stream describing the top-level item and totals. */
 export interface Manifest {
   v: 1;
   kind: "file" | "folder";
@@ -26,6 +33,7 @@ export interface Manifest {
   bytes: number;
 }
 
+/** Encodes a `Manifest` as a RADENC `M` record (`0x4d` + u32be byte length + UTF-8 JSON). */
 export function encodeManifest(m: Manifest): Buffer {
   const json = Buffer.from(JSON.stringify(m), "utf8");
   const head = Buffer.alloc(5);
@@ -45,6 +53,7 @@ function entryHead(tag: number, path: string, mode: number, mtimeMs: number, ext
   return b;
 }
 
+/** Encodes the header of a file (`F`) entry before its raw file bytes are streamed. */
 export function encodeFileEntry(path: string, mode: number, mtimeMs: number, size: number): Buffer {
   const b = entryHead(0x46, path, mode, mtimeMs, 8); // "F"
   b.writeUInt32BE(Math.floor(size / 2 ** 32), b.length - 8);
@@ -52,10 +61,12 @@ export function encodeFileEntry(path: string, mode: number, mtimeMs: number, siz
   return b;
 }
 
+/** Encodes a directory (`D`) entry record with its relative path, POSIX permission bits, and mtime. */
 export function encodeDirEntry(path: string, mode: number, mtimeMs: number): Buffer {
   return entryHead(0x44, path, mode, mtimeMs, 0); // "D"
 }
 
+/** Single-byte sentinel (`0x45` / `"E"`) marking the end of a RADENC container stream. */
 export const END_ENTRY = Buffer.from([0x45]); // "E"
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -92,6 +103,7 @@ export function checkEntryPath(path: string, platform: Platform = platformName()
   return parts;
 }
 
+/** Creates a `BAD_CONTAINER` `VaultError` explaining why an entry inside the archive was rejected as unsafe to extract. */
 export function unsafe(reason: string): VaultError {
   return new VaultError("BAD_CONTAINER", `The file unlocked, but it contains something that isn't safe to extract (${reason}), so nothing was extracted.`);
 }

@@ -26,16 +26,20 @@ export interface FrameInfo extends Rect {
   fullscreen: boolean;
 }
 
+/** Target dimensions and optional screen coordinates for positioning a native window. */
 export interface WindowBounds {
   width: number;
   height: number;
   /** null: let the system center the window. */
   x: number | null;
+  /** null: let the system center the window. */
   y: number | null;
 }
 
+/** Supported OS-level window backdrop material styles. */
 export type NativeWindowBackdrop = "none" | "vibrancy" | "mica" | "mica-alt" | "acrylic";
 
+/** Options for synchronizing native OS window theme appearance, backdrop material, and corner rounding. */
 export interface WindowAppearanceOptions {
   /** Whether the active theme is dark (syncs macOS NSAppearance and Windows DWMWA_USE_IMMERSIVE_DARK_MODE). */
   dark?: boolean;
@@ -45,6 +49,7 @@ export interface WindowAppearanceOptions {
   roundedCorners?: boolean;
 }
 
+/** Platform-agnostic interface for inspecting displays and controlling native window bounds and states. */
 export interface WindowNative {
   /** The monitors that exist now; the first is the primary. Empty when they can't be found out. */
   getScreens(): FmScreen[];

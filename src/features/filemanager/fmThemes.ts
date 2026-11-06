@@ -53,8 +53,10 @@ import {
 
 type RGB = [number, number, number];
 
+/** Category group label used to organize themes in the File Manager theme picker. */
 export type ThemeGroup = "My themes" | "Futuristic" | "Linux" | "Windows" | "macOS" | "Rare and beloved systems" | "Editors and classics";
 
+/** Miniature card preview tokens (surface colors, border style, corner radius, and glow) for a theme. */
 export interface ThemePreview {
   bg: string;
   panel: string;
@@ -70,6 +72,7 @@ export interface ThemePreview {
   borderStyle: FxBorder;
 }
 
+/** WCAG contrast ratio and grade for a specific foreground/background color pair in a theme. */
 export interface ThemeContrastItem {
   pair: string;
   label: string;
@@ -79,8 +82,10 @@ export interface ThemeContrastItem {
   grade: "AAA" | "AA" | "AA Large";
 }
 
+/** Hardware/visual complexity tier of a theme (`"low"`, `"medium"`, or `"ultra"`). */
 export type ThemeTier = "low" | "medium" | "ultra";
 
+/** Catalog metadata and preview tokens describing a built-in or custom File Manager theme. */
 export interface ThemeSummary {
   key: string;
   name: string;
@@ -113,6 +118,7 @@ export interface ThemeSummary {
   fallbackName?: string;
 }
 
+/** Computed CSS custom properties, contrast telemetry, readability notes, and optional FX attributes for a theme. */
 export interface ThemeVars {
   scheme: "light" | "dark";
   vars: Record<string, string>;
@@ -166,6 +172,7 @@ function buildContrastReport(vars: Record<string, string>): ThemeContrastItem[] 
   });
 }
 
+/** Computes the full set of contrast-checked CSS variables, notes, and FX attributes for a `SimpleGUITheme`. */
 export function themeVars(theme: SimpleGUITheme): ThemeVars {
   const dark = theme.is_dark;
   let bg = hex(parseColor(theme.background_color, dark ? [22, 25, 29] : WHITE));
@@ -297,6 +304,7 @@ export interface ThemeSource {
   fx?: ThemeFx;
 }
 
+/** Extracts the editable base color palette and FX configuration from a `SimpleGUITheme` for the theme editor. */
 export function sourceOf(theme: SimpleGUITheme): ThemeSource {
   const bg = hex(parseColor(theme.background_color));
   const card = theme.card_background ? hex(parseColor(theme.card_background)) : over(bg, hex(parseColor(theme.font_color)), 0.07);
@@ -414,6 +422,7 @@ function build(): Map<string, Entry> {
 
 const entries = () => (table ??= build());
 
+/** Returns the catalog summaries of all built-in File Manager themes. */
 export const listThemes = (): ThemeSummary[] => [...entries().values()].map((e) => e.summary);
 
 function summaryOf(key: string, theme: SimpleGUITheme, group: ThemeGroup): ThemeSummary & ThemeVars {
@@ -436,6 +445,7 @@ function summaryOf(key: string, theme: SimpleGUITheme, group: ThemeGroup): Theme
   };
 }
 
+/** Looks up a built-in theme by key and returns its summary together with its computed CSS variables, or `null` if unknown. */
 export function getThemeColours(key: unknown): (ThemeSummary & ThemeVars) | null {
   if (typeof key !== "string") return null;
   const e = entries().get(key);
@@ -444,6 +454,7 @@ export function getThemeColours(key: unknown): (ThemeSummary & ThemeVars) | null
   return { ...e.summary, ...e.computed };
 }
 
+/** Result of resolving a theme against the client's detected GPU/CPU/display hardware profile. */
 export interface FmHardwareThemeResult {
   theme: ThemeSummary & ThemeVars;
   requestedKey: string;
@@ -556,6 +567,7 @@ function safeFileSlug(name: string): string {
     .slice(0, 48) || "theme";
 }
 
+/** File Manager API handlers (`themes/*`) for listing, previewing, saving, importing, and exporting themes. */
 export const themeOperations: Record<string, FmHandler> = {
   async "themes/list"(ctx) {
     return { themes: [...(await loadCustom(ctx)).map(customSummary), ...listThemes()] };

@@ -1,3 +1,6 @@
+/**
+ * Interactive UI help tooltips and audit skip rules for IP Info Studio (`ipinfo_studio`), covering IP geolocation, ASN lookup, CIDR subnet calculation, and WHOIS details.
+ */
 import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Help tips for `ipinfo_studio`. Keys: see src/shared/helpTips.ts. Check with: bun run scripts/help_controls.ts <app file> --missing */

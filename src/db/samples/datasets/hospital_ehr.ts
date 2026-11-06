@@ -1,3 +1,7 @@
+/**
+ * Synthetic Hospital Electronic Health Record (EHR) sample dataset definition covering
+ * clinical departments, patient encounters, ICD-10 diagnoses, procedures, lab results, and medications.
+ */
 import { addDays, dayOf, dayStr } from "../gen";
 import { dataset, query, table, view } from "../model";
 

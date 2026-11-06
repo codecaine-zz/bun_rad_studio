@@ -4,6 +4,7 @@
  * `studioStagingClient` is serialized with Function.toString() and executed in the page, so it must stay self-contained.
  * All text is set with textContent and all elements are built with createElement: no HTML strings, no external resources.
  */
+/** Browser-side controller function for the multi-step "Import with staging" modal wizard. */
 export function studioStagingClient(cfg) {
   "use strict";
   var ENGINE = cfg.engine;

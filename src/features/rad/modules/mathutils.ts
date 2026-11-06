@@ -1,13 +1,23 @@
+/**
+ * Practical mathematics toolkit for applications, games, and dashboards: interpolation, range mapping,
+ * rounding/snapping, 2D points and axis-aligned rectangles, number theory, angles, and PRNGs.
+ */
 // Feature: RAD - mathutils
 // Practical math for apps, games and dashboards: interpolation & mapping, rounding/snapping,
 // 2D points & axis-aligned rectangles, number theory, angles, percentages, float comparison,
 // and random numbers (fast, cryptographically secure, or seeded/reproducible).
 
+/**
+ * 2D Cartesian point with `x` and `y` coordinates.
+ */
 export interface Point2D {
   x: number;
   y: number;
 }
 
+/**
+ * Axis-aligned 2D rectangle defined by its top-left origin (`x`, `y`) and dimensions (`width`, `height`).
+ */
 export interface Rect {
   x: number;
   y: number;
@@ -270,6 +280,9 @@ export function seededRandom(seed: number): () => number {
   };
 }
 
+/**
+ * Namespace bundling all interpolation, geometry, number theory, and random number utilities.
+ */
 export const mathutils = {
   lerp,
   inverseLerp,

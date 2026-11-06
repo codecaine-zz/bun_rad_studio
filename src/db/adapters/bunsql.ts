@@ -1,3 +1,7 @@
+/**
+ * Shared `Bun.SQL` connection pool, session management, read-only transaction guard,
+ * and query timeout base class (`BunSqlAdapter`) for MySQL and PostgreSQL adapters.
+ */
 import { SQL } from "bun";
 import type { Capabilities, ConnectionConfig, DbSession, ObjectRef, Param, QueryOptions, QueryResult, ServerInfo, WireValue } from "../types";
 import { DbError, assertReadOnlyStatement, normalizeError } from "../errors";
@@ -17,22 +21,28 @@ export abstract class BunSqlAdapter extends BaseAdapter {
   /** Statements that put a reserved connection into a server-enforced read-only transaction. */
   protected abstract readonly beginReadOnlySql: string;
   protected abstract readonly beginSql: string;
+  /** Returns the SQL statement to set a per-statement execution timeout of `ms` milliseconds. */
   protected abstract setTimeoutSql(ms: number): string;
+  /** Returns the SQL statement to clear any per-statement execution timeout on a session connection. */
   protected abstract resetTimeoutSql(): string;
   protected abstract backendIdSql: string;
+  /** Returns the SQL statement to cancel a running query on backend connection `id`. */
   protected abstract cancelSql(id: string): string;
   protected abstract versionSql: string;
   /** Extra statements run on a reserved connection before the first user statement. */
   protected prepareReadOnlyConnection(): string[] {
     return [];
   }
+  /** Returns engine-specific options passed to the `new SQL(...)` constructor. */
   protected abstract driverOptions(): Record<string, unknown>;
 
+  /** Returns the active `Bun.SQL` pool or throws `CONNECTION_LOST` if `connect()` has not completed. */
   protected get p(): SQL {
     if (!this.pool) throw new DbError("CONNECTION_LOST", "Not connected. Call connect() first.");
     return this.pool;
   }
 
+  /** Normalizes `this.config.tls` into the `tls` option object expected by `Bun.SQL`. */
   protected tlsOption(): unknown {
     const t = this.config.tls;
     if (!t) return false;
@@ -40,6 +50,7 @@ export abstract class BunSqlAdapter extends BaseAdapter {
     return { rejectUnauthorized: t.verify !== false, ...(t.ca ? { ca: t.ca } : {}) };
   }
 
+  /** Creates the `Bun.SQL` connection pool and verifies connectivity with `SELECT 1`. */
   async connect(): Promise<void> {
     if (this.pool) return;
     const c = this.config;
@@ -64,12 +75,14 @@ export abstract class BunSqlAdapter extends BaseAdapter {
     this.pool = pool;
   }
 
+  /** Closes the `Bun.SQL` connection pool and releases all connections. */
   async close(): Promise<void> {
     const p = this.pool;
     this.pool = null;
     await p?.close().catch(() => {});
   }
 
+  /** Queries server version and current database name, measuring round-trip latency in milliseconds. */
   async ping(): Promise<ServerInfo> {
     const t = performance.now();
     try {
@@ -80,10 +93,12 @@ export abstract class BunSqlAdapter extends BaseAdapter {
     }
   }
 
+  /** True when the adapter was configured in read-only mode. */
   protected get readOnly(): boolean {
     return Boolean(this.config.readOnly);
   }
 
+  /** Converts a raw `Bun.SQL` result array/metadata into a normalized `QueryResult` with wire-safe values. */
   protected toResult(raw: any, kw: string, started: number, maxRows?: number): QueryResult {
     const all: Record<string, unknown>[] = Array.isArray(raw) ? Array.from(raw as Record<string, unknown>[]) : [];
     const truncated = maxRows !== undefined && all.length > maxRows;
@@ -144,10 +159,12 @@ export abstract class BunSqlAdapter extends BaseAdapter {
     }
   };
 
-  /** Start the per-statement guard (read-only transaction and/or timeout). Returns true if a transaction was opened. */
+  /**Start the per-statement guard (read-only transaction and/or timeout). Returns true if a transaction was opened. */
   protected abstract enterGuard(conn: Conn, timeoutMs: number): Promise<boolean>;
+  /** Cleans up the per-statement guard (commits/rolls back transaction and resets timeout) after execution. */
   protected abstract leaveGuard(conn: Conn, began: boolean, timeoutMs: number, failed: boolean): Promise<void>;
 
+  /** Reserves a pooled connection and wraps it in a `DbSession` supporting transactions and server-side query cancellation. */
   async openSession(): Promise<DbSession> {
     const conn = (await this.p.reserve()) as unknown as Reserved;
     const self = this;
@@ -241,6 +258,8 @@ export abstract class BunSqlAdapter extends BaseAdapter {
     };
   }
 
+  /** Returns the engine's `Capabilities` descriptor. */
   abstract override capabilities(): Promise<Capabilities>;
+  /** Lists all user tables and views in the connected database. */
   abstract override listObjects(): Promise<ObjectRef[]>;
 }

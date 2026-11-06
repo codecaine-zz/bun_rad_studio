@@ -1,7 +1,11 @@
+/**
+ * PostgreSQL database adapter (`PostgresAdapter`) built on `BunSqlAdapter` and `pg_catalog` introspection.
+ */
 import type { Capabilities, ColumnInfo, ForeignKeyInfo, IndexInfo, ObjectRef, TableInfo } from "../types";
 import { DbError, normalizeError } from "../errors";
 import { BunSqlAdapter } from "./bunsql";
 
+/** PostgreSQL implementation of `DbAdapter` using Bun's built-in Postgres client. */
 export class PostgresAdapter extends BunSqlAdapter {
   readonly engine = "postgres" as const;
   protected readonly beginSql = "BEGIN";
@@ -9,15 +13,19 @@ export class PostgresAdapter extends BunSqlAdapter {
   protected readonly versionSql = "SELECT version() AS v, current_database() AS d";
   protected readonly backendIdSql = "SELECT pg_backend_pid() AS id";
 
+  /** Returns extra `Bun.SQL` constructor options for PostgreSQL. */
   protected driverOptions() {
     return {};
   }
+  /** Builds `SET statement_timeout = <ms>` for PostgreSQL sessions. */
   protected setTimeoutSql(ms: number) {
     return `SET statement_timeout = ${Math.max(0, Math.trunc(ms))}`;
   }
+  /** Resets `statement_timeout` to `0` (disabled) on a PostgreSQL session. */
   protected resetTimeoutSql() {
     return "SET statement_timeout = 0";
   }
+  /** Builds `SELECT pg_cancel_backend(<pid>)` to cancel an in-flight query on backend PID `id`. */
   protected cancelSql(id: string) {
     if (!/^\d+$/.test(id)) throw new Error("bad backend pid");
     return `SELECT pg_cancel_backend(${id})`;
@@ -28,11 +36,13 @@ export class PostgresAdapter extends BunSqlAdapter {
     if (timeoutMs) await conn.unsafe(`SET LOCAL statement_timeout = ${Math.max(0, Math.trunc(timeoutMs))}`);
     return true;
   }
+  /** Commits or rolls back the per-statement transaction opened by `enterGuard`. */
   protected async leaveGuard(conn: { unsafe(sql: string): Promise<unknown> }, began: boolean, _t: number, failed: boolean) {
     if (!began) return;
     await conn.unsafe(failed || this.readOnly ? "ROLLBACK" : "COMMIT");
   }
 
+  /** Casts `expr` to `text` using PostgreSQL `::text` syntax for `LIKE` filtering. */
   protected textCast(expr: string) {
     return `${expr}::text`;
   }
@@ -42,6 +52,7 @@ export class PostgresAdapter extends BunSqlAdapter {
     return /^(json|xml)$/i.test(col.dataType) ? `${q}::text = ${ph}::text` : `${q} = ${ph}`;
   }
 
+  /** Reports PostgreSQL server version and feature capabilities (schemas, transactional DDL, `pg_cancel_backend`, `statement_timeout`). */
   async capabilities(): Promise<Capabilities> {
     const info = await this.ping();
     return {
@@ -63,6 +74,7 @@ export class PostgresAdapter extends BunSqlAdapter {
     };
   }
 
+  /** Lists all non-system tables, partitioned tables, views, materialized views, and foreign tables across schemas. */
   async listObjects(): Promise<ObjectRef[]> {
     try {
       const rows = (await this.p.unsafe(
@@ -77,6 +89,7 @@ export class PostgresAdapter extends BunSqlAdapter {
     }
   }
 
+  /** Introspects columns, primary key, foreign keys, and indexes for `ref` from `pg_catalog`. */
   async describeTable(ref: ObjectRef): Promise<TableInfo> {
     const schema = ref.schema || this.config.schema || "public";
     try {

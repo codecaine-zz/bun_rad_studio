@@ -1,3 +1,10 @@
+/**
+ * Primary entry point and root module for Bun RAD Studio.
+ *
+ * Provides native cross-platform window management helpers (macOS Cocoa, Windows User32, Linux fallbacks),
+ * IDE window shortcut bindings, draft autosave and project export utilities, preview HTML generation,
+ * and re-exports the SimpleGUI and SimpleCLI toolkits.
+ */
 import { injectHelp } from "./src/shared/helpTips";
 import { DESKTOP_SHORTCUTS_SCRIPT } from "./src/shared/desktopShortcuts";
 import { buildSemanticPalette, normalizeKind, semanticCssVars } from "./src/shared/themeSemantic";
@@ -27,8 +34,10 @@ function getLinuxDisplaySizeFallback() {
 }
 
 const fullscreenStateMap = new WeakMap<Webview, boolean>();
+/** Tracks the last fullscreen toggle timestamp per window to debounce rapid shortcut triggers. */
 export const fullscreenDebounceMap = new WeakMap<object, number>();
 
+/** Sets or clears the native always-on-top floating window level on macOS and Windows. */
 export function setAlwaysOnTopNative(wv: Webview, onTop: boolean) {
     try {
         const handle = wv.unsafeWindowHandle;
@@ -70,6 +79,7 @@ export function setAlwaysOnTopNative(wv: Webview, onTop: boolean) {
     }
 }
 
+/** Toggles native fullscreen or maximized state for a Webview window with 450ms debouncing. */
 export function toggleFullscreenNative(wv: Webview) {
     try {
         if (!wv) return;
@@ -130,6 +140,7 @@ export function toggleFullscreenNative(wv: Webview) {
     }
 }
 
+/** Returns `true` if the given Webview window is currently in native fullscreen or maximized mode. */
 export function isFullscreenNative(wv: Webview): boolean {
     try {
         if (!wv) return false;
@@ -167,6 +178,7 @@ export function isFullscreenNative(wv: Webview): boolean {
     return false;
 }
 
+/** Explicitly enters or exits native fullscreen mode for a Webview window if not already in the target state. */
 export function setFullscreenNative(wv: Webview, fullscreen = true) {
     try {
         if (!wv) return;
@@ -180,6 +192,7 @@ export function setFullscreenNative(wv: Webview, fullscreen = true) {
     }
 }
 
+/** Minimizes the given Webview window to the OS dock or taskbar, exiting fullscreen first on macOS if needed. */
 export function minimizeWindowNative(wv: Webview) {
     try {
         const handle = wv?.unsafeWindowHandle;
@@ -230,6 +243,7 @@ export function minimizeWindowNative(wv: Webview) {
     }
 }
 
+/** Hides the application via `NSApplication.hide:` on macOS, or falls back to minimizing the window. */
 export function hideAppNative(wv?: Webview) {
     try {
         if (process.platform === "darwin") {
@@ -260,6 +274,7 @@ export function hideAppNative(wv?: Webview) {
     if (wv) minimizeWindowNative(wv);
 }
 
+/** Sends a native close message (`performClose:` on macOS or `WM_CLOSE` on Windows) to the Webview window. */
 export function closeWindowNative(wv: Webview) {
     try {
         const handle = wv?.unsafeWindowHandle;
@@ -295,6 +310,7 @@ export function closeWindowNative(wv: Webview) {
     }
 }
 
+/** Queries the primary display dimensions in pixels via CoreGraphics on macOS or User32 on Windows. */
 export function getScreenDimensions(): { width: number; height: number } {
     let screenW = 1920;
     let screenH = 1080;
@@ -319,10 +335,12 @@ export function getScreenDimensions(): { width: number; height: number } {
     return { width: screenW, height: screenH };
 }
 
+/** Centers a Webview window on the primary screen given its width and height. */
 export function centerWindowNative(wv: Webview, winWidth = 1400, winHeight = 900) {
     return setWindowPositionNative(wv, "center", winWidth, winHeight);
 }
 
+/** Callbacks and initial state options for `attachWindowShortcuts`. */
 export interface WindowShortcutOptions {
     onQuit?: () => void;
     onClose?: () => void;
@@ -333,6 +351,7 @@ export interface WindowShortcutOptions {
     fullscreen?: boolean;
 }
 
+/** Attaches desktop keyboard shortcuts, clipboard bindings, window management IPC, and external URL handlers to a Webview. */
 export function attachWindowShortcuts(wv: Webview, options?: WindowShortcutOptions) {
     let alwaysOnTopState = false;
     wv.init(DESKTOP_SHORTCUTS_SCRIPT);
@@ -555,6 +574,7 @@ export function attachWindowShortcuts(wv: Webview, options?: WindowShortcutOptio
     } catch {}
 }
 
+/** Returns the client-side JavaScript snippet that wires desktop keyboard shortcuts, audio unlock, and link interception inside a webview. */
 export function getWindowShortcutsScript(): string {
     return `
 ${DESKTOP_SHORTCUTS_SCRIPT}
@@ -967,6 +987,7 @@ ${DESKTOP_SHORTCUTS_SCRIPT}
 }
 
 
+/** Named screen alignment presets for positioning a native desktop window. */
 export type WindowPositionPreset = 
     | "center" | "screen_center"
     | "upper_left" | "top_left"
@@ -978,6 +999,7 @@ export type WindowPositionPreset =
     | "center_left"
     | "center_right";
 
+/** Moves a Webview window to a named screen alignment preset or explicit `{ x, y }` screen coordinates. */
 export function setWindowPositionNative(wv: Webview, pos: WindowPositionPreset | { x: number, y: number }, winWidth = 1400, winHeight = 900) {
     try {
         let screenW = 1920;
@@ -1097,7 +1119,9 @@ export function setWindowPositionNative(wv: Webview, pos: WindowPositionPreset |
 }
 
 // Main IDE entry point helper
+/** Cached HTML markup for the main Bun RAD Studio IDE interface. */
 export let html = "";
+/** Loads and returns the Bun RAD Studio IDE HTML template populated with a default form specification. */
 export function getIdeHtml(): string {
     const defaultSpec = JSON.stringify({
         title: "Form1",
@@ -1159,10 +1183,12 @@ export function writeGeneratedFile(path: string, content: string): string | null
  */
 const DRAFT_MAX_BYTES = 10 * 1024 * 1024;
 
+/** Resolves the file path used to store the form designer's autosave draft JSON (`designer_draft.json`). */
 export function draftFilePath(customDir?: string): string {
     return join(customDir ?? join(homedir(), ".bun_rad_studio"), "designer_draft.json");
 }
 
+/** Atomically validates and saves the current form designer specification JSON to the user's draft file. */
 export function saveDraftHelper(specJson: string, customDir?: string): { ok: boolean; error?: string } {
     try {
         if (typeof specJson !== "string" || specJson.length > DRAFT_MAX_BYTES) return { ok: false, error: "The form is too large to autosave." };
@@ -1194,6 +1220,7 @@ export function loadDraftHelper(customDir?: string): { savedAt: string; specJson
     }
 }
 
+/** Removes the saved designer draft file if it exists, returning `true` when a draft was deleted. */
 export function clearDraftHelper(customDir?: string): boolean {
     try {
         const file = draftFilePath(customDir);
@@ -1206,6 +1233,7 @@ export function clearDraftHelper(customDir?: string): boolean {
 }
 
 // Helper function for exporting project structure
+/** Exports a form specification JSON into a standalone runnable Bun project directory with generated HTML, TypeScript, and package files. */
 export function exportProjectHelper(specJson: string, customExportDir?: string) {
     try {
         const spec = JSON.parse(specJson);
@@ -1652,15 +1680,24 @@ export {
 
 export * from "./src/simplecli/index.ts";
 
+/** Stub helper for updating a status bar control's text in generated or preview environments. */
 export function setStatusBarText(controlId: string, statusText: string) {}
+/** Stub helper for updating a Kanban board control's columns data in generated or preview environments. */
 export function setKanbanColumns(controlId: string, columnsData: string) {}
+/** Stub helper for updating a shortcut recorder control's key combination value. */
 export function setShortcutRecorderValue(controlId: string, shortcutStr: string) {}
+/** Stub helper for updating a split button control's primary action label. */
 export function setSplitButtonAction(controlId: string, text: string) {}
+/** Stub helper for populating a sparkline table control from CSV row data. */
 export function setSparklineTableData(controlId: string, rowsCSV: string) {}
+/** Stub helper for updating a metric comparison card control's values and delta text. */
 export function setMetricComparison(controlId: string, title: string, curVal: string, targetStr: string, changeStr: string) {}
+/** Stub helper for populating an activity feed control from CSV items data. */
 export function setActivityFeedItems(controlId: string, itemsCSV: string) {}
+/** Stub helper for setting the open file tabs on a workspace tabs control. */
 export function setWorkspaceTabs(controlId: string, filesCSV: string) {}
 
+/** Returns `true` when a `#RGB` or `#RRGGBB` hex color has high perceived luminance (> 180). */
 export function isColorBright(hex?: string): boolean {
     if (!hex || typeof hex !== 'string' || !hex.startsWith('#')) return false;
     const clean = hex.slice(1);
@@ -1696,6 +1733,7 @@ function hexToRgba(hex: string, alpha: number): string {
     return `rgba(56, 189, 248, ${alpha})`;
 }
 
+/** Generates a complete standalone HTML document rendering the given form designer specification (`spec`). */
 export function generatePreviewHtml(spec: any): string {
     const bg = spec.background_color || '#0f172a';
     const fg = spec.font_color || '#e2e8f0';

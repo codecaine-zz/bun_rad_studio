@@ -9,6 +9,7 @@ import { decodeEntities } from "./fmConvMarkup";
 import { readCentralDirectory, readZipEntry, type CentralEntry } from "./fmZip";
 import { zipBuffer } from "./fmConvZip";
 
+/** A single named worksheet containing a 2D array of cell values. */
 export interface Sheet {
   name: string;
   rows: Value[][];
@@ -173,6 +174,7 @@ async function readXlsxHandle(handle: fsp.FileHandle, size: number): Promise<She
   return sheets;
 }
 
+/** Opens and parses an `.xlsx` or `.xlsm` file on disk into an array of `Sheet` objects. */
 export async function readXlsx(path: string): Promise<Sheet[]> {
   const handle = await fsp.open(path, "r");
   try {
@@ -183,6 +185,7 @@ export async function readXlsx(path: string): Promise<Sheet[]> {
   }
 }
 
+/** Parses an in-memory `.xlsx` byte buffer into an array of `Sheet` objects. */
 export async function readXlsxBuffer(bytes: Uint8Array): Promise<Sheet[]> {
   return readXlsxHandle(bufferHandle(bytes), bytes.byteLength);
 }
@@ -235,6 +238,7 @@ async function readOdsHandle(handle: fsp.FileHandle, size: number): Promise<Shee
   return sheets;
 }
 
+/** Opens and parses an OpenDocument `.ods` spreadsheet file on disk into an array of `Sheet` objects. */
 export async function readOds(path: string): Promise<Sheet[]> {
   const handle = await fsp.open(path, "r");
   try {
@@ -245,14 +249,17 @@ export async function readOds(path: string): Promise<Sheet[]> {
   }
 }
 
+/** Parses an in-memory `.ods` spreadsheet byte buffer into an array of `Sheet` objects. */
 export async function readOdsBuffer(bytes: Uint8Array): Promise<Sheet[]> {
   return readOdsHandle(bufferHandle(bytes), bytes.byteLength);
 }
 
+/** Reads either an `.ods` or `.xlsx`/`.xlsm` file from disk based on its file extension. */
 export async function readSpreadsheet(path: string): Promise<Sheet[]> {
   return path.toLowerCase().endsWith(".ods") ? readOds(path) : readXlsx(path);
 }
 
+/** Inspects zip entries (or filename fallback) to parse an in-memory `.xlsx` or `.ods` buffer into sheets. */
 export async function readSpreadsheetBuffer(bytes: Uint8Array, name = ""): Promise<Sheet[]> {
   const handle = bufferHandle(bytes);
   try {
@@ -290,6 +297,7 @@ function colName(i: number): string {
   return s;
 }
 
+/** Sanitizes and deduplicates an Excel worksheet name (max 31 chars, no forbidden characters). */
 export function sheetName(raw: string, taken: Set<string>): string {
   let n = raw.replace(/[[\]:*?/\\]/g, "_").replace(/^'+|'+$/g, "").trim().slice(0, 31) || "Sheet";
   let k = 2;
@@ -310,6 +318,7 @@ export function sheetsFromValue(v: Value, defaultName: string, tableFor: (value:
   return [make(defaultName, v)];
 }
 
+/** Serializes one or more named tables into a valid `.xlsx` workbook buffer with shared strings and frozen headers. */
 export function writeXlsx(sheets: Array<{ name: string; columns: string[] | null; rows: Value[][] }>, notes: Notes): Buffer {
   const strings: string[] = [];
   const index = new Map<string, number>();

@@ -24,15 +24,24 @@ import { extractReadableDocumentText } from "./fmPreview";
 // 1. Pure Bun Path & File Helpers (Zero Node `fs`, `path`, `os`, or `child_process` imports)
 // ---------------------------------------------------------------------------------------------------------------
 
+/**
+ * Returns the platform-appropriate directory separator (`\` on Windows, `/` on POSIX).
+ */
 export function pathSep(platform = process.platform): string {
   return platform === "win32" ? "\\" : "/";
 }
 
+/**
+ * Normalizes path separators in `p` to match the target platform.
+ */
 export function normalizeSlashes(p: string, platform = process.platform): string {
   if (platform === "win32") return p.replace(/\//g, "\\");
   return p.replace(/\\/g, "/");
 }
 
+/**
+ * Joins an array of path segments using the target platform's separator without importing Node `path`.
+ */
 export function joinPath(parts: string[], platform = process.platform): string {
   const sep = pathSep(platform);
   const cleaned: string[] = [];
@@ -52,12 +61,18 @@ export function joinPath(parts: string[], platform = process.platform): string {
   return cleaned[0] === sep ? `${sep}${cleaned.slice(1).join(sep)}` : cleaned.join(sep);
 }
 
+/**
+ * Returns the final path component (filename or directory name) from a path string.
+ */
 export function basenamePath(p: string): string {
   const norm = p.replace(/[\\/]+$/, "");
   const idx = Math.max(norm.lastIndexOf("/"), norm.lastIndexOf("\\"));
   return idx >= 0 ? norm.slice(idx + 1) : norm;
 }
 
+/**
+ * Returns the parent directory portion of a path string for the given platform.
+ */
 export function dirnamePath(p: string, platform = process.platform): string {
   const sep = pathSep(platform);
   const norm = normalizeSlashes(p, platform).replace(/[\\/]+$/, "");
@@ -67,28 +82,43 @@ export function dirnamePath(p: string, platform = process.platform): string {
   return norm.slice(0, idx);
 }
 
+/**
+ * Extracts the lowercase file extension without the leading dot, or `""` if none exists.
+ */
 export function extnameLower(p: string): string {
   const base = basenamePath(p);
   const dot = base.lastIndexOf(".");
   return dot > 0 ? base.slice(dot + 1).toLowerCase() : "";
 }
 
+/**
+ * Returns the filename stem without its final extension.
+ */
 export function stemName(p: string): string {
   const base = basenamePath(p);
   const dot = base.lastIndexOf(".");
   return dot > 0 ? base.slice(0, dot) : base;
 }
 
+/**
+ * Computes the hexadecimal SHA-256 digest of a string or byte array using `Bun.CryptoHasher`.
+ */
 export function sha256Hex(input: string | Uint8Array): string {
   const hasher = new Bun.CryptoHasher("sha256");
   hasher.update(input);
   return hasher.digest("hex");
 }
 
+/**
+ * Resolves the system temporary directory path from environment variables or platform defaults.
+ */
 export function tempDirPath(platform = process.platform): string {
   return process.env.TMPDIR || process.env.TEMP || process.env.TMP || (platform === "win32" ? "C:\\Temp" : "/tmp");
 }
 
+/**
+ * Checks whether a file exists on disk using `Bun.file(filePath).exists()`.
+ */
 export async function fileExistsPure(filePath: string): Promise<boolean> {
   try {
     return await Bun.file(filePath).exists();
@@ -97,6 +127,9 @@ export async function fileExistsPure(filePath: string): Promise<boolean> {
   }
 }
 
+/**
+ * Synchronously reads a UTF-8 text file using pure Bun process spawning without Node `fs`.
+ */
 export function readTextFileSyncPure(filePath: string): string {
   if (!filePath || filePath.includes("\0")) return "";
   try {
@@ -125,6 +158,9 @@ export function readTextFileSyncPure(filePath: string): string {
   }
 }
 
+/**
+ * Synchronously creates a directory and any missing parent directories using pure Bun spawning.
+ */
 export function ensureDirectoryPure(dirPath: string, _platform = process.platform): void {
   if (!dirPath || dirPath.includes("\0")) return;
   if (process.platform === "win32") {
@@ -150,6 +186,9 @@ export function ensureDirectoryPure(dirPath: string, _platform = process.platfor
   }
 }
 
+/**
+ * Synchronously lists immediate entries in a directory using pure Bun process spawning.
+ */
 export function listDirectoryEntriesPure(
   dirPath: string,
   platform = process.platform,
@@ -209,8 +248,14 @@ export function listDirectoryEntriesPure(
 // 2. Strict Hardware Inspection, Mac MLX Exclusivity & 70% RAM Safety Ceiling (Section 2 of Brief)
 // ---------------------------------------------------------------------------------------------------------------
 
+/**
+ * Host system memory classification tier used to enforce the 70% RAM safety ceiling for local models.
+ */
 export type RamSafetyTier = "under_8gb" | "8gb_to_16gb" | "17gb_to_32gb" | "33gb_plus";
 
+/**
+ * Detected host CPU, architecture, total RAM, 70% safe memory budget, and parameter ceiling specifications.
+ */
 export interface OllamaHardwareSpecs {
   platform: string;
   arch: string;
@@ -397,27 +442,45 @@ export function inspectOllamaHardware(
   } as OllamaHardwareSpecs & { ramTierLabel: string };
 }
 
+/**
+ * Joins variadic path segments using the active platform's path separator.
+ */
 export function bunJoinPath(...parts: string[]): string {
   return joinPath(parts);
 }
 
+/**
+ * Returns the trailing filename or directory name of `p`.
+ */
 export function bunBasename(p: string): string {
   return basenamePath(p);
 }
 
+/**
+ * Returns the parent directory path of `p`.
+ */
 export function bunDirname(p: string): string {
   return dirnamePath(p);
 }
 
+/**
+ * Returns the lowercase extension of `p` with a leading dot (e.g. `.png`), or `""` if none.
+ */
 export function bunExtname(p: string): string {
   const ext = extnameLower(p);
   return ext ? `.${ext}` : "";
 }
 
+/**
+ * Synchronously ensures a directory exists using pure Bun process spawning.
+ */
 export function ensureDirSyncWithBun(dirPath: string): void {
   ensureDirectoryPure(dirPath);
 }
 
+/**
+ * Resolves a relative or absolute path inside the File Manager workspace and enforces sandbox and Recycle Bin boundaries.
+ */
 export function resolveSandboxPath(ctx: FmContext, relOrAbs: string): string {
   const raw = String(relOrAbs || ".").trim();
   if (raw.includes("\0")) {
@@ -439,6 +502,9 @@ export function resolveSandboxPath(ctx: FmContext, relOrAbs: string): string {
   return resolved;
 }
 
+/**
+ * Converts an absolute path inside the workspace into a forward-slash path relative to the sandbox or home root.
+ */
 export function toSandboxRelative(ctx: FmContext, absPath: string): string {
   const baseResolved = absolutePath(ctx, ctx.sandboxRoot || ctx.home);
   const absResolved = absolutePath(ctx, absPath);
@@ -454,6 +520,9 @@ export function toSandboxRelative(ctx: FmContext, absPath: string): string {
   return absPath;
 }
 
+/**
+ * Checks whether a file path has an image extension supported by Ollama multimodal vision models.
+ */
 export function isSupportedVisionImagePath(filePath: string): boolean {
   const ext = extnameLower(filePath);
   return (
@@ -470,6 +539,9 @@ export function isSupportedVisionImagePath(filePath: string): boolean {
   );
 }
 
+/**
+ * Reads an image file from disk (downscaling large images on macOS via `sips` when available) and returns a base64 payload.
+ */
 export async function readImageAsBase64(absPath: string): Promise<string> {
   const file = Bun.file(absPath);
   if (!(await file.exists())) {
@@ -499,6 +571,9 @@ export async function readImageAsBase64(absPath: string): Promise<string> {
   return Buffer.from(await file.arrayBuffer()).toString("base64");
 }
 
+/**
+ * Reads a text or rich-document snippet up to `maxChars` from a file, package bundle, or directory.
+ */
 export async function readTextFileSnippet(absPath: string, maxChars = 24_000): Promise<string> {
   const ext = extnameLower(absPath);
   const richExts = new Set([
@@ -541,6 +616,9 @@ export async function readTextFileSnippet(absPath: string, maxChars = 24_000): P
   return text.length > maxChars ? text.slice(0, maxChars) : text;
 }
 
+/**
+ * Lists files (and document package bundles) in `dirAbs`, optionally recursing up to depth 3.
+ */
 export function listDirectoryWithBun(
   dirAbs: string,
   options?: { recursive?: boolean; maxEntries?: number },
@@ -605,10 +683,19 @@ export function resolveSpeechModelRegistryFallback(modelName: string): string | 
   return null;
 }
 
+/**
+ * Set of Ollama model names supporting the SystemOne (`/v1/systemone`) decision engine.
+ */
 export const DECISION_MODEL_NAMES = new Set(["nimble", "tev1", "clef", "clef-flash", "clef:cloud", "d3"]);
 
+/**
+ * Set of SystemOne decision models that also support multimodal vision inputs.
+ */
 export const VISION_DECISION_MODEL_NAMES = new Set(["clef", "clef-flash", "clef:cloud", "d3"]);
 
+/**
+ * Extracts the lowercase base model name without namespace prefix or tag suffix (e.g. `library/qwen3.5:4b` -> `qwen3.5`).
+ */
 export function baseModelName(model: string): string {
   const clean = String(model || "").trim().toLowerCase();
   const colon = clean.indexOf(":");
@@ -617,27 +704,45 @@ export function baseModelName(model: string): string {
   return slash >= 0 ? base.slice(slash + 1) : base;
 }
 
+/**
+ * Checks whether a model tag refers to a cloud-hosted Ollama model (`:cloud` or `-cloud`).
+ */
 export function isCloudModelName(model: string): boolean {
   const clean = String(model || "").trim().toLowerCase();
   return clean.endsWith(":cloud") || clean.endsWith("-cloud");
 }
 
+/**
+ * Checks whether a model name refers to the Apple Silicon `phonon` TTS model.
+ */
 export function isPhononModelName(model: string): boolean {
   return baseModelName(model) === "phonon";
 }
 
+/**
+ * Checks whether a model name refers to one of the supported cross-platform speech synthesis models.
+ */
 export function isCrossPlatformSpeechModelName(model: string): boolean {
   return CROSS_PLATFORM_SPEECH_MODEL_NAMES.has(baseModelName(model));
 }
 
+/**
+ * Checks whether a model name is a speech/TTS model (`phonon` or a cross-platform speech model).
+ */
 export function isSpeechModelName(model: string): boolean {
   return isPhononModelName(model) || isCrossPlatformSpeechModelName(model);
 }
 
+/**
+ * Checks whether a model name is a lightweight specialized utility model (`phonon`, `nimble`, `tev1`, `clef`, `clef-flash`).
+ */
 export function isUtilityModelName(model: string): boolean {
   return UTILITY_MODEL_NAMES.has(baseModelName(model));
 }
 
+/**
+ * Checks whether a model supports the SystemOne (`/v1/systemone`) decision capability.
+ */
 export function isDecisionModelName(model: string, capabilities: string[] = []): boolean {
   if (capabilities.includes("decision")) return true;
   const clean = String(model || "").trim().toLowerCase();
@@ -645,6 +750,9 @@ export function isDecisionModelName(model: string, capabilities: string[] = []):
   return DECISION_MODEL_NAMES.has(baseModelName(model));
 }
 
+/**
+ * Checks whether a model is a SystemOne decision model capable of evaluating images.
+ */
 export function isVisionDecisionModel(model: string, capabilities: string[] = []): boolean {
   const clean = String(model || "").trim().toLowerCase();
   const base = baseModelName(model);
@@ -652,6 +760,9 @@ export function isVisionDecisionModel(model: string, capabilities: string[] = []
   return isDecisionModelName(model, capabilities) && capabilities.includes("vision");
 }
 
+/**
+ * Alias for `isVisionDecisionModel` indicating whether a decision model can inspect image attachments.
+ */
 export const canJudgeImagesInDecision = isVisionDecisionModel;
 
 /**
@@ -666,8 +777,14 @@ export const canJudgeImagesInDecision = isVisionDecisionModel;
  * - `"none"`: Standard non-thinking chat, vision, speech, embedding, or decision models.
  */
 export type ModelThinkingMode = "levels" | "toggle" | "always_on" | "none";
+/**
+ * User-selectable reasoning effort or toggle level for thinking-capable models.
+ */
 export type ThinkingEffortChoice = "auto" | "off" | "on" | "low" | "medium" | "high";
 
+/**
+ * Descriptor of a model's chain-of-thought reasoning capabilities, supported effort levels, and UI labels.
+ */
 export interface ModelThinkingCapabilities {
   thinkingMode: ModelThinkingMode;
   supportsThinking: boolean;
@@ -684,6 +801,9 @@ export interface ModelThinkingCapabilities {
   summaryLabel: string;
 }
 
+/**
+ * Classifies a model's thinking/reasoning mode (`levels`, `toggle`, `always_on`, or `none`) and supported effort levels.
+ */
 export function getModelThinkingCapabilities(modelInput: {
   name?: string;
   id?: string;
@@ -844,6 +964,9 @@ export function getModelThinkingCapabilities(modelInput: {
   };
 }
 
+/**
+ * UI badge indicator describing a single supported capability on an AI model.
+ */
 export interface ModelFeatureIndicator {
   id: string;
   icon: string;
@@ -851,6 +974,9 @@ export interface ModelFeatureIndicator {
   description: string;
 }
 
+/**
+ * Comprehensive feature matrix, visual indicators, and thinking capabilities for an AI model.
+ */
 export interface ModelFeatureProfile {
   modelName: string;
   summary: string;
@@ -1478,6 +1604,9 @@ export function estimateModelMemoryAndParams(model: {
   };
 }
 
+/**
+ * Result of evaluating whether a model satisfies Apple Silicon MLX exclusivity and the 70% RAM safety ceiling.
+ */
 export interface HardwareGuardVerdict {
   allowed: boolean;
   code: "OK" | "HARDWARE_RAM_REFUSAL" | "HARDWARE_MLX_EXCLUSIVITY";
@@ -1512,9 +1641,18 @@ export interface CatalogModelSpec {
   description: string;
 }
 
+/**
+ * Default general-purpose multimodal chat and vision model tag (`qwen3.5:latest`).
+ */
 export const DEFAULT_GENERAL_CHAT_MODEL = "qwen3.5:latest";
+/**
+ * Default compact multimodal chat and vision model tag for lower-RAM systems (`qwen3.5:4b`).
+ */
 export const DEFAULT_COMPACT_CHAT_MODEL = "qwen3.5:4b";
 
+/**
+ * Curated list of Ollama local, MLX, utility, and `:cloud` models with RAM and capability metadata.
+ */
 export const CURATED_MODEL_CATALOG: CatalogModelSpec[] = [
   {
     name: "qwen3.5:latest",
@@ -1972,6 +2110,9 @@ const DEFAULT_OLLAMA_CLOUD_URL = "https://ollama.com";
 
 const runtimeApiKeyByRoot = new Map<string, string>();
 
+/**
+ * Retrieves the configured `OLLAMA_API_KEY` from the context, runtime session map, or environment.
+ */
 export function getOllamaApiKey(ctx: FmContext): string {
   const fromCtx = ctx.ollama?.apiKey?.trim();
   if (fromCtx) return fromCtx;
@@ -1982,6 +2123,9 @@ export function getOllamaApiKey(ctx: FmContext): string {
   return fromEnv;
 }
 
+/**
+ * Stores or clears the runtime `OLLAMA_API_KEY` for the current File Manager workspace.
+ */
 export function setOllamaApiKey(ctx: FmContext, apiKey: string): void {
   const rootKey = ctx.sandboxRoot || ctx.home;
   const trimmed = String(apiKey || "").trim();
@@ -1992,6 +2136,9 @@ export function setOllamaApiKey(ctx: FmContext, apiKey: string): void {
   }
 }
 
+/**
+ * Resolves the base HTTP URL for either the local Ollama daemon (`127.0.0.1:11434`) or Ollama Cloud (`https://ollama.com`).
+ */
 export function resolveOllamaBaseUrl(ctx: FmContext, useCloudHost = false): string {
   if (useCloudHost) {
     return (ctx.ollama?.cloudBaseUrl || Bun.env.OLLAMA_CLOUD_HOST || DEFAULT_OLLAMA_CLOUD_URL).replace(/\/+$/, "");
@@ -2011,6 +2158,9 @@ function isSafeForApiKeyHeader(urlStr: string, useCloudHost: boolean): boolean {
   }
 }
 
+/**
+ * Sends a JSON HTTP request to the local or cloud Ollama server with automatic bearer token injection and model session tracking.
+ */
 export async function ollamaFetchJson(
   ctx: FmContext,
   endpointPath: string,
@@ -2087,6 +2237,9 @@ export async function ollamaFetchJson(
   }
 }
 
+/**
+ * Compares two semantic version strings (`major.minor.patch`), returning `1`, `-1`, or `0`.
+ */
 export function compareSemver(versionA: string, versionB: string): number {
   const parse = (v: string) =>
     String(v || "")
@@ -2103,6 +2256,9 @@ export function compareSemver(versionA: string, versionB: string): number {
   return 0;
 }
 
+/**
+ * Connectivity and minimum version compatibility report for the local Ollama server.
+ */
 export interface OllamaVersionReport {
   online: boolean;
   reachable: boolean;
@@ -2112,6 +2268,9 @@ export interface OllamaVersionReport {
   warnings: string[];
 }
 
+/**
+ * Queries `GET /api/version` and checks whether the running Ollama daemon meets version requirements for Decision (`v0.35.1+`) and Speech (`v0.40.9+`).
+ */
 export async function getOllamaVersionStatus(ctx: FmContext): Promise<OllamaVersionReport> {
   const res = await ollamaFetchJson(ctx, "/api/version", { method: "GET", timeoutMs: 4000 });
   if (!res.ok || !res.data?.version) {
@@ -2144,6 +2303,9 @@ export async function getOllamaVersionStatus(ctx: FmContext): Promise<OllamaVers
   };
 }
 
+/**
+ * Installed Ollama model enriched with capability badges, hardware guard verdict, and feature profile.
+ */
 export interface BadgedOllamaModel {
   name: string;
   sizeBytes: number;
@@ -2171,6 +2333,9 @@ export interface BadgedOllamaModel {
 
 const modelShowCache = new Map<string, { ts: number; data: any }>();
 
+/**
+ * Fetches and caches `/api/show` metadata for a specific Ollama model.
+ */
 export async function showModelDetails(ctx: FmContext, modelName: string, forceRefresh = false): Promise<any> {
   const key = `${resolveOllamaBaseUrl(ctx)}::${modelName}`;
   const cached = modelShowCache.get(key);
@@ -2189,6 +2354,9 @@ export async function showModelDetails(ctx: FmContext, modelName: string, forceR
   return null;
 }
 
+/**
+ * Computes UI capability badges (`Chat`, `Vision`, `Speech`, `Decision`, `Thinking`, `MLX`, `Tools`, `Cloud`, `Embeddings`) for a model.
+ */
 export function computeModelBadges(model: {
   name: string;
   capabilities: string[];
@@ -2460,6 +2628,9 @@ export async function listModelsWithBadgesAndHardwareFilter(
   };
 }
 
+/**
+ * Queries `GET /api/ps` to list models currently loaded in RAM/VRAM along with their total memory footprint.
+ */
 export async function listRunningModelsPs(ctx: FmContext): Promise<{
   models: Array<{
     name: string;
@@ -2549,6 +2720,9 @@ export async function unloadModelsFromRam(
 
 const spawnedOllamaDaemons = new Set<{ kill: () => void }>();
 
+/**
+ * Policy governing whether loaded models are unloaded and whether `ollama serve` is stopped when the File Manager closes.
+ */
 export type OllamaExitPolicy = "smart" | "unload_all" | "stop_all" | "keep_open";
 
 interface OllamaLifecycleSessionState {
@@ -2663,6 +2837,9 @@ export async function setOllamaExitPolicy(ctx: FmContext, policy: OllamaExitPoli
   return getOllamaLifecycleStatus(ctx);
 }
 
+/**
+ * Returns the current session's Ollama daemon lifecycle state, loaded model history, and configured exit policy.
+ */
 export function getOllamaLifecycleStatus(ctx: FmContext) {
   const st = getLifecycleState(ctx);
   const policy = st.exitPolicy;
@@ -2849,6 +3026,9 @@ export async function shutdownOllamaForFileManager(
   };
 }
 
+/**
+ * Live progress state for a long-running Ollama background task (binary install, daemon startup, or model pull).
+ */
 export interface OllamaLongTaskStatus {
   active: boolean;
   taskType: "idle" | "install" | "pull" | "start_daemon";
@@ -2882,6 +3062,9 @@ let currentOllamaLongTask: OllamaLongTaskStatus = {
   error: null,
 };
 
+/**
+ * Applies a partial status update to the active Ollama long-running task and appends step history.
+ */
 export function updateOllamaLongTask(patch: Partial<OllamaLongTaskStatus>): OllamaLongTaskStatus {
   const now = Date.now();
   const startedAt = patch.startedAt ?? (currentOllamaLongTask.active ? currentOllamaLongTask.startedAt : now);
@@ -2905,6 +3088,9 @@ export function updateOllamaLongTask(patch: Partial<OllamaLongTaskStatus>): Olla
   return getLiveOllamaLongTaskStatus();
 }
 
+/**
+ * Returns the live status and up-to-the-millisecond elapsed time of the current Ollama long task.
+ */
 export function getLiveOllamaLongTaskStatus(): OllamaLongTaskStatus {
   const now = Date.now();
   return {
@@ -2915,6 +3101,9 @@ export function getLiveOllamaLongTaskStatus(): OllamaLongTaskStatus {
   };
 }
 
+/**
+ * Searches PATH and standard OS installation locations for an installed `ollama` executable using pure Bun APIs.
+ */
 export async function detectOllamaBinaryPure(ctx?: FmContext): Promise<string | null> {
   if (ctx?.ollama && "ollamaBinPath" in ctx.ollama && ctx.ollama.ollamaBinPath !== undefined) {
     return ctx.ollama.ollamaBinPath;
@@ -2955,6 +3144,9 @@ export async function detectOllamaBinaryPure(ctx?: FmContext): Promise<string | 
   return null;
 }
 
+/**
+ * Determines which speech synthesis models (`phonon` on Apple Silicon MLX, or cross-platform speech LLMs) are supported on the host.
+ */
 export function getSpeechCapabilitiesForHost(ctx?: FmContext): {
   platform: string;
   arch: string;
@@ -3060,6 +3252,9 @@ export function getSpeechCapabilitiesForHost(ctx?: FmContext): {
   };
 }
 
+/**
+ * Inspects whether the Ollama binary and daemon are installed and reachable, and recommends starter models for the host hardware.
+ */
 export async function getOllamaInstallStatus(ctx: FmContext) {
   const hw = inspectOllamaHardware(ctx);
   const speechCaps = getSpeechCapabilitiesForHost(ctx);
@@ -3101,6 +3296,9 @@ export async function getOllamaInstallStatus(ctx: FmContext) {
   };
 }
 
+/**
+ * Verifies a model against the Hardware Guard (70% RAM ceiling and Mac MLX exclusivity) before pulling it via `/api/pull`.
+ */
 export async function pullModelWithHardwareGuard(
   ctx: FmContext,
   modelName: string,
@@ -3749,6 +3947,9 @@ export async function runOllamaAutoInstall(
   }
 }
 
+/**
+ * Creates a custom derived Ollama model via `POST /api/create` after verifying its base model with the Hardware Guard.
+ */
 export async function createCustomModel(
   ctx: FmContext,
   payload: { model: string; from: string; system?: string; parameters?: Record<string, any> },
@@ -3781,6 +3982,9 @@ export async function createCustomModel(
   return { ok: true, model, status: String(res.data?.status || "success") };
 }
 
+/**
+ * Duplicates a local Ollama model tag from `source` to `destination` via `POST /api/copy`.
+ */
 export async function copyModel(ctx: FmContext, source: string, destination: string): Promise<{ ok: boolean }> {
   const res = await ollamaFetchJson(ctx, "/api/copy", {
     method: "POST",
@@ -3793,6 +3997,9 @@ export async function copyModel(ctx: FmContext, source: string, destination: str
   return { ok: true };
 }
 
+/**
+ * Pushes a local Ollama model to the model registry via `POST /api/push`.
+ */
 export async function pushModel(ctx: FmContext, model: string): Promise<{ ok: boolean; status: string }> {
   const res = await ollamaFetchJson(ctx, "/api/push", {
     method: "POST",
@@ -3805,6 +4012,9 @@ export async function pushModel(ctx: FmContext, model: string): Promise<{ ok: bo
   return { ok: true, status: String(res.data?.status || "pushed") };
 }
 
+/**
+ * Deletes an installed model from the local Ollama server via `DELETE /api/delete`.
+ */
 export async function deleteModel(ctx: FmContext, model: string): Promise<{ ok: boolean; deleted: string }> {
   const res = await ollamaFetchJson(ctx, "/api/delete", {
     method: "DELETE",
@@ -3817,6 +4027,9 @@ export async function deleteModel(ctx: FmContext, model: string): Promise<{ ok: 
   return { ok: true, deleted: model.trim() };
 }
 
+/**
+ * Queries `/api/usage` and `/api/balance` on the local or cloud Ollama endpoint to report account status and credits.
+ */
 export async function getCloudUsageAndBalance(ctx: FmContext): Promise<{
   hasApiKey: boolean;
   usage: any;
@@ -3851,12 +4064,18 @@ export async function getCloudUsageAndBalance(ctx: FmContext): Promise<{
 // 3. CAPABILITY A: DECISION / SYSTEM ONE ENGINE (POST /v1/systemone)
 // ============================================================================
 
+/**
+ * Binary (`yes`/`no` probability) question input for the SystemOne decision engine (`type: "noul"`).
+ */
 export interface DecisionNoulQuestionInput {
   id?: string;
   type: "noul";
   instructions: string;
 }
 
+/**
+ * Multi-category classification question input (`type: "choice"`) with 2–26 named category descriptions.
+ */
 export interface DecisionChoiceQuestionInput {
   id?: string;
   type: "choice";
@@ -3864,6 +4083,9 @@ export interface DecisionChoiceQuestionInput {
   criteria: Record<string, string>;
 }
 
+/**
+ * Ordered rubric scoring question input (`type: "score"`) with 2–10 rubric levels from lowest to highest.
+ */
 export interface DecisionScoreQuestionInput {
   id?: string;
   type: "score";
@@ -3871,11 +4093,17 @@ export interface DecisionScoreQuestionInput {
   criteria: string[];
 }
 
+/**
+ * Union of supported SystemOne decision question inputs (`noul`, `choice`, or `score`).
+ */
 export type DecisionQuestionInput =
   | DecisionNoulQuestionInput
   | DecisionChoiceQuestionInput
   | DecisionScoreQuestionInput;
 
+/**
+ * Validates and normalizes an array or map of SystemOne decision questions into the `/v1/systemone` request payload format.
+ */
 export function formatSystemOneQuestions(
   questionsInput: DecisionQuestionInput[] | Record<string, any>,
 ): Record<string, any> {
@@ -4006,6 +4234,9 @@ export async function resolveDecisionModel(
   };
 }
 
+/**
+ * Executes a SystemOne (`/v1/systemone`) decision evaluation across state text, workspace files, and images.
+ */
 export async function runDecisionEngine(
   ctx: FmContext,
   payload: {
@@ -4086,6 +4317,9 @@ export async function runDecisionEngine(
 // 4. CAPABILITY B: SPEECH / TEXT-TO-SPEECH (POST /v1/audio/speech, model: phonon)
 // ============================================================================
 
+/**
+ * Core baseline voice identifiers always available on the `phonon` TTS model.
+ */
 export const CORE_PHONON_VOICES = ["default", "Zoey", "Easton", "Freya"] as const;
 
 const MONTH_NAMES = [
@@ -4209,6 +4443,9 @@ export function splitSpeechTextIntoChunks(cleanedText: string, maxChars = 4096):
   return chunks;
 }
 
+/**
+ * Queries `/api/show` for the `phonon` model and returns the combined list of core and dynamically discovered voices.
+ */
 export async function getPhononSupportedVoices(ctx: FmContext): Promise<string[]> {
   const showData = await showModelDetails(ctx, "phonon");
   const modelInfo = showData?.model_info || {};
@@ -4223,6 +4460,9 @@ export async function getPhononSupportedVoices(ctx: FmContext): Promise<string[]
   return Array.from(combined);
 }
 
+/**
+ * Validates a requested Phonon voice name against the model's supported voices (case-insensitively) or throws `INVALID_PHONON_VOICE`.
+ */
 export async function validatePhononVoice(ctx: FmContext, requestedVoice?: string): Promise<string> {
   const voice = String(requestedVoice || "default").trim() || "default";
   const supported = await getPhononSupportedVoices(ctx);
@@ -4310,6 +4550,9 @@ function combineAudioChunks(chunks: Uint8Array[], format: "wav" | "pcm"): Uint8A
 const MAX_CACHED_SPEECH_FILES = 64;
 const cachedSpeechFiles = new Map<string, { absPath: string; mime: string; createdAt: number }>();
 
+/**
+ * Retrieves a cached Ollama speech audio file entry (`absPath` and `mime`) by its audio ID.
+ */
 export function getCachedOllamaAudioFile(id: string): { absPath: string; mime: string } | null {
   const entry = cachedSpeechFiles.get(String(id || ""));
   if (!entry) return null;
@@ -4440,6 +4683,9 @@ async function synthesizeCrossPlatformSpeechChunk(
   return wavOut;
 }
 
+/**
+ * Cleans, chunks, and synthesizes text or a workspace file into 24 kHz WAV/PCM audio via `/v1/audio/speech` (or cross-platform speech fallback).
+ */
 export async function runOllamaSpeech(
   ctx: FmContext,
   payload: {
@@ -4645,8 +4891,14 @@ export async function runOllamaSpeech(
 // 5. CAPABILITY H: WEB SEARCH & WEB FETCH (32,000+ TOKEN CONTEXT ENFORCEMENT)
 // ============================================================================
 
+/**
+ * Minimum context window (`num_ctx = 32,000`) enforced whenever web search or web fetch results are included.
+ */
 export const MIN_WEB_SEARCH_NUM_CTX = 32_000;
 
+/**
+ * Queries Ollama Cloud's `/api/web_search` endpoint and enforces at least a 32,000-token context window.
+ */
 export async function runOllamaWebSearch(
   ctx: FmContext,
   payload: { query: string; maxResults?: number },
@@ -4708,6 +4960,9 @@ export async function runOllamaWebSearch(
   };
 }
 
+/**
+ * Fetches and extracts readable content and links from a URL via Ollama Cloud's `/api/web_fetch` endpoint.
+ */
 export async function runOllamaWebFetch(
   ctx: FmContext,
   payload: { url: string },
@@ -4805,6 +5060,9 @@ function buildFallbackSemanticVector(text: string, dims = 128): number[] {
   return vec.map((v) => v / norm);
 }
 
+/**
+ * Generates vector embeddings for one or more text inputs via `POST /api/embed` (with deterministic local vector fallback).
+ */
 export async function runOllamaEmbed(
   ctx: FmContext,
   payload: { model?: string; input: string | string[] },
@@ -4857,6 +5115,9 @@ export async function runOllamaEmbed(
   };
 }
 
+/**
+ * Searches files in a workspace directory by semantic meaning using vector embeddings and cosine similarity.
+ */
 export async function runSemanticMeaningSearch(
   ctx: FmContext,
   payload: {
@@ -4962,6 +5223,9 @@ export async function runSemanticMeaningSearch(
 // 7. CAPABILITY I: TOOL CALLING & FILE MANAGER ACTIONS WITH VISUAL CONFIRMATION
 // ============================================================================
 
+/**
+ * Staged file manager tool action awaiting explicit user confirmation before modifying files on disk.
+ */
 export interface PendingToolAction {
   actionId: string;
   toolName: "create_file" | "move_file" | "batch_rename" | "archive_files";
@@ -4976,6 +5240,9 @@ export interface PendingToolAction {
 
 const pendingToolActions = new Map<string, PendingToolAction>();
 
+/**
+ * JSON Schema function-calling tool definitions exposed to Ollama models for File Manager workspace operations and web search.
+ */
 export const FILE_MANAGER_OLLAMA_TOOLS = [
   {
     type: "function",
@@ -5092,6 +5359,9 @@ export const FILE_MANAGER_OLLAMA_TOOLS = [
   },
 ];
 
+/**
+ * Stages a destructive or mutating tool call (`create_file`, `move_file`, `batch_rename`, `archive_files`) for visual user confirmation.
+ */
 export function stagePendingToolAction(
   toolName: "create_file" | "move_file" | "batch_rename" | "archive_files",
   args: Record<string, any>,
@@ -5139,10 +5409,16 @@ export function stagePendingToolAction(
   return pending;
 }
 
+/**
+ * Returns all currently pending tool actions awaiting user confirmation.
+ */
 export function listPendingToolActions(): PendingToolAction[] {
   return Array.from(pendingToolActions.values()).filter((a) => a.status === "pending");
 }
 
+/**
+ * Executes or cancels a previously staged tool action (`create_file`, `move_file`, `batch_rename`, or `archive_files`).
+ */
 export async function executeConfirmedToolAction(
   ctx: FmContext,
   actionId: string,
@@ -5234,6 +5510,9 @@ export async function executeConfirmedToolAction(
 // 8. CAPABILITIES C, D, E, F, J: CHAT, STREAMING, THINKING, VISION, JSON & CLOUD
 // ============================================================================
 
+/**
+ * Built-in JSON Schema presets for structured Ollama outputs (`batch_rename_plan`, `folder_organization_plan`, `table_extraction`, `code_review_report`, `security_audit_report`).
+ */
 export const STRUCTURED_SCHEMAS: Record<string, any> = {
   batch_rename_plan: {
     type: "object",
@@ -5334,6 +5613,9 @@ export const STRUCTURED_SCHEMAS: Record<string, any> = {
   },
 };
 
+/**
+ * Selects the best installed or requested chat or vision model that satisfies the Hardware Guard rules.
+ */
 export async function selectBestChatOrVisionModel(
   ctx: FmContext,
   requestedModel?: string,
@@ -5403,6 +5685,9 @@ export async function selectBestChatOrVisionModel(
   };
 }
 
+/**
+ * Executes an Ollama `/api/chat` or `/api/generate` request with optional file/image attachments, thinking controls, tool calling, web search, structured JSON schema, and spoken reply synthesis.
+ */
 export async function runOllamaChatOrGenerate(
   ctx: FmContext,
   payload: {
@@ -5850,6 +6135,9 @@ export async function runOllamaChatOrGenerate(
 // 9. PLAIN-ENGLISH CAPABILITY ROUTER
 // ============================================================================
 
+/**
+ * Capability category selected by the plain-English intent router.
+ */
 export type RoutedCapabilityKind =
   | "speech"
   | "decision"
@@ -5861,6 +6149,9 @@ export type RoutedCapabilityKind =
   | "thinking_chat"
   | "chat";
 
+/**
+ * Inspects a plain-English user prompt and optional workspace file selection and routes it to the appropriate Ollama capability (speech, SystemOne decision, semantic search, web search, vision, structured JSON, tool calling, or chat).
+ */
 export async function routePlainEnglishRequest(
   ctx: FmContext,
   payload: {
@@ -6132,6 +6423,9 @@ export async function routePlainEnglishRequest(
 // 10. LIVE STREAMING HANDLER (POST /api/ollama/stream) & OLLAMA_OPS TABLE
 // ============================================================================
 
+/**
+ * Handles `POST /api/ollama/stream` requests, streaming NDJSON chat and reasoning tokens from Ollama (or Bionic fallback).
+ */
 export async function handleOllamaStreamRequest(ctx: FmContext, req: Request): Promise<Response> {
   if (!(req.headers.get("content-type") ?? "").toLowerCase().startsWith("application/json")) {
     return new Response(
@@ -6382,6 +6676,9 @@ export async function handleOllamaStreamRequest(ctx: FmContext, req: Request): P
   }
 }
 
+/**
+ * Aggregates full Ollama status including version, hardware guard specs, badged models, running RAM usage, cloud account, voices, and lifecycle state.
+ */
 export async function getFullOllamaStatus(ctx: FmContext, payload?: any) {
   await captureOllamaStartupSnapshot(ctx);
   const [version, modelList, runningPs, cloudAccount, voices, installStatus] = await Promise.all([
@@ -6413,6 +6710,9 @@ export async function getFullOllamaStatus(ctx: FmContext, payload?: any) {
   };
 }
 
+/**
+ * File Manager API operation handlers for the built-in Ollama AI Assistant (`ollama/*`).
+ */
 export const OLLAMA_OPS: Record<string, (ctx: FmContext, payload: any) => Promise<any>> = {
   "ollama/status": (ctx, p) => getFullOllamaStatus(ctx, p),
   "ollama/installStatus": (ctx) => getOllamaInstallStatus(ctx),

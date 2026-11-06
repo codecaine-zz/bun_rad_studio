@@ -1,3 +1,7 @@
+/**
+ * Unit and opt-in live network tests for `doggo`, covering positional target argument
+ * parsing, record data normalization, short output formatting, and DNS/DoH resolution.
+ */
 import { describe, expect, it } from "bun:test";
 import {
   formatRecordData,

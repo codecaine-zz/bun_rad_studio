@@ -47,8 +47,10 @@ import {
 // 1. Types & Interfaces for LM Studio Bionic
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Shutdown policy controlling whether Bionic models are unloaded or the server is stopped when File Manager closes. */
 export type BionicExitPolicy = "smart" | "unload_all" | "stop_server" | "keep_open";
 
+/** Metadata describing an installed LM Studio / Bionic inference backend engine extension. */
 export interface BionicBackendEngineInfo {
   id: string;
   folderName: string;
@@ -59,6 +61,7 @@ export interface BionicBackendEngineInfo {
   description: string;
 }
 
+/** Metadata, quantization details, capabilities, and hardware guard status for a local or cloud Bionic AI model. */
 export interface BionicModelInfo {
   id: string;
   modelKey: string;
@@ -87,6 +90,7 @@ export interface BionicModelInfo {
   hardwareVerdict: HardwareGuardVerdict;
 }
 
+/** Voice configuration metadata for the built-in Phonon multilingual TTS engine. */
 export interface BionicVoiceSpec {
   id: string;
   name: string;
@@ -99,6 +103,7 @@ export interface BionicVoiceSpec {
   safetensorsPath?: string;
 }
 
+/** Metadata and invocation settings for a Bionic Agent Skill discovered on disk. */
 export interface BionicSkillSpec {
   id: string;
   name: string;
@@ -112,6 +117,7 @@ export interface BionicSkillSpec {
   triggerToken: string;
 }
 
+/** Summary of a registered Bionic project and its workspace directory. */
 export interface BionicProjectSpec {
   id: string;
   name: string;
@@ -122,6 +128,7 @@ export interface BionicProjectSpec {
   fileCount: number;
 }
 
+/** Staged file operation proposed by the Bionic assistant awaiting explicit user confirmation. */
 export interface BionicPendingAction {
   actionId: string;
   toolName: "create_file" | "move_or_rename_file" | "create_zip_archive";
@@ -143,6 +150,7 @@ let bionicExitPolicy: BionicExitPolicy = "smart";
 let bionicServerStartedByFm = false;
 const bionicSessionLoadedModels = new Set<string>();
 
+/** Looks up a synthesized TTS audio file in the in-memory Bionic audio cache by ID. */
 export function getCachedBionicAudioFile(audioId: string): { absPath: string; mime: string } | null {
   const cleanId = String(audioId || "").trim();
   if (!cleanId) return null;
@@ -151,6 +159,7 @@ export function getCachedBionicAudioFile(audioId: string): { absPath: string; mi
   return { absPath: entry.absPath, mime: entry.mime };
 }
 
+/** Updates the Bionic server and model lifecycle exit policy and returns the updated lifecycle status. */
 export function setBionicExitPolicy(policy: string): {
   exitPolicy: BionicExitPolicy;
   serverStartedByFm: boolean;
@@ -163,6 +172,7 @@ export function setBionicExitPolicy(policy: string): {
   return getBionicLifecycleStatus();
 }
 
+/** Returns the current Bionic exit policy, whether File Manager started the server, and models loaded this session. */
 export function getBionicLifecycleStatus(): {
   exitPolicy: BionicExitPolicy;
   serverStartedByFm: boolean;
@@ -189,12 +199,14 @@ export function getBionicLifecycleStatus(): {
 // 3. Discovery of LM Studio, Bionic.app, `lms` CLI & Server Ports
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Resolves the LM Studio / Bionic home directory (`~/.lmstudio` or `LMSTUDIO_HOME`). */
 export function getLmStudioHomeDir(ctx?: FmContext): string {
   if (process.env.LMSTUDIO_HOME) return process.env.LMSTUDIO_HOME;
   const home = ctx?.home || process.env.HOME || process.env.USERPROFILE || "/Users/codecaine";
   return joinPath([home, ".lmstudio"], ctx?.platform || process.platform);
 }
 
+/** Locates the `lms` CLI executable on disk or in `PATH`, returning null if not installed. */
 export function resolveLmsCliPath(ctx?: FmContext): string | null {
   if (process.env.LMS_CLI_PATH) return process.env.LMS_CLI_PATH;
   const lmHome = getLmStudioHomeDir(ctx);
@@ -212,6 +224,7 @@ export function resolveLmsCliPath(ctx?: FmContext): string | null {
   return null;
 }
 
+/** Detects installed Bionic and LM Studio desktop apps, the `lms` CLI, and active daemon port/PID state. */
 export function detectBionicApps(ctx?: FmContext): {
   bionicAppInstalled: boolean;
   bionicAppPath: string;
@@ -356,6 +369,7 @@ export async function resolveBionicServerStatus(ctx?: FmContext): Promise<{
   };
 }
 
+/** Checks if the Bionic HTTP server is reachable and automatically starts it via `lms server start` if needed. */
 export async function ensureBionicServerRunning(ctx?: FmContext): Promise<{
   running: boolean;
   port: number;
@@ -380,6 +394,7 @@ export async function ensureBionicServerRunning(ctx?: FmContext): Promise<{
   return { ...current, autoStarted: false };
 }
 
+/** Starts, stops, queries status, or launches the desktop app for the Bionic / LM Studio server. */
 export async function controlBionicServer(
   ctx: FmContext,
   payload: { action?: "start" | "stop" | "status" | "launch_app"; port?: number },
@@ -434,6 +449,7 @@ export async function controlBionicServer(
   return await resolveBionicServerStatus(ctx);
 }
 
+/** Executes the configured Bionic exit policy (unloading session/all models or stopping the server) on shutdown. */
 export async function shutdownBionicForFileManager(
   ctx: FmContext,
   options?: { policyOverride?: BionicExitPolicy },
@@ -481,6 +497,7 @@ export async function shutdownBionicForFileManager(
 // 4. Installed Engine Backends & Plugins Inspection
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Scans the LM Studio extensions directory and returns installed inference backends and plugins. */
 export function listInstalledBionicBackends(ctx?: FmContext): {
   backends: BionicBackendEngineInfo[];
   plugins: string[];
@@ -573,6 +590,7 @@ export function listInstalledBionicBackends(ctx?: FmContext): {
 // 5. Model Inventory (`lms ls --json`, `lms ps --json`, `/api/v0/models`, & Bionic Cloud Models)
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Default catalog of cloud-hosted models available through Bionic when cloud routing is enabled. */
 export const DEFAULT_BIONIC_CLOUD_MODELS: Array<{
   modelIdentifier: string;
   label: string;
@@ -635,6 +653,7 @@ export const DEFAULT_BIONIC_CLOUD_MODELS: Array<{
   },
 ];
 
+/** Returns host hardware specs, local models on disk, currently loaded models, and cloud models with hardware verdicts. */
 export async function listBionicModelsAndHardwareStatus(ctx: FmContext): Promise<{
   hardware: OllamaHardwareSpecs;
   models: BionicModelInfo[];
@@ -951,6 +970,7 @@ export async function listBionicModelsAndHardwareStatus(ctx: FmContext): Promise
 // 6. Model Load, Unload & Download (`lms load`, `lms unload`, `lms get`)
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Loads a Bionic model into memory via the `lms` CLI or HTTP API after verifying hardware guard limits. */
 export async function loadBionicModel(
   ctx: FmContext,
   payload: {
@@ -1047,6 +1067,7 @@ export async function loadBionicModel(
   };
 }
 
+/** Unloads a specific Bionic model or all currently loaded models from memory. */
 export async function unloadBionicModel(
   ctx: FmContext,
   payload: { model?: string; all?: boolean },
@@ -1085,6 +1106,7 @@ export async function unloadBionicModel(
   };
 }
 
+/** Downloads a model from HuggingFace or the LM Studio Hub after checking hardware compatibility. */
 export async function downloadBionicModel(
   ctx: FmContext,
   payload: { model: string },
@@ -1134,6 +1156,7 @@ export async function downloadBionicModel(
 // 7. Bionic Phonon 40M Multilingual Native Metal TTS (`xn-ptts`)
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Built-in voice catalog for the Phonon 40M multilingual text-to-speech engine. */
 export const BIONIC_DEFAULT_VOICES: BionicVoiceSpec[] = [
   {
     id: "NbpkqMVS3CJeq2j8",
@@ -1217,6 +1240,7 @@ export const BIONIC_DEFAULT_VOICES: BionicVoiceSpec[] = [
   },
 ];
 
+/** Reads the current Bionic Phonon TTS configuration, engine installation state, and available voice list. */
 export function getBionicTtsConfigAndVoices(ctx?: FmContext): {
   engineInstalled: boolean;
   enginePath: string;
@@ -1311,6 +1335,7 @@ export function getBionicTtsConfigAndVoices(ctx?: FmContext): {
   };
 }
 
+/** Updates and persists Bionic TTS voice, language, speed, and thread settings. */
 export async function updateBionicTtsConfig(
   ctx: FmContext,
   payload: { voice?: string; language?: string; playbackSpeed?: number; cpuThreads?: number; enabled?: boolean },
@@ -1624,6 +1649,7 @@ export async function runBionicSpeech(
 // 8. Bionic Agent Skills & Workspace Projects Hub
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Parses YAML frontmatter from a `SKILL.md` file to extract skill name, display name, description, and invocation flags. */
 export function parseSkillFrontmatter(markdown: string, fallbackName: string): {
   name: string;
   displayName: string;
@@ -1655,6 +1681,7 @@ export function parseSkillFrontmatter(markdown: string, fallbackName: string): {
   return { name, displayName, description, userInvocable, disableModelInvocation };
 }
 
+/** Discovers and lists built-in, global, project-local, and external-harness Bionic agent skills. */
 export function listBionicSkills(ctx: FmContext, dirPath?: string): {
   skills: BionicSkillSpec[];
   counts: {
@@ -1737,6 +1764,7 @@ export function listBionicSkills(ctx: FmContext, dirPath?: string): {
   };
 }
 
+/** Reads the full markdown content and companion file list for a specific Bionic agent skill. */
 export async function readBionicSkillDetail(
   ctx: FmContext,
   payload: { nameOrPath: string; dirPath?: string },
@@ -1767,6 +1795,7 @@ export async function readBionicSkillDetail(
   };
 }
 
+/** Creates a new project-local or global Bionic agent skill directory and `SKILL.md` file. */
 export async function createBionicSkill(
   ctx: FmContext,
   payload: {
@@ -1843,6 +1872,7 @@ export async function createBionicSkill(
   return { ok: true, skill, skillMdPath };
 }
 
+/** Reads the Bionic projects registry and returns metadata and file counts for each project. */
 export function listBionicProjects(ctx: FmContext): { projects: BionicProjectSpec[] } {
   const lmHome = getLmStudioHomeDir(ctx);
   const platform = ctx.platform;
@@ -1893,6 +1923,7 @@ export function listBionicProjects(ctx: FmContext): { projects: BionicProjectSpe
 // 9. Bionic Audio Transcription (`executorch-asr` / Media Inspection)
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Checks whether the ExecuTorch Whisper ASR backend is installed and lists recent transcriptions. */
 export function getBionicAsrStatus(ctx?: FmContext): {
   installed: boolean;
   backendPath: string;
@@ -1919,6 +1950,7 @@ export function getBionicAsrStatus(ctx?: FmContext): {
   };
 }
 
+/** Transcribes an audio or video file using Bionic ASR or local Whisper and optionally summarizes or saves the result. */
 export async function transcribeWithBionicAsr(
   ctx: FmContext,
   payload: {
@@ -2058,6 +2090,7 @@ function cosineSimilarity(a: number[], b: number[]): number {
   return denom > 0 ? dot / denom : 0;
 }
 
+/** Computes vector embeddings for one or more text inputs using the running Bionic embedding model. */
 export async function runBionicEmbeddings(
   ctx: FmContext,
   payload: { input: string | string[]; model?: string },
@@ -2136,6 +2169,7 @@ async function persistEmbeddingCacheToDisk(ctx: FmContext): Promise<void> {
   } catch {}
 }
 
+/** Performs cached embedding-based semantic search across files in a directory and returns the top matches. */
 export async function runBionicSemanticSearch(
   ctx: FmContext,
   payload: { query: string; dirPath?: string; model?: string; topK?: number },
@@ -2271,6 +2305,7 @@ export async function runBionicSemanticSearch(
 // 11. Bionic Chat, Reasoning, Vision, Skill Injection, Structured JSON & Staged File Actions
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Built-in JSON Schema presets for structured output generation in Bionic chat. */
 export const BIONIC_SCHEMA_PRESETS: Record<string, { name: string; schema: Record<string, any> }> = {
   batch_rename_plan: {
     name: "batch_rename_plan",
@@ -2384,6 +2419,7 @@ export const BIONIC_SCHEMA_PRESETS: Record<string, { name: string; schema: Recor
 
 const bionicFailedToLoadModels = new Set<string>();
 
+/** Selects the best hardware-compatible local or loaded LLM/VLM model for a Bionic request. */
 export async function selectBestBionicModel(
   ctx: FmContext,
   requestedModel?: string,
@@ -2466,6 +2502,7 @@ export async function selectBestBionicModel(
   };
 }
 
+/** Runs a Bionic chat completion with optional file context, agent skills, structured JSON schema, tool calls, and TTS audio. */
 export async function runBionicChat(
   ctx: FmContext,
   payload: {
@@ -2929,6 +2966,7 @@ export async function runBionicChat(
   };
 }
 
+/** Executes or cancels a staged Bionic file tool action after explicit user confirmation. */
 export async function executeConfirmedBionicAction(
   ctx: FmContext,
   actionId: string,
@@ -2960,6 +2998,7 @@ export async function executeConfirmedBionicAction(
 // 12. Plain-English Capability Router for LM Studio Bionic (`bionic/route`)
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Automatically routes a user prompt and selected files to chat, TTS synthesis, ASR transcription, semantic search, or document synthesis. */
 export async function routeBionicRequest(
   ctx: FmContext,
   payload: {
@@ -3178,6 +3217,7 @@ export async function routeBionicRequest(
 // 13. Live Streaming Endpoint (`POST /api/bionic/stream`) & Full Status Aggregator
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Handles streaming SSE requests for Bionic chat completions and real-time token/reasoning events. */
 export async function handleBionicStreamRequest(ctx: FmContext, req: Request): Promise<Response> {
   if (!(req.headers.get("content-type") ?? "").toLowerCase().startsWith("application/json")) {
     return new Response(
@@ -3484,6 +3524,7 @@ function extractHeadingsFromSnippet(text: string, limit = 6): string[] {
   return headings;
 }
 
+/** Extracted metadata, statistics, headings, keywords, and excerpt for a document included in multi-document synthesis. */
 export interface BionicSynthesizeDocItem {
   name: string;
   path: string;
@@ -3577,6 +3618,7 @@ function buildDeterministicSynthesisReport(
   return lines.join("\n");
 }
 
+/** Synthesizes multiple documents into a comparison, summary, study guide, or action-items report using Bionic LLM or deterministic fallback. */
 export async function runBionicSynthesize(
   ctx: FmContext,
   payload: {
@@ -3716,6 +3758,7 @@ export async function runBionicSynthesize(
   };
 }
 
+/** Aggregates complete Bionic status including apps, server, hardware, models, backends, skills, projects, TTS, and ASR. */
 export async function getFullBionicStatus(ctx: FmContext, payload?: { dirPath?: string }) {
   const apps = detectBionicApps(ctx);
   const server = await ensureBionicServerRunning(ctx);
@@ -3745,6 +3788,7 @@ export async function getFullBionicStatus(ctx: FmContext, payload?: { dirPath?: 
   };
 }
 
+/** Map of File Manager API operation handlers for all `bionic/*` endpoints. */
 export const BIONIC_OPS: Record<string, (ctx: FmContext, payload: any) => Promise<any>> = {
   "bionic/status": (ctx, p) => getFullBionicStatus(ctx, p),
   "bionic/server": (ctx, p) => controlBionicServer(ctx, p || {}),

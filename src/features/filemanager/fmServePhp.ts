@@ -15,10 +15,13 @@ import { FmError } from "./fmPaths";
 import { findExecutable, searchDirs } from "./fmTools";
 import { RingLog } from "./fmServeLog";
 
+/** Maximum time in milliseconds to wait for `php -S` to begin accepting TCP connections (`5000`). */
 export const PHP_READY_MS = 5000;
+/** Grace period in milliseconds after `SIGTERM` before escalating to `SIGKILL` when stopping PHP (`2000`). */
 export const PHP_TERM_GRACE_MS = 2000;
 const PHP_NAME = /^php(\d+(\.\d+)*)?(\.exe)?$/i;
 
+/** Discovery result for the system's command-line `php` binary. */
 export interface PhpInfo {
   available: boolean;
   path: string | null;
@@ -28,6 +31,7 @@ export interface PhpInfo {
   hints: string[];
 }
 
+/** Returns platform-appropriate CLI installation hints when `php` is not installed. */
 export function installHints(platform: FmContext["platform"]): string[] {
   if (platform === "darwin") return ["Install PHP with Homebrew: brew install php"];
   if (platform === "win32") return ["Install PHP with winget: winget install PHP.PHP", "Or with Scoop: scoop install php"];
@@ -111,6 +115,7 @@ export async function detectPhp(ctx: FmContext, override?: string): Promise<PhpI
 // What kind of folder is it?
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Detected web project type, framework, suggested document root, and index files for a directory. */
 export interface FolderKind {
   kind: "php" | "static";
   /** "laravel", "symfony", "wordpress", "composer" or null. */
@@ -135,6 +140,7 @@ async function entriesOf(dir: string): Promise<Map<string, boolean>> {
 
 const anyFile = (list: Map<string, boolean>, re: RegExp) => [...list.entries()].some(([n, isDir]) => !isDir && re.test(n));
 
+/** Inspects `root` to detect PHP frameworks (Laravel, Symfony, WordPress, Composer), suggested docroot, and index files. */
 export async function detectFolder(root: string): Promise<FolderKind> {
   const top = await entriesOf(root);
   const hasFile = (n: string) => top.get(n) === false;
@@ -243,6 +249,7 @@ export function killTree(pid: number, signal: "SIGTERM" | "SIGKILL"): void {
   try { process.kill(pid, signal); } catch {}
 }
 
+/** Launch options for starting PHP's built-in development web server (`php -S`). */
 export interface PhpStartOptions {
   php: string;
   host: string;
@@ -257,6 +264,7 @@ export interface PhpStartOptions {
   termGraceMs?: number;
 }
 
+/** Handle to a running `php -S` child process with graceful and immediate termination controls. */
 export interface PhpProcess {
   readonly pid: number;
   readonly exited: Promise<number | null>;
@@ -278,6 +286,7 @@ export function explainPhpFailure(text: string, host: string, port: number): str
 /** A development server shows PHP's errors in the page and the log, whatever the installed php.ini (Linux packages ship with display_errors off). */
 export const DEV_INI = ["-d", "display_errors=1", "-d", "error_reporting=E_ALL", "-d", "log_errors=1"];
 
+/** Spawns `php -S <host>:<port> -t <docroot>`, waits until it accepts connections, and streams output to `o.log`. */
 export async function startPhp(o: PhpStartOptions): Promise<PhpProcess> {
   hookExit();
   if (await portInUse(o.host, o.port)) throw new FmError("PORT_IN_USE", explainPhpFailure("Address already in use", o.host, o.port));

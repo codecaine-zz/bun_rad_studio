@@ -7,6 +7,7 @@
  */
 import type { CredentialStore } from "./fmSecretsHooks";
 
+/** OS credential store service identifier used by the File Manager Secrets vault. */
 export const SERVICE = "codecaine-file-manager";
 const DAY_MS = 86_400_000;
 
@@ -22,14 +23,17 @@ export function bunCredentialStore(): CredentialStore {
   };
 }
 
+/** Formats the OS credential store account/entry name for a given 16-byte `vaultId`. */
 export const entryName = (vaultId: Buffer): string => `vault-device-key:${vaultId.toString("hex")}`;
 
+/** Unpacked record stored in the OS credential store for unlocking a vault on the local machine. */
 export interface DeviceEntry {
   key: Buffer;
   passwordAt: number;
   days: number;
 }
 
+/** Serializes a `DeviceEntry` to a versioned JSON string suitable for saving in the OS credential store. */
 export const encodeEntry = (e: DeviceEntry): string => JSON.stringify({ v: 1, key: e.key.toString("base64"), passwordAt: e.passwordAt, days: e.days });
 
 /** The entry, or null when it is missing or not what this program wrote. */
@@ -45,8 +49,10 @@ export function parseEntry(text: string | null): DeviceEntry | null {
   }
 }
 
+/** Returns `true` if the device key entry has exceeded its allowed `days` since the master password was last entered (or has a future timestamp). */
 export const isExpired = (e: DeviceEntry, now: number): boolean => now - e.passwordAt > e.days * DAY_MS || e.passwordAt > now + DAY_MS;
 
+/** User-facing fallback message when the OS credential store is unavailable or denies access. */
 export const UNAVAILABLE = "This computer's secure storage (Keychain, Credential Manager or Secret Service) isn't available or didn't allow access. Use your master password instead.";
 
 /** Whether the store can be used at all (a missing entry is fine; a thrown error is not). */

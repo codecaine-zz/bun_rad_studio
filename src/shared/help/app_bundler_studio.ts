@@ -1,3 +1,6 @@
+/**
+ * Interactive UI help tooltips and audit skip rules for App Bundler Studio (`app_bundler_studio`), covering standalone executable packaging, target platforms, and build options.
+ */
 import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Help tips for `app_bundler_studio`. Keys: see src/shared/helpTips.ts. Check with: bun run scripts/help_controls.ts <app file> --missing */

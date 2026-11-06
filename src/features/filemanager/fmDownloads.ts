@@ -21,8 +21,10 @@ import * as fs from "fs";
 import { promises as fsp } from "fs";
 import * as nodePath from "path";
 
+/** Lifecycle state of a managed download item (`queued`, `probing`, `downloading`, `paused`, `verifying`, `done`, or `error`). */
 export type DlState = "queued" | "probing" | "downloading" | "paused" | "verifying" | "done" | "error";
 
+/** Global download manager settings (connections per file, max concurrent files, speed limit, default folder, and retries). */
 export interface DlSettings {
   /** Connections used for each file (1 to MAX_CONNECTIONS). */
   connections: number;
@@ -36,6 +38,7 @@ export interface DlSettings {
   retries: number;
 }
 
+/** Parameters for queuing a new file download (URL, target folder, filename override, checksum, and custom headers). */
 export interface DlRequest {
   url: string;
   folder?: string;
@@ -50,6 +53,7 @@ export interface DlRequest {
   start?: boolean;
 }
 
+/** Full state, progress counters, speed, ETA, and checksum verification status of a managed download. */
 export interface DlItem {
   id: string;
   /** What was asked for. */
@@ -88,12 +92,15 @@ export interface DlItem {
 /** What the page sees: the same, without the header values (they can hold secrets). */
 export type DlView = Omit<DlItem, "headers" | "finalUrl"> & { headerNames: string[] };
 
+/** Maximum parallel HTTP range connections allowed per download. */
 export const MAX_CONNECTIONS = 32;
+/** Maximum number of files that can be downloaded simultaneously. */
 export const MAX_CONCURRENT = 10;
 const MIN_CHUNK = 512 * 1024;
 const MAX_CHUNK = 16 * 1024 * 1024;
 const STATE_VERSION = 1;
 
+/** Returns the default `DlSettings` initialized with the given default Downloads folder. */
 export const DEFAULT_SETTINGS = (folder: string): DlSettings => ({ connections: 8, maxConcurrent: 3, speedLimit: 0, folder, retries: 6 });
 
 /* ------------------------------------------------------------------------------------------------ small helpers */
@@ -126,6 +133,7 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
 export class RateLimiter {
   limit = 0;
   private next = 0;
+  /** Throttles bandwidth by awaiting the next available token slot for `bytes` according to `this.limit`. */
   async take(bytes: number, signal?: AbortSignal): Promise<void> {
     if (!this.limit || bytes <= 0) return;
     const now = Date.now();
@@ -165,6 +173,7 @@ export function nameFromDisposition(header: string | null): string | null {
   return plain ? plain[1]!.trim().replace(/\\(.)/g, "$1") : null;
 }
 
+/** Extracts a sanitized filename from a URL path, falling back to `"download"` when none is present. */
 export function nameFromUrl(url: string): string {
   try {
     const last = decodeURIComponent(new URL(url).pathname.split("/").filter(Boolean).pop() ?? "");
@@ -193,6 +202,7 @@ export function uniquePath(folder: string, name: string, taken: (path: string) =
   throw new DlError("Couldn't find a free file name.");
 }
 
+/** Parses an optional `algo:hex` or bare hex digest string into a normalized `{ algo, value }` pair. */
 export function parseChecksum(input: string | undefined): { algo: string; value: string } | undefined {
   if (!input?.trim()) return undefined;
   const text = input.trim().toLowerCase();
@@ -225,6 +235,7 @@ export function splitCredentials(url: string): { url: string; auth?: string } {
   return { url: u.toString(), auth };
 }
 
+/** Validates and parses an `http:` or `https:` URL string, throwing an `FmError` for unsupported schemes or invalid URLs. */
 export function parseWebUrl(input: string): URL {
   let u: URL;
   try {
@@ -239,6 +250,7 @@ export function parseWebUrl(input: string): URL {
 
 /* ------------------------------------------------------------------------------------------------ probing */
 
+/** Server capability metadata returned after probing a download URL (`finalUrl`, `size`, `ranges`, `suggestedName`, `etag`). */
 export interface ProbeResult {
   finalUrl: string;
   size: number | null;
@@ -360,6 +372,7 @@ interface SavedState {
   partial: Array<[number, number]>;
 }
 
+/** Compresses per-chunk byte offsets into compact `[start, end]` completed ranges and partial chunk offsets for persistence. */
 export function encodeProgress(done: number[], chunkSize: number, size: number): Pick<SavedState, "complete" | "partial"> {
   const complete: Array<[number, number]> = [];
   const partial: Array<[number, number]> = [];
@@ -374,6 +387,7 @@ export function encodeProgress(done: number[], chunkSize: number, size: number):
   return { complete, partial };
 }
 
+/** Restores the per-chunk downloaded byte array from persisted `complete` ranges and `partial` chunk entries. */
 export function decodeProgress(state: Pick<SavedState, "complete" | "partial">, chunkSize: number, size: number): number[] {
   const count = Math.ceil(size / chunkSize);
   const done = new Array<number>(count).fill(0);
@@ -401,6 +415,7 @@ interface Job {
   sampler?: ReturnType<typeof setInterval>;
 }
 
+/** Initialization options and injectable dependencies (`fetchFn`, `lookupFn`) for `DownloadManager`. */
 export interface ManagerOptions {
   /** The JSON file the list and the settings are kept in. */
   file: string;
@@ -411,6 +426,7 @@ export interface ManagerOptions {
 
 const isFinished = (s: DlState) => s === "done" || s === "error";
 
+/** Multi-connection, resumable HTTP/HTTPS download manager with rate limiting, SSRF protection, and checksum verification. */
 export class DownloadManager {
   private readonly items = new Map<string, DlItem>();
   private readonly jobs = new Map<string, Job>();
@@ -422,6 +438,7 @@ export class DownloadManager {
   /** Paths (final names) that a download has chosen and is writing `.part` / `.dlstate` files for, so two downloads never share one. */
   private readonly claimed = new Map<string, string>();
 
+  /** Creates a `DownloadManager` and restores persisted queue items and settings from `options.file`. */
   constructor(private readonly options: ManagerOptions) {
     this.fetchFn = options.fetchFn ?? fetch;
     this.settings = DEFAULT_SETTINGS(options.defaultFolder);
@@ -475,14 +492,17 @@ export class DownloadManager {
     }
   }
 
+  /** Returns public view models (`DlView[]`) for all tracked downloads with sensitive header values redacted. */
   list(): DlView[] {
     return [...this.items.values()].map(({ headers, finalUrl, ...rest }) => ({ ...rest, headerNames: Object.keys(headers ?? {}) }));
   }
 
+  /** Looks up a download item by ID. */
   get(id: string): DlItem | undefined {
     return this.items.get(id);
   }
 
+  /** Returns a copy of the current `DlSettings`. */
   getSettings(): DlSettings {
     return { ...this.settings };
   }
@@ -498,6 +518,7 @@ export class DownloadManager {
     };
   }
 
+  /** Validates and applies a partial `DlSettings` update, adjusts the rate limiter, and pumps the queue. */
   setSettings(patch: Partial<DlSettings>): DlSettings {
     this.settings = this.cleanSettings({ ...this.settings, ...patch });
     this.limiter.limit = this.settings.speedLimit;
@@ -547,6 +568,7 @@ export class DownloadManager {
     return added.map((i) => byId.get(i.id)!);
   }
 
+  /** Pauses an active or queued download and aborts its in-flight HTTP connections. */
   pause(id: string) {
     const item = this.items.get(id);
     if (!item) return;
@@ -595,15 +617,18 @@ export class DownloadManager {
     this.schedule();
   }
 
+  /** Removes all completed (`done`) downloads from the list and persists the state. */
   clearFinished() {
     for (const [id, item] of this.items) if (item.state === "done") this.items.delete(id);
     this.persist();
   }
 
+  /** Pauses all currently active or queued downloads. */
   pauseAll() {
     for (const id of [...this.items.keys()]) this.pause(id);
   }
 
+  /** Resumes all paused or failed downloads in the queue. */
   resumeAll() {
     for (const [id, item] of this.items) if (item.state === "paused" || item.state === "error") this.resume(id);
   }
@@ -1016,6 +1041,7 @@ export class DownloadManager {
   }
 }
 
+/** Formats a byte count into a human-readable string with unit (`B`, `KB`, `MB`, `GB`, or `TB`). */
 export function fmtBytes(n: number): string {
   if (!Number.isFinite(n)) return "?";
   const units = ["B", "KB", "MB", "GB", "TB"];

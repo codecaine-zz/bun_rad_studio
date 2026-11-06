@@ -1,3 +1,6 @@
+/**
+ * Process-wide singleton factory for the shared `WorkbenchHandler` instance.
+ */
 import { ProfileStore, detectSecretStore, defaultProfileDir } from "./profiles";
 import { WorkbenchService } from "./service";
 import { createWorkbenchHandler, type WorkbenchHandler } from "./workbench_http";

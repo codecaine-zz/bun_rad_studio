@@ -7,6 +7,7 @@
  */
 import { languageByName, type LangDef } from "./fmDevLangs";
 
+/** Line counts broken down into `code`, `comments`, `blanks`, and total `lines` for a source file. */
 export interface Counts {
   code: number;
   comments: number;

@@ -5,7 +5,9 @@
 import { createHmac } from "node:crypto";
 import { FmError } from "./fmPaths";
 
+/** Supported HMAC hash algorithms for TOTP generation. */
 export type TotpAlgorithm = "SHA1" | "SHA256" | "SHA512";
+/** Parsed TOTP configuration including decoded secret key, hash algorithm, digit count, and time step period. */
 export interface TotpSpec {
   secret: Buffer;
   algorithm: TotpAlgorithm;

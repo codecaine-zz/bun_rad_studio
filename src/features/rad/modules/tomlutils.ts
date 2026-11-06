@@ -1,3 +1,7 @@
+/**
+ * High-performance TOML parsing, serialization, dotted-path inspection, deep merging, and
+ * layered configuration loading powered by native `Bun.TOML`.
+ */
 // Feature: RAD - tomlutils
 // High-performance TOML parsing and serialization powered natively by Bun.TOML (Zig engine),
 // plus typed dotted-path accessors, path mutation, deep merging and layered config loading.
@@ -244,6 +248,9 @@ export async function loadTomlLayers<T extends TomlTable = TomlTable>(filePaths:
   return merged as T;
 }
 
+/**
+ * Namespace bundling all TOML parsing, serialization, path lookup, and configuration merging helpers.
+ */
 export const tomlutils = {
   parse: Bun.TOML.parse,
   stringify: toml.stringify,

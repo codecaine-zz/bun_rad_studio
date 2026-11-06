@@ -1,3 +1,6 @@
+/**
+ * Unit tests for the interactive `procs` TUI key handler, state reducer, details view, and frame renderer.
+ */
 import { describe, expect, it } from "bun:test";
 import {
   applyProcsTuiAction,

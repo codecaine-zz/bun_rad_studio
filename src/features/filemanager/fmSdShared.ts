@@ -6,19 +6,28 @@ import { buildReplacerRegex } from "../sd/sdDoers";
 import { unescapeReplacement } from "../../sd_helpers";
 import { FmError } from "./fmPaths";
 
+/** Maximum number of files scanned or modified in a single search-and-replace run. */
 export const SD_MAX_FILES = 5000;
+/** Maximum total number of replacements allowed across a single search-and-replace run. */
 export const SD_MAX_REPLACEMENTS = 100_000;
+/** Maximum execution time in milliseconds for a background search-and-replace worker job. */
 export const SD_TIMEOUT_MS = 60_000;
+/** Maximum number of recent replace runs retained in memory for Undo. */
 export const SD_UNDO_RUNS = 5;
 /** The most file content (before + after) one apply may hold in memory at once; it is also what Undo keeps. */
 export const SD_MAX_BATCH_BYTES = 64 * 1024 * 1024;
+/** Default directory names excluded when scanning folders for search-and-replace. */
 export const SD_DEFAULT_EXCLUDES = ["node_modules", ".git", "dist"];
+/** Maximum allowed character length for a search pattern. */
 export const SD_MAX_FIND = 2000;
+/** Maximum allowed character length for a replacement string. */
 export const SD_MAX_REPLACE = 10_000;
+/** Line and character caps applied when rendering unified diffs for a single file. */
 export const SD_DIFF_LIMITS = { maxLines: 2000, maxChars: 200_000 };
 /** How much diff text one preview keeps in memory in total; files past it still list, without a diff. */
 export const SD_DIFF_BUDGET = 8 * 1024 * 1024;
 
+/** Search-and-replace pattern and replacement specification. */
 export interface SdSpec {
   find: string;
   replace: string;
@@ -29,6 +38,7 @@ export interface SdSpec {
   escapes: boolean;
 }
 
+/** File and folder filtering options for a search-and-replace scan. */
 export interface SdFilter {
   exts: string[];
   exclude: string[];
@@ -36,11 +46,13 @@ export interface SdFilter {
   hidden: boolean;
 }
 
+/** Discriminated union of jobs sent to the background search-and-replace worker thread. */
 export type SdJob =
   | { kind: "scan"; mode: "count" | "preview"; spec: SdSpec; targets: string[]; filter: SdFilter }
   | { kind: "transform"; spec: SdSpec; files: Array<{ path: string; hash: string }>; maxBytes: number }
   | { kind: "spin"; ms: number };
 
+/** Counts of files skipped during a scan, grouped by reason. */
 export interface SdSkipped {
   binary: number;
   large: number;
@@ -49,6 +61,7 @@ export interface SdSkipped {
   links: number;
 }
 
+/** Per-file match, diff, and hash result produced by a search-and-replace scan. */
 export interface SdFileResult {
   path: string;
   matches: number;
@@ -63,6 +76,7 @@ export interface SdFileResult {
   diffTruncated: boolean;
 }
 
+/** Aggregate result of a search-and-replace scan across all target paths. */
 export interface SdScanOutcome {
   files: SdFileResult[];
   filesScanned: number;
@@ -72,6 +86,7 @@ export interface SdScanOutcome {
   replacementsCapped: boolean;
 }
 
+/** Result for a single file transformed by the worker during an apply run. */
 export interface SdTransformItem {
   path: string;
   status: "ok" | "changed" | "unchanged" | "unreadable";
@@ -80,11 +95,13 @@ export interface SdTransformItem {
   updated?: Uint8Array;
 }
 
+/** Aggregate result returned by the worker for a transform job. */
 export interface SdTransformOutcome {
   items: SdTransformItem[];
   replacementsCapped: boolean;
 }
 
+/** Compiled regular expression, unescaped replacement string, and line-ending metadata from an `SdSpec`. */
 export interface Compiled {
   re: RegExp;
   replacement: string;
@@ -113,8 +130,10 @@ export function compileSpec(spec: SdSpec): Compiled {
   return { re, replacement: spec.escapes ? unescapeReplacement(spec.replace) : spec.replace, mentionsCr };
 }
 
+/** Detected line-ending style of a text file (`crlf`, `lf`, `mixed`, or `none`). */
 export type Eol = "crlf" | "lf" | "mixed" | "none";
 
+/** Detects the predominant line-ending style (`crlf`, `lf`, `mixed`, or `none`) in `text`. */
 export function eolOf(text: string): Eol {
   let crlf = 0;
   let lf = 0;
@@ -130,6 +149,7 @@ export function eolOf(text: string): Eol {
   return "mixed";
 }
 
+/** Result of rewriting a single file's text against a compiled replacement spec. */
 export interface Rewrite {
   /** The text the pattern was matched against and the text it produced (line breaks as LF when the file uses CRLF). */
   before: string;

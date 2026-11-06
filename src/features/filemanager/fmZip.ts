@@ -25,6 +25,7 @@ const FLAG_ENCRYPTED = 0x1;
 const FLAG_DESCRIPTOR = 0x8;
 const FLAG_UTF8 = 0x800;
 
+/** Safety caps on total extracted bytes and entry count when unpacking a `.zip` archive. */
 export interface ZipLimits {
   /** Most bytes that extraction may write in total. */
   maxTotalBytes: number;
@@ -32,6 +33,7 @@ export interface ZipLimits {
   maxEntries: number;
 }
 
+/** Default extraction safety limits (8 GiB total uncompressed size, 100,000 entries). */
 export const DEFAULT_ZIP_LIMITS: ZipLimits = { maxTotalBytes: 8 * 1024 ** 3, maxEntries: 100_000 };
 
 function dosDateTime(date: Date): { time: number; date: number } {
@@ -148,6 +150,7 @@ async function planEntries(ctx: FmContext, sources: string[], exclude: Set<strin
   return { entries, skippedLinks };
 }
 
+/** Summary returned after creating a `.zip` archive on disk. */
 export interface ZipCreated {
   zipPath: string;
   files: number;
@@ -282,6 +285,7 @@ export async function createZip(ctx: FmContext, sourcesInput: unknown, nameInput
 // Read
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Parsed record from a ZIP archive's Central Directory. */
 export interface CentralEntry {
   name: string;
   flags: number;
@@ -295,6 +299,7 @@ export interface CentralEntry {
   isDir: boolean;
 }
 
+/** Reads `length` bytes from `handle` starting at byte offset `position`, throwing `BAD_ZIP` on unexpected EOF. */
 export async function readAt(handle: fsp.FileHandle, position: number, length: number): Promise<Buffer> {
   const buf = Buffer.alloc(length);
   let done = 0;
@@ -306,6 +311,7 @@ export async function readAt(handle: fsp.FileHandle, position: number, length: n
   return buf;
 }
 
+/** Locates the End of Central Directory record and parses all `CentralEntry` headers from an open `.zip` file. */
 export async function readCentralDirectory(handle: fsp.FileHandle, size: number): Promise<CentralEntry[]> {
   const tailLength = Math.min(size, 65_557);
   const tail = await readAt(handle, size - tailLength, tailLength);
@@ -366,6 +372,7 @@ export function safeEntryPath(name: string, platform: Parameters<typeof validate
   return { path: parts };
 }
 
+/** Summary returned after extracting a `.zip` archive into a destination folder. */
 export interface ZipExtracted {
   folder: string;
   files: number;

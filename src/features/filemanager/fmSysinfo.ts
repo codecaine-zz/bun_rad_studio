@@ -9,6 +9,7 @@ import si from "systeminformation";
 import { diffData, flattenData, toCsv, toHtmlReport, toMarkdown, type DataDiff } from "../../system_report";
 import type { Platform } from "./fmPaths";
 
+/** Identifier for a top-level System Information telemetry section. */
 export type SysinfoSectionId =
   | "overview"
   | "hardware"
@@ -20,6 +21,7 @@ export type SysinfoSectionId =
   | "peripherals"
   | "software";
 
+/** Metadata describing an individual `systeminformation` probe exposed in the probe catalog. */
 export interface SysinfoProbeCatalogItem {
   method: string;
   category: string;
@@ -29,6 +31,7 @@ export interface SysinfoProbeCatalogItem {
   defaultParam?: string;
 }
 
+/** Catalog of supported `systeminformation` probes available in the System Info tool. */
 export const SYSINFO_PROBE_CATALOG: SysinfoProbeCatalogItem[] = [
   // System & Hardware
   { method: "system", category: "Hardware", label: "System Model & UUID", description: "Hardware manufacturer, model, serial, UUID, and SKU." },
@@ -71,6 +74,7 @@ export const SYSINFO_PROBE_CATALOG: SysinfoProbeCatalogItem[] = [
   { method: "time", category: "Software", label: "System Clock & Timezone", description: "Current epoch time, uptime, timezone identifier, and UTC offset." },
 ];
 
+/** Comprehensive snapshot of OS, CPU, memory, battery, storage, network, and graphics telemetry for the System Info overview. */
 export interface SysinfoOverview {
   timestamp: number;
   platform: Platform;
@@ -180,12 +184,14 @@ export interface SysinfoOverview {
   };
 }
 
+/** Structured tabular view returned as part of a System Info section or probe result. */
 export interface SysinfoTable {
   title: string;
   columns: string[];
   rows: Array<Array<string | number>>;
 }
 
+/** Detailed facts, tables, and raw telemetry payload for a single System Info section. */
 export interface SysinfoSectionResult {
   section: SysinfoSectionId;
   platform: Platform;
@@ -196,6 +202,7 @@ export interface SysinfoSectionResult {
   raw: Record<string, unknown>;
 }
 
+/** Optional test hooks for overriding system telemetry collection and individual probe execution. */
 export interface SysinfoHooks {
   /** Override overview collection for fast deterministic tests. */
   getOverview?: (platform: Platform) => Promise<SysinfoOverview>;
@@ -205,6 +212,7 @@ export interface SysinfoHooks {
   runProbe?: (method: string, param: string, platform: Platform) => Promise<unknown>;
 }
 
+/** Formats a byte count into a human-readable string (`B`, `KB`, `MB`, `GB`, `TB`, or `PB`). */
 export function formatBytes(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
   const units = ["B", "KB", "MB", "GB", "TB", "PB"];
@@ -213,6 +221,7 @@ export function formatBytes(bytes: number): string {
   return `${val >= 100 || i === 0 ? Math.round(val) : val.toFixed(1)} ${units[i]}`;
 }
 
+/** Formats a duration in seconds into a compact human-readable uptime string (e.g. `3d 4h 12m`). */
 export function formatDurationSec(sec: number): string {
   if (!Number.isFinite(sec) || sec < 0) return "—";
   const d = Math.floor(sec / 86400);
@@ -224,10 +233,12 @@ export function formatDurationSec(sec: number): string {
   return `${Math.floor(sec)}s`;
 }
 
+/** Returns the human-readable operating system family label (`Windows`, `Linux`, or `macOS`) for `platform`. */
 export function platformLabel(platform: Platform): string {
   return platform === "win32" ? "Windows" : platform === "linux" ? "Linux" : "macOS";
 }
 
+/** Builds platform-specific OS and hardware summary highlights for Windows, Linux, or macOS. */
 export function buildPlatformHighlights(
   platform: Platform,
   osData: { distro: string; release: string; codename: string; kernel: string; arch: string; uefi: boolean | null; hypervisor: string; shell: string },
@@ -299,6 +310,7 @@ async function getStaticInfo() {
   return cachedStaticInfo;
 }
 
+/** Collects a full cross-platform `SysinfoOverview` snapshot using `os` primitives and `systeminformation`. */
 export async function collectSysinfoOverview(
   platform: Platform,
   hooks: SysinfoHooks = {},
@@ -525,6 +537,7 @@ export async function collectSysinfoOverview(
   };
 }
 
+/** Collects key-value facts, formatted tables, and raw telemetry for a specific `SysinfoSectionId`. */
 export async function collectSysinfoSection(
   section: SysinfoSectionId,
   platform: Platform,
@@ -1042,6 +1055,7 @@ export async function collectSysinfoSection(
   };
 }
 
+/** Validates and executes a single cataloged `systeminformation` probe, returning raw data, flattened key-values, and an optional table. */
 export async function runSysinfoProbe(
   method: string,
   param: string,
@@ -1130,10 +1144,12 @@ export async function runSysinfoProbe(
   };
 }
 
+/** Computes a structured diff between two system information snapshots (`before` and `after`). */
 export function diffSysinfoSnapshots(before: unknown, after: unknown): DataDiff {
   return diffData(before, after);
 }
 
+/** Formats a system information payload as a downloadable report in `json`, `csv`, `md`, or `html` format. */
 export function formatSysinfoReport(
   title: string,
   data: unknown,

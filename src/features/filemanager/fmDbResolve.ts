@@ -14,8 +14,10 @@ import { ENGINES, PRIVATE_ENV_PREFIXES, CONTROL_ENV, isEngineVariable, isScrubbe
 import type { DbProfile, EngineSettings, ProfileMeta, RedisProfile } from "./fmDbStore";
 import type { ConnectionProfile } from "../../db/profiles";
 
+/** Origin tier for a resolved connection field (`profile`, `defaults`, `env`, `builtin`, or `none`). */
 export type SourceKind = "profile" | "defaults" | "env" | "builtin" | "none";
 
+/** Attribution record explaining which tier and variable/file supplied an effective connection field. */
 export interface Source {
   kind: SourceKind;
   /** Plain words: "this connection", "environment variable MSQL_HOST", "`.env` in the application folder (~/app), variable X" ... */
@@ -25,6 +27,7 @@ export interface Source {
   prov?: Provenance;
 }
 
+/** Fully resolved connection values, per-field sources, ignored environment variables, and warnings for an engine. */
 export interface Resolved {
   engine: DbEngine;
   /** profile: a saved connection; defaults: no connection but File Manager defaults; environment: the studio is left to read the environment itself, as before; builtin: nothing at all. */
@@ -44,6 +47,7 @@ const BUILTIN: Record<DbEngine, Resolved["values"]> = {
   redis: { host: "127.0.0.1", port: 6379, dbIndex: 0, tls: false },
 };
 
+/** Ordered list of connection fields displayed per database engine in the Effective Settings view. */
 export const FIELD_ORDER: Record<DbEngine, FieldName[]> = {
   sqlite: ["path"],
   mysql: ["host", "port", "user", "password", "database", "tls"],
@@ -63,6 +67,7 @@ function fromProfile(p: DbProfile): Resolved["values"] {
   return { host: c.host, port: c.port, user: c.user, database: c.database, schema: c.schema, tls: profileTls(c) };
 }
 
+/** Input parameters for `resolveConnection` combining profile, keychain password, engine defaults, and environment view. */
 export interface ResolveInput {
   engine: DbEngine;
   profile?: DbProfile | null;
@@ -73,6 +78,7 @@ export interface ResolveInput {
 }
 
 
+/** Applies the precedence rule (`profile > defaults > env > builtin`) to compute effective connection values and their sources. */
 export function resolveConnection(input: ResolveInput): Resolved {
   const { engine, profile, settings, view } = input;
   const defaults = settings.defaults;
@@ -147,6 +153,7 @@ export function resolveConnection(input: ResolveInput): Resolved {
 
 /* ------------------------------------------------------------------ launching */
 
+/** Environment variables, Bun flags, studio CLI arguments, and working directory mode for launching a studio process. */
 export interface LaunchSpec {
   /** The studio's whole environment. */
   env: Record<string, string>;
@@ -160,6 +167,7 @@ export interface LaunchSpec {
   explicit: boolean;
 }
 
+/** Base environment, parent PID, and studio files directory passed to `buildLaunch`. */
 export interface LaunchInput {
   baseEnv: Record<string, string | undefined>;
   parentPid: number;

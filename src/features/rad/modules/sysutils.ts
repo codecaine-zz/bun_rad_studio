@@ -1,5 +1,12 @@
+/**
+ * Operating system introspection, shell argument quoting, safe subprocess execution via `Bun.spawn`,
+ * and cross-platform system clipboard helpers.
+ */
 import os from "node:os";
 
+/**
+ * Snapshot of host OS, CPU, memory, uptime, and hostname metrics returned by {@link getSystemInfo}.
+ */
 export interface SystemInfo {
   platform: string;
   arch: string;
@@ -11,6 +18,9 @@ export interface SystemInfo {
 }
 
 // Doer: Get consolidated system metrics
+/**
+ * Collects consolidated host platform, CPU count, memory, uptime, and hostname metrics.
+ */
 export function getSystemInfo(): SystemInfo {
   return {
     platform: process.platform,
@@ -24,22 +34,34 @@ export function getSystemInfo(): SystemInfo {
 }
 
 // Doer: Escape/quote single argument for shell execution
+/**
+ * Safely single-quotes a command-line argument for POSIX shell execution if it contains non-alphanumeric characters.
+ */
 export function quoteArg(arg: string): string {
   if (/^[a-zA-Z0-9_\-\.\/]+$/.test(arg)) return arg;
   return `'${arg.replace(/'/g, "'\\''")}'`;
 }
 
 // Doer: Return home directory
+/**
+ * Returns the current user's home directory path.
+ */
 export function getHomeDir(): string {
   return os.homedir();
 }
 
 // Doer: Return OS temp directory
+/**
+ * Returns the operating system's default directory for temporary files.
+ */
 export function getTempDir(): string {
   return os.tmpdir();
 }
 
 // Coordinator: Safely execute command using Bun.spawn
+/**
+ * Spawns a subprocess without invoking a shell via `Bun.spawn` and resolves its trimmed `stdout`, `stderr`, and `exitCode`.
+ */
 export async function execSafe(
   cmd: string,
   args: string[] = [],
@@ -60,6 +82,9 @@ export async function execSafe(
 }
 
 // Coordinator: Copy text to system clipboard (cross-platform)
+/**
+ * Copies `text` to the system clipboard (`pbcopy` on macOS, `xclip` on Linux), returning `true` on success.
+ */
 export async function copyToClipboard(text: string): Promise<boolean> {
   const cmd = process.platform === "darwin" ? ["pbcopy"] : ["xclip", "-selection", "clipboard"];
   try {
@@ -75,6 +100,9 @@ export async function copyToClipboard(text: string): Promise<boolean> {
 }
 
 // Coordinator: Read text from system clipboard (cross-platform)
+/**
+ * Reads plain text from the system clipboard (`pbpaste` on macOS, `xclip -o` on Linux), returning `""` on failure.
+ */
 export async function readFromClipboard(): Promise<string> {
   const cmd = process.platform === "darwin" ? ["pbpaste"] : ["xclip", "-selection", "clipboard", "-o"];
   try {
@@ -85,6 +113,9 @@ export async function readFromClipboard(): Promise<string> {
   }
 }
 
+/**
+ * Namespace bundling system info, directory lookups, safe process execution, and clipboard utilities.
+ */
 export const sysutils = {
   getSystemInfo,
   quoteArg,

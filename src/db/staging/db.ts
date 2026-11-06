@@ -11,12 +11,14 @@ import { quoteIdent } from "../quote";
 import { StagingError } from "./limits";
 import type { TargetColumn, TargetForeignKey, TargetTable, TypeClass } from "./types";
 
+/** Result rows and affected row count returned by a staging database query. */
 export interface QueryOutcome {
   rows: Record<string, any>[];
   /** Rows written by INSERT/UPDATE/DELETE, or rows returned. */
   affected: number;
 }
 
+/** Active database connection or session used by staging import steps. */
 export interface StageConn {
   readonly engine: Engine;
   query(sql: string, params?: unknown[]): Promise<QueryOutcome>;
@@ -26,6 +28,7 @@ export interface StageConn {
   release(): Promise<void>;
 }
 
+/** Database abstraction providing connections and catalog introspection for the staging import pipeline. */
 export interface StageDb {
   readonly engine: Engine;
   /** PostgreSQL schema the work happens in. */
@@ -42,6 +45,7 @@ export interface StageDb {
   close(): Promise<void>;
 }
 
+/** Quotes an identifier for the specified database engine. */
 export const q = (engine: Engine, ident: string): string => quoteIdent(engine, ident);
 
 /**
@@ -58,6 +62,7 @@ export function refOf(db: Pick<StageDb, "engine" | "schema">, table: string): st
   return db.engine === "postgres" ? `${quoteIdent("postgres", db.schema || "public")}.${quoteIdent("postgres", table)}` : quoteIdent(db.engine, table);
 }
 
+/** Opens a temporary connection, runs a single parameterized SQL query, and releases the connection. */
 export async function runOnce(db: StageDb, sql: string, params: unknown[] = []): Promise<QueryOutcome> {
   const c = await db.open();
   try {
@@ -75,6 +80,7 @@ export function ph(engine: Engine, n: number, type?: "text" | "bigint"): string 
 
 // ---- type classification -----------------------------------------------------------------------------------------
 
+/** Classifies a raw SQL column type declaration into a normalized `TypeClass` and numeric/length attributes. */
 export function classifyType(engine: Engine, raw: string): Pick<TargetColumn, "cls" | "length" | "precision" | "scale" | "unsigned" | "bits" | "enumValues"> {
   const t = (raw || "").trim().toLowerCase();
   const paren = /\(([^)]*)\)/.exec(t)?.[1];
@@ -176,6 +182,7 @@ class SqliteConn implements StageConn {
   }
 }
 
+/** `StageDb` implementation backed directly by `bun:sqlite` for file-based or shared in-memory SQLite databases. */
 export class SqliteStageDb implements StageDb {
   readonly engine = "sqlite" as const;
   readonly shared: boolean;
@@ -190,6 +197,7 @@ export class SqliteStageDb implements StageDb {
     this.shared = !!opts.shared && (this.path === ":memory:" || !opts.path);
     this.label = this.path === ":memory:" ? "in-memory database" : this.path.split(/[\\/]/).pop()!;
   }
+  /** Opens a new `StageConn` (or wraps the shared in-memory database connection). */
   async open(): Promise<StageConn> {
     if (this.shared) return new SqliteConn(this.sharedDb!, false);
     if (this.path === ":memory:") throw new StagingError("This in-memory database is not available.", "NO_DB");
@@ -199,10 +207,12 @@ export class SqliteStageDb implements StageDb {
     db.run("PRAGMA foreign_keys = ON");
     return new SqliteConn(db, true);
   }
+  /** Lists all non-system user tables in the SQLite database. */
   async tables() {
     const r = await runOnce(this, "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite\\_%' ESCAPE '\\' ORDER BY name");
     return r.rows.map((x) => String(x.name));
   }
+  /** Introspects columns, primary key, unique indexes, and foreign keys of a SQLite table. */
   async describe(table: string): Promise<TargetTable> {
     const c = await this.open();
     try {
@@ -255,6 +265,7 @@ export class SqliteStageDb implements StageDb {
       await c.release();
     }
   }
+  /** Estimates the storage size in bytes of a SQLite table using `dbstat` when available. */
   async sizeOf(table: string): Promise<number | null> {
     try {
       const r = await runOnce(this, "SELECT SUM(pgsize) AS s FROM dbstat WHERE name = ?", [table]);
@@ -263,6 +274,7 @@ export class SqliteStageDb implements StageDb {
       return null;
     }
   }
+  /** No-op close hook for `SqliteStageDb` (connections are closed individually on release). */
   async close() {}
 }
 
@@ -300,11 +312,13 @@ class AdapterConn implements StageConn {
   }
 }
 
+/** `StageDb` implementation backed by a `DbAdapter` for MySQL/MariaDB and PostgreSQL databases. */
 export class AdapterStageDb implements StageDb {
   readonly shared = false;
   readonly engine: Engine;
   readonly schema?: string;
   readonly label: string;
+  /** Creates an `AdapterStageDb` wrapping the given database adapter and optional display label. */
   constructor(
     private adapter: DbAdapter,
     label?: string,
@@ -313,6 +327,7 @@ export class AdapterStageDb implements StageDb {
     this.schema = adapter.engine === "postgres" ? adapter.config.schema || "public" : undefined;
     this.label = label ?? adapter.config.database ?? adapter.engine;
   }
+  /** Opens a dedicated session connection on the underlying database adapter. */
   async open(): Promise<StageConn> {
     await this.adapter.connect();
     return new AdapterConn(this.engine, await this.adapter.openSession());
@@ -321,6 +336,7 @@ export class AdapterStageDb implements StageDb {
     await this.adapter.connect();
     return (await this.adapter.query(sql, params as never[])).rows as Record<string, any>[];
   }
+  /** Lists all base tables in the active MySQL database or PostgreSQL schema. */
   async tables() {
     const rows =
       this.engine === "mysql"
@@ -328,6 +344,7 @@ export class AdapterStageDb implements StageDb {
         : await this.rows("SELECT table_name AS n FROM information_schema.tables WHERE table_schema = $1 AND table_type = 'BASE TABLE' ORDER BY table_name", [this.schema]);
     return rows.map((r) => String(r.n ?? r.N ?? r.table_name ?? Object.values(r)[0]));
   }
+  /** Introspects columns, collations, enums, primary key, unique indexes, and foreign keys of a table. */
   async describe(table: string): Promise<TargetTable> {
     if (!(await this.tables()).includes(table)) throw new StagingError(`There is no table called “${table}” in this database.`, "NO_TABLE", 404);
     await this.adapter.connect();
@@ -398,6 +415,7 @@ export class AdapterStageDb implements StageDb {
       foreignKeys: info.foreignKeys.map((f) => ({ columns: f.columns, refTable: f.refTable, refColumns: f.refColumns, ...(f.refSchema && this.engine === "postgres" ? { refSchema: f.refSchema } : {}) })),
     };
   }
+  /** Queries the total size in bytes (data plus indexes) of a table in MySQL or PostgreSQL. */
   async sizeOf(table: string): Promise<number | null> {
     try {
       const rows =
@@ -410,6 +428,7 @@ export class AdapterStageDb implements StageDb {
       return null;
     }
   }
+  /** Closes the underlying database adapter and its connection pool. */
   async close() {
     await this.adapter.close();
   }

@@ -1,3 +1,6 @@
+/**
+ * Interactive UI help tooltips and audit skip rules for SQLite Workbench Studio (`sqlite_studio`), covering database file management, table editing, SQL scripts, and backups.
+ */
 import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Help tips for `sqlite_studio`. Keys: see src/shared/helpTips.ts. Check with: bun run scripts/help_controls.ts <app file> --missing */

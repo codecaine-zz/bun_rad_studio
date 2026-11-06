@@ -11,6 +11,7 @@ import * as dns from 'node:dns';
 import * as zlib from 'node:zlib';
 import { spawnSync, spawn } from 'node:child_process';
 
+/** Detailed physical and virtual memory utilization metrics in bytes and percentage. */
 export interface MemoryBreakdown {
   total: number;
   used: number;
@@ -23,11 +24,13 @@ export interface MemoryBreakdown {
   percent: number;
 }
 
+/** Static cross-platform toolkit for subprocess execution, hardware telemetry, filesystem I/O, networking, and micro HTTP servers. */
 export class Sys {
   // ===========================================================================
   // 1. Process Execution & Subprocess Control
   // ===========================================================================
 
+  /** Synchronously executes a shell `command` in `cwd` and returns a `[output, exitCode]` tuple. */
   public static exec(command: string, cwd?: string): [string, number] {
     try {
       const res = spawnSync(command, {
@@ -45,11 +48,13 @@ export class Sys {
     }
   }
 
+  /** Synchronously executes `command` and returns its trimmed stdout if it exits with 0, or `fallback` otherwise. */
   public static execOr(command: string, fallback: string = '', cwd?: string): string {
     const [out, code] = Sys.exec(command, cwd);
     return code === 0 && out.length > 0 ? out : fallback;
   }
 
+  /** Spawns a detached background shell process and returns its PID (or `undefined` on failure). */
   public static execBg(command: string, cwd?: string): number | undefined {
     try {
       const proc = spawn(command, {
@@ -65,10 +70,12 @@ export class Sys {
     }
   }
 
+  /** Synchronously executes a shell `command` inside the specified working directory `dir`. */
   public static execInDir(dir: string, command: string): [string, number] {
     return Sys.exec(command, dir);
   }
 
+  /** Asynchronously executes `command` with a `SIGKILL` timeout and resolves with an `ExecResult`. */
   public static async execTimeout(command: string, timeoutMs: number = 5000, cwd?: string): Promise<ExecResult> {
     const start = performance.now();
     return new Promise((resolve) => {
@@ -114,6 +121,7 @@ export class Sys {
     });
   }
 
+  /** Executes `command` up to `maxRetries` times with `delayMs` between failed attempts until exit code 0 is returned. */
   public static async execRetry(command: string, maxRetries: number = 3, delayMs: number = 500, cwd?: string): Promise<ExecResult> {
     const start = performance.now();
     let attempts = 0;
@@ -179,6 +187,7 @@ export class Sys {
     });
   }
 
+  /** Runs an array of shell `commands` concurrently (up to `concurrency` workers) and returns their `[output, exitCode]` results in order. */
   public static async execParallel(commands: string[], concurrency: number = 4): Promise<[string, number][]> {
     if (commands.length === 0) return [];
     const results: [string, number][] = new Array(commands.length);
@@ -199,6 +208,7 @@ export class Sys {
     return results;
   }
 
+  /** Sends `signal` (default `SIGTERM`) to `pid`, returning `true` if the signal was delivered. */
   public static killProcess(pid: number, signal: NodeJS.Signals = 'SIGTERM'): boolean {
     try {
       process.kill(pid, signal);
@@ -212,14 +222,17 @@ export class Sys {
   // 2. Hardware Telemetry & Resource Probing
   // ===========================================================================
 
+  /** Returns the number of logical CPU cores detected on the host. */
   public static cpuCount(): number {
     return os.cpus().length || 1;
   }
 
+  /** Returns the model identifier string of the first logical CPU core. */
   public static cpuModel(): string {
     return os.cpus()[0]?.model || 'Unknown CPU';
   }
 
+  /** Returns the 1-, 5-, and 15-minute system load averages as a 3-element tuple. */
   public static cpuLoad(): [number, number, number] {
     const load = os.loadavg();
     return [load[0] ?? 0, load[1] ?? 0, load[2] ?? 0];
@@ -358,6 +371,7 @@ export class Sys {
     };
   }
 
+  /** Queries and caches (for 500ms) a detailed cross-platform `MemoryBreakdown` matching native OS activity monitors. */
   public static memoryInfo(forceRefresh: boolean = false): MemoryBreakdown {
     const now = Date.now();
     if (!forceRefresh && Sys._memCache && now - Sys._memCache.ts < 500) {
@@ -409,52 +423,64 @@ export class Sys {
     return fallback;
   }
 
+  /** Returns total physical system RAM in bytes. */
   public static ramTotal(): number {
     return Sys.memoryInfo().total;
   }
 
+  /** Returns available (reclaimable + free) system RAM in bytes. */
   public static ramFree(): number {
     return Sys.memoryInfo().free;
   }
 
+  /** Returns active non-reclaimable used system RAM in bytes. */
   public static ramUsed(): number {
     return Sys.memoryInfo().used;
   }
 
+  /** Returns the percentage (`0..100`) of system RAM currently in use. */
   public static ramPercent(): number {
     return Sys.memoryInfo().percent;
   }
 
+  /** Returns the operating system platform identifier (e.g. `'darwin'`, `'linux'`, `'win32'`). */
   public static osPlatform(): string {
     return os.platform();
   }
 
+  /** Returns the CPU architecture identifier (e.g. `'arm64'`, `'x64'`). */
   public static osArch(): string {
     return os.arch();
   }
 
+  /** Returns the operating system kernel release version string. */
   public static osRelease(): string {
     return os.release();
   }
 
+  /** Returns the host machine's network hostname (or `'studio-workstation'` in screenshot mode). */
   public static osHostname(): string {
     if (process.env.SCREENSHOT_MODE === "1") return "studio-workstation";
     return os.hostname();
   }
 
+  /** Returns the current user's home directory path (or `'/Users/developer'` in screenshot mode). */
   public static osHomedir(): string {
     if (process.env.SCREENSHOT_MODE === "1") return "/Users/developer";
     return os.homedir();
   }
 
+  /** Returns the operating system's default directory for temporary files. */
   public static osTmpdir(): string {
     return os.tmpdir();
   }
 
+  /** Returns the system uptime in seconds. */
   public static osUptime(): number {
     return os.uptime();
   }
 
+  /** Returns the current battery charge percentage (`0..100`), or `100` on desktop systems without a battery. */
   public static batteryPercent(): number {
     const p = os.platform();
     if (p === 'darwin') {
@@ -483,6 +509,7 @@ export class Sys {
     return 100;
   }
 
+  /** Returns `true` if the system is currently charging or connected to AC power. */
   public static isCharging(): boolean {
     const p = os.platform();
     if (p === 'darwin') {
@@ -514,6 +541,7 @@ export class Sys {
   // 3. File System Helpers
   // ===========================================================================
 
+  /** Expands a leading `~` to the user's home directory and resolves the path to an absolute path. */
   public static expandTilde(filePath: string): string {
     if (filePath.startsWith('~')) {
       return path.resolve(os.homedir(), filePath.slice(1).replace(/^[/\\]/, ''));
@@ -521,6 +549,7 @@ export class Sys {
     return path.resolve(filePath);
   }
 
+  /** Queries total, used, and free disk space statistics (`DiskStats`) for the filesystem containing `targetPath`. */
   public static diskStats(targetPath: string = '/'): DiskStats {
     const p = os.platform();
     const resolvedTarget =
@@ -574,6 +603,7 @@ export class Sys {
     return { totalBytes, usedBytes: 40 * 1024 * 1024 * 1024, freeBytes: 60 * 1024 * 1024 * 1024, percent: 40.0 };
   }
 
+  /** Returns detailed `FileMetadata` (size, permissions, timestamps, type flags) for `filePath`, or `null` if missing. */
   public static fileMetadata(filePath: string): FileMetadata | null {
     const fullPath = Sys.expandTilde(filePath);
     if (!fs.existsSync(fullPath)) return null;
@@ -607,18 +637,21 @@ export class Sys {
     }
   }
 
+  /** Generates a unique temporary file path in the OS temp directory with optional `prefix` and `suffix`. */
   public static tempFile(prefix: string = 'tmp_', suffix: string = ''): string {
     const rand = Math.random().toString(36).substring(2, 8);
     const fileName = `${prefix}${Date.now()}_${rand}${suffix}`;
     return path.join(os.tmpdir(), fileName);
   }
 
+  /** Creates a new unique temporary directory in the OS temp directory and returns its path. */
   public static tempDir(prefix: string = 'tmp_dir_'): string {
     const dirPath = Sys.tempFile(prefix);
     fs.mkdirSync(dirPath, { recursive: true });
     return dirPath;
   }
 
+  /** Creates an empty file at `filePath` if it does not exist, or updates its access and modification timestamps to now. */
   public static touch(filePath: string): void {
     const full = Sys.expandTilde(filePath);
     const dir = path.dirname(full);
@@ -631,11 +664,13 @@ export class Sys {
     }
   }
 
+  /** Changes the POSIX file permissions of `filePath` to `mode`. */
   public static chmod(filePath: string, mode: number | string): void {
     const full = Sys.expandTilde(filePath);
     fs.chmodSync(full, mode);
   }
 
+  /** Recursively walks `rootDir` and returns all file paths matching the optional regex `pattern`. */
   public static findFiles(rootDir: string, pattern?: RegExp | string): string[] {
     const results: string[] = [];
     const root = Sys.expandTilde(rootDir);
@@ -669,6 +704,7 @@ export class Sys {
   // 4. Network Diagnostics & Port Probing
   // ===========================================================================
 
+  /** Returns a map of network interface names to their assigned IP addresses. */
   public static networkInterfaces(): Record<string, string[]> {
     if (process.env.SCREENSHOT_MODE === "1") {
       return { lo0: ["127.0.0.1"], en0: ["192.168.1.100"] };
@@ -683,6 +719,7 @@ export class Sys {
     return result;
   }
 
+  /** Returns the primary non-internal IPv4 address of the host (or `'127.0.0.1'` if offline). */
   public static localIp(): string {
     if (process.env.SCREENSHOT_MODE === "1") return "192.168.1.100";
     const ifaces = os.networkInterfaces();
@@ -698,6 +735,7 @@ export class Sys {
     return '127.0.0.1';
   }
 
+  /** Returns the hardware MAC address of the primary non-internal network interface. */
   public static macAddress(): string {
     if (process.env.SCREENSHOT_MODE === "1") return "02:00:00:00:00:01";
     const ifaces = os.networkInterfaces();
@@ -713,6 +751,7 @@ export class Sys {
     return '00:00:00:00:00:00';
   }
 
+  /** Queries and returns the currently connected Wi-Fi network SSID across macOS, Linux, and Windows. */
   public static wifiSsid(): string {
     if (process.env.SCREENSHOT_MODE === "1") return "Studio-Mesh-5G";
     const p = os.platform();
@@ -738,6 +777,7 @@ export class Sys {
     return 'Wi-Fi Connected';
   }
 
+  /** Sends a single ICMP ping packet to `host` and returns `true` if a response is received within `timeoutMs`. */
   public static async pingCheck(host: string = '8.8.8.8', timeoutMs: number = 2000): Promise<boolean> {
     const cleanHost = String(host || '').trim();
     if (!cleanHost || cleanHost.startsWith('-') || !/^[a-zA-Z0-9.:_-]+$/.test(cleanHost)) {
@@ -750,6 +790,7 @@ export class Sys {
     return res.status === 0;
   }
 
+  /** Probes whether a TCP connection can be established to `host:port` within `timeoutMs`. */
   public static async checkPort(host: string, port: number, timeoutMs: number = 1000): Promise<boolean> {
     return new Promise((resolve) => {
       let settled = false;
@@ -772,6 +813,7 @@ export class Sys {
     });
   }
 
+  /** Scans the inclusive TCP port range `[startPort, endPort]` on `host` and returns all open port numbers in ascending order. */
   public static async portScan(host: string, startPort: number, endPort: number, timeoutMs: number = 600): Promise<number[]> {
     const openPorts: number[] = [];
     const ports: number[] = [];
@@ -796,6 +838,7 @@ export class Sys {
     return openPorts.sort((a, b) => a - b);
   }
 
+  /** Polls `host:port` at `intervalMs` until the TCP port accepts connections or `timeoutMs` elapses. */
   public static async waitForPort(
     host: string,
     port: number,
@@ -812,6 +855,7 @@ export class Sys {
     return false;
   }
 
+  /** Polls `url` via HTTP `GET` until `expectedStatus` (or any 2xx response) is returned or `timeoutMs` elapses. */
   public static async waitForHttp(
     url: string,
     timeoutMs: number = 10000,
@@ -844,6 +888,7 @@ export class Sys {
   // 5. Desktop Notifications, Audio & Speech
   // ===========================================================================
 
+  /** Triggers a native OS desktop notification banner via `osascript` on macOS or `notify-send` on Linux. */
   public static notify(title: string, message: string, sound: boolean = true): void {
     const p = os.platform();
     const escAs = (s: string) => String(s ?? '').replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/[\r\n]+/g, ' ');
@@ -860,6 +905,7 @@ export class Sys {
     }
   }
 
+  /** Speaks `text` aloud asynchronously using native text-to-speech (`say` on macOS, `spd-say`/`espeak` on Linux). */
   public static say(text: string, voice?: string, rate?: number): void {
     const p = os.platform();
     const cleanText = String(text ?? '');
@@ -882,10 +928,12 @@ export class Sys {
     }
   }
 
+  /** Emits the terminal bell character (`\x07`) to stdout. */
   public static beep(): void {
     process.stdout.write('\x07');
   }
 
+  /** Copies `text` to the system clipboard using `pbcopy`, `xclip`, or `clip`. */
   public static clipboardCopy(text: string): boolean {
     const p = os.platform();
     if (p === 'darwin') {
@@ -908,6 +956,7 @@ export class Sys {
     return false;
   }
 
+  /** Reads and returns the current plain-text contents of the system clipboard. */
   public static clipboardPaste(): string {
     const p = os.platform();
     if (p === 'darwin') {
@@ -923,6 +972,7 @@ export class Sys {
     return '';
   }
 
+  /** Opens a URL or file path in the user's default desktop browser or application. */
   public static openUrl(urlOrPath: string): boolean {
     const target = String(urlOrPath ?? '').trim();
     if (!target || target.startsWith('-') || target.includes('\0')) return false;
@@ -957,6 +1007,7 @@ export class Sys {
   // 6. Native High-Speed File I/O Ergonomics (Bun.file & Bun.write)
   // ===========================================================================
 
+  /** Asynchronously reads the entire contents of `filePath` as a UTF-8 string. */
   public static async readText(filePath: string): Promise<string> {
     const full = Sys.expandTilde(filePath);
     if (typeof (Bun as any)?.file === 'function') {
@@ -965,11 +1016,13 @@ export class Sys {
     return fs.promises.readFile(full, 'utf8');
   }
 
+  /** Synchronously reads the entire contents of `filePath` as a UTF-8 string. */
   public static readTextSync(filePath: string): string {
     const full = Sys.expandTilde(filePath);
     return fs.readFileSync(full, 'utf8');
   }
 
+  /** Asynchronously reads and parses a JSON file at `filePath`, returning `fallback` on failure if provided. */
   public static async readJson<T = any>(filePath: string, fallback?: T): Promise<T> {
     try {
       const full = Sys.expandTilde(filePath);
@@ -984,6 +1037,7 @@ export class Sys {
     }
   }
 
+  /** Synchronously reads and parses a JSON file at `filePath`, returning `fallback` on failure if provided. */
   public static readJsonSync<T = any>(filePath: string, fallback?: T): T {
     try {
       const full = Sys.expandTilde(filePath);
@@ -995,6 +1049,7 @@ export class Sys {
     }
   }
 
+  /** Asynchronously reads the raw binary contents of `filePath` as a `Uint8Array`. */
   public static async readBytes(filePath: string): Promise<Uint8Array> {
     const full = Sys.expandTilde(filePath);
     if (typeof (Bun as any)?.file === 'function') {
@@ -1004,6 +1059,7 @@ export class Sys {
     return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
   }
 
+  /** Asynchronously writes string or binary `data` to `filePath` (creating parent directories) and returns the byte count written. */
   public static async write(filePath: string, data: string | Uint8Array | ArrayBuffer | Blob): Promise<number> {
     const full = Sys.expandTilde(filePath);
     const dir = path.dirname(full);
@@ -1017,6 +1073,7 @@ export class Sys {
     return buf.byteLength;
   }
 
+  /** Synchronously writes string or binary `data` to `filePath`, creating parent directories as needed. */
   public static writeSync(filePath: string, data: string | Uint8Array | ArrayBuffer): void {
     const full = Sys.expandTilde(filePath);
     const dir = path.dirname(full);
@@ -1025,11 +1082,13 @@ export class Sys {
     fs.writeFileSync(full, buf);
   }
 
+  /** Serializes `data` as formatted JSON and writes it asynchronously to `filePath`. */
   public static async writeJson(filePath: string, data: any, indent: number = 2): Promise<number> {
     const jsonStr = JSON.stringify(data, null, indent);
     return await Sys.write(filePath, jsonStr);
   }
 
+  /** Appends string or binary `data` to `filePath`, creating parent directories if needed. */
   public static async append(filePath: string, data: string | Uint8Array): Promise<void> {
     const full = Sys.expandTilde(filePath);
     const dir = path.dirname(full);
@@ -1037,6 +1096,7 @@ export class Sys {
     await fs.promises.appendFile(full, data as any);
   }
 
+  /** Asynchronously checks whether a file exists at `filePath`. */
   public static async fileExists(filePath: string): Promise<boolean> {
     const full = Sys.expandTilde(filePath);
     if (typeof (Bun as any)?.file === 'function') {
@@ -1045,6 +1105,7 @@ export class Sys {
     return fs.existsSync(full);
   }
 
+  /** Returns the size in bytes of `filePath` (or `0` if it does not exist). */
   public static fileSize(filePath: string): number {
     const full = Sys.expandTilde(filePath);
     if (typeof (Bun as any)?.file === 'function') {
@@ -1057,6 +1118,7 @@ export class Sys {
     }
   }
 
+  /** Infers and returns the MIME type string for `filePath`. */
   public static fileMime(filePath: string): string {
     const full = Sys.expandTilde(filePath);
     if (typeof (Bun as any)?.file === 'function') {
@@ -1078,6 +1140,7 @@ export class Sys {
     return map[ext] || 'application/octet-stream';
   }
 
+  /** Deletes `filePath` if it exists and returns `true` when a file was removed. */
   public static deleteFile(filePath: string): boolean {
     try {
       const full = Sys.expandTilde(filePath);
@@ -1091,6 +1154,7 @@ export class Sys {
     }
   }
 
+  /** Recursively creates `dirPath` if it does not already exist. */
   public static ensureDir(dirPath: string): void {
     const full = Sys.expandTilde(dirPath);
     if (!fs.existsSync(full)) {
@@ -1102,6 +1166,7 @@ export class Sys {
   // 7. Binary Resolution & Environment Probing (Bun.which & Bun.env)
   // ===========================================================================
 
+  /** Resolves the absolute path to an executable `binName` on `PATH`, or `null` if not found. */
   public static which(binName: string): string | null {
     const clean = String(binName ?? '').trim();
     if (!clean || clean.startsWith('-') || clean.includes('\0')) return null;
@@ -1112,14 +1177,17 @@ export class Sys {
     return res.status === 0 && res.stdout ? res.stdout.trim() : null;
   }
 
+  /** Returns `true` if `binName` is installed and resolvable on `PATH`. */
   public static hasBinary(binName: string): boolean {
     return Sys.which(binName) !== null;
   }
 
+  /** Reads an environment variable by `key`, returning `defaultVal` if unset. */
   public static getEnv(key: string, defaultVal: string = ''): string {
     return process.env[key] ?? ((Bun as any)?.env?.[key] || defaultVal);
   }
 
+  /** Sets an environment variable in both `process.env` and `Bun.env`. */
   public static setEnv(key: string, value: string): void {
     process.env[key] = value;
     if ((Bun as any)?.env) {
@@ -1127,6 +1195,7 @@ export class Sys {
     }
   }
 
+  /** Returns the value of environment variable `key` or throws an Error if it is unset or empty. */
   public static requireEnv(key: string): string {
     const val = Sys.getEnv(key);
     if (!val) {
@@ -1139,6 +1208,7 @@ export class Sys {
   // 8. High-Precision Time, Benchmarking & Async Sleep
   // ===========================================================================
 
+  /** Asynchronously sleeps for `ms` milliseconds using `Bun.sleep` or `setTimeout`. */
   public static async sleep(ms: number): Promise<void> {
     if (typeof (Bun as any)?.sleep === 'function') {
       await (Bun as any).sleep(ms);
@@ -1147,6 +1217,7 @@ export class Sys {
     }
   }
 
+  /** Returns high-resolution monotonic time in nanoseconds. */
   public static nanoseconds(): number {
     if (typeof (Bun as any)?.nanoseconds === 'function') {
       return (Bun as any).nanoseconds();
@@ -1154,6 +1225,7 @@ export class Sys {
     return Math.round(performance.now() * 1_000_000);
   }
 
+  /** Executes synchronous `fn` and returns its result along with elapsed milliseconds and nanoseconds. */
   public static measure<T>(fn: () => T): { result: T; durationMs: number; durationNs: number } {
     const start = Sys.nanoseconds();
     const result = fn();
@@ -1161,6 +1233,7 @@ export class Sys {
     return { result, durationMs: Number((durationNs / 1_000_000).toFixed(3)), durationNs };
   }
 
+  /** Executes asynchronous `fn` and returns its resolved result along with elapsed milliseconds and nanoseconds. */
   public static async measureAsync<T>(fn: () => Promise<T>): Promise<{ result: T; durationMs: number; durationNs: number }> {
     const start = Sys.nanoseconds();
     const result = await fn();
@@ -1172,6 +1245,7 @@ export class Sys {
   // 9. Fast Checksums, Hashing & Native Compression
   // ===========================================================================
 
+  /** Computes a fast non-cryptographic 64-bit hex hash of `data` using `Bun.hash` (falling back to CRC32). */
   public static fastHash(data: string | Uint8Array, seed?: number): string {
     if (typeof (Bun as any)?.hash === 'function') {
       const h = (Bun as any).hash(data, seed);
@@ -1180,6 +1254,7 @@ export class Sys {
     return Sys.crc32(data).toString(16);
   }
 
+  /** Computes the 32-bit CRC32 checksum of `data`. */
   public static crc32(data: string | Uint8Array): number {
     if (typeof (Bun as any)?.hash?.crc32 === 'function') {
       return (Bun as any).hash.crc32(data);
@@ -1188,6 +1263,7 @@ export class Sys {
     return zlib.crc32(buf);
   }
 
+  /** Computes the 32-bit Adler-32 checksum of `data`. */
   public static adler32(data: string | Uint8Array): number {
     if (typeof (Bun as any)?.hash?.adler32 === 'function') {
       return (Bun as any).hash.adler32(data);
@@ -1201,6 +1277,7 @@ export class Sys {
     return (b << 16) | a;
   }
 
+  /** Compresses string or binary `data` using GZIP and returns the compressed `Uint8Array`. */
   public static gzip(data: string | Uint8Array): Uint8Array {
     if (typeof (Bun as any)?.gzipSync === 'function') {
       const input = typeof data === 'string' ? Buffer.from(data, 'utf8') : data;
@@ -1210,6 +1287,7 @@ export class Sys {
     return new Uint8Array(zlib.gzipSync(buf));
   }
 
+  /** Decompresses a GZIP-compressed `Uint8Array` and returns the uncompressed bytes. */
   public static gunzip(data: Uint8Array): Uint8Array {
     if (typeof (Bun as any)?.gunzipSync === 'function') {
       return (Bun as any).gunzipSync(data);
@@ -1217,6 +1295,7 @@ export class Sys {
     return new Uint8Array(zlib.gunzipSync(Buffer.from(data)));
   }
 
+  /** Compresses string or binary `data` using raw DEFLATE and returns the compressed `Uint8Array`. */
   public static deflate(data: string | Uint8Array): Uint8Array {
     if (typeof (Bun as any)?.deflateSync === 'function') {
       const input = typeof data === 'string' ? Buffer.from(data, 'utf8') : data;
@@ -1226,6 +1305,7 @@ export class Sys {
     return new Uint8Array(zlib.deflateSync(buf));
   }
 
+  /** Decompresses a raw DEFLATE-compressed `Uint8Array` and returns the uncompressed bytes. */
   public static inflate(data: Uint8Array): Uint8Array {
     if (typeof (Bun as any)?.inflateSync === 'function') {
       return (Bun as any).inflateSync(data);
@@ -1237,14 +1317,17 @@ export class Sys {
   // 10. Semver Engine & Bun Runtime Info
   // ===========================================================================
 
+  /** Returns the current Bun runtime version string (or `process.version` fallback). */
   public static bunVersion(): string {
     return (typeof Bun !== 'undefined' && Bun?.version) ? Bun.version : process.version;
   }
 
+  /** Returns the git commit revision hash of the running Bun binary. */
   public static bunRevision(): string {
     return (typeof Bun !== 'undefined' && (Bun as any)?.revision) ? (Bun as any).revision : '';
   }
 
+  /** Returns `true` if semantic `version` satisfies the given semver `range` expression. */
   public static semverSatisfies(version: string, range: string): boolean {
     if (typeof (Bun as any)?.semver?.satisfies === 'function') {
       return (Bun as any).semver.satisfies(version, range);
@@ -1255,6 +1338,7 @@ export class Sys {
     return cleanV.localeCompare(cleanR, undefined, { numeric: true }) >= 0;
   }
 
+  /** Compares two semver version strings, returning `-1`, `0`, or `1`. */
   public static semverCompare(v1: string, v2: string): number {
     if (typeof (Bun as any)?.semver?.order === 'function') {
       return (Bun as any).semver.order(v1, v2);
@@ -1266,6 +1350,7 @@ export class Sys {
   // 11. Instant Micro HTTP Server & Static File Server (Bun.serve)
   // ===========================================================================
 
+  /** Starts a native `Bun.serve` HTTP server on `hostname:port` (default `127.0.0.1:3000`). */
   public static serve(options: {
     port?: number;
     hostname?: string;
@@ -1282,6 +1367,7 @@ export class Sys {
   }
 
   // Listens on 127.0.0.1 unless `hostname` is given (for example "0.0.0.0" to publish the directory on the network).
+  /** Starts a static file HTTP server serving files from `directory` with path-traversal protection. */
   public static serveStatic(directory: string, port: number = 3000, hostname: string = '127.0.0.1'): any {
     const fullDir = path.resolve(Sys.expandTilde(directory));
     if (!fs.existsSync(fullDir)) {
@@ -1449,6 +1535,7 @@ export class Sys {
   // 12. Fast DNS Resolution (Bun.dns / dns.promises)
   // ===========================================================================
 
+  /** Resolves all IPv4/IPv6 addresses for `hostname` using `Bun.dns` or `dns.promises.lookup`. */
   public static async dnsLookup(hostname: string): Promise<string[]> {
     try {
       if (typeof (Bun as any)?.dns?.lookup === 'function') {
@@ -1463,5 +1550,6 @@ export class Sys {
   }
 }
 
+/** Lowercase convenience alias for the `Sys` OS and system utilities class. */
 export const sys = Sys;
 

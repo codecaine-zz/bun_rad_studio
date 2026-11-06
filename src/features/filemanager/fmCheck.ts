@@ -12,8 +12,10 @@ import { FmError, splitName } from "./fmPaths";
 import { SNIFF_BYTES, kindInfo, sniffType, type Sniffed } from "./fmSniff";
 import { checkEndings, checkName, expectedFor, judge, judgedExtension, needsContent, visibleName, withoutTrailing } from "./fmSniffRules";
 
+/** Alert severity level when a file's magic-byte signature disagrees with its filename extension. */
 export type Severity = "danger" | "warning" | "notice";
 
+/** Diagnostic report describing a mismatch between a file's extension and its actual sniffed content type. */
 export interface FileCheck {
   severity: Severity;
   code: string;

@@ -1,3 +1,10 @@
+/**
+ * Semantic versioning (SemVer) parsing, comparison, range matching, and version bumping utilities.
+ */
+
+/**
+ * Parsed components of a semantic version string (`major.minor.patch-prerelease+build`).
+ */
 export interface SemVer {
   major: number;
   minor: number;
@@ -9,6 +16,10 @@ export interface SemVer {
 const SEMVER_REGEX = /^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+([0-9A-Za-z.-]+))?$/;
 
 // Doer: Parse semantic version string
+/**
+ * Parses a semantic version string (with optional leading `v`, prerelease, and build metadata) into a {@link SemVer}.
+ * @param version - Semantic version string to parse.
+ */
 export function parseSemver(version: string): SemVer {
   const match = version.trim().match(SEMVER_REGEX);
   if (!match) {
@@ -24,17 +35,27 @@ export function parseSemver(version: string): SemVer {
 }
 
 // Doer: Compare two semantic versions (-1: v1 < v2, 0: equal, 1: v1 > v2) powered by native Bun.semver.order
+/**
+ * Compares two semantic version strings using `Bun.semver.order`.
+ * @returns `-1` if `v1 < v2`, `0` if equal, or `1` if `v1 > v2`.
+ */
 export function compareSemver(v1: string, v2: string): -1 | 0 | 1 {
   const ord = Bun.semver.order(v1, v2);
   return (ord < 0 ? -1 : ord > 0 ? 1 : 0) as -1 | 0 | 1;
 }
 
 // Coordinator: Check if version satisfies caret, tilde, or comparator range powered by native Bun.semver.satisfies
+/**
+ * Checks whether `version` satisfies a semver range expression (caret, tilde, or comparator) via `Bun.semver.satisfies`.
+ */
 export function satisfiesRange(version: string, range: string): boolean {
   return Bun.semver.satisfies(version, range);
 }
 
 // Doer: Bump major, minor, or patch version component
+/**
+ * Increments the `major`, `minor`, or `patch` component of a semantic version string and resets lower components.
+ */
 export function bumpVersion(version: string, type: "major" | "minor" | "patch"): string {
   const v = parseSemver(version);
   if (type === "major") {
@@ -46,6 +67,9 @@ export function bumpVersion(version: string, type: "major" | "minor" | "patch"):
   return `${v.major}.${v.minor}.${v.patch + 1}`;
 }
 
+/**
+ * Namespace of semantic versioning utilities (`parseSemver`, `compareSemver`, `satisfiesRange`, `bumpVersion`).
+ */
 export const semverutils = {
   parseSemver,
   compareSemver,

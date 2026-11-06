@@ -11,18 +11,32 @@ import type { IpInfoResult } from "./ipinfoTypes.ts";
 // Validation & conversion
 // ---------------------------------------------------------------------------
 
+/**
+ * Checks whether a string is a syntactically valid IPv4 address.
+ */
 export function isValidIpv4(s: string): boolean {
   return isIP(s.trim()) === 4;
 }
+
+/**
+ * Checks whether a string is a valid IPv4 or IPv6 address.
+ */
 export function isValidIp(s: string): boolean {
   return isIP(s.trim()) !== 0;
 }
 
+/**
+ * Converts a dotted-quad IPv4 address string into an unsigned 32-bit integer.
+ */
 export function ipv4ToInt(ip: string): number {
   const p = ip.trim().split(".").map((x) => parseInt(x, 10));
   if (!isValidIpv4(ip)) throw new Error(`Invalid IPv4 address: ${ip}`);
   return (((p[0]! << 24) >>> 0) + (p[1]! << 16) + (p[2]! << 8) + p[3]!) >>> 0;
 }
+
+/**
+ * Converts an unsigned 32-bit integer into a dotted-quad IPv4 address string.
+ */
 export function intToIpv4(n: number): string {
   return [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].join(".");
 }
@@ -54,6 +68,9 @@ export function describeIpv4(input: string): string[][] {
   ];
 }
 
+/**
+ * Converts a CIDR prefix length (`0`-`32`) into a dotted-quad IPv4 subnet mask.
+ */
 export function prefixToMask(prefix: number): string {
   if (!Number.isInteger(prefix) || prefix < 0 || prefix > 32) throw new Error(`Prefix must be 0-32, got ${prefix}`);
   return intToIpv4(prefix === 0 ? 0 : (~0 << (32 - prefix)) >>> 0);
@@ -85,6 +102,9 @@ function cidrRange(cidr: string): { start: number; end: number; prefix: number }
   return { start, end, prefix };
 }
 
+/**
+ * Checks whether a given IPv4 address (in dotted-quad, integer, or hex form) falls within a CIDR block.
+ */
 export function cidrContains(cidr: string, ip: string): boolean {
   const { start, end } = cidrRange(cidr);
   const n = ipv4ToInt(parseIpv4Flexible(ip));
@@ -115,6 +135,9 @@ export function splitCidr(cidr: string, newPrefix: number, limit = 256): { block
 // Target parsing
 // ---------------------------------------------------------------------------
 
+/**
+ * Default maximum number of targets processed in a single bulk lookup operation.
+ */
 export const MAX_BULK_TARGETS = 50;
 
 /** Split pasted text into unique cleaned targets. `#` starts a comment. */
@@ -141,6 +164,9 @@ export function parseTargets(text: string, max = MAX_BULK_TARGETS): { targets: s
 // Bulk lookup
 // ---------------------------------------------------------------------------
 
+/**
+ * Single row result produced by a bulk IP/hostname lookup.
+ */
 export interface BulkRow {
   target: string;
   ip: string;
@@ -152,6 +178,9 @@ export interface BulkRow {
   error?: string;
 }
 
+/**
+ * Dependency injection contract for resolving and fetching IP metadata during bulk lookups.
+ */
 export interface BulkDeps {
   resolve: (target: string) => { ip?: string; domain?: string };
   fetch: (ip?: string, token?: string) => IpInfoResult;
@@ -159,6 +188,9 @@ export interface BulkDeps {
 
 const defaultDeps: BulkDeps = { resolve: resolveTargetToIp, fetch: fetchIpDetails };
 
+/**
+ * Resolves and fetches geolocation details for an array of target hosts or IPs sequentially.
+ */
 export function bulkLookup(
   targets: string[],
   token?: string,
@@ -188,19 +220,31 @@ export function bulkLookup(
   return rows;
 }
 
+/**
+ * Column headers used when displaying bulk lookup results in a table.
+ */
 export const BULK_HEADERS = ["Target", "IP", "City", "Region", "Country", "Organization / ASN", "Status"];
 
+/**
+ * Converts `BulkRow` records into string arrays aligned with `BULK_HEADERS`.
+ */
 export function bulkToTableRows(rows: BulkRow[]): string[][] {
   return rows.map((r) => [r.target, r.ip || "-", r.city, r.region, r.country, r.org, r.status === "ok" ? "OK" : `Error: ${r.error}`]);
 }
 
 const csvCell = (v: any) => `"${String(v ?? "").replace(/"/g, '""')}"`;
 
+/**
+ * Serializes an array of `BulkRow` records into RFC-4180 CSV text.
+ */
 export function bulkToCsv(rows: BulkRow[]): string {
   const header = ["target", "ip", "city", "region", "country", "org", "status", "error"];
   return [header.join(","), ...rows.map((r) => header.map((h) => csvCell((r as any)[h])).join(","))].join("\n");
 }
 
+/**
+ * Formats table headers and row cells as tab-separated values (TSV).
+ */
 export function tableToTsv(headers: string[], rows: string[][]): string {
   const clean = (s: any) => String(s ?? "").replace(/[\t\r\n]+/g, " ");
   return [headers.map(clean).join("\t"), ...rows.map((r) => r.map(clean).join("\t"))].join("\n");
@@ -210,6 +254,9 @@ export function tableToTsv(headers: string[], rows: string[][]): string {
 // History
 // ---------------------------------------------------------------------------
 
+/**
+ * Record of a recent IP or subnet lookup stored in the session history list.
+ */
 export interface HistoryEntry { target: string; summary: string; time: string }
 
 /** Add to the front, de-duplicating by target (case-insensitive), capped at `max`. */
@@ -218,13 +265,23 @@ export function pushHistory(list: HistoryEntry[], entry: HistoryEntry, max = 20)
   return [entry, ...list.filter((h) => h.target.trim().toLowerCase() !== key)].slice(0, max);
 }
 
+/**
+ * Builds an external `ipinfo.io` web lookup URL for the given IP address.
+ */
 export function ipInfoUrl(ip: string): string {
   return `https://ipinfo.io/${encodeURIComponent(ip)}`;
 }
+
+/**
+ * Builds an external Hurricane Electric BGP toolkit URL for the given IP address.
+ */
 export function bgpUrl(ip: string): string {
   return `https://bgp.he.net/ip/${encodeURIComponent(ip)}`;
 }
 
+/**
+ * Formats arbitrary table headers and row cells into RFC-4180 CSV text.
+ */
 export function tableToCsv(headers: string[], rows: string[][]): string {
   return [headers.map(csvCell).join(","), ...rows.map((r) => r.map(csvCell).join(","))].join("\n");
 }

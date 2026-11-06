@@ -3,6 +3,7 @@
  * uptime formatting and export. Pure functions (no GUI, no subprocesses).
  */
 
+/** Parsed OS process record with resource usage, listening ports, and classification flags. */
 export interface ProcessItem {
   pid: string;
   ppid: string;
@@ -21,6 +22,7 @@ export interface ProcessItem {
   uptime?: string;
 }
 
+/** Platform-appropriate numeric POSIX signal numbers used by Task Manager. */
 export const SIGNALS = {
   SIGKILL: 9,
   SIGTERM: 15,
@@ -29,6 +31,7 @@ export const SIGNALS = {
   SIGCONT: process.platform === "linux" ? 18 : 19,
   SIGHUP: 1,
 } as const;
+/** Supported POSIX signal names in Task Manager. */
 export type SignalName = keyof typeof SIGNALS;
 
 /** Processes that must never be signaled: stopping or killing them logs you out or freezes the machine. */
@@ -44,6 +47,7 @@ export function extractProcessName(command: string): string {
   return baseName.replace(/:$/, "") || "unknown";
 }
 
+/** Returns `true` if the command or executable name matches a known development runtime, server, or database. */
 export function isDevServerProcess(command: string, name: string): boolean {
   const hay = (name + " " + command).toLowerCase();
   return /\b(bun|node|deno|vite|next|ts-node|tsx|esbuild|webpack|turbopack|python|python3|uvicorn|gunicorn|flask|fastapi|ruby|rails|cargo|rustc|go|redis-server|postgres|mysqld|mongod|docker|caddy|nginx)\b/i.test(hay);
@@ -56,6 +60,7 @@ export function parseEtime(s: string): number | undefined {
   return (Number(m[1] || 0) * 86400) + (Number(m[2] || 0) * 3600) + Number(m[3]) * 60 + Number(m[4]);
 }
 
+/** Formats an elapsed uptime in seconds into a compact human-readable string (e.g. `"2h 15m"`). */
 export function formatUptime(sec: number | undefined): string {
   if (sec === undefined || !Number.isFinite(sec) || sec < 0) return "—";
   if (sec < 60) return `${Math.floor(sec)}s`;
@@ -64,6 +69,7 @@ export function formatUptime(sec: number | undefined): string {
   return `${Math.floor(sec / 86400)}d ${Math.floor((sec % 86400) / 3600)}h`;
 }
 
+/** Converts resident set size in kilobytes to a formatted megabyte string (e.g. `"12.4 MB"`). */
 export function formatMb(kb: number): string {
   return (kb / 1024).toFixed(1) + " MB";
 }
@@ -122,6 +128,7 @@ export function parseLsofListen(out: string): Map<string, string[]> {
   return map;
 }
 
+/** Expands a single-character `ps` process state code into a descriptive label (e.g. `"Running"`, `"Sleeping"`). */
 export function stateLabel(state: string): string {
   const c = (state || "?")[0]!.toUpperCase();
   const base: Record<string, string> = { R: "Running", S: "Sleeping", I: "Idle", T: "Stopped (suspended)", U: "Uninterruptible wait", Z: "Zombie" };
@@ -132,6 +139,7 @@ export function stateLabel(state: string): string {
 // Grouping and tree
 // ---------------------------------------------------------------------------
 
+/** Aggregated resource usage and PID list for processes sharing the same application name. */
 export interface ProcessGroup {
   name: string;
   count: number;
@@ -143,6 +151,7 @@ export interface ProcessGroup {
   pids: string[]; // highest CPU first
 }
 
+/** Groups processes by application name and sums their CPU, memory, and listening ports. */
 export function groupProcesses(procs: ProcessItem[]): ProcessGroup[] {
   const map = new Map<string, ProcessItem[]>();
   for (const p of procs) {
@@ -167,6 +176,7 @@ export function groupProcesses(procs: ProcessItem[]): ProcessGroup[] {
   return out;
 }
 
+/** Returns the direct child processes whose parent PID (`ppid`) equals `pid`. */
 export function childrenOf(procs: ProcessItem[], pid: string): ProcessItem[] {
   return procs.filter((p) => p.ppid === pid && p.pid !== pid);
 }
@@ -213,12 +223,14 @@ export function ancestorsOf(procs: ProcessItem[], pid: string): string[] {
 // Signal safety
 // ---------------------------------------------------------------------------
 
+/** Context about the running Task Manager process and current OS user for evaluating signal safety. */
 export interface SignalContext {
   selfPid: string;
   parentPid: string;
   currentUser: string;
 }
 
+/** Safety verdict and optional confirmation prompt before sending a signal to a process. */
 export interface SignalAssessment {
   allowed: boolean;
   reason?: string;
@@ -226,6 +238,7 @@ export interface SignalAssessment {
   confirm?: string;
 }
 
+/** Evaluates whether sending `signal` to `pid` is safe, blocked, or requires user confirmation. */
 export function assessSignal(proc: ProcessItem | undefined, pid: string, signal: SignalName, ctx: SignalContext): SignalAssessment {
   if (!/^\d+$/.test(pid) || pid === "0") return { allowed: false, reason: "Please specify a valid numeric PID." };
   if (pid === "1") return { allowed: false, reason: "Refusing to signal PID 1 (launchd/init)." };
@@ -256,6 +269,7 @@ export function findRogueDevServers(procs: ProcessItem[], ctx: SignalContext): P
   return procs.filter((p) => p.isDevServer && p.isUserApp && !protectedPids.has(p.pid) && (p.ports.length > 0 || p.ppid === "1") && !CRITICAL_NAMES.includes(p.name));
 }
 
+/** Extracts and validates a TCP/UDP port number (`1`–`65535`) from a string, or returns `null`. */
 export function validPort(raw: string): number | null {
   const digits = String(raw ?? "").replace(/[^0-9]/g, "");
   const n = parseInt(digits, 10);
@@ -280,21 +294,25 @@ function cell(v: string): string {
   return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
+/** Serializes a list of processes into a formula-safe CSV string. */
 export function processesToCsv(procs: ProcessItem[]): string {
   const head = ["pid", "ppid", "name", "user", "state", "cpu_percent", "mem_percent", "rss_mb", "uptime", "ports", "command"];
   const rows = procs.map((p) => [p.pid, p.ppid, p.name, p.user, p.state, p.cpu.toFixed(1), p.mem.toFixed(1), (p.rssKb / 1024).toFixed(1), p.uptime || "", p.ports.join(" "), p.command]);
   return [head, ...rows].map((r) => r.map(cell).join(",")).join("\n") + "\n";
 }
 
+/** Serializes a list of processes into a formatted JSON string. */
 export function processesToJson(procs: ProcessItem[]): string {
   return JSON.stringify(procs.map((p) => ({ pid: p.pid, ppid: p.ppid, name: p.name, user: p.user, state: p.state, cpu: p.cpu, mem: p.mem, rssMb: Math.round((p.rssKb / 1024) * 10) / 10, uptime: p.uptime ?? null, ports: p.ports, command: p.command })), null, 2);
 }
 
+/** Serializes a list of processes into a tab-separated values (TSV) string. */
 export function processesToTsv(procs: ProcessItem[]): string {
   const head = ["PID", "Name", "Ports", "CPU %", "MEM %", "RSS", "User", "State", "Uptime", "Command"].join("\t");
   return head + "\n" + procs.map((p) => [p.pid, p.name, p.ports.join(" "), p.cpu.toFixed(1), p.mem.toFixed(1), p.rssMb, p.user, p.state, p.uptime || "", p.command.replace(/[\t\n]/g, " ")].join("\t")).join("\n");
 }
 
+/** Parses a refresh interval dropdown label (e.g. `"2s"`, `"Off"`) into seconds (`0` when disabled). */
 export function parseRefreshSeconds(label: string): number {
   if (/off/i.test(label)) return 0;
   const m = /(\d+)\s*s/i.exec(label);

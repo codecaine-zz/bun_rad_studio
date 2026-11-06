@@ -14,25 +14,44 @@ import { createCipheriv, createDecipheriv, createHmac, randomBytes, timingSafeEq
 import { SecretsError, WRONG_OR_DAMAGED, deviceKek, hkdf, kdfRefusal, recoveryKek } from "./fmSecretsCrypto";
 import type { SecretsKdfParams } from "./fmSecretsHooks";
 
+/** 8-byte ASCII magic header (`RADSEC01`) identifying a RADSEC v1 vault file. */
 export const MAGIC = Buffer.from("RADSEC01", "latin1");
+/** KDF algorithm identifier for Argon2id (`1`). */
 export const KDF_ARGON2ID = 1;
+/** Header flag bit indicating the master password was mixed with a key file. */
 export const FLAG_KEYFILE = 1;
+/** Header flag bit indicating a recovery key wrap block is present in the header. */
 export const FLAG_RECOVERY = 2;
+/** Header flag bit indicating a device key wrap block is present in the header. */
 export const FLAG_DEVICE = 4;
+/** Byte length of the random public vault identifier (`16`). */
 export const VAULT_ID_SIZE = 16;
+/** Byte length of the fixed portion of the RADSEC header (`64`). */
 export const FIXED_SIZE = 64;
+/** Byte length of AES-256-GCM nonces (`12`). */
 export const NONCE_SIZE = 12;
+/** Byte length of AES-256-GCM authentication tags (`16`). */
 export const TAG_SIZE = 16;
+/** Byte length of a wrapped 256-bit data key under a password key (`60`: 12B nonce + 32B ciphertext + 16B tag). */
 export const PW_WRAP_SIZE = NONCE_SIZE + 32 + TAG_SIZE; // 60
+/** Byte length of a recovery key wrap block (`92`: 32B recovery salt + 60B wrapped key). */
 export const REC_WRAP_SIZE = 32 + PW_WRAP_SIZE; // 92: its own 32-byte salt first
+/** Byte length of a device key wrap block (`60`: 12B nonce + 32B ciphertext + 16B tag). */
 export const DEV_WRAP_SIZE = PW_WRAP_SIZE; // 60
+/** Byte length of the HMAC-SHA-256 header MAC (`32`). */
 export const MAC_SIZE = 32;
+/** Block size in bytes used to pad plaintext database payloads (`4096`). */
 export const PAD_BLOCK = 4096;
+/** Maximum allowed unpadded plaintext database size in bytes (64 MiB). */
 export const MAX_PLAINTEXT_BYTES = 64 * 1024 * 1024;
+/** Maximum allowed total RADSEC vault file size in bytes (65 MiB). */
 export const MAX_FILE_BYTES = MAX_PLAINTEXT_BYTES + 1024 * 1024;
+/** File extension for RADSEC vault files (`".radsec"`). */
 export const EXTENSION = ".radsec";
+/** User-facing error message when a file does not start with the RADSEC magic bytes. */
 export const NOT_A_VAULT = "This isn't a RADSEC vault file.";
 
+/** Generator function returning `n` cryptographically random bytes. */
 export type Random = (n: number) => Buffer;
 
 /** Everything needed to write the vault except the database itself. `dataKey` must be zeroed when the session ends. */
@@ -48,6 +67,7 @@ export interface VaultKeys {
   dataKey: Buffer;
 }
 
+/** Validated and unpacked fields from the unencrypted header of a RADSEC v1 vault file. */
 export interface ParsedHeader {
   params: SecretsKdfParams;
   salt: Buffer;
@@ -68,8 +88,10 @@ const bad = (): never => {
   throw new SecretsError("BAD_VAULT", WRONG_OR_DAMAGED);
 };
 
+/** Computes the total header byte length for a given combination of `FLAG_RECOVERY` and `FLAG_DEVICE` flags. */
 export const headerLength = (flags: number): number => FIXED_SIZE + NONCE_SIZE + PW_WRAP_SIZE + ((flags & FLAG_RECOVERY) !== 0 ? REC_WRAP_SIZE : 0) + ((flags & FLAG_DEVICE) !== 0 ? DEV_WRAP_SIZE : 0) + MAC_SIZE;
 
+/** Serializes the 64-byte fixed prefix of a RADSEC header (magic, KDF ID, Argon2id parameters, flags, salt, and vault ID). */
 export function encodeFixed(keys: Pick<VaultKeys, "params" | "salt" | "flags" | "vaultId">): Buffer {
   const b = Buffer.alloc(FIXED_SIZE);
   MAGIC.copy(b, 0);
@@ -162,6 +184,7 @@ export function setPasswordWrap(keys: VaultKeys, kek: Buffer, random: Random = r
   keys.pwWrap = wrapKey(kek, keys.dataKey, pwAad(encodeFixed(keys)), random);
 }
 
+/** Wraps the vault data key under a key derived from `recoveryKey` with a fresh 32-byte salt and sets `FLAG_RECOVERY`. */
 export function setRecoveryWrap(keys: VaultKeys, recoveryKey: Buffer, random: Random = randomBytes): void {
   const recSalt = random(32);
   const kek = recoveryKek(recoveryKey, recSalt);
@@ -173,6 +196,7 @@ export function setRecoveryWrap(keys: VaultKeys, recoveryKey: Buffer, random: Ra
   }
 }
 
+/** Clears the recovery key wrap block and unsets `FLAG_RECOVERY` on `keys`. */
 export function removeRecoveryWrap(keys: VaultKeys): void {
   keys.recWrap = null;
   keys.flags &= ~FLAG_RECOVERY;
@@ -189,6 +213,7 @@ export function setDeviceWrap(keys: VaultKeys, deviceKey: Buffer, random: Random
   }
 }
 
+/** Clears the device key wrap block and unsets `FLAG_DEVICE` on `keys`. */
 export function removeDeviceWrap(keys: VaultKeys): void {
   keys.devWrap = null;
   keys.flags &= ~FLAG_DEVICE;
@@ -257,6 +282,7 @@ export function encodeVault(keys: VaultKeys, plain: Buffer, random: Random = ran
 /** The database nonce of a vault file (for the "never reused" check). */
 export const nonceOf = (file: Buffer): Buffer => Buffer.from(file.subarray(FIXED_SIZE, FIXED_SIZE + NONCE_SIZE));
 
+/** Credential material used to unwrap the vault's data key via password KEK, recovery key, or OS device key. */
 export type Access = { kind: "password"; kek: Buffer } | { kind: "recovery"; key: Buffer } | { kind: "device"; key: Buffer };
 
 /**

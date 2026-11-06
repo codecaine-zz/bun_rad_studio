@@ -15,10 +15,12 @@ import { FmError } from "./fmPaths";
 import { detectManagers, resolveTool, toolStatus } from "./fmToolDetect";
 import { HOMEBREW_INSTALL_COMMAND, TOOLS, TOOL_IDS, type ToolId } from "./fmTools";
 
+/** Supported POSIX package managers for the interactive terminal helper-tool setup script. */
 export type SetupManager = "brew" | "apt" | "dnf" | "pacman";
 const PACKAGE_NAME = /^[A-Za-z0-9][A-Za-z0-9@+._/-]*$/;
 const NAMES: Record<SetupManager, string> = { brew: "Homebrew", apt: "apt", dnf: "dnf", pacman: "pacman" };
 
+/** Available package manager option offered for one-click terminal setup on macOS or Linux. */
 export interface SetupChoice {
   id: SetupManager;
   name: string;
@@ -28,6 +30,7 @@ export interface SetupChoice {
   installsItself: boolean;
 }
 
+/** Summary of a helper tool and which setup package managers can install it. */
 export interface SetupTool {
   id: ToolId;
   name: string;
@@ -40,6 +43,7 @@ export interface SetupTool {
   packages: Partial<Record<SetupManager, boolean>>;
 }
 
+/** Available package managers and helper tool statuses returned to the setup dialog. */
 export interface SetupOptions {
   platform: string;
   choices: SetupChoice[];
@@ -47,6 +51,7 @@ export interface SetupOptions {
   tools: SetupTool[];
 }
 
+/** Generated bash setup script, terminal command, and list of included/skipped tools for one-click installation. */
 export interface SetupPlan {
   path: string;
   command: string;

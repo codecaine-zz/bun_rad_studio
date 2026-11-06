@@ -11,5 +11,7 @@ import { STUDIO_FOCUS_STYLE, STUDIO_FOCUS_SCRIPT } from "./studioFocus";
 import { STUDIO_POLISH_STYLE, STUDIO_POLISH_SCRIPT } from "./studioPolish";
 import { STUDIO_IDE_ENHANCEMENTS_STYLE, STUDIO_IDE_ENHANCEMENTS_SCRIPT } from "./studioIdeEnhancements";
 
+/** Combined CSS stylesheet concatenating all shared database studio UI modules (columns, dialogs, views, shortcuts, focus, polish, IDE enhancements). */
 export const STUDIO_SHARED_STYLE = [STUDIO_COLUMNS_STYLE, STUDIO_DIALOGS_STYLE, STUDIO_VIEWS_STYLE, STUDIO_SHORTCUTS_STYLE, STUDIO_FOCUS_STYLE, STUDIO_POLISH_STYLE, STUDIO_IDE_ENHANCEMENTS_STYLE].join("\n");
+/** Combined client-side browser script concatenating all shared database studio interactive modules. */
 export const STUDIO_SHARED_SCRIPT = [STUDIO_DIALOGS_SCRIPT, STUDIO_COLUMNS_SCRIPT, STUDIO_VIEWS_SCRIPT, STUDIO_SHORTCUTS_SCRIPT, STUDIO_FOCUS_SCRIPT, STUDIO_POLISH_SCRIPT, STUDIO_IDE_ENHANCEMENTS_SCRIPT].join("\n");

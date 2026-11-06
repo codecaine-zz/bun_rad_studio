@@ -35,18 +35,25 @@ import { ignoreSetFromText, isIgnored, type IgnoreSet } from "./fmDevIgnore";
 import { createPlan, type ExplicitItem } from "./fmPlan";
 import { FmError, describeFsError, isSameOrInside } from "./fmPaths";
 
+/** Maximum directory nesting depth traversed when comparing two folders. */
 export const COMPARE_MAX_DEPTH = 64;
+/** Maximum total filesystem entries scanned across both folders in a comparison job. */
 export const COMPARE_MAX_ENTRIES = 200_000;
+/** Maximum number of custom ignore patterns allowed in a folder comparison. */
 export const COMPARE_MAX_IGNORE_LINES = 200;
 const CHUNK = 1024 * 1024;
 /** FAT and some network disks store times in 2-second steps. */
 const TIME_TOLERANCE_MS = 2000;
 const compareNatural = new Intl.Collator("en", { numeric: true }).compare;
 
+/** Classification bucket for a compared relative path (`onlyLeft`, `onlyRight`, `different`, `identical`, or `cannot`). */
 export type CompareCategory = "onlyLeft" | "onlyRight" | "different" | "identical" | "cannot";
+/** Folder comparison depth mode (`quick` size/timestamp check or `verified` byte-for-byte check). */
 export type CompareMode = "quick" | "verified";
+/** Filesystem entry type observed on one side of a folder comparison. */
 export type EntryKind = "file" | "dir" | "link" | "other";
 
+/** Metadata for an entry on the left or right side of a folder comparison. */
 export interface SideInfo {
   kind: EntryKind;
   size: number;
@@ -55,6 +62,7 @@ export interface SideInfo {
   target?: string;
 }
 
+/** Comparison verdict and side-by-side metadata for a single relative path. */
 export interface CompareEntry {
   /** Path below the folder, with "/" separators. */
   rel: string;
@@ -69,6 +77,7 @@ export interface CompareEntry {
   note: string;
 }
 
+/** High-level summary counts and scan statistics for a completed folder comparison job. */
 export interface CompareSummary {
   left: string;
   right: string;
@@ -333,6 +342,7 @@ async function folderRoot(ctx: FmContext, input: unknown, which: string): Promis
   return real;
 }
 
+/** Validates and normalizes user-supplied ignore glob lines for folder comparison. */
 export function cleanIgnoreLines(input: unknown): string[] {
   if (input === undefined || input === null) return [];
   const lines = Array.isArray(input) ? input : typeof input === "string" ? input.split("\n") : null;
@@ -342,6 +352,7 @@ export function cleanIgnoreLines(input: unknown): string[] {
   return clean.map((l) => l.slice(0, 300));
 }
 
+/** Validates the left and right folders and starts an asynchronous folder comparison job. */
 export async function startCompare(ctx: FmContext, body: Record<string, any>): Promise<{ id: string }> {
   const left = await folderRoot(ctx, body.left, "left");
   const right = await folderRoot(ctx, body.right, "right");
@@ -361,6 +372,7 @@ function dataOf(ctx: FmContext, id: unknown): CompareData {
   return job.data as CompareData;
 }
 
+/** Filters and paginates entries from a completed folder comparison job by category and search query. */
 export function listEntries(ctx: FmContext, body: Record<string, any>): { total: number; entries: CompareEntry[] } {
   const data = dataOf(ctx, body.id);
   const category = CATEGORIES.includes(body.category) ? (body.category as CompareCategory) : null;
@@ -404,6 +416,7 @@ export async function planCopy(ctx: FmContext, body: Record<string, any>) {
   return await createPlan(ctx, { type: "items", title, items });
 }
 
+/** File Manager API handlers for starting folder comparisons, listing diff entries, and planning sync copies. */
 export const compareOperations: Record<string, FmHandler> = {
   async "compare/start"(ctx, b) {
     return await startCompare(ctx, b);

@@ -39,6 +39,9 @@ import {
   type ThemeSurfaceConfig,
 } from "./types";
 
+/**
+ * Configuration options for mounting an interactive Theme Studio instance into a DOM container.
+ */
 export interface ThemeStudioMountOptions {
   initialSurface?: Partial<ThemeSurfaceConfig>;
   initialOverrides?: Record<string, string>;
@@ -49,6 +52,9 @@ export interface ThemeStudioMountOptions {
   onChange?: (system: CalculatedThemeSystem) => void;
 }
 
+/**
+ * Programmatic controller returned by `mountThemeStudio` for inspecting and mutating theme state.
+ */
 export interface ThemeStudioController {
   getState: () => {
     name: string;

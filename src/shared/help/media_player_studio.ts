@@ -1,3 +1,6 @@
+/**
+ * Interactive UI help tooltips and audit skip rules for Media Player Studio Pro (`media_player_studio`).
+ */
 import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Help tips for `media_player_studio` (Media Player Studio Pro). */
@@ -70,4 +73,5 @@ export const mediaPlayerStudioTips: HelpTips = {
   "#select-lyrics-src": "Switch between synced .lrc karaoke lyrics, embedded ID3 or Vorbis lyrics, and subtitle transcripts.",
 };
 
+/** Controls in Media Player Studio Pro that are intentionally excluded from help tooltip coverage checks. */
 export const mediaPlayerStudioSkip: SkipRule[] = [];

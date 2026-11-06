@@ -24,6 +24,7 @@ import { extractZip } from "./fmZip";
 import { createContext } from "./fmCore";
 import type { Platform } from "./fmPaths";
 
+/** Task specification passed to the built-in conversion worker for zero-dependency file conversions. */
 export interface BuiltinJob {
   kind: string;
   inputs: string[];
@@ -360,6 +361,7 @@ function escapeRtfText(s: string): string {
   return out;
 }
 
+/** Formats extracted rich document chapters and metadata into standalone HTML, Markdown, or plain text. */
 export function formatEpubDocumentOutput(
   rich: RichDocumentPreview,
   fallbackTitle: string,

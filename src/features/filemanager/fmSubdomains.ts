@@ -16,6 +16,7 @@ import { DEFAULT_OPTIONS, ENGINE_LIMITS, runDiscovery, type DiscoveryOptions, ty
 import { PASSIVE_SOURCES } from "../subfinder/subfinderSources";
 import type { SubdomainResult } from "../subfinder/subfinderTypes";
 
+/** Concurrency, retention, timeout, and row-count limits enforced on Subdomains discovery runs. */
 export const SUB_LIMITS = {
   maxRuns: 2,
   maxFinished: 6,
@@ -29,6 +30,7 @@ export const SUB_LIMITS = {
   maxResults: ENGINE_LIMITS.maxResultsCeiling,
 } as const;
 
+/** Installation status, executable path, version, and install hint for the optional external `subfinder` CLI. */
 export interface ProgramInfo { installed: boolean; path: string | null; version: string | null; hint: string }
 
 const versionCache = new Map<string, { text: string; code: number | null }>();
@@ -65,6 +67,7 @@ export async function detectProgram(ctx: FmContext): Promise<ProgramInfo> {
 // Checking a request
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Validated request parameters for starting a new subdomain discovery run. */
 export interface StartRequest {
   domain: { ascii: string; unicode: string };
   options: DiscoveryOptions;
@@ -86,6 +89,7 @@ function boolOption(raw: unknown, name: string): boolean {
   return raw;
 }
 
+/** Returns `true` when any active network probing step (DNS resolution, HTTP probing, port scanning, or wildcard check) is enabled. */
 export const isActive = (o: Pick<DiscoveryOptions, "resolve" | "probeHttp" | "ports" | "wildcard">) => o.resolve || o.probeHttp || o.ports.length > 0 || o.wildcard;
 
 /** Turns a request body into checked settings, or throws a plain-words FmError. `program` is where subfinder is, if it is installed. */
@@ -138,8 +142,10 @@ export function parseStart(b: Record<string, any>, program: ProgramInfo): StartR
 // Runs
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Timestamped progress or diagnostic log entry recorded during a subdomain discovery run. */
 export interface LogLine { at: number; level: "info" | "ok" | "warn" | "error"; text: string }
 
+/** Live in-memory state of an active or recently finished subdomain discovery run. */
 export interface Run {
   id: string;
   client: string;
@@ -173,6 +179,7 @@ interface SubState {
 
 const states = new WeakMap<FmContext, SubState>();
 
+/** Returns the per-context `SubState` registry holding active and recent subdomain discovery runs. */
 export function subState(ctx: FmContext): SubState {
   let state = states.get(ctx);
   if (state) return state;
@@ -199,12 +206,14 @@ const pushLog = (run: Run, level: LogLine["level"], text: string) => {
   if (run.log.length > SUB_LIMITS.maxLog) run.log.splice(0, run.log.length - SUB_LIMITS.maxLog);
 };
 
+/** Looks up a subdomain discovery `Run` by ID in `ctx`, throwing a `NO_RUN` `FmError` if not found. */
 export function findRun(ctx: FmContext, id: unknown): Run {
   const run = typeof id === "string" ? subState(ctx).runs.get(id) : undefined;
   if (!run) throw new FmError("NO_RUN", "That run isn't there any more. Start a new one.");
   return run;
 }
 
+/** Tallies total hosts, live DNS hosts, HTTP-responding hosts, hosts with open ports, and wildcard hosts across `rows`. */
 export function runCounts(rows: Iterable<SubdomainResult>) {
   let hosts = 0, live = 0, http = 0, withPorts = 0, wildcard = 0;
   for (const r of rows) {
@@ -217,6 +226,7 @@ export function runCounts(rows: Iterable<SubdomainResult>) {
   return { hosts, live, http, withPorts, wildcard };
 }
 
+/** Extracts the `RunMeta` summary from a `Run` for formatting export files. */
 export function runMeta(run: Run): RunMeta {
   return {
     domain: run.domain.ascii, unicode: run.domain.unicode, startedAt: run.startedAt, endedAt: run.endedAt, state: run.state,
@@ -340,6 +350,7 @@ export function cancelRun(run: Run): boolean {
   return true;
 }
 
+/** Cancels all running subdomain discovery runs started by the specified `client` tab ID and returns how many were stopped. */
 export function cancelClient(ctx: FmContext, client: string): number {
   let n = 0;
   for (const run of subState(ctx).runs.values()) if (run.client === client && cancelRun(run)) n++;

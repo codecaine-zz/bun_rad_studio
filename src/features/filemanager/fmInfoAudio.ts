@@ -32,6 +32,7 @@ const BITRATES: Record<string, number[]> = {
 };
 const RATES: Record<number, number[]> = { 1: [44100, 48000, 32000], 2: [22050, 24000, 16000], 3: [11025, 12000, 8000] };
 
+/** Parses MP3 audio headers, Xing/VBRI VBR headers, and ID3v1/ID3v2 tags from a binary source. */
 export async function parseMp3(src: Source): Promise<MediaInfo> {
   const m = emptyMedia("MP3 audio");
   const head = await src.read(0, 10);
@@ -120,6 +121,7 @@ export async function parseMp3(src: Source): Promise<MediaInfo> {
   return m;
 }
 
+/** Parses RIFF WAV audio format chunks (`fmt `, `data`) and `LIST INFO` metadata tags from a binary source. */
 export async function parseWav(src: Source): Promise<MediaInfo> {
   const m = emptyMedia("WAV audio (RIFF)");
   let pos = 12;
@@ -184,6 +186,7 @@ function vorbisComments(d: Uint8Array, at: number, m: MediaInfo): void {
   }
 }
 
+/** Parses FLAC streaminfo metadata blocks, Vorbis comments, and cover art flags from a binary source. */
 export async function parseFlac(src: Source): Promise<MediaInfo> {
   const m = emptyMedia("FLAC audio");
   let pos = 4;
@@ -208,6 +211,7 @@ export async function parseFlac(src: Source): Promise<MediaInfo> {
   return m;
 }
 
+/** Parses Ogg container headers, Vorbis/Opus stream parameters, Vorbis comments, and duration from a binary source. */
 export async function parseOgg(src: Source): Promise<MediaInfo> {
   const m = emptyMedia("Ogg audio");
   const d = await src.read(0, 128 * 1024);

@@ -1,6 +1,7 @@
 /** The color converter of the Crypto tab: any CSS color in, every common way to write it out, with `Bun.color`. */
 import { FmError } from "./fmPaths";
 
+/** Maximum length in characters of a CSS color input string. */
 export const MAX_COLOR_CHARS = 200;
 
 interface ColorFormat {
@@ -31,6 +32,7 @@ const FORMATS: ColorFormat[] = [
   { id: "ansi-16m", label: "Terminal, true color", hint: "The exact color as a true-color terminal escape code (ESC is shown as \\x1b).", format: "ansi-16m", escapes: true },
 ];
 
+/** A single formatted representation (HEX, RGB, HSL, LAB, ANSI escape, number) of a parsed color. */
 export interface ColorRow {
   id: string;
   label: string;
@@ -38,6 +40,7 @@ export interface ColorRow {
   hint: string;
 }
 
+/** Normalized color swatch and table of converted color format strings produced by `convertColor`. */
 export interface ColorResult {
   /** What was read, tidied (spaces removed, lower case). */
   input: string;

@@ -6,9 +6,12 @@ import type { FmContext } from "./fmCore";
 import { FmError, describeFsError } from "./fmPaths";
 import { SD_TIMEOUT_MS, type SdFileResult, type SdScanOutcome, type SdSpec } from "./fmSdShared";
 
+/** Maximum number of concurrent Search & Replace worker threads per File Manager context (`2`). */
 export const MAX_SD_WORKERS = 2;
+/** Maximum number of recent Search & Replace preview results retained in memory (`6`). */
 export const MAX_PREVIEWS = 6;
 
+/** Stored result of a Search & Replace count or diff preview scan, used to verify and apply changes. */
 export interface SdPreview {
   id: string;
   mode: "count" | "preview";
@@ -23,6 +26,7 @@ export interface SdPreview {
   applied: Map<string, string>;
 }
 
+/** Per-file undo snapshot holding the original bytes, expected post-replace hash, permissions, and optional backup path. */
 export interface SdUndoFile {
   path: string;
   original: Buffer;
@@ -33,6 +37,7 @@ export interface SdUndoFile {
   replacements: number;
 }
 
+/** Recorded Search & Replace apply batch that can be reverted by Undo if the modified files have not changed since. */
 export interface SdUndoRun {
   id: string;
   at: number;
@@ -41,6 +46,7 @@ export interface SdUndoRun {
   files: SdUndoFile[];
 }
 
+/** Per-context state for the Search & Replace tool (cached previews, undo stack, active workers, and write lock). */
 export interface SdState {
   previews: Map<string, SdPreview>;
   undo: SdUndoRun[];
@@ -53,6 +59,7 @@ export interface SdState {
 
 const states = new WeakMap<FmContext, SdState>();
 
+/** Returns (or initializes) the `SdState` for `ctx`, registering worker termination and cache cleanup on context disposal. */
 export function sdState(ctx: FmContext): SdState {
   let state = states.get(ctx);
   if (!state) {

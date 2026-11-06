@@ -5,6 +5,9 @@
  */
 import { USER_AGENT, readCappedText, TooLargeError } from "./subfinderNet.ts";
 
+/**
+ * Definition of a passive OSINT subdomain source, including its endpoint URL builder, response size limit, and response parser.
+ */
 export interface SourceDef {
   id: string;
   label: string;
@@ -15,7 +18,13 @@ export interface SourceDef {
   parse(text: string): string[];
 }
 
+/**
+ * Structured error thrown when a passive OSINT source times out, rate-limits, returns malformed data, or fails on the network.
+ */
 export class SourceError extends Error {
+  /**
+   * Creates a `SourceError` with a machine-readable failure `code` and a user-facing `message`.
+   */
   constructor(readonly code: "timeout" | "http" | "rate-limit" | "too-large" | "bad-data" | "network" | "cancelled" | "program", message: string) {
     super(message);
     this.name = "SourceError";
@@ -33,6 +42,9 @@ function parseJson(text: string, what: string): unknown {
   }
 }
 
+/**
+ * Extracts raw candidate hostnames from a `crt.sh` JSON response body.
+ */
 export function parseCrtSh(text: string): string[] {
   const data = parseJson(text, "crt.sh");
   if (!Array.isArray(data)) throw new SourceError("bad-data", "crt.sh sent an answer in an unexpected shape, so it was ignored.");
@@ -47,6 +59,9 @@ export function parseCrtSh(text: string): string[] {
   return names;
 }
 
+/**
+ * Extracts raw candidate hostnames from a HackerTarget `hostsearch` CSV response body.
+ */
 export function parseHackerTarget(text: string): string[] {
   const first = text.trimStart().slice(0, 200).toLowerCase();
   if (first.startsWith("error") || first.includes("api count exceeded")) {
@@ -63,6 +78,9 @@ export function parseHackerTarget(text: string): string[] {
   return names;
 }
 
+/**
+ * Extracts raw candidate hostnames from an AlienVault OTX `passive_dns` JSON response body.
+ */
 export function parseOtx(text: string): string[] {
   const data = parseJson(text, "AlienVault OTX");
   if (!data || typeof data !== "object" || Array.isArray(data)) throw new SourceError("bad-data", "AlienVault OTX sent an answer in an unexpected shape, so it was ignored.");
@@ -78,6 +96,9 @@ export function parseOtx(text: string): string[] {
   return names;
 }
 
+/**
+ * Extracts raw candidate hostnames from an Anubis JSON string-array response body.
+ */
 export function parseAnubis(text: string): string[] {
   const data = parseJson(text, "Anubis");
   if (!Array.isArray(data)) throw new SourceError("bad-data", "Anubis sent an answer in an unexpected shape, so it was ignored.");
@@ -91,6 +112,9 @@ export function parseAnubis(text: string): string[] {
 
 const MB = 1024 * 1024;
 
+/**
+ * Built-in catalog of passive OSINT subdomain sources (`crtsh`, `hackertarget`, `alienvault`, `anubis`).
+ */
 export const PASSIVE_SOURCES: readonly SourceDef[] = [
   { id: "crtsh", label: "crt.sh", note: "Public certificate logs: every name a website ever asked a certificate for.", url: (d) => `https://crt.sh/?q=%25.${d}&output=json`, maxBytes: 16 * MB, parse: parseCrtSh },
   { id: "hackertarget", label: "HackerTarget", note: "A free host-search service (limited number of questions per day).", url: (d) => `https://api.hackertarget.com/hostsearch/?q=${d}`, maxBytes: 4 * MB, parse: parseHackerTarget },
@@ -98,8 +122,14 @@ export const PASSIVE_SOURCES: readonly SourceDef[] = [
   { id: "anubis", label: "Anubis", note: "A subdomain database collected from several public sources.", url: (d) => `https://jonlu.ca/anubis/subdomains/${d}`, maxBytes: 4 * MB, parse: parseAnubis },
 ];
 
+/**
+ * Ordered list of passive source IDs defined in `PASSIVE_SOURCES`.
+ */
 export const PASSIVE_SOURCE_IDS: readonly string[] = PASSIVE_SOURCES.map((s) => s.id);
 
+/**
+ * Minimal `fetch` function signature used by `askSource` (no redirects, no credentials, `GET` only).
+ */
 export type FetchLike = (url: string, init: { signal: AbortSignal; headers: Record<string, string>; redirect: "manual"; credentials: "omit"; method: "GET" }) => Promise<Response>;
 
 /**

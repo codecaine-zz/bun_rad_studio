@@ -10,8 +10,11 @@ import { clampPasswordLength, describeJwtTimes, fromBase64, fromHex, generatePas
 import { digestBytes, fastSpecs, secureSpecs } from "./fmHashes";
 import { FmError } from "./fmPaths";
 
+/** Maximum UTF-8 byte length accepted for text inputs in Crypto tool operations. */
 export const MAX_TEXT_BYTES = 200 * 1024;
+/** Maximum number of random bytes that can be generated in a single request. */
 export const MAX_RANDOM_BYTES = 1024;
+/** Maximum character length allowed for passphrases, HMAC keys, and secrets. */
 export const MAX_SECRET_CHARS = 10_000;
 
 /** Reads a text field from a request: must be a string within the size limit. */
@@ -43,8 +46,11 @@ export function secretField(value: unknown, what: string, { required = false }: 
 const SECURE = secureSpecs();
 const HMACS = SECURE.filter((s) => s.hmac && s.algo).map((s) => [s.hmac!, s.algo!] as const);
 
+/** Returns the display labels of all supported cryptographic hash algorithms. */
 export const hashAlgorithms = () => SECURE.map((s) => s.label);
+/** Returns the display labels of all supported non-cryptographic fast hash/checksum algorithms. */
 export const fastAlgorithms = () => fastSpecs().map((s) => s.label);
+/** Returns the display labels of all supported HMAC algorithms. */
 export const hmacAlgorithms = () => HMACS.map(([label]) => label);
 
 /** Every secure digest of `text`, plus an HMAC of each classic kind when a key is given. */
@@ -78,6 +84,7 @@ export function encryptText(text: string, passphrase: string): string {
 
 const CIPHER_FORMAT = /^([0-9a-fA-F]{32}):([A-Za-z0-9+/]+={0,2})$/;
 
+/** Decrypts AES-CBC ciphertext produced by `encryptText` using `passphrase` and flags suspicious replacement characters. */
 export function decryptText(cipher: string, passphrase: string): { text: string; suspicious: boolean } {
   const compact = cipher.replace(/\s+/g, "");
   const m = CIPHER_FORMAT.exec(compact);
@@ -97,6 +104,7 @@ export function decryptText(cipher: string, passphrase: string): { text: string;
 // Strength estimate
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Passphrase entropy estimate in bits, strength level (0–4), character pool size, and improvement advice. */
 export interface Entropy {
   bits: number;
   /** 0 = nothing typed, 1 = very weak ... 4 = very strong */
@@ -133,6 +141,7 @@ export function estimateEntropy(text: string): Entropy {
 // Random values and passwords
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Generated UUID, random token, passphrase, or password value with optional entropy metadata. */
 export interface Generated {
   kind: string;
   value: string;
@@ -140,7 +149,9 @@ export interface Generated {
   strength?: string;
 }
 
+/** Supported output formatting styles for generated UUIDv7 identifiers. */
 export const UUID7_FORMATS = ["standard", "plain", "upper", "base64url"] as const;
+/** Maximum number of UUIDv7 values that can be generated in a single batch. */
 export const MAX_UUID_COUNT = 100;
 const MAX_UUID7_MS = 2 ** 48 - 1;
 
@@ -149,6 +160,7 @@ export function uuidV7(ms?: number): string {
   return ms === undefined ? Bun.randomUUIDv7() : Bun.randomUUIDv7("hex", ms);
 }
 
+/** Formats a canonical UUID string as standard dashed, plain hex, uppercase, or Base64URL. */
 export function formatUuid(uuid: string, format: string): string {
   if (format === "plain") return uuid.replaceAll("-", "");
   if (format === "upper") return uuid.toUpperCase();
@@ -156,6 +168,7 @@ export function formatUuid(uuid: string, format: string): string {
   return uuid;
 }
 
+/** Parsed version, variant, and embedded timestamp metadata extracted from a UUID. */
 export interface UuidInfo {
   canonical: string;
   version: number | null;
@@ -200,6 +213,7 @@ export function inspectUuid(input: unknown): UuidInfo {
   return info;
 }
 
+/** Generates a UUIDv4, batch of UUIDv7s, random byte string, diceware passphrase, or random password. */
 export function generateValue(body: Record<string, any>): Generated {
   const kind = body.kind;
   switch (kind) {
@@ -286,6 +300,7 @@ const ENCODERS: Record<string, (s: string) => string> = {
   "text-width": describeTextWidth,
 };
 
+/** Encodes or decodes text using the selected Base64, Base64URL, hex, or URL encoder/decoder. */
 export function encodeText(mode: unknown, text: string): { output: string; note?: string } {
   const fn = typeof mode === "string" && Object.hasOwn(ENCODERS, mode) ? ENCODERS[mode]! : null;
   if (!fn) throw new FmError("BAD_REQUEST", "Choose an encoder.");
@@ -303,6 +318,7 @@ export function encodeText(mode: unknown, text: string): { output: string; note?
 // JWT
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Decoded header, payload, timestamp notes, expiration state, and optional HMAC verification result for a JWT. */
 export interface JwtReport {
   alg: string;
   headerText: string;

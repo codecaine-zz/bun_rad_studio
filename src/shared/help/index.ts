@@ -40,6 +40,7 @@ import { tokeiStudioTips, tokeiStudioSkip } from "./tokei_studio";
 import { watchexecStudioTips, watchexecStudioSkip } from "./watchexec_studio";
 import { worldTimeZonesStudioTips, worldTimeZonesStudioSkip } from "./world_time_zones_studio";
 
+/** Registry mapping each Studio application ID to its interactive help tooltip dictionary. */
 export const HELP_TIPS: Record<string, HelpTips> = {
   designer: designerTips,
   env_studio: envStudioTips,

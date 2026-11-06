@@ -6,8 +6,10 @@
  */
 import { FmError } from "./fmPaths";
 
+/** UI control and validation type for a conversion option parameter. */
 export type OptionKind = "choice" | "number" | "time" | "pages" | "text" | "name" | "toggle";
 
+/** A selectable option value and label for a `"choice"` conversion parameter. */
 export interface OptionChoice {
   value: string;
   label: string;
@@ -15,6 +17,7 @@ export interface OptionChoice {
   needs?: string;
 }
 
+/** Schema definition and validation constraints for a user-configurable conversion option. */
 export interface OptionDef {
   id: string;
   label: string;
@@ -37,7 +40,9 @@ export interface OptionDef {
   forExts?: string[];
 }
 
+/** Validated primitive value (`string`, `number`, or `boolean`) of a conversion option. */
 export type OptionValue = string | number | boolean;
+/** Map of option IDs to their validated primitive values. */
 export type OptionValues = Record<string, OptionValue>;
 
 const TIME = /^(?:\d{1,3}:)?\d{1,2}:\d{1,2}(?:\.\d{1,3})?$|^\d{1,6}(?:\.\d{1,3})?$/;
@@ -143,7 +148,9 @@ export function validateOptions(defs: OptionDef[] | undefined, raw: unknown, dyn
 
 /** Reads a validated option as the type the caller expects. */
 export const optNum = (o: OptionValues, id: string): number => Number(o[id]);
+/** Reads an option value from `OptionValues` as a string (defaulting to `""`). */
 export const optStr = (o: OptionValues, id: string): string => String(o[id] ?? "");
+/** Reads an option value from `OptionValues` as a boolean (`true` only when strictly `true`). */
 export const optBool = (o: OptionValues, id: string): boolean => o[id] === true;
 
 /** A name pattern such as "{name} (small)": the tokens {name}, {n} and {date}; no folders. Returns the checked pattern. */

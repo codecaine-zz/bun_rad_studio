@@ -1,3 +1,6 @@
+/**
+ * Interactive UI help tooltips and audit skip rules for Disk Usage Studio (`gdu_studio`), covering directory size treemaps, largest file inspection, and disk cleanup.
+ */
 import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Help tips for `gdu_studio`. Keys: see src/shared/helpTips.ts. Check with: bun run scripts/help_controls.ts <app file> --missing */

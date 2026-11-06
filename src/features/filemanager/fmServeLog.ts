@@ -1,21 +1,26 @@
 /** A short log kept in memory: the newest lines of a server's output, capped by line count and by total size. */
 
+/** Default maximum number of log lines retained in memory by a `RingLog`. */
 export const LOG_MAX_LINES = 500;
+/** Default maximum total character count retained in memory by a `RingLog`. */
 export const LOG_MAX_CHARS = 256 * 1024;
 const MAX_LINE = 2000;
 
+/** A single numbered, timestamped line in a server's ring log. */
 export interface LogLine {
   n: number;
   t: number;
   text: string;
 }
 
+/** Bounded in-memory ring buffer of log lines capped by both line count and total character length. */
 export class RingLog {
   private lines: LogLine[] = [];
   private chars = 0;
   private counter = 0;
   private partial = "";
 
+  /** Creates a new `RingLog` bounded by `maxLines` and `maxChars`. */
   constructor(private maxLines = LOG_MAX_LINES, private maxChars = LOG_MAX_CHARS) {}
 
   /** Adds one line (never split). */
@@ -52,15 +57,18 @@ export class RingLog {
     return { lines: this.lines.filter((l) => l.n > from), cursor: this.counter, dropped: from > 0 && from + 1 < first };
   }
 
+  /** Removes all retained lines from the log buffer while keeping the line counter monotonic. */
   clear(): void {
     this.lines = [];
     this.chars = 0;
   }
 
+  /** Number of lines currently held in the ring buffer. */
   get size(): number {
     return this.lines.length;
   }
 
+  /** Total character count currently held across all lines in the ring buffer. */
   get totalChars(): number {
     return this.chars;
   }

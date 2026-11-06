@@ -4,6 +4,7 @@
  */
 import { ascii, be16, be32, clip, Rows } from "./fmInfoCommon";
 
+/** Metadata extracted from an embedded ICC color profile header and description tag. */
 export interface IccInfo {
   description: string;
   colorSpace: string;
@@ -58,6 +59,7 @@ export function parseIcc(p: Uint8Array): IccInfo | null {
   };
 }
 
+/** Formats parsed ICC color profile metadata into human-readable display rows. */
 export function iccRows(icc: IccInfo | null, rows = new Rows()): Rows {
   if (!icc) return rows;
   rows.add("Color profile", icc.description || "Embedded profile", "An ICC profile tells programs exactly which colors the numbers in the picture mean, so it looks the same everywhere.");
@@ -66,6 +68,7 @@ export function iccRows(icc: IccInfo | null, rows = new Rows()): Rows {
   return rows;
 }
 
+/** Well-known Dublin Core, XMP, and EXIF metadata fields extracted from an XMP packet. */
 export interface XmpInfo {
   title: string;
   creator: string;
@@ -176,6 +179,7 @@ export function xmlAttr(xml: string, tag: string, attr: string): string {
   return m ? clip(decodeEntities(m[1]!), 300).trim() : "";
 }
 
+/** Formats parsed XMP packet metadata into human-readable display rows. */
 export function xmpRows(x: XmpInfo | null, rows = new Rows()): Rows {
   if (!x) return rows;
   rows.add("Title", x.title).add("Author / creator", x.creator).add("Copyright notice", x.rights).add("Description", x.description);

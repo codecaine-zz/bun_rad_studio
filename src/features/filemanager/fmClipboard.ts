@@ -13,6 +13,7 @@ import { tmpdir } from "os";
 import * as nodePath from "path";
 import { readClipboardTextSync, writeClipboardSync } from "../../localGuard";
 
+/** Platform abstraction for reading and writing system clipboard text and images. */
 export interface ClipboardHooks {
   /** Puts text on the clipboard; false when no clipboard tool worked. */
   writeText(text: string): boolean;
@@ -67,6 +68,7 @@ async function linuxImage(file: string, mime: string): Promise<boolean> {
   return false;
 }
 
+/** Creates the default OS-backed clipboard implementation using native platform tools (`pbcopy`/`sips`, PowerShell, or `wl-copy`/`xclip`). */
 export function defaultClipboard(): ClipboardHooks {
   return {
     writeText: (text) => writeClipboardSync(text),

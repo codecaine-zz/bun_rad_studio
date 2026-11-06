@@ -3,6 +3,7 @@ import { ascii, be16, clip, type Source } from "./fmInfoCommon";
 import { parseExifBlock, type ExifData } from "./fmInfoExif";
 import { parseIcc, parseXmp, type IccInfo, type XmpInfo } from "./fmInfoMeta";
 
+/** Descriptor for a single marker segment encountered while scanning a JPEG stream. */
 export interface JpegSegment {
   marker: number;
   name: string;
@@ -11,6 +12,7 @@ export interface JpegSegment {
   detail?: string;
 }
 
+/** Parsed dimensions, encoding parameters, quality estimate, and embedded metadata blocks from a JPEG file. */
 export interface JpegInfo {
   width: number | null;
   height: number | null;
@@ -90,6 +92,7 @@ function subsamplingOf(comps: Array<{ h: number; v: number }>): string | null {
   return `${y.h}x${y.v} luma blocks`;
 }
 
+/** Scans JPEG marker segments prior to image scan data to extract dimensions, subsampling, quantization quality, and EXIF/ICC/XMP/IPTC metadata. */
 export async function parseJpeg(src: Source): Promise<JpegInfo> {
   const info: JpegInfo = {
     width: null, height: null, precision: null, components: null, sof: "", progressive: false, subsampling: null, quality: null, segments: [], jfif: null, adobe: null,

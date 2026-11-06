@@ -12,10 +12,13 @@ import type { KdfParams, Level } from "./fmVaultFormat";
 import { moveToTrash } from "./fmTrash";
 import { FmError } from "./fmPaths";
 
+/** Concurrency and retention limits for background vault encrypt/decrypt tasks. */
 export const VAULT_LIMITS = { maxItems: 200, maxRunningTasks: 2, maxKeptTasks: 20 } as const;
 
+/** Processing lifecycle state of a single item in a vault encrypt or decrypt task. */
 export type ItemState = "waiting" | "working" | "done" | "error" | "cancelled";
 
+/** Per-item progress and outcome record inside a running or completed `VaultTask`. */
 export interface VaultItem {
   path: string;
   name: string;
@@ -33,6 +36,7 @@ export interface VaultItem {
   trashMessage?: string;
 }
 
+/** Background vault encryption or decryption job tracked per `FmContext`. */
 export interface VaultTask {
   id: string;
   kind: "encrypt" | "decrypt";
@@ -50,6 +54,7 @@ export interface VaultTask {
   finished: Promise<void>;
 }
 
+/** Test-only overrides for vault KDF parameters, chunk size, and post-write fault injection. */
 export interface VaultInternal {
   kdf?: KdfParams;
   chunkLog2?: number;
@@ -64,6 +69,7 @@ interface VaultState {
 
 const states = new WeakMap<FmContext, VaultState>();
 
+/** Returns (or initializes) the per-context vault task registry, wiring abort cleanup on context disposal. */
 export function vaultState(ctx: FmContext): VaultState {
   let state = states.get(ctx);
   if (state) return state;
@@ -80,12 +86,14 @@ export function setVaultInternal(ctx: FmContext, internal: VaultInternal): void 
   vaultState(ctx).internal = internal;
 }
 
+/** Looks up a vault task by ID in `ctx`, throwing `NOT_FOUND` if the task does not exist. */
 export function findTask(ctx: FmContext, id: unknown): VaultTask {
   const task = typeof id === "string" ? vaultState(ctx).tasks.get(id) : undefined;
   if (!task) throw new FmError("NOT_FOUND", "That task no longer exists.");
   return task;
 }
 
+/** Builds a serializable status snapshot of `task`, or a compact `{ unchanged: true }` delta if `since` matches `task.version`. */
 export function snapshot(task: VaultTask, since?: number) {
   const base = { id: task.id, kind: task.kind, state: task.state, phase: task.phase, version: task.version };
   if (since !== undefined && since === task.version) return { ...base, unchanged: true as const };
@@ -167,6 +175,7 @@ function fail(item: VaultItem, err: unknown, what: string): void {
   }
 }
 
+/** Input parameters for starting a background batch encryption task. */
 export interface EncryptParams {
   paths: string[];
   password: string;
@@ -178,6 +187,7 @@ export interface EncryptParams {
   afterwards: "keep" | "trash";
 }
 
+/** Starts a background task that scans and encrypts each item in `params.paths` into a `.radenc` file. */
 export function startEncrypt(ctx: FmContext, params: EncryptParams): VaultTask {
   const { internal } = vaultState(ctx);
   const password = params.password;
@@ -238,6 +248,7 @@ export function startEncrypt(ctx: FmContext, params: EncryptParams): VaultTask {
   });
 }
 
+/** Input parameters for starting a background batch decryption task. */
 export interface DecryptParams {
   paths: string[];
   password: string;
@@ -245,6 +256,7 @@ export interface DecryptParams {
   afterwards: "keep" | "trash";
 }
 
+/** Starts a background task that decrypts each `.radenc` file in `params.paths` to its output folder. */
 export function startDecrypt(ctx: FmContext, params: DecryptParams): VaultTask {
   const password = params.password;
   return register(ctx, "decrypt", params.paths, async (task) => {

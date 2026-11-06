@@ -1,3 +1,7 @@
+/**
+ * Unit test suite for RAD data structure, collection, bitwise, math, statistics, and graph modules
+ * (`arrutils`, `objutils`, `structutils`, `bitutils`, `mathutils`, `statutils`, and `graphutils`).
+ */
 import { describe, expect, test } from "bun:test";
 import {
   arrutils,

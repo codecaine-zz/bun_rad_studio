@@ -7,10 +7,15 @@ import { randomInt } from "node:crypto";
 import { FmError, splitName } from "./fmPaths";
 import { VAULT_WORDS } from "./fmVaultWords";
 
+/** Minimum number of characters required for a `.radenc` vault password (`10`). */
 export const MIN_PASSWORD_LENGTH = 10;
+/** Maximum number of characters allowed for a `.radenc` vault password (`1024`). */
 export const MAX_PASSWORD_LENGTH = 1024;
+/** Minimum number of random words when generating a vault passphrase (`4`). */
 export const MIN_PASSPHRASE_WORDS = 4;
+/** Maximum number of random words when generating a vault passphrase (`12`). */
 export const MAX_PASSPHRASE_WORDS = 12;
+/** Default number of random words generated for a new vault passphrase (`6`). */
 export const DEFAULT_PASSPHRASE_WORDS = 6;
 
 const COMMON = new Set([

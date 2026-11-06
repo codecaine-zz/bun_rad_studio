@@ -7,12 +7,14 @@
  */
 import { isIP } from "node:net";
 
+/** Result of probing a single TCP port during a port scan. */
 export interface ScanResult {
   port: number;
   status: "OPEN" | "CLOSED" | "TIMEOUT";
   latencyMs: number;
 }
 
+/** Mapping of common TCP port numbers to their human-readable service names. */
 export const SERVICE_NAMES: Record<number, string> = {
   20: "FTP Data", 21: "FTP", 22: "SSH", 23: "Telnet", 25: "SMTP", 53: "DNS", 67: "DHCP", 80: "HTTP", 110: "POP3",
   123: "NTP", 139: "NetBIOS", 143: "IMAP", 161: "SNMP", 389: "LDAP", 443: "HTTPS", 445: "SMB", 465: "SMTPS",
@@ -23,10 +25,12 @@ export const SERVICE_NAMES: Record<number, string> = {
   9090: "Prometheus", 9200: "Elasticsearch", 11211: "Memcached", 27017: "MongoDB",
 };
 
+/** Returns the known service name for `port`, or `"Custom"` if unknown. */
 export function serviceName(port: number): string {
   return SERVICE_NAMES[port] || "Custom";
 }
 
+/** Maximum number of custom ports allowed in a single port scan request. */
 export const MAX_CUSTOM_PORTS = 1024;
 
 /** Parse "22, 80, 443, 8000-8010" into a sorted, de-duplicated port list. */
@@ -50,6 +54,7 @@ export function parsePortSpec(spec: string, max = MAX_CUSTOM_PORTS): { ports: nu
   return { ports: all.slice(0, max), truncated: all.length > max };
 }
 
+/** Counts how many ports in a scan result array are open, closed, or timed out. */
 export function summarizeScan(results: ScanResult[]): { open: number; closed: number; timeout: number } {
   return {
     open: results.filter((r) => r.status === "OPEN").length,
@@ -59,6 +64,7 @@ export function summarizeScan(results: ScanResult[]): { open: number; closed: nu
 }
 
 const csvCell = (v: any) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+/** Formats port scan results for `host` as a CSV string. */
 export function scanResultsToCsv(host: string, results: ScanResult[]): string {
   return [
     "host,port,service,status,latency_ms",
@@ -66,6 +72,7 @@ export function scanResultsToCsv(host: string, results: ScanResult[]): string {
   ].join("\n");
 }
 
+/** Escapes HTML special characters (`&`, `<`, `>`, `"`, `'`) in a value for safe HTML rendering. */
 export function escapeHtml(s: any): string {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 }
@@ -77,6 +84,7 @@ const STATUS_TEXT: Record<number, string> = {
   418: "I'm a teapot", 429: "Too Many Requests", 500: "Internal Server Error", 501: "Not Implemented", 502: "Bad Gateway",
   503: "Service Unavailable", 504: "Gateway Timeout",
 };
+/** Returns the standard HTTP reason phrase for a status code, or `"HTTP <code>"` if unknown. */
 export function httpStatusText(code: number): string {
   return STATUS_TEXT[code] || `HTTP ${code}`;
 }
@@ -85,6 +93,7 @@ export function httpStatusText(code: number): string {
 // Latency statistics
 // ---------------------------------------------------------------------------
 
+/** Summary statistics (min, avg, max, jitter, packet loss) for a series of latency probes. */
 export interface LatencySummary {
   sent: number;
   received: number;
@@ -119,12 +128,14 @@ export function summarizeLatencies(samples: (number | null)[]): LatencySummary {
 // Certificates
 // ---------------------------------------------------------------------------
 
+/** Computes whole days remaining until `dateStr` relative to `now`, or `null` if `dateStr` is invalid. */
 export function daysUntil(dateStr: string, now = Date.now()): number | null {
   const t = Date.parse(dateStr);
   if (Number.isNaN(t)) return null;
   return Math.floor((t - now) / 86_400_000);
 }
 
+/** Extracted TLS peer certificate and handshake metadata. */
 export interface CertInfo {
   authorized?: boolean;
   authError?: string | null;
@@ -281,6 +292,7 @@ s.on("error", (e) => print({ error: e.message }));
 s.on("timeout", () => print({ error: "Connection timed out" }));
 `;
 
+/** Connects to `host:port` over TLS in a subprocess and returns the peer certificate details. */
 export function getTlsCertSync(host: string, port = 443, timeoutMs = 4000): CertInfo {
   try {
     return runScript(TLS_SCRIPT, { host, port, timeout: timeoutMs }, timeoutMs + 6000);

@@ -8,8 +8,10 @@ import { absolutePath, assertCreatable, type FmContext, type FmHandler } from ".
 import { FmError } from "./fmPaths";
 import { secretsService, type SecretsService } from "./fmSecretsService";
 
+/** Handler function for a Secrets API operation that receives the context's `SecretsService`, `FmContext`, and request body. */
 export type SecretsHandler = (svc: SecretsService, ctx: FmContext, body: Record<string, any>) => Promise<unknown> | unknown;
 
+/** Wraps a `SecretsHandler` into an `FmHandler` that refreshes the session idle timer (when `touch` is true) and sanitizes unexpected errors. */
 export function secretsOp(fn: SecretsHandler, { touch = true }: { touch?: boolean } = {}): FmHandler {
   return async (ctx, body) => {
     const svc = secretsService(ctx);

@@ -13,8 +13,10 @@ const escapeAttr = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", 
 /** What the studio page may ask the browser for: copying results. Not full screen: leaving a browser full screen takes the Esc key, which the studios use for their own things. */
 export const STUDIO_ALLOW = "clipboard-write";
 
+/** HTML `iframe` sandbox attribute tokens granted to embedded database studio web apps. */
 export const STUDIO_SANDBOX = "allow-scripts allow-same-origin allow-forms allow-modals allow-downloads";
 
+/** Builds the CSP-locked HTML wrapper response that frames a running database studio on the secondary loopback origin. */
 export function studioFrameResponse(studios: StudioManager, id: string, primaryOrigin: string | null, headers: (extra: Record<string, string>) => Record<string, string>): Response {
   const info = studios.get(id);
   const port = studios.runningPort(id);

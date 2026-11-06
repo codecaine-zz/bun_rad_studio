@@ -6,6 +6,7 @@ import type { SourceColumn } from "./reader";
 import type { ColumnRule, Step, TargetColumn, TargetTable } from "./types";
 import { detectDateOrder, formatDate, formatDateTime, parseBoolean, parseDate, parseNumber, titleCase } from "./values";
 
+/** Applies a single transformation `Step` to a cell string or `null` value. */
 export function applyStep(value: string | null, step: Step): string | null {
   switch (step.t) {
     case "default":
@@ -48,12 +49,14 @@ export function applyStep(value: string | null, step: Step): string | null {
   }
 }
 
+/** Sequentially applies an ordered list of transformation steps to a cell value. */
 export function applySteps(value: string | null, steps: Step[]): string | null {
   let v = value;
   for (const s of steps) v = applyStep(v, s);
   return v;
 }
 
+/** Human-readable display labels for each supported cell transformation step type. */
 export const STEP_LABELS: Record<Step["t"], string> = {
   trim: "Remove spaces at the start and end",
   collapse: "Tidy spaces (trim, and one space between words)",
@@ -133,6 +136,7 @@ export function sanitizeRules(input: unknown, sourceNames: string[], targetNames
   return out;
 }
 
+/** Compiled row builder that extracts and transforms source row cells into staged target values. */
 export interface RowBuilder {
   /** Staged values, in the order of `rules` that are not skipped. */
   columns: string[];
@@ -141,6 +145,7 @@ export interface RowBuilder {
   unusedSource: string[];
 }
 
+/** Compiles an array of `ColumnRule` mappings against source column names into a fast `RowBuilder`. */
 export function compileRules(rules: ColumnRule[], sourceNames: string[]): RowBuilder {
   const idx = new Map(sourceNames.map((n, i) => [n, i]));
   const active = rules.filter((r) => r.source.kind !== "skip");
@@ -219,6 +224,7 @@ const SYNONYMS: string[][] = [
   ["tier", "plan", "level", "plantype", "subscription"],
 ];
 
+/** Normalizes a column name by stripping diacritics, punctuation, and plural suffixes for fuzzy matching. */
 export function normalizeName(name: string): string {
   let n = name
     .normalize("NFD")
@@ -247,6 +253,7 @@ function levenshtein(a: string, b: string): number {
 
 const GROUPS = SYNONYMS.map((g) => new Set(g.map(normalizeName)));
 
+/** Similarity score and explanation for an automatic pairing between a source and target column. */
 export interface MatchInfo {
   target: string;
   source: string;
@@ -254,6 +261,7 @@ export interface MatchInfo {
   reason: "same name" | "known synonym" | "similar name";
 }
 
+/** Computes a similarity score and reason between two column names, or returns `null` if unrelated. */
 export function nameScore(a: string, b: string): { score: number; reason: MatchInfo["reason"] } | null {
   const x = normalizeName(a);
   const y = normalizeName(b);
@@ -295,6 +303,7 @@ export function suggestSteps(col: TargetColumn, src: SourceColumn | null): Step[
   return steps;
 }
 
+/** Result of automatically matching incoming source columns to target table columns. */
 export interface AutoMapResult {
   rules: ColumnRule[];
   matches: MatchInfo[];
@@ -304,6 +313,7 @@ export interface AutoMapResult {
   ambiguousDates: string[];
 }
 
+/** Automatically pairs source columns with target table columns and suggests cleanup steps for each match. */
 export function autoMap(source: SourceColumn[], target: TargetTable): AutoMapResult {
   const pairs: MatchInfo[] = [];
   for (const t of target.columns) {

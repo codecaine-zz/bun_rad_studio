@@ -12,7 +12,9 @@ import { absolutePath, assertCreatable, assertModifiable, type FmContext, type F
 import { FmError, classify, describeFsError, extensionOf, formatSize, isDocumentPackageName, splitName } from "./fmPaths";
 import { imagePreviewFor } from "./fmQuickLook";
 
+/** Maximum file size in bytes allowed when copying a text file's contents to the system clipboard. */
 export const MAX_CLIP_TEXT_BYTES = 5 * 1024 * 1024;
+/** Maximum file size in bytes allowed when copying an image file to the system clipboard. */
 export const MAX_CLIP_IMAGE_BYTES = 50 * 1024 * 1024;
 
 const IMAGE_MIME: Record<string, string> = {
@@ -237,6 +239,7 @@ function classifyTidyCategory(name: string, isDocPkg: boolean): string | null {
   return null;
 }
 
+/** A planned or completed file move into a category subfolder during a folder tidy operation. */
 export interface TidyMoveItem {
   name: string;
   category: string;
@@ -244,6 +247,7 @@ export interface TidyMoveItem {
   to: string;
 }
 
+/** Organizes loose files in a directory into categorized subfolders (or previews the moves without modifying disk). */
 export async function tidyFolder(
   ctx: FmContext,
   payload: { path?: string; preview?: boolean },
@@ -322,6 +326,7 @@ export async function tidyFolder(
   };
 }
 
+/** Computed cryptographic digest and file size for a single file in a checksum manifest. */
 export interface ChecksumItemResult {
   name: string;
   path: string;
@@ -329,6 +334,7 @@ export interface ChecksumItemResult {
   hash: string;
 }
 
+/** Verification status comparing a file's actual digest against its expected checksum entry. */
 export interface VerifyItemResult {
   name: string;
   status: "ok" | "mismatch" | "missing";
@@ -566,6 +572,7 @@ export async function verifyChecksums(
   };
 }
 
+/** Metadata row for a file or directory included in a folder structure/inventory export. */
 export interface InventoryEntry {
   relativePath: string;
   name: string;
@@ -744,6 +751,7 @@ export async function exportFolderInventory(
   };
 }
 
+/** File Manager API handlers for clipboard copy/paste, folder tidy, checksum generation/verification, and directory inventory export. */
 export const clipboardOperations: Record<string, FmHandler> = {
   async "clip/image"(ctx, b) {
     return await copyImageToClipboard(ctx, b.path);

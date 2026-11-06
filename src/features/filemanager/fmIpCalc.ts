@@ -11,7 +11,9 @@ import {
 import { parseTarget } from "./fmIpNet";
 import { FmError } from "./fmPaths";
 
+/** Clickable row action in an IP info table (either a follow-up IP/CIDR lookup or opening map coordinates). */
 export type Act = { kind: "lookup"; target: string } | { kind: "map"; target: string };
+/** Tabular representation of an IP calculation or lookup result with per-row click actions. */
 export interface Table {
   headers: string[];
   rows: string[][];
@@ -22,16 +24,19 @@ export interface Table {
 const PLAIN_NUMBER = /^-?\d+(\.\d+)?(,-?\d+(\.\d+)?)?$/;
 /** A leading apostrophe stops spreadsheets from running a cell that starts like a formula. Numbers and "lat,lon" stay as they are. */
 const csvSafe = (v: string): string => (!PLAIN_NUMBER.test(v) && /^[=+\-@\t\r]/.test(v) ? `'${v}` : v);
+/** Formats and quotes a single value as a formula-safe CSV cell. */
 export const csvCell = (v: unknown): string => `"${csvSafe(String(v ?? "")).replace(/"/g, '""')}"`;
 
 /** CSV that spreadsheet programs can't mistake for a formula. */
 export const toCsv = (headers: string[], rows: unknown[][]): string => [headers, ...rows].map((r) => r.map(csvCell).join(",")).join("\n");
 
+/** Formats two-column key/value rows into aligned plain-text lines (`"Key : Value"`). */
 export const summaryText = (rows: string[][]): string => {
   const width = Math.min(24, Math.max(...rows.map((r) => (r[0] ?? "").length), 4));
   return rows.map((r) => `${(r[0] ?? "").padEnd(width)} : ${r[1] ?? ""}`).join("\n");
 };
 
+/** Constructs a `Table` object with headers, rows, and normalized per-row click actions. */
 export const makeTable = (headers: string[], rows: string[][], acts: Array<Act | null> = []): Table => ({ headers, rows, acts: rows.map((_, i) => acts[i] ?? null) });
 const lookupAct = (target: string): Act => ({ kind: "lookup", target });
 
@@ -45,6 +50,7 @@ function cidrOf(input: unknown): { cidr: string; family: Family; ip: string; pre
 
 const COLS = ["Property", "Value", "Category", "Description"];
 
+/** Calculates IPv4 or IPv6 subnet boundaries, masks, host counts, and formatted views for a CIDR block. */
 export function subnetAnswer(input: unknown) {
   const t = cidrOf(input);
   let subnet: Record<string, string | number>;
@@ -106,6 +112,7 @@ function testAddress(input: unknown): { ip: string; family: Family } {
   }
 }
 
+/** Checks whether an IPv4 or IPv6 address is contained within a CIDR block and formats the result. */
 export function inCidrAnswer(cidrInput: unknown, ipInput: unknown) {
   const t = cidrOf(cidrInput);
   const a = testAddress(ipInput);
@@ -126,8 +133,10 @@ export function inCidrAnswer(cidrInput: unknown, ipInput: unknown) {
   return { kind: "incidr" as const, inside, cidr: t.cidr, ip: a.ip, message, table: makeTable(["Check", "Result", "Category", "Description"], rows, [lookupAct(t.cidr), lookupAct(a.ip)]), summary: summaryText(rows), json: JSON.stringify({ cidr: t.cidr, ip: a.ip, inside }, null, 2), csv: toCsv(["cidr", "ip", "inside"], [[t.cidr, a.ip, inside]]), label: message };
 }
 
+/** Maximum number of child subnets returned when splitting a CIDR block. */
 export const MAX_SPLIT_BLOCKS = 1024;
 
+/** Splits an IPv4 or IPv6 CIDR block into smaller subnets of `prefixInput` length (up to `limitInput` blocks). */
 export function splitAnswer(cidrInput: unknown, prefixInput: unknown, limitInput?: unknown) {
   const t = cidrOf(cidrInput);
   const prefix = typeof prefixInput === "string" && /^\/?\d{1,3}$/.test(prefixInput.trim()) ? Number(prefixInput.trim().replace("/", "")) : prefixInput;
@@ -156,11 +165,13 @@ export function splitAnswer(cidrInput: unknown, prefixInput: unknown, limitInput
   };
 }
 
+/** Converts an IPv4 or IPv6 address into all supported representations (decimal, hex, binary,arpa, mapped, etc.). */
 export function formatsAnswer(input: unknown) {
   const { ip, rows } = formatRows(typeof input === "string" ? input : "");
   return { kind: "formats" as const, ip, table: makeTable(["Notation", "Value", "Category", "Description"], rows), summary: summaryText(rows), json: JSON.stringify(Object.fromEntries(rows.map((r) => [r[0], r[1]])), null, 2), csv: toCsv(["notation", "value"], rows.map((r) => [r[0], r[1]])), label: `Notations for ${ip}` };
 }
 
+/** Converts between a CIDR prefix length, dotted netmask, and wildcard mask and computes block host capacities. */
 export function maskAnswer(input: unknown) {
   const text = (typeof input === "string" ? input : "").trim().replace(/^\//, "");
   const help = new FmError("BAD_MASK", "Type a prefix like /24 (or just 24) or a mask like 255.255.255.0.");
@@ -213,6 +224,7 @@ export function maskAnswer(input: unknown) {
   return { kind: "mask" as const, prefix, table: makeTable(COLS, rows), summary: summaryText(rows), json: JSON.stringify(data, null, 2), csv: toCsv(Object.keys(data), [Object.values(data)]), label };
 }
 
+/** Lists all local network interfaces on this computer with their canonical IP addresses, MACs, netmasks, and types. */
 export function interfacesAnswer() {
   const list = getLocalInterfaces().map((i) => ({ ...i, address: canonicalIp(i.address), type: classifyAny(i.address).type }));
   const rows = list.map((i) => [

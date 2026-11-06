@@ -1,3 +1,7 @@
+/**
+ * Abstract base adapter (`BaseAdapter`) implementing engine-independent table browsing,
+ * filtering, sorting, optimistic row CRUD, and streaming RFC 4180 CSV export.
+ */
 import type {
   BrowseRequest,
   BrowseResult,
@@ -23,9 +27,12 @@ import { DbError } from "../errors";
 import { LIKE_ESCAPE, escapeLike, placeholder, quoteIdent, quoteRef } from "../quote";
 import { csvCell } from "../wire";
 
+/** Maximum number of rows allowed in a single `browse()` page request. */
 export const MAX_PAGE = 5000;
+/** Synthetic column alias used to return SQLite's internal `rowid` when a table has no explicit primary key. */
 export const SQLITE_ROWID_COLUMN = "__rowid__";
 
+/** Function signature for executing a parameterized SQL query against the underlying driver. */
 export type Executor = (sql: string, params: Param[], options?: QueryOptions) => Promise<QueryResult>;
 
 /** Shared behavior built on top of an engine-specific `execute` + catalog introspection. */
@@ -34,34 +41,45 @@ export abstract class BaseAdapter implements DbAdapter {
   readonly config: Readonly<Omit<ConnectionConfig, "password">>;
   protected readonly password: string | undefined;
 
+  /** Initializes the adapter, freezing non-secret configuration fields and storing `password` separately. */
   constructor(config: ConnectionConfig) {
     const { password, ...rest } = config;
     this.password = password;
     this.config = Object.freeze({ ...rest });
   }
 
+  /** Opens the underlying database connection or pool. */
   abstract connect(): Promise<void>;
+  /** Closes the underlying database connection or pool. */
   abstract close(): Promise<void>;
+  /** Verifies connectivity and returns the server version, current database, and round-trip latency. */
   abstract ping(): Promise<ServerInfo>;
+  /** Queries and returns the engine's `Capabilities` descriptor. */
   abstract capabilities(): Promise<Capabilities>;
+  /** Reserves a dedicated stateful `DbSession` supporting transactions and query cancellation. */
   abstract openSession(): Promise<DbSession>;
+  /** Lists all user tables and views in the active database/catalog. */
   abstract listObjects(): Promise<ObjectRef[]>;
+  /** Inspects the columns, primary key, foreign keys, and indexes of `ref`. */
   abstract describeTable(ref: ObjectRef): Promise<TableInfo>;
   protected abstract execute: Executor;
   /** Expression to select a column so that its text/exact form survives (e.g. MySQL DATETIME). */
   protected selectExpr(col: ColumnInfo): string {
     return quoteIdent(this.engine, col.name);
   }
+  /** Wraps a SQL expression in an engine-specific cast to text for `LIKE` filtering. */
   protected abstract textCast(expr: string): string;
   /** Equality predicate for conflict detection / key matching on one column. */
   protected eqExpr(col: ColumnInfo, ph: string): string {
     return `${quoteIdent(this.engine, col.name)} = ${ph}`;
   }
 
+  /** Executes a single parameterized SQL statement and returns the normalized `QueryResult`. */
   query(sql: string, params: Param[] = [], options?: QueryOptions): Promise<QueryResult> {
     return this.execute(sql, params, options);
   }
 
+  /** Returns the 1-based positional parameter placeholder (`?` or `$n`) for this adapter's engine. */
   protected ph(n: number): string {
     return placeholder(this.engine, n);
   }
@@ -72,6 +90,7 @@ export abstract class BaseAdapter implements DbAdapter {
     return this.describeTable(ref);
   }
 
+  /** Determines whether rows in `t` can be safely edited/deleted in place and which key columns identify each row. */
   editableInfo(t: TableInfo): EditableInfo {
     if (t.type === "view") return { ok: false, reason: "Views are read-only. Edit the underlying table instead." };
     if (t.primaryKey.length > 0) return { ok: true, keyColumns: t.primaryKey, keyKind: "primary" };
@@ -82,6 +101,7 @@ export abstract class BaseAdapter implements DbAdapter {
     };
   }
 
+  /** Fetches a paginated, filtered, and sorted page of rows along with total row count and editability metadata. */
   async browse(req: BrowseRequest): Promise<BrowseResult> {
     const table = await this.resolveTable(req.table);
     const limit = Math.min(Math.max(Math.trunc(Number(req.limit) || 50), 1), MAX_PAGE);
@@ -180,6 +200,7 @@ export abstract class BaseAdapter implements DbAdapter {
     return this.predicates(table, key, params);
   }
 
+  /** Inserts a single row into `req.table`, validating column names against the catalog and rejecting generated columns. */
   async insertRow(req: RowInsert): Promise<QueryResult> {
     const table = await this.resolveTable(req.table);
     if (table.type === "view") throw new DbError("NOT_EDITABLE", "Views are read-only.");
@@ -202,6 +223,7 @@ export abstract class BaseAdapter implements DbAdapter {
     return this.execute(sql, params);
   }
 
+  /** Updates a single row identified by `req.key` and guarded by `req.expected` optimistic concurrency predicates. */
   async updateRow(req: RowUpdate): Promise<QueryResult> {
     const table = await this.resolveTable(req.table);
     const changes = Object.entries(req.changes ?? {});
@@ -222,6 +244,7 @@ export abstract class BaseAdapter implements DbAdapter {
     return this.confirmWrite(res, table, req.key, req.expected ?? {}, "update");
   }
 
+  /** Deletes a single row identified by `req.key` and guarded by optional `req.expected` column values. */
   async deleteRow(req: RowDelete): Promise<QueryResult> {
     const table = await this.resolveTable(req.table);
     const params: Param[] = [];
@@ -253,6 +276,7 @@ export abstract class BaseAdapter implements DbAdapter {
     );
   }
 
+  /** Streams rows from a table (in 1000-row pages) or from a custom SQL query as RFC 4180 CSV lines. */
   async *exportCsv(source: { table: ObjectRef; excludeColumns?: string[] } | { sql: string; params?: Param[] }): AsyncGenerator<string> {
     if ("sql" in source) {
       yield* this.exportSqlCsv(source.sql, source.params ?? []);
@@ -276,6 +300,7 @@ export abstract class BaseAdapter implements DbAdapter {
     }
   }
 
+  /** Executes a parameterized SQL query and yields its header and rows as RFC 4180 CSV lines. */
   protected async *exportSqlCsv(sql: string, params: Param[]): AsyncGenerator<string> {
     const res = await this.execute(sql, params);
     if (res.columns.length) yield res.columns.map((c) => csvCell(c)).join(",") + "\r\n";

@@ -12,6 +12,7 @@
  *  9. Full-Database Interactive SVG ER Diagram & Schema Diff / Migration DDL Generator in #tabSchema
  */
 
+/** CSS stylesheet for shared database studio IDE enhancements (worksheets, autocomplete, history drawer, FK badges, ER diagram). */
 export const STUDIO_IDE_ENHANCEMENTS_STYLE = `
     /* ===== Studio IDE Enhancements (src/shared/studioIdeEnhancements.ts) ===== */
     .studio-ws-bar {
@@ -1927,4 +1928,5 @@ function studioIdeEnhancementsClient() {
   };
 }
 
+/** Self-invoking browser script that initializes `window.StudioIdeEnhancements` in the database studios. */
 export const STUDIO_IDE_ENHANCEMENTS_SCRIPT = `(${studioIdeEnhancementsClient.toString()})();`;

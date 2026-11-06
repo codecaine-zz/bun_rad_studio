@@ -6,6 +6,7 @@
  * and arcade HUD controller for all 24 Codecaine Arcade Studio games.
  */
 
+/** Available post-processing shader presets for the Codecaine Game Master FX engine. */
 export const GAME_MASTER_SHADER_PRESETS = [
   { id: "cyber_bloom", label: "⚡ Cyber Bloom", badge: "HDR" },
   { id: "crt_arcade", label: "📺 CRT 1984", badge: "SCAN" },
@@ -15,8 +16,10 @@ export const GAME_MASTER_SHADER_PRESETS = [
   { id: "clean", label: "🎯 Esports Raw", badge: "RAW" },
 ] as const;
 
+/** Identifier of a built-in Game Master post-processing shader preset. */
 export type GameMasterShaderPresetId = (typeof GAME_MASTER_SHADER_PRESETS)[number]["id"];
 
+/** Embedded `<style>` and early bootstrap `<script>` block for the Game Master FX overlay and shaders. */
 export const GAME_MASTER_FX_STYLE = `
 <style id="codecaine-game-master-fx-style">
   :root {
@@ -675,6 +678,7 @@ export const GAME_MASTER_FX_STYLE = `
 </script>
 `;
 
+/** Embedded `<script>` block implementing the runtime Game Master FX HUD, particle engine, and telemetry callouts. */
 export const GAME_MASTER_FX_SCRIPT = `
 <script id="codecaine-game-master-fx-script">
 (function() {

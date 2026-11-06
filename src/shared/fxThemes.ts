@@ -1,20 +1,36 @@
+/**
+ * Futuristic FX themes (`FX_THEMES`), `ThemeFx` visual descriptors, hardware capability detection,
+ * WCAG glass contrast safety checks, Display-P3 wide-gamut color conversion, and FX CSS token generation.
+ */
 // Futuristic themes plus the `fx` descriptor that turns a theme into a token set for the motion/interaction layer.
 // A theme without `fx` produces no fx output at all; see src/shared/fxCss.ts for the CSS and fxPointer.ts for the helper.
 import type { SimpleGUITheme } from "../simplegui";
 import { buildSemanticPalette, contrastRatio, overridesForTheme, parseColor, toHex } from "./themeSemantic";
 
+/** Luminous edge/surface glow style for an FX theme. */
 export type FxGlow = "none" | "soft" | "neon" | "bloom" | "aurora" | "laser" | "plasma" | "ember";
+/** Corner curvature preset for cards, panels, and buttons in an FX theme. */
 export type FxRadius = "sharp" | "soft" | "round" | "pill" | "squircle";
+/** Border rendering treatment for cards and glass surfaces in an FX theme. */
 export type FxBorder = "flat" | "gradient" | "metal" | "hologram" | "neon" | "iridescent" | "bevel" | "double";
+/** Transition timing and spring choreography profile for an FX theme. */
 export type FxMotion = "calm" | "spring" | "snappy" | "elastic" | "cinematic" | "zero";
+/** Overlay film grain or halftone texture style for an FX theme. */
 export type FxGrain = "none" | "subtle" | "film" | "halftone";
+/** Retro CRT or subtle horizontal scanline overlay style for an FX theme. */
 export type FxScanlines = "none" | "subtle" | "crt" | "interlace";
+/** Translucent surface material shader style (Liquid Glass, Mica, Acrylic, Frosted, OLED, Matte). */
 export type FxBackdropStyle = "glass" | "liquid" | "mica" | "acrylic" | "frosted" | "oled" | "matte";
+/** Interactive pointer-tracking lighting mode for buttons, cards, and toolbars. */
 export type FxCursorEffect = "none" | "spotlight" | "ripple" | "magnetic" | "prism";
+/** Screen-edge framing vignette style for an FX theme. */
 export type FxVignette = "none" | "subtle" | "cinema" | "ambient";
+/** Page-level effects activation state (`on` = full motion + glass, `reduced` = static glass, `off` = disabled). */
 export type FxMode = "on" | "reduced" | "off";
+/** Identifier or composite expression (`a+b`) for background atmospheric particle/shader effects. */
 export type FxAtmosphere = string;
 
+/** Complete visual and interaction effect configuration attached to a `SimpleGUITheme`. */
 export interface ThemeFx {
     glow: FxGlow;
     glowColor: string;
@@ -93,6 +109,7 @@ export function normalizeFxMode(v: unknown): FxMode {
 type Fx = ThemeFx;
 const T = (t: Omit<SimpleGUITheme, "is_dark"> & { is_dark: boolean; fx: Fx }): SimpleGUITheme => t;
 
+/** Catalog of futuristic FX-enabled `SimpleGUITheme` definitions keyed by theme ID. */
 export const FX_THEMES: Record<string, SimpleGUITheme> = {
     prism_reactor: T({
         name: "Prism Reactor",
@@ -2314,6 +2331,7 @@ export const FX_THEMES: Record<string, SimpleGUITheme> = {
     }),
 };
 
+/** Ordered list of all theme IDs defined in `FX_THEMES`. */
 export const FX_THEME_KEYS: string[] = Object.keys(FX_THEMES);
 
 /** Short, memorable alternative names, resolved by getTheme() like the other theme aliases. */
@@ -2741,9 +2759,12 @@ export function getFallbackThemeKey(nameOrKey: string | undefined | null): strin
     return keyOf(String(nameOrKey));
 }
 
+/** Classified GPU/CPU capability tier used to scale FX glass blur and shader complexity. */
 export type FxHardwareTier = "ultra" | "high" | "balanced" | "low";
+/** Native OS window compositor backdrop material suitable for the detected platform. */
 export type FxNativeBackdrop = "vibrancy" | "mica-alt" | "acrylic" | "none";
 
+/** Hardware, display, and accessibility signals inspected by `detectThemeHardware`. */
 export interface FxHardwareInput {
     /** Logical CPU core count (`navigator.hardwareConcurrency`). */
     cores?: number;
@@ -2775,6 +2796,7 @@ export interface FxHardwareInput {
     frameBudgetMs?: number;
 }
 
+/** Evaluated hardware capability profile and recommended FX settings returned by `detectThemeHardware`. */
 export interface FxHardwareProfile {
     tier: FxHardwareTier;
     recommendedFxMode: FxMode;
@@ -2965,6 +2987,7 @@ export function detectThemeHardware(input: FxHardwareInput = {}): FxHardwareProf
     };
 }
 
+/** Result of resolving a requested theme against the active `FxHardwareProfile`, including fallback downgrade status. */
 export interface HardwareResolvedTheme<T extends SimpleGUITheme = SimpleGUITheme> {
     theme: T;
     requestedKey: string;
@@ -3078,6 +3101,7 @@ const MOTION: Record<FxMotion, { instant: number; fast: number; base: number; sl
     zero: { instant: 0, fast: 0, base: 0, slow: 0, ambient: 0, stagger: 0, hover: 1, press: 1, ease: "linear" },
 };
 
+/** Diagnostic report from `glassReport` describing the contrast-safe glass opacity and worst-case text contrast ratio. */
 export interface GlassReport {
     /** Opacity of the glass fill after the contrast floor was applied. */
     alpha: number;
@@ -3127,6 +3151,7 @@ export function focusRingColor(t: { accent_color: string; background_color: stri
     return t.is_dark ? "#ffffff" : "#000000";
 }
 
+/** Canonical tuple of `--fx-*` CSS custom property names generated for an FX theme. */
 export const FX_TOKEN_NAMES = [
     "--fx-glow-color", "--fx-glow-color-2", "--fx-glow-p3", "--fx-glow-2-p3", "--fx-accent-p3",
     "--fx-glow-soft", "--fx-glow-med", "--fx-glow-strong", "--fx-specular-rim",
@@ -3316,6 +3341,7 @@ export function fxRootAttrs(theme: SimpleGUITheme | undefined | null, mode: FxMo
     return a;
 }
 
+/** Serializes `fxRootAttrs(theme, mode, tier)` as a space-separated HTML attribute string (`data-fx="..." ...`). */
 export function fxRootAttrString(theme: SimpleGUITheme | undefined | null, mode: FxMode = "on", tier?: FxHardwareTier): string {
     return Object.entries(fxRootAttrs(theme, mode, tier)).map(([k, v]) => `${k}="${v}"`).join(" ");
 }
@@ -3331,6 +3357,7 @@ export interface FxStylePreset {
     fx: Partial<ThemeFx>;
 }
 
+/** Curated collection of 1-click `FxStylePreset` definitions for the Theme Editor. */
 export const FX_STYLE_PRESETS: readonly FxStylePreset[] = [
     {
         id: "liquid_glass",
@@ -3430,6 +3457,7 @@ export const FX_STYLE_PRESETS: readonly FxStylePreset[] = [
     },
 ];
 
+/** Contrast-checked code syntax highlighting color tokens derived from a `SimpleGUITheme`. */
 export interface SyntaxPalette {
     keyword: string;
     string: string;

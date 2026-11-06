@@ -1,3 +1,10 @@
+/**
+ * Core data models and CLI option interfaces for the `subfinder` passive/active subdomain discovery tool.
+ */
+
+/**
+ * Discovered subdomain entry enriched with OSINT provenance sources, resolved IPs, HTTP probe metadata, and open ports.
+ */
 export interface SubdomainResult {
   host: string;
   sources: string[];
@@ -12,6 +19,9 @@ export interface SubdomainResult {
   note?: string;
 }
 
+/**
+ * Parsed command-line options controlling target domains, active DNS/HTTP/port probing, timeouts, and output formats.
+ */
 export interface SubfinderOptions {
   domains: string[];
   sources?: string[];

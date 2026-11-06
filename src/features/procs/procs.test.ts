@@ -1,3 +1,6 @@
+/**
+ * Unit tests for `procs` parsing, filtering, sorting, process tree construction, and formatting helpers.
+ */
 import { describe, expect, it } from "bun:test";
 import {
   buildProcessTree,

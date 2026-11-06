@@ -14,13 +14,16 @@
 import { promises as fsp } from "fs";
 import { FmError } from "./fmPaths";
 
+/** Category grouping for hash and checksum algorithms (`classic`, `more`, `legacy`, or `fast`). */
 export type HashGroup = "classic" | "more" | "legacy" | "fast";
 
+/** Streaming hash calculator that accepts byte chunks incrementally and produces a lowercase hex digest. */
 export interface Digester {
   update(chunk: Uint8Array): void;
   digest(): string;
 }
 
+/** Specification and implementation entry for a supported hash or checksum algorithm. */
 export interface HashSpec {
   /** Short stable name used by the API ("sha256", "xxhash64"). */
   id: string;
@@ -101,6 +104,7 @@ function fast(id: string, label: string, hex: 8 | 16, hint: string, run: (data: 
 
 const FAST_NOTE = " Not secure: it only spots accidental changes.";
 
+/** Ordered catalog of all cryptographic digests and fast non-cryptographic checksums supported on this runtime. */
 export const HASH_SPECS: HashSpec[] = [
   secure("sha256", "SHA-256", "sha256", "classic", 64, "The usual modern fingerprint. If two files give the same SHA-256, they are the same file.", "HMAC-SHA256"),
   secure("sha512", "SHA-512", "sha512", "classic", 128, "A longer fingerprint with the same purpose as SHA-256.", "HMAC-SHA512"),
@@ -131,14 +135,20 @@ export const HASH_SPECS: HashSpec[] = [
   fast("rapidhash", "rapidhash", 16, `A very fast 64-bit check number (the successor of wyhash).${FAST_NOTE}`, (d) => Bun.hash.rapidhash(d)),
 ].filter((s) => s.group === "fast" || (s.algo !== undefined && supports(s.algo)));
 
+/** Lookup map from short algorithm `id` (e.g. `"sha256"`) to its `HashSpec`. */
 export const HASH_BY_ID = new Map(HASH_SPECS.map((s) => [s.id, s]));
+/** Lookup map from display `label` (e.g. `"SHA-256"`) to its `HashSpec`. */
 export const HASH_BY_LABEL = new Map(HASH_SPECS.map((s) => [s.label, s]));
 /** The five digests the File Manager always worked out first, in their usual order. */
 export const CLASSIC_IDS = ["sha256", "sha512", "sha384", "sha1", "md5"];
+/** Display section title for non-cryptographic fast checksums. */
 export const FAST_GROUP_TITLE = "Fast checksums (to spot accidental changes only, NOT secure)";
 
+/** Returns all `HashSpec` entries belonging to the specified `group`. */
 export const specsOf = (group: HashGroup): HashSpec[] => HASH_SPECS.filter((s) => s.group === group);
+/** Returns all cryptographic (`classic`, `more`, and `legacy`) `HashSpec` entries. */
 export const secureSpecs = (): HashSpec[] => HASH_SPECS.filter((s) => s.group !== "fast");
+/** Returns all fast non-cryptographic checksum `HashSpec` entries. */
 export const fastSpecs = (): HashSpec[] => specsOf("fast");
 
 /** What each result row is, in plain words (by label), for tooltips. */
@@ -149,6 +159,7 @@ export function digestBytes(data: Uint8Array, specs: HashSpec[]): Array<[string,
   return specs.map((s) => [s.label, s.whole(data)] as [string, string]);
 }
 
+/** Computed digests and skipped-algorithm reasons for a hashed file. */
 export interface FileDigests {
   size: number;
   rows: Array<{ spec: HashSpec; value: string }>;
@@ -156,6 +167,7 @@ export interface FileDigests {
   skipped: Array<{ spec: HashSpec; reason: string }>;
 }
 
+/** Options for streaming a file through `digestFile`, including a custom opener, abort signal, and progress callback. */
 export interface FileDigestOptions {
   /** How to open the file (the "More info" window passes a stricter opener that refuses links). */
   open?: (path: string) => Promise<fsp.FileHandle>;

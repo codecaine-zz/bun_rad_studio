@@ -7,8 +7,10 @@ import { FmError } from "./fmPaths";
 import type { DatabasesHooks, DbProcess } from "./fmDbHooks";
 import { ENGINES, type DbEngine } from "./fmDbModel";
 
+/** Lifecycle state of a child database studio process (`starting`, `running`, `stopping`, `stopped`, or `crashed`). */
 export type StudioState = "starting" | "running" | "stopping" | "stopped" | "crashed";
 
+/** Public status and loopback endpoint details for a managed database studio instance. */
 export interface StudioInfo {
   id: string;
   engine: DbEngine;
@@ -31,6 +33,7 @@ export interface StudioInfo {
   writesConfirmed: boolean;
 }
 
+/** Parameters required to launch or reuse a database studio child process. */
 export interface StartRequest {
   engine: DbEngine;
   /** One studio per key (engine and connection). */
@@ -92,24 +95,29 @@ export function explainExit(lines: string[], code: number | null, studio: string
   return `${studio} stopped unexpectedly${code !== null && code !== undefined ? ` (exit code ${code})` : ""}. The last lines of its log are shown below.`;
 }
 
+/** Process manager that spawns, monitors, health-checks, and stops child database studio servers. */
 export class StudioManager {
   private entries = new Map<string, Entry>();
   private seq = 0;
 
+  /** Creates a `StudioManager` using the provided `DatabasesHooks` and registers a process exit cleanup hook. */
   constructor(private readonly hooks: DatabasesHooks) {
     live.add(this);
     installExitHook();
   }
 
+  /** Returns status snapshots (including the last 4 log lines) for all tracked studio instances. */
   list(): StudioInfo[] {
     return [...this.entries.values()].map((e) => ({ ...e.info, tail: e.log.slice(-4) }));
   }
 
+  /** Returns the current `StudioInfo` snapshot for studio `id`, or `undefined` if not found. */
   get(id: string): StudioInfo | undefined {
     const e = this.entries.get(id);
     return e ? { ...e.info, tail: e.log.slice(-4) } : undefined;
   }
 
+  /** Returns up to `max` recent log lines captured from studio `id`. */
   logs(id: string, max = 120): string[] {
     const e = this.entries.get(id);
     if (!e) throw new FmError("NOT_FOUND", "That studio isn't running any more.");
@@ -122,6 +130,7 @@ export class StudioManager {
     return undefined;
   }
 
+  /** Returns the number of studios currently in `starting`, `running`, or `stopping` state. */
   activeCount(): number {
     return [...this.entries.values()].filter((e) => e.info.state === "starting" || e.info.state === "running" || e.info.state === "stopping").length;
   }
@@ -132,6 +141,7 @@ export class StudioManager {
     return e && e.info.state === "running" && e.info.port ? e.info.port : null;
   }
 
+  /** Starts a new database studio process (or returns an already-running instance for the same `key`) and waits until its HTTP port is ready. */
   async start(req: StartRequest): Promise<StudioInfo> {
     const existing = this.find(req.key);
     if (existing) return existing;
@@ -283,6 +293,7 @@ export class StudioManager {
     proc.exited.then(() => clearTimeout(t));
   }
 
+  /** Gracefully stops studio `id` (escalating to `SIGKILL` after timeout) and returns its final `StudioInfo`. */
   async stop(id: string): Promise<StudioInfo> {
     const entry = this.entries.get(id);
     if (!entry) throw new FmError("NOT_FOUND", "That studio isn't running any more.");
@@ -316,6 +327,7 @@ export class StudioManager {
     }
   }
 
+  /** Stops all running studio child processes and unregisters this manager from the exit hook. */
   dispose() {
     this.stopAll();
     live.delete(this);

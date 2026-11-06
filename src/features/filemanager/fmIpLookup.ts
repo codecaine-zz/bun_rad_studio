@@ -10,7 +10,9 @@ import { asnOf, buildExternalUrl, cleanToken, httpsJson, netLimits, parseLocatio
 import { canonicalIp, classifyAny, familyOf } from "./fmIpMath";
 import { FmError } from "./fmPaths";
 
+/** Maximum number of IP or hostname targets allowed in a single bulk lookup request. */
 export const MAX_BULK_TARGETS = 100;
+/** Number of concurrent worker tasks used during bulk IP lookups. */
 export const BULK_CONCURRENCY = 10;
 const OFFLINE_STOP = 5;
 
@@ -95,6 +97,7 @@ async function fetchUpstream(ip: string | null, token: string | undefined): Prom
   throw new FmError("LOOKUP_FAILED", "The lookup services answered, but had no details for that address. Try again later.");
 }
 
+/** Resolved IP address metadata, classification, and upstream lookup result for a target. */
 export interface Core {
   target: Target;
   ip: string;
@@ -143,12 +146,14 @@ export async function lookupCore(target: Target, token: string | undefined, skip
   return { target, ip: found, domain, resolved, isPrivate: false, type: cls.type, rfc: cls.rfc, scope: cls.scope, source: up.source, warnings, data: up.data };
 }
 
+/** Builds a plain-language explanation for why a private or reserved IP address has no public location. */
 export const privateExplanation = (c: Pick<Core, "ip" | "type" | "scope">): string =>
   `${c.ip} is a private or reserved address (${c.type}: ${c.scope}). It only works inside a network, so it has no public location. Nothing was sent over the internet.`;
 
 const dash = (v: string | undefined) => v || "-";
 const CSV_FIELDS = ["ip", "hostname", "city", "region", "country", "loc", "org", "postal", "timezone"] as const;
 
+/** Validated external reference or map deep-link associated with a looked-up public IP address. */
 export interface Link {
   kind: LinkKind;
   label: string;
@@ -182,6 +187,7 @@ function linksFor(c: Core): Link[] {
   return links;
 }
 
+/** Performs a single IP, hostname, my-IP, or CIDR lookup and formats the result table, JSON, CSV, and external links. */
 export async function lookupAnswer(input: unknown, tokenInput: unknown) {
   const target = parseTarget(input);
   if (target.kind === "cidr") return subnetAnswer(input);
@@ -230,6 +236,7 @@ export async function lookupAnswer(input: unknown, tokenInput: unknown) {
 // Bulk
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Single row result from a bulk IP/hostname lookup operation. */
 export interface BulkRow {
   target: string;
   ip: string;
@@ -258,6 +265,7 @@ export function splitTargets(source: unknown): { targets: string[]; skipped: num
   return { targets: all.slice(0, MAX_BULK_TARGETS), skipped: Math.max(0, all.length - MAX_BULK_TARGETS) };
 }
 
+/** Resolves and looks up a batch of IP addresses and hostnames with bounded concurrency and offline circuit-breaking. */
 export async function bulkAnswer(source: unknown, tokenInput: unknown) {
   const token = cleanToken(tokenInput);
   const { targets, skipped } = splitTargets(source);

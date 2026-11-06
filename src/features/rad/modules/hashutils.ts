@@ -1,7 +1,14 @@
+/**
+ * Ultra-fast non-cryptographic hashing (wyhash, rapidhash, CityHash, MurmurHash, CRC32, Adler-32)
+ * and space-efficient probabilistic Bloom filters powered by native `Bun.hash`.
+ */
 // Feature: RAD - hashutils
 // Ultra-fast non-cryptographic hashes & Bloom filter powered by native Bun.hash
 import { hash } from "bun";
 
+/**
+ * Non-cryptographic hash algorithm identifiers supported by `Bun.hash` and {@link hashHex}.
+ */
 export type HashAlgorithm = "wyhash" | "cityHash64" | "cityHash32" | "crc32" | "adler32" | "murmur32v3" | "murmur64v2" | "rapidhash";
 
 // Doer: Normalize seed to bigint for 64-bit Bun hashes
@@ -10,46 +17,73 @@ function toBigIntSeed(seed?: number | bigint): bigint | undefined {
 }
 
 // Doer: Compute 64-bit wyhash (default ultra-fast hash)
+/**
+ * Computes a 64-bit `wyhash` digest as a `bigint` using native `Bun.hash.wyhash`.
+ */
 export function wyhash(data: string | Uint8Array, seed?: number | bigint): bigint {
   return hash.wyhash(data, toBigIntSeed(seed));
 }
 
 // Doer: Compute 32-bit CRC32 checksum
+/**
+ * Computes a 32-bit CRC-32 checksum using hardware-accelerated `Bun.hash.crc32`.
+ */
 export function crc32(data: string | Uint8Array): number {
   return hash.crc32(data);
 }
 
 // Doer: Compute 32-bit Adler-32 checksum
+/**
+ * Computes a 32-bit Adler-32 checksum using native `Bun.hash.adler32`.
+ */
 export function adler32(data: string | Uint8Array): number {
   return hash.adler32(data);
 }
 
 // Doer: Compute 64-bit CityHash
+/**
+ * Computes a 64-bit CityHash digest as a `bigint` using native `Bun.hash.cityHash64`.
+ */
 export function cityHash64(data: string | Uint8Array, seed?: number | bigint): bigint {
   return hash.cityHash64(data, toBigIntSeed(seed));
 }
 
 // Doer: Compute 32-bit CityHash
+/**
+ * Computes a 32-bit CityHash digest using native `Bun.hash.cityHash32`.
+ */
 export function cityHash32(data: string | Uint8Array): number {
   return hash.cityHash32(data);
 }
 
 // Doer: Compute 32-bit MurmurHash3
+/**
+ * Computes a 32-bit MurmurHash3 (`murmur32v3`) digest using native `Bun.hash.murmur32v3`.
+ */
 export function murmur32v3(data: string | Uint8Array, seed?: number): number {
   return hash.murmur32v3(data, seed);
 }
 
 // Doer: Compute 64-bit MurmurHash2
+/**
+ * Computes a 64-bit MurmurHash2 (`murmur64v2`) digest as a `bigint` using native `Bun.hash.murmur64v2`.
+ */
 export function murmur64v2(data: string | Uint8Array, seed?: number | bigint): bigint {
   return hash.murmur64v2(data, toBigIntSeed(seed));
 }
 
 // Doer: Compute 64-bit rapidhash
+/**
+ * Computes a 64-bit `rapidhash` digest as a `bigint` using native `Bun.hash.rapidhash`.
+ */
 export function rapidhash(data: string | Uint8Array, seed?: number | bigint): bigint {
   return hash.rapidhash(data, toBigIntSeed(seed));
 }
 
 // Coordinator: Compute hexadecimal digest of specified hash algorithm
+/**
+ * Computes a lowercase hexadecimal string digest of `data` using the selected {@link HashAlgorithm}.
+ */
 export function hashHex(data: string | Uint8Array, algo: HashAlgorithm = "wyhash"): string {
   switch (algo) {
     case "wyhash":
@@ -71,6 +105,9 @@ export function hashHex(data: string | Uint8Array, algo: HashAlgorithm = "wyhash
   }
 }
 
+/**
+ * Probabilistic set membership filter backed by a bit array and double hashing (`wyhash` + `murmur32v3`).
+ */
 export interface BloomFilter {
   add(item: string): void;
   has(item: string): boolean;
@@ -79,6 +116,9 @@ export interface BloomFilter {
 }
 
 // Coordinator: Create a high-performance Bloom Filter using double hashing (wyhash + murmur32v3)
+/**
+ * Creates a {@link BloomFilter} sized for `expectedItems` at the target `falsePositiveRate` (default `1%`).
+ */
 export function createBloomFilter(expectedItems = 1000, falsePositiveRate = 0.01): BloomFilter {
   const m = Math.max(64, Math.ceil(-(expectedItems * Math.log(falsePositiveRate)) / (Math.LN2 * Math.LN2)));
   const k = Math.max(1, Math.round((m / expectedItems) * Math.LN2));
@@ -124,6 +164,9 @@ export function createBloomFilter(expectedItems = 1000, falsePositiveRate = 0.01
   };
 }
 
+/**
+ * Namespace bundling all non-cryptographic hash functions and the Bloom filter factory.
+ */
 export const hashutils = {
   wyhash,
   crc32,

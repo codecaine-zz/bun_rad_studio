@@ -26,12 +26,18 @@ import {
   type ThemeVariableDescriptor,
 } from "./types";
 
+/**
+ * Red, green, and blue color channels in the `0`–`255` integer range.
+ */
 export interface RGB {
   r: number;
   g: number;
   b: number;
 }
 
+/**
+ * Hue (`0`–`360`), saturation (`0`–`100`), and lightness (`0`–`100`) color representation.
+ */
 export interface HSL {
   h: number;
   s: number;
@@ -89,11 +95,17 @@ export function parseColorToRgb(input: string | undefined, fallback: RGB = { r: 
   return fallback;
 }
 
+/**
+ * Converts an `RGB` color object into a lowercase 6-digit `#rrggbb` hex string.
+ */
 export function rgbToHex({ r, g, b }: RGB): string {
   const toPair = (n: number) => clampByte(n).toString(16).padStart(2, "0");
   return `#${toPair(r)}${toPair(g)}${toPair(b)}`;
 }
 
+/**
+ * Converts an `RGB` color object (`0`–`255` channels) into `HSL` (`h: 0..360, s: 0..100, l: 0..100`).
+ */
 export function rgbToHsl({ r, g, b }: RGB): HSL {
   const rn = clampByte(r) / 255;
   const gn = clampByte(g) / 255;
@@ -125,6 +137,9 @@ export function rgbToHsl({ r, g, b }: RGB): HSL {
   };
 }
 
+/**
+ * Converts an `HSL` color object into an `RGB` color object with `0`–`255` byte channels.
+ */
 export function hslToRgb({ h, s, l }: HSL): RGB {
   const hue = ((h % 360) + 360) % 360;
   const sat = clamp(s, 0, 100) / 100;
@@ -152,14 +167,23 @@ export function hslToRgb({ h, s, l }: HSL): RGB {
   };
 }
 
+/**
+ * Parses a hex color string and converts it into `HSL` coordinates.
+ */
 export function hexToHsl(hex: string): HSL {
   return rgbToHsl(parseColorToRgb(hex));
 }
 
+/**
+ * Converts hue, saturation, and lightness values directly into a `#rrggbb` hex color string.
+ */
 export function hslToHex(h: number, s: number, l: number): string {
   return rgbToHex(hslToRgb({ h, s, l }));
 }
 
+/**
+ * Formats a hex string or `RGB` object with an alpha channel (`0`–`1`) as a CSS `rgba(...)` string.
+ */
 export function rgba(hexOrRgb: string | RGB, alpha: number): string {
   const rgb = typeof hexOrRgb === "string" ? parseColorToRgb(hexOrRgb) : hexOrRgb;
   const a = Math.round(clamp(alpha, 0, 1) * 1000) / 1000;

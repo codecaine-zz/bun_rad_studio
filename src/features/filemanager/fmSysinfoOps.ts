@@ -18,6 +18,7 @@ import {
   type SysinfoSectionId,
 } from "./fmSysinfo";
 
+/** Ordered list of System Information UI sections with display labels and icons. */
 export const SYSINFO_SECTIONS: Array<{ id: SysinfoSectionId; label: string; icon: string }> = [
   { id: "overview", label: "Overview", icon: "📊" },
   { id: "hardware", label: "Hardware & BIOS", icon: "🔧" },
@@ -99,6 +100,7 @@ async function writeUniqueReport(
   throw new FmError("EXISTS", "Couldn't find a free file name in that folder.");
 }
 
+/** File Manager API handlers (`sysinfo/*`) for system overview, section drill-downs, live probes, snapshot diffs, and report exports. */
 export const sysinfoOperations: Record<string, FmHandler> = {
   async "sysinfo/overview"(ctx) {
     const overview = await collectSysinfoOverview(ctx.platform, ctx.sysinfo);

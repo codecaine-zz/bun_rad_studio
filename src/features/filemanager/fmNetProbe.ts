@@ -32,6 +32,7 @@ const errorCode = (err: unknown): string | undefined => (err as NodeJS.ErrnoExce
 // HTTP probe
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Parsed HTTP response status line and headers from an HTTP probe. */
 export interface ParsedHead { version: string; status: number; reason: string; headers: Array<[string, string]> }
 
 /** Reads "HTTP/1.1 200 OK" and the header lines. Returns null if this doesn't look like an HTTP answer. */
@@ -49,6 +50,7 @@ export function parseHead(text: string): ParsedHead | null {
   return { version: first[1]!, status: Number(first[2]), reason: cleanText(first[3] ?? "", 100), headers };
 }
 
+/** Returns a plain-English explanation of an HTTP status code and request method for the user. */
 export function explainStatus(status: number, method: string): string {
   if (status >= 200 && status < 300) return "The website answered normally. It is up and the address works.";
   if (status >= 300 && status < 400) return "The page has moved. The server points to another address (see Location). This tool does not follow it for you.";
@@ -61,8 +63,10 @@ export function explainStatus(status: number, method: string): string {
   return "The server gave an unusual answer.";
 }
 
+/** Target host, port, scheme, HTTP method, and timeout options for `httpProbe`. */
 export interface ProbeOptions { host: string; port: number; scheme: "http" | "https"; method: "HEAD" | "GET"; timeoutMs: number }
 
+/** Performs a bounded, non-redirect-following HTTP/HTTPS probe against `o.host:o.port` and returns status, headers, and phase timings. */
 export async function httpProbe(state: NetState, o: ProbeOptions) {
   const log: LogLine[] = [];
   const started = performance.now();
@@ -218,10 +222,12 @@ const asNames = (value: unknown): Record<string, string> => {
   return out;
 };
 
+/** Extracts and normalizes up to 100 Subject Alternative Name (SAN) entries from a raw X.509 `subjectaltname` string. */
 export function parseAltNames(san: string | undefined): string[] {
   return (san ?? "").split(/,\s*/).map((s) => cleanText(s.replace(/^DNS:/, "").replace(/^IP Address:/, "IP:"), 200)).filter(Boolean).slice(0, 100);
 }
 
+/** Evaluates a peer TLS certificate's validity window and trust status, returning a health verdict (`"ok"`, `"warn"`, or `"bad"`), remaining days, and explanation. */
 export function certVerdict(info: CertInfo, now = Date.now()): { verdict: "ok" | "warn" | "bad"; daysLeft: number | null; explain: string } {
   const daysLeft = info.validTo ? daysUntil(info.validTo, now) : null;
   const notYet = info.validFrom && Date.parse(info.validFrom) > now;
@@ -232,6 +238,7 @@ export function certVerdict(info: CertInfo, now = Date.now()): { verdict: "ok" |
   return { verdict: "ok", daysLeft, explain: `The certificate is trusted by your computer${daysLeft !== null ? ` and valid for ${daysLeft} more day(s)` : ""}.` };
 }
 
+/** Connects over TLS to `o.host:o.port`, inspects the peer X.509 certificate, and returns structured certificate details and trust verdict. */
 export async function inspectTls(state: NetState, o: { host: string; port: number; timeoutMs: number }) {
   const log: LogLine[] = [];
   const started = performance.now();

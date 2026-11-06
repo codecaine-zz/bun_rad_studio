@@ -1,3 +1,6 @@
+/**
+ * Interactive UI help tooltips and audit skip rules for API Studio (`api_studio`), covering HTTP request configuration, authentication, benchmarking, and response inspection.
+ */
 import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Help tips for `api_studio`. Keys: see src/shared/helpTips.ts. Check with: bun run scripts/help_controls.ts <app file> --missing */

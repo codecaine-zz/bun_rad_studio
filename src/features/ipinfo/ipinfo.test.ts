@@ -1,3 +1,7 @@
+/**
+ * Unit test suite for IPInfo target sanitization, IP/CIDR classification, subnet calculation,
+ * local interface discovery, and output formatting helpers.
+ */
 import { describe, expect, it } from "bun:test";
 import { loopbackInterfaceName } from "../../../tests/helpers/net";
 import {

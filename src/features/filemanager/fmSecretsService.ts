@@ -21,6 +21,7 @@ import { emptyDb, normalizeDb, normalizeSettings, type Db } from "./fmSecretsMod
 import { Session, sha256Hex, type Via } from "./fmSecretsSession";
 import { backupPath, cleanStaleTemps, deleteBackups, delayAfter, ensureDir, listBackups, readThrottle, readVaultFile, throttlePath, vaultPath, writeAtomic, writeThrottle } from "./fmSecretsStore";
 
+/** Credentials supplied when unlocking, verifying, or modifying a Secrets vault. */
 export interface Creds {
   password?: unknown;
   keyFile?: unknown;
@@ -31,6 +32,7 @@ const MAX_KEY_FILE = 1024 * 1024;
 
 const failure = (retryAfterMs = 0): SecretsError => new SecretsError("WRONG_OR_DAMAGED", WRONG_OR_DAMAGED, retryAfterMs > 0 ? { retryAfterMs } : undefined);
 
+/** Manages the Secrets vault lifecycle, unlocking/locking, key rotation, device key integration, backups, and clipboard clearing for one `FmContext`. */
 export class SecretsService {
   readonly hooks: SecretsHooks;
   readonly path: string;
@@ -41,6 +43,7 @@ export class SecretsService {
   private header: { stamp: string; info: ParsedHeader | null } | null = null;
   private deviceProbe: { ok: boolean; reason: string; at: number } | null = null;
 
+  /** Creates a `SecretsService` bound to `ctx` and registers a shutdown disposer. */
   constructor(readonly ctx: FmContext) {
     this.hooks = {
       now: () => Date.now(),
@@ -63,16 +66,19 @@ export class SecretsService {
     return run;
   }
 
+  /** Currently unlocked `Session`, or `null` when the vault is locked. */
   get unlocked(): Session | null {
     return this.session && !this.session.destroyed ? this.session : null;
   }
 
+  /** Returns the active unlocked `Session`, or throws a `LOCKED` `FmError` if the vault is locked. */
   requireSession(): Session {
     const s = this.unlocked;
     if (!s) throw new FmError("LOCKED", "The vault is locked. Unlock it first.");
     return s;
   }
 
+  /** Validates and reads the bytes of a key file on disk (between 1 byte and 1 MiB). */
   async keyFileBytes(input: unknown): Promise<Buffer> {
     const file = absolutePath(this.ctx, input);
     let size: number;
@@ -107,6 +113,7 @@ export class SecretsService {
     }
   }
 
+  /** Returns the current vault status, header flags, KDF parameters, throttle wait time, and unlocked session metrics. */
   status() {
     const exists = existsSync(this.path);
     const s = this.unlocked;
@@ -171,6 +178,7 @@ export class SecretsService {
 
   // ---- create ------------------------------------------------------------------------------------------------
 
+  /** Creates a new encrypted Secrets vault on disk and unlocks it for the current session. */
   async create(body: { password: unknown; keyFile?: unknown; strength?: unknown; recovery?: unknown }): Promise<{ recoveryKey?: string; kdfMs: number }> {
     return this.serial(async () => {
       if (existsSync(this.path)) throw new FmError("EXISTS", "A vault already exists. Unlock it instead.");
@@ -280,6 +288,7 @@ export class SecretsService {
     }
   }
 
+  /** Unlocks the vault using the provided master password (and optional key file) or recovery key. */
   async unlock(creds: Creds): Promise<void> {
     return this.serial(async () => {
       if (this.unlocked) return;
@@ -356,6 +365,7 @@ export class SecretsService {
 
   // ---- lock --------------------------------------------------------------------------------------------------
 
+  /** Flushes pending changes, clears any secret on the clipboard, zeroes session keys, and locks the vault. */
   lock(reason = "lock"): { saved: boolean } {
     const s = this.session;
     this.session = null;
@@ -373,12 +383,14 @@ export class SecretsService {
     return { saved };
   }
 
+  /** Locks the vault and cleans up resources when the File Manager instance shuts down. */
   shutdown(): void {
     this.lock("shutdown");
   }
 
   // ---- clipboard ---------------------------------------------------------------------------------------------
 
+  /** Copies `value` to the system clipboard and schedules automatic clearing after `seconds`. */
   copy(value: string, seconds: number): boolean {
     if (!this.hooks.clipboard.write(value)) return false;
     if (this.clip) this.hooks.clearTimer(this.clip.timer);
@@ -455,6 +467,7 @@ export class SecretsService {
     return { backupsDeleted: dropBackups ? deleteBackups(this.path) : 0 };
   }
 
+  /** Changes the vault's master password (and optional key file), re-wrapping the data key and deleting old backups. */
   async changePassword(body: Creds & { newPassword: unknown; newKeyFile?: unknown; dropKeyFile?: unknown }): Promise<{ backupsDeleted: number }> {
     return this.serial(async () => {
       const s = this.requireSession();
@@ -484,6 +497,7 @@ export class SecretsService {
     });
   }
 
+  /** Re-derives the password KDF with a new strength level and optionally rotates the underlying vault data key. */
   async rekey(body: Creds & { strength: unknown; rotateKey?: unknown }): Promise<{ kdfMs: number; backupsDeleted: number; recoveryRemoved: boolean }> {
     return this.serial(async () => {
       const s = this.requireSession();
@@ -520,6 +534,7 @@ export class SecretsService {
     });
   }
 
+  /** Creates, removes, or verifies a recovery key for the currently unlocked vault. */
   async recovery(body: Creds & { action: unknown }): Promise<{ recoveryKey?: string; matches?: boolean; backupsDeleted?: number }> {
     if (body.action === "verify") {
       const s = this.requireSession();
@@ -547,11 +562,13 @@ export class SecretsService {
 
   // ---- "Unlock with this computer" ---------------------------------------------------------------------------
 
+  /** Probes whether the operating system's credential store is available for "Unlock with this computer". */
   async deviceAvailability(): Promise<{ ok: boolean; reason: string }> {
     if (!this.deviceProbe || this.hooks.now() - this.deviceProbe.at > 60_000) this.deviceProbe = { ...(await probe(this.hooks.store)), at: this.hooks.now() };
     return this.deviceProbe;
   }
 
+  /** Enables "Unlock with this computer" by storing a fresh device key in the OS credential store and wrapping the vault's data key. */
   async deviceEnable(creds: Creds): Promise<void> {
     return this.serial(async () => {
       const s = this.requireSession();
@@ -577,6 +594,7 @@ export class SecretsService {
     });
   }
 
+  /** Disables "Unlock with this computer", removing the device key wrap from the vault and deleting the OS keychain entry. */
   async deviceDisable(): Promise<{ keychainRemoved: boolean; backupsDeleted: number }> {
     return this.serial(async () => {
       const s = this.requireSession();
@@ -592,6 +610,7 @@ export class SecretsService {
     });
   }
 
+  /** Updates the vault's user preferences (auto-lock timeout, clipboard timeout, device expiry days, and breach checking). */
   async updateSettings(input: unknown): Promise<void> {
     const s = this.requireSession();
     s.change((db) => {
@@ -648,6 +667,7 @@ export class SecretsService {
     });
   }
 
+  /** Permanently deletes the vault file, rotating backups, throttle file, and any stored OS device key. */
   async destroyVault(): Promise<void> {
     return this.serial(async () => {
       const info = existsSync(this.path) ? this.headerInfo() : null;

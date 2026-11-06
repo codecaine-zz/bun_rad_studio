@@ -11,17 +11,23 @@ import { inheritedIgnores, isIgnored, readIgnoreFiles, type IgnoreSet, parseIgno
 /** Folders full of other people's code or build output. */
 export const VENDORED_DIRS = ["node_modules", "target", "dist", "build", ".git"];
 
+/** Hard upper limit on the number of files visited during a Developer Tools directory walk. */
 export const HARD_MAX_FILES = 200_000;
+/** Hard upper limit on the number of directories visited during a Developer Tools directory walk. */
 export const HARD_MAX_DIRS = 100_000;
+/** Hard upper limit on wall-clock duration in seconds for a Developer Tools directory walk. */
 export const HARD_MAX_SECONDS = 60;
+/** Maximum number of custom exclude patterns accepted by a Developer Tools directory walk. */
 export const MAX_EXCLUDES = 50;
 
+/** Resolved file count, directory count, and time-limit caps for a directory walk. */
 export interface WalkLimits {
   maxFiles: number;
   maxDirs: number;
   maxSeconds: number;
 }
 
+/** Traversal options controlling ignore-file handling, hidden/vendored directories, custom excludes, and walk limits. */
 export interface WalkOptions extends Partial<WalkLimits> {
   respectIgnore?: boolean;
   hidden?: boolean;
@@ -29,6 +35,7 @@ export interface WalkOptions extends Partial<WalkLimits> {
   excludes?: string[];
 }
 
+/** Metadata and paths for a single regular file visited during a Developer Tools directory walk. */
 export interface WalkFile {
   abs: string;
   /** Relative to the scanned folder, with "/" separators. */
@@ -36,6 +43,7 @@ export interface WalkFile {
   name: string;
 }
 
+/** Summary counters and stop reason returned when a Developer Tools directory walk finishes. */
 export interface WalkReport {
   dirs: number;
   files: number;
@@ -48,6 +56,7 @@ export interface WalkReport {
   cancelled: boolean;
 }
 
+/** Object carrying a `cancelled` flag polled during directory walks and long-running scans. */
 export interface Cancellable {
   cancelled: boolean;
 }
@@ -57,6 +66,7 @@ const clampInt = (v: unknown, fallback: number, min: number, max: number) => {
   return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : fallback;
 };
 
+/** Clamps partial user walk limits into safe `WalkLimits` bounded by the hard maximums. */
 export function resolveLimits(o: Partial<WalkLimits> | undefined): WalkLimits {
   return {
     maxFiles: clampInt(o?.maxFiles, HARD_MAX_FILES, 1, HARD_MAX_FILES),

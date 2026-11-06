@@ -1,8 +1,15 @@
 #!/usr/bin/env bun
+/**
+ * Command-line interface for `sd`, parsing search/replace patterns, flags, and target
+ * file arguments to perform in-place replacements or diff previews.
+ */
 import { parseArgs } from "node:util";
 import { runSdCoordinator } from "./sdCoordinator.ts";
 import type { SdOptions } from "./sdTypes.ts";
 
+/**
+ * Parses command-line arguments into an `SdOptions` object, validating required positional patterns.
+ */
 export function parseSdArguments(args: string[]): SdOptions {
   const { values, positionals } = parseArgs({
     args,
@@ -53,6 +60,9 @@ export function parseSdArguments(args: string[]): SdOptions {
   };
 }
 
+/**
+ * Prints usage instructions and CLI options for `sd` to stdout.
+ */
 export function printSdHelp(): void {
   console.log(`Usage: sd [options] <find> <replace> [files...]
        sd -c [options] <find> [files...]

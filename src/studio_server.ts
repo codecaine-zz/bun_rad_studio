@@ -15,6 +15,7 @@ import { join } from "path";
 import { guardLocalRequest } from "./localGuard";
 import { injectGameMasterFx } from "./shared/gameMasterFx";
 
+/** Network binding options for starting a local static studio HTTP server. */
 export interface StudioServerOptions {
   /** 0 (the default) lets the system pick a free port. */
   port?: number;
@@ -22,6 +23,7 @@ export interface StudioServerOptions {
   host?: string;
 }
 
+/** Configuration describing a static studio's metadata, asset directory, and HTML generator. */
 export interface StaticStudioConfig {
   /** Machine name reported by /api/health, for example "pong_studio". */
   app: string;
@@ -34,6 +36,7 @@ export interface StaticStudioConfig {
   generateHtml: () => string;
 }
 
+/** Starts a local Bun HTTP server for a static studio with loopback protection and asset serving. */
 export function startStaticStudioServer(config: StaticStudioConfig, options: StudioServerOptions = {}) {
   const port = options.port ?? 0;
   const host = options.host ?? "127.0.0.1";

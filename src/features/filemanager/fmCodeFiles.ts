@@ -9,15 +9,21 @@ import { randomBytes } from "crypto";
 import { absolutePath, assertCreatable, assertFolder, assertModifiable, lstatOrNull, pathApi, type FmContext } from "./fmCore";
 import { FmError } from "./fmPaths";
 
+/** Maximum file size in bytes that can be opened in the Code editor. */
 export const MAX_READ_BYTES = 5 * 1024 * 1024;
+/** Maximum character count allowed when saving a document from the Code editor. */
 export const MAX_SAVE_CHARS = 16 * 1024 * 1024;
 const MAX_UPLOAD_CHARS = 200_000;
 
+/** Supported text encodings for reading and saving files in the Code editor. */
 export const ENCODINGS = ["utf-8", "utf-8-bom", "utf-16le", "utf-16be", "latin1"] as const;
+/** Union of character encoding identifiers supported by the Code editor. */
 export type Encoding = (typeof ENCODINGS)[number];
+/** Line-ending style identifier (`lf`, `crlf`, or `cr`). */
 export type Eol = "lf" | "crlf" | "cr";
 const EOL_TEXT: Record<Eol, string> = { lf: "\n", crlf: "\r\n", cr: "\r" };
 
+/** Decoded file payload, encoding metadata, line-ending style, and disk stats returned when opening a file in the Code tab. */
 export interface CodeFile {
   path: string;
   name: string;
@@ -36,6 +42,7 @@ export interface CodeFile {
   writable: boolean;
 }
 
+/** Decodes a raw byte buffer into text using an explicit, BOM-detected, or auto-detected character encoding. */
 export function decodeBytes(bytes: Buffer, forced?: Encoding, truncated = false): { text: string; encoding: Encoding; guessed: boolean } {
   let encoding: Encoding | undefined = forced;
   let body = bytes;
@@ -68,6 +75,7 @@ export function decodeBytes(bytes: Buffer, forced?: Encoding, truncated = false)
   return { text: new TextDecoder("utf-8").decode(body), encoding, guessed };
 }
 
+/** Encodes a string into a byte buffer using the specified character encoding (including BOM where applicable). */
 export function encodeText(text: string, encoding: Encoding): Buffer {
   switch (encoding) {
     case "utf-8-bom": return Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from(text, "utf8")]);
@@ -107,6 +115,7 @@ export function normalizeEol(text: string): { text: string; eol: Eol; mixed: boo
 const isEncoding = (v: unknown): v is Encoding => typeof v === "string" && (ENCODINGS as readonly string[]).includes(v);
 const isEol = (v: unknown): v is Eol => v === "lf" || v === "crlf" || v === "cr";
 
+/** Reads and decodes a regular file for the Code editor, detecting its encoding, line endings, and modification timestamp. */
 export async function readCodeFile(ctx: FmContext, input: unknown, forcedEncoding?: unknown): Promise<CodeFile> {
   const path = absolutePath(ctx, input);
   const link = await lstatOrNull(path);
@@ -151,6 +160,7 @@ export async function readCodeFile(ctx: FmContext, input: unknown, forcedEncodin
 interface Upload { parts: string[]; chars: number; timer: NodeJS.Timeout }
 const uploads = new WeakMap<FmContext, Map<string, Upload>>();
 
+/** Appends a chunk of text to an in-progress chunked upload session for saving large files. */
 export function uploadChunk(ctx: FmContext, body: Record<string, any>): { received: number } {
   const id = typeof body.id === "string" && /^[\w-]{6,64}$/.test(body.id) ? body.id : "";
   if (!id) throw new FmError("BAD_REQUEST", "That upload has no valid id.");
@@ -190,6 +200,7 @@ function takeText(ctx: FmContext, body: Record<string, any>): string {
 // Saving
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Result returned after atomically saving a file from the Code editor. */
 export interface SaveResult { path: string; size: number; mtimeMs: number; created: boolean }
 
 async function writeAtomic(ctx: FmContext, target: string, bytes: Buffer, mode: number | null): Promise<void> {

@@ -6,12 +6,14 @@ import type { Database } from "bun:sqlite";
 import { createAdapter, type DbAdapter } from "../index";
 import { AdapterStageDb, SqliteStageDb, type StageDb } from "./db";
 
+/** Minimal interface describing a SQLite studio manager's active database state. */
 export interface SqliteLike {
   db: Database;
   activePath: string;
   isMemory: boolean;
 }
 
+/** Returns a cached `StageDb` factory that tracks the active SQLite database or in-memory instance. */
 export function sqliteProvider(get: () => SqliteLike): () => Promise<StageDb> {
   let last: { key: unknown; value: StageDb } | null = null;
   return async () => {
@@ -24,6 +26,7 @@ export function sqliteProvider(get: () => SqliteLike): () => Promise<StageDb> {
   };
 }
 
+/** Connection parameters for a MySQL or PostgreSQL server managed by a studio instance. */
 export interface ServerLike {
   host: string;
   port: number;
@@ -34,6 +37,7 @@ export interface ServerLike {
   tls?: boolean;
 }
 
+/** Returns a cached `StageDb` factory that manages dedicated adapter connections for MySQL or PostgreSQL. */
 export function serverProvider(engine: "mysql" | "postgres", get: () => ServerLike): () => Promise<StageDb> {
   let last: { key: string; adapter: DbAdapter; value: StageDb } | null = null;
   return async () => {

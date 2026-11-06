@@ -64,6 +64,7 @@ class Pull {
   }
 }
 
+/** Options for extracting a decrypted RADENC container stream into a temporary directory. */
 export interface ExtractOptions {
   /** Where the temporary folder is made. */
   tempParent: string;
@@ -74,6 +75,7 @@ export interface ExtractOptions {
   state: { tempDir?: string };
 }
 
+/** Metadata and temporary path of the root item extracted from a RADENC container stream. */
 export interface Extracted {
   kind: "file" | "folder";
   name: string;
@@ -109,6 +111,7 @@ async function freeSpace(dir: string): Promise<number | null> {
   }
 }
 
+/** Parses and extracts an authenticated RADENC container byte stream (`source`) into a fresh temporary directory under `opts.tempParent`. */
 export async function extractContainer(source: AsyncIterable<Buffer>, opts: ExtractOptions): Promise<Extracted> {
   const pull = new Pull(source);
   try {

@@ -11,26 +11,40 @@ import type { FileHandle } from "node:fs/promises";
 import { totalmem } from "node:os";
 import { FmError } from "./fmPaths";
 
+/** Magic byte sequence (`RADENC01`) identifying a version-1 RADENC vault file. */
 export const MAGIC = Buffer.from("RADENC01", "latin1");
+/** Fixed byte size of the RADENC file header. */
 export const HEADER_SIZE = 64;
+/** Fixed byte size of each chunk's AES-256-GCM authentication tag. */
 export const TAG_SIZE = 16;
+/** Identifier code for the Argon2id key derivation function. */
 export const KDF_ARGON2ID = 1;
+/** Identifier code for the STREAM-mode AES-256-GCM chunked cipher construction. */
 export const CIPHER_AES256GCM_STREAM = 1;
+/** Header bitmask flag indicating the payload stream is gzip-compressed before encryption. */
 export const FLAG_GZIP = 1;
+/** Default base-2 logarithm of plaintext chunk size (`20` = 1 MiB chunks). */
 export const DEFAULT_CHUNK_LOG2 = 20;
+/** Minimum allowed base-2 logarithm of plaintext chunk size (`12` = 4 KiB chunks). */
 export const MIN_CHUNK_LOG2 = 12;
+/** Maximum allowed base-2 logarithm of plaintext chunk size (`24` = 16 MiB chunks). */
 export const MAX_CHUNK_LOG2 = 24;
+/** HKDF info string used when deriving the per-file encryption key from the Argon2id output. */
 export const KDF_INFO = "radenc v1 file key";
+/** Standard file extension for RADENC encrypted files. */
 export const EXTENSION = ".radenc";
 
+/** Named key-derivation strength preset (`"standard"` or `"maximum"`). */
 export type Level = "standard" | "maximum";
 
+/** Argon2id key derivation cost parameters stored in the vault header. */
 export interface KdfParams {
   memoryKiB: number;
   passes: number;
   parallelism: number;
 }
 
+/** Predefined Argon2id cost parameter sets for each security level preset. */
 export const LEVELS: Record<Level, KdfParams> = {
   standard: { memoryKiB: 256 * 1024, passes: 3, parallelism: 4 },
   maximum: { memoryKiB: 1024 * 1024, passes: 4, parallelism: 4 },
@@ -42,8 +56,10 @@ export const KDF_LIMITS = { maxMemoryKiB: 2 * 1024 * 1024, maxPasses: 10, maxPar
 /** One message for every reason a file cannot be opened, so a wrong password and a damaged file look the same. */
 export const WRONG_OR_DAMAGED = "Wrong password, or the file is damaged or has been changed.";
 
+/** Domain error thrown by RADENC format and container operations. */
 export class VaultError extends FmError {}
 
+/** Parsed fields of the 64-byte RADENC v1 file header. */
 export interface VaultHeader extends KdfParams {
   kdfId: number;
   salt: Buffer;
@@ -53,8 +69,10 @@ export interface VaultHeader extends KdfParams {
   noncePrefix: Buffer;
 }
 
+/** Result of parsing and validating a raw RADENC file header. */
 export type HeaderCheck = { ok: true; header: VaultHeader; raw: Buffer } | { ok: false; code: "NOT_RADENC" | "UNSUPPORTED" | "BAD_PARAMS"; detail: string };
 
+/** Maps a `KdfParams` configuration to its matching preset `Level` name, or `"custom"` if it differs. */
 export function levelOf(p: KdfParams): Level | "custom" {
   for (const name of ["standard", "maximum"] as const) {
     const l = LEVELS[name];
@@ -73,6 +91,7 @@ export function kdfRefusal(p: KdfParams): string | null {
   return null;
 }
 
+/** Serializes a `VaultHeader` into its 64-byte binary representation. */
 export function encodeHeader(h: VaultHeader): Buffer {
   const b = Buffer.alloc(HEADER_SIZE);
   MAGIC.copy(b, 0);
@@ -88,6 +107,7 @@ export function encodeHeader(h: VaultHeader): Buffer {
   return b; // bytes 57..63 are reserved and stay zero
 }
 
+/** Creates a new `VaultHeader` with fresh random salt and nonce prefix for the given KDF and compression settings. */
 export function newHeader(params: KdfParams, compress: boolean, chunkLog2 = DEFAULT_CHUNK_LOG2): VaultHeader {
   return { kdfId: KDF_ARGON2ID, ...params, salt: randomBytes(32), cipherId: CIPHER_AES256GCM_STREAM, chunkLog2, flags: compress ? FLAG_GZIP : 0, noncePrefix: randomBytes(7) };
 }
@@ -173,6 +193,7 @@ function nonceFor(prefix: Buffer, counter: number, last: boolean): Buffer {
   return nonce;
 }
 
+/** Encrypts and authenticates a single plaintext chunk using AES-256-GCM with the header as AAD. */
 export function sealChunk(key: Buffer, raw: Buffer, prefix: Buffer, counter: number, last: boolean, plain: Buffer): Buffer {
   if (!Number.isInteger(counter) || counter < 0 || counter > 0xffffffff) throw new VaultError("TOO_LARGE", "This is too large to encrypt in one file.");
   const cipher = createCipheriv("aes-256-gcm", key, nonceFor(prefix, counter, last), { authTagLength: TAG_SIZE });
@@ -197,6 +218,7 @@ export function openChunk(key: Buffer, raw: Buffer, prefix: Buffer, counter: num
   }
 }
 
+/** Throws a `CANCELLED` `VaultError` if the optional `AbortSignal` has been aborted. */
 export function throwIfAborted(signal?: AbortSignal): void {
   if (signal?.aborted) throw new VaultError("CANCELLED", "Cancelled.");
 }

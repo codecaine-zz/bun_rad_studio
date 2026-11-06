@@ -1,3 +1,7 @@
+/**
+ * Asynchronous filesystem toolkit providing atomic file writes, JSON/JSONL/CSV I/O,
+ * line operations, recursive directory traversal, temporary directories, byte formatting, and file hashing.
+ */
 // Feature: RAD - fileutils
 // Async, non-blocking filesystem toolkit: atomic writes, JSON/JSONL/CSV I/O, line ops,
 // directory walking, temp dirs, byte formatting, and content hashing.
@@ -721,6 +725,9 @@ export async function dirSize(dirPath: string): Promise<number> {
   return sizes.reduce((a, b) => a + b, 0);
 }
 
+/**
+ * Namespace of asynchronous filesystem, JSON/JSONL/CSV, directory walking, and file hashing utilities.
+ */
 export const fileutils = {
   ensureDir,
   formatBytes,

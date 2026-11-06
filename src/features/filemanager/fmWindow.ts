@@ -21,14 +21,20 @@ import * as nodePath from "path";
 import { type FmContext, type FmHandler } from "./fmCore";
 import { FmError } from "./fmPaths";
 
+/** File name in the app data directory where File Manager window bounds and preferences are persisted. */
 export const WINDOW_FILE = "file_manager_window.json";
+/** Supported startup window sizing modes (`"fill"`, `"remember"`, `"fullscreen"`). */
 export const WINDOW_MODES = ["fill", "remember", "fullscreen"] as const;
 /** fill = the screen's usable area (the default); remember = what the person last chose; fullscreen = the system's full-screen mode. */
 export type WindowMode = (typeof WINDOW_MODES)[number];
 
+/** Minimum allowed window width in points/pixels. */
 export const MIN_WINDOW_WIDTH = 640;
+/** Minimum allowed window height in points/pixels. */
 export const MIN_WINDOW_HEIGHT = 420;
+/** Maximum allowed window width or height in points/pixels. */
 export const MAX_WINDOW_SIZE = 16384;
+/** Maximum absolute screen coordinate accepted for a saved window position. */
 export const MAX_WINDOW_COORD = 100000;
 /** The size of the window when it is not maximised and nothing is remembered (also what un-maximising goes back to). */
 export const DEFAULT_WINDOW_SIZE = { width: 1280, height: 820 } as const;
@@ -36,6 +42,7 @@ export const DEFAULT_WINDOW_SIZE = { width: 1280, height: 820 } as const;
 const MIN_VISIBLE_WIDTH = 120;
 const MIN_VISIBLE_HEIGHT = 60;
 
+/** Axis-aligned rectangle in screen coordinates (`x`, `y`, `width`, `height`). */
 export interface Rect {
   x: number;
   y: number;
@@ -48,6 +55,7 @@ export interface FmScreen extends Rect {
   work: Rect;
 }
 
+/** Saved geometry, maximized/fullscreen state, and display metadata of the File Manager window. */
 export interface WindowState {
   /** The window's own size and position, as it is when not maximised (kept while it is maximised, so un-maximising comes back to it). */
   x: number;
@@ -62,6 +70,7 @@ export interface WindowState {
   dpr: number;
 }
 
+/** Persisted File Manager window startup mode, last known bounds, and optional always-on-top preference. */
 export interface WindowPrefs {
   mode: WindowMode;
   state: WindowState | null;
@@ -69,6 +78,7 @@ export interface WindowPrefs {
   alwaysOnTop?: boolean;
 }
 
+/** Default window preferences used when no saved state exists (`mode: "fill"`, `state: null`). */
 export const DEFAULT_WINDOW_PREFS: Readonly<WindowPrefs> = { mode: "fill", state: null };
 
 const defaultPrefs = (): WindowPrefs => ({ mode: "fill", state: null });
@@ -101,12 +111,14 @@ export function sanitizeWindowState(raw: unknown): WindowState | null {
   };
 }
 
+/** Validates and normalizes an untrusted value into a safe `WindowPrefs` object. */
 export function sanitizeWindowPrefs(raw: unknown): WindowPrefs {
   const r = (raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {}) as Record<string, unknown>;
   const mode = WINDOW_MODES.includes(r.mode as WindowMode) ? (r.mode as WindowMode) : "fill";
   return { mode, state: sanitizeWindowState(r.state), ...(r.alwaysOnTop === true ? { alwaysOnTop: true } : {}) };
 }
 
+/** Type guard checking whether an unknown value is a valid `WindowMode`. */
 export function isWindowMode(v: unknown): v is WindowMode {
   return typeof v === "string" && (WINDOW_MODES as readonly string[]).includes(v);
 }
@@ -116,6 +128,7 @@ export function windowDataDir(context: { home?: string; dataDir?: string } = {})
   return nodePath.resolve(context.dataDir ?? nodePath.join(nodePath.resolve(context.home ?? homedir()), ".bun_rad_studio"));
 }
 
+/** Returns the absolute path to `file_manager_window.json` inside `dataDir`. */
 export const windowFile = (dataDir: string) => nodePath.join(dataDir, WINDOW_FILE);
 
 /** The saved preference. A missing or damaged file means the default (fill the screen). */
@@ -160,6 +173,7 @@ export function resetWindowPrefs(dataDir: string): WindowPrefs {
   return defaultPrefs();
 }
 
+/** Checks whether two `WindowState` snapshots have identical coordinates, dimensions, flags, and display metrics. */
 export function sameWindowState(a: WindowState | null, b: WindowState | null): boolean {
   if (!a || !b) return a === b;
   return a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height && a.maximized === b.maximized && a.fullscreen === b.fullscreen && a.screenWidth === b.screenWidth && a.screenHeight === b.screenHeight && a.dpr === b.dpr;
@@ -171,6 +185,7 @@ export function mergeNormalBounds(previous: WindowState | null, next: WindowStat
   return next;
 }
 
+/** Result of evaluating a window geometry report from the UI against the current `WindowPrefs`. */
 export interface ReportResult {
   prefs: WindowPrefs;
   /** True when `prefs` is new and should be written. */
@@ -196,8 +211,10 @@ export function reduceReport(prefs: WindowPrefs, raw: unknown): ReportResult {
   return { prefs: { ...prefs, mode: "remember", state: merged }, save: true, modeSwitched };
 }
 
+/** Target display state for the window after applying its initial size and position (`"maximize"`, `"fullscreen"`, or `"normal"`). */
 export type WindowPlanMode = "maximize" | "fullscreen" | "normal";
 
+/** Computed startup position, dimensions, display mode, and placement reason for the File Manager window. */
 export interface WindowPlan {
   /** What to do after sizing: fill the usable screen, enter full screen, or just show the window at this size. */
   mode: WindowPlanMode;

@@ -1,3 +1,6 @@
+/**
+ * Standalone loopback HTTP server entry point for the Database Workbench (`bun run workbench`).
+ */
 import { getSharedWorkbench } from "./workbench_shared";
 import type { WorkbenchHandler } from "./workbench_http";
 

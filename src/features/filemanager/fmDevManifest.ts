@@ -6,6 +6,7 @@
 import { MAX_MANIFEST_BYTES, readManifestText } from "./fmDevRead";
 
 export { MAX_MANIFEST_BYTES };
+/** Re-exported helper (`readManifestText`) that reads a small UTF-8 manifest file or returns `null` if missing/binary. */
 export const readText = readManifestText;
 
 type TomlValue = string | number | boolean | string[];

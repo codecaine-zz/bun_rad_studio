@@ -8,10 +8,14 @@ import { isIP } from "node:net";
 import { FmError } from "./fmPaths";
 import { addActivity, cleanText, round1, timeout, type NetState } from "./fmNetCore";
 
+/** Supported DNS record types in the Network tool's DNS inspector. */
 export const DNS_TYPES = ["A", "AAAA", "MX", "TXT", "NS", "SOA", "CAA", "CNAME", "PTR"] as const;
+/** Union of supported DNS record type strings. */
 export type DnsType = (typeof DNS_TYPES)[number];
+/** Subset of DNS record types queried in parallel during a full domain `dnsAudit`. */
 export const AUDIT_TYPES: DnsType[] = ["A", "AAAA", "MX", "TXT", "NS", "SOA", "CNAME", "CAA"];
 
+/** Minimal interface matching Node's `dns.promises` / `dns.promises.Resolver` methods used by the DNS inspector. */
 export interface DnsResolverLike {
   resolve4(host: string): Promise<unknown>;
   resolve6(host: string): Promise<unknown>;
@@ -24,12 +28,14 @@ export interface DnsResolverLike {
   reverse(ip: string): Promise<string[]>;
 }
 
+/** Injectable DNS resolvers (system, public fallback, and OS `lookup`) for `dnsQuery` and `dnsAudit`. */
 export interface DnsDeps {
   system: DnsResolverLike;
   publicResolver: () => DnsResolverLike;
   lookup: (host: string) => Promise<Array<{ address: string; family: number }>>;
 }
 
+/** Default production DNS dependencies using Node's system resolver with Cloudflare/Google fallback and `dns.lookup`. */
 export const defaultDnsDeps: DnsDeps = {
   system: dns,
   publicResolver: () => {
@@ -56,6 +62,7 @@ const NO_DATA = new Set(["ENODATA", "ENOTFOUND", "NXDOMAIN", "ENOENT"]);
 const SERVER_PROBLEM = new Set(["ECONNREFUSED", "ETIMEOUT", "ETIMEDOUT", "ESERVFAIL", "EREFUSED", "ECONNRESET", "EAI_AGAIN", "ENOTINITIALIZED", "ECANCELLED", "EBADRESP", "ENOTIMP", "ENOMEM", "ENETUNREACH", "EHOSTUNREACH"]);
 const errorCode = (err: unknown): string => String((err as NodeJS.ErrnoException)?.code ?? "UNKNOWN");
 
+/** Formats raw DNS resolver records of `type` into human-readable display lines (capped at 200 lines). */
 export function formatRecords(type: DnsType, records: unknown): string[] {
   const list = Array.isArray(records) ? records : records === null || records === undefined ? [] : [records];
   const lines: string[] = [];
@@ -74,6 +81,7 @@ export function formatRecords(type: DnsType, records: unknown): string[] {
   return lines.slice(0, 200).map((l) => cleanText(l, 1500));
 }
 
+/** Structured result of a single DNS record query, including responder source, formatted lines, timing, and plain-language explanation. */
 export interface DnsAnswer {
   host: string;
   type: DnsType;
@@ -136,6 +144,7 @@ function localAnswer(host: string, type: DnsType, started: number): DnsAnswer | 
   return answer(host, type, started, "local", []);
 }
 
+/** Queries DNS records of `type` for `host`, trying the system resolver first and falling back to public DNS or OS lookup when unreachable. */
 export async function dnsQuery(state: NetState, host: string, type: DnsType, deps: DnsDeps = defaultDnsDeps, timeoutMs = 4000): Promise<DnsAnswer> {
   const started = performance.now();
   const isAddress = isIP(host) !== 0;
@@ -180,6 +189,7 @@ async function recover(state: NetState, host: string, type: DnsType, deps: DnsDe
   return answer(host, type, started, "system", [], { error: { code, message }, noData: false, explain: message });
 }
 
+/** Runs a comprehensive DNS audit for `host` across all `AUDIT_TYPES` (or `PTR` when `host` is an IP address). */
 export async function dnsAudit(state: NetState, host: string, deps: DnsDeps = defaultDnsDeps) {
   const started = performance.now();
   const types: DnsType[] = isIP(host) !== 0 ? ["PTR"] : AUDIT_TYPES;

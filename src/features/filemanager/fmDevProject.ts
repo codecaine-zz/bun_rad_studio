@@ -7,6 +7,7 @@ import { promises as fsp } from "fs";
 import * as nodePath from "path";
 import { detectLicense, parseTomlLite, readText } from "./fmDevManifest";
 
+/** Summary card describing a detected project manifest (such as `package.json`, `Cargo.toml`, or `pyproject.toml`). */
 export interface ProjectCard {
   id: string;
   title: string;
@@ -18,6 +19,7 @@ export interface ProjectCard {
   runner?: string;
 }
 
+/** Aggregated project manifests, workspaces, scripts, dependencies, and license metadata discovered in a folder. */
 export interface ProjectInfo {
   root: string;
   cards: ProjectCard[];

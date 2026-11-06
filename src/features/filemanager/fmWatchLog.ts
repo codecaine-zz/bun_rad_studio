@@ -3,6 +3,7 @@
  * grows, so the page can ask for "everything since where I was".
  */
 
+/** Default maximum number of characters retained in a watcher's ring log buffer (`1,000,000`). */
 export const MAX_LOG_CHARS = 1_000_000;
 
 /** Removes colors and other terminal escape sequences, and makes line endings plain. */
@@ -36,12 +37,14 @@ export function createTextCleaner(): (bytes: Uint8Array | null, final?: boolean)
   };
 }
 
+/** Bounded ring buffer of ANSI-stripped watcher log output with a monotonically advancing cursor and clear epoch. */
 export class LogBuffer {
   private text = "";
   private base = 0;
   /** Changes whenever the log is cleared, so a reader knows its copy is out of date. */
   epoch = 0;
 
+  /** Creates a `LogBuffer` retaining at most `cap` characters of recent output. */
   constructor(private readonly cap = MAX_LOG_CHARS) {}
 
   /** Position after the last character ever written (characters dropped or cleared still count). */
@@ -49,10 +52,12 @@ export class LogBuffer {
     return this.base + this.text.length;
   }
 
+  /** Number of characters currently held in the buffer. */
   get length(): number {
     return this.text.length;
   }
 
+  /** Appends `text` to the buffer, dropping the oldest leading characters if the capacity `cap` is exceeded. */
   append(text: string): void {
     if (!text) return;
     this.text += text;
@@ -63,6 +68,7 @@ export class LogBuffer {
     }
   }
 
+  /** Empties the current log text while preserving the monotonic cursor position and incrementing `epoch`. */
   clear(): void {
     this.base = this.cursor;
     this.text = "";
@@ -76,6 +82,7 @@ export class LogBuffer {
     return { log: this.text.slice(since - this.base), cursor: this.cursor, epoch: this.epoch, reset: false };
   }
 
+  /** Returns the full currently buffered text and whether earlier output was dropped or cleared. */
   snapshot(): { text: string; truncated: boolean } {
     return { text: this.text, truncated: this.base > 0 };
   }

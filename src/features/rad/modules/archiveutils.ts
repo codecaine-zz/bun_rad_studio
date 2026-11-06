@@ -1,3 +1,7 @@
+/**
+ * Zero-dependency PKZIP (`.zip`) archive writer and reader powered by Bun's native DEFLATE and CRC-32,
+ * including zip-slip path traversal protection and directory archiving.
+ */
 // Feature: RAD - archiveutils
 // Zero-dependency PKZIP (ZIP) writer/reader on Bun's native deflate + crc32.
 // Correct DOS timestamps, UTF-8 names, store-vs-deflate auto selection, directory entries,
@@ -349,6 +353,9 @@ export async function zipDir(srcDir: string, destZipPath: string, filter?: (relP
   return entries.length;
 }
 
+/**
+ * Namespace of PKZIP archive creation, inspection, and extraction utilities.
+ */
 export const archiveutils = {
   zipFiles,
   zipFile,

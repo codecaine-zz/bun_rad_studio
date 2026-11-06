@@ -39,10 +39,12 @@ import { extensionOf } from "./fmPaths";
 import { sniffType } from "./fmSniff";
 import { readCentralDirectory, readZipEntry, type CentralEntry } from "./fmZip";
 
+/** Structural block element (heading, paragraph, list item, blockquote, code block, or table) extracted from a document preview. */
 export type DocBlock =
   | { type: "h1" | "h2" | "h3" | "p" | "li" | "quote" | "code"; text: string }
   | { type: "table"; rows: string[][] };
 
+/** Rich preview payload for spreadsheet files (XLSX, ODS, Numbers, CSV, TSV) containing sheet names, headers, and sample rows. */
 export interface RichSpreadsheetPreview {
   kind: "spreadsheet";
   formatLabel: string;
@@ -57,6 +59,7 @@ export interface RichSpreadsheetPreview {
   hasThumb?: boolean;
 }
 
+/** Rich preview payload for word-processing documents and e-books (DOCX, ODT, RTF, Pages, EPUB) containing structured blocks and chapters. */
 export interface RichDocumentPreview {
   kind: "document";
   formatLabel: string;
@@ -69,6 +72,7 @@ export interface RichDocumentPreview {
   hasThumb?: boolean;
 }
 
+/** Rich preview payload for slide presentations (PPTX, ODP, Keynote) containing per-slide titles, bullet points, and speaker notes. */
 export interface RichPresentationPreview {
   kind: "presentation";
   formatLabel: string;
@@ -83,6 +87,7 @@ export interface RichPresentationPreview {
   hasThumb?: boolean;
 }
 
+/** Rich preview payload for PDF documents containing page count, dimensions, encryption status, outline bookmarks, and extracted text. */
 export interface RichPdfPreview {
   kind: "pdf";
   formatLabel: string;
@@ -97,6 +102,7 @@ export interface RichPdfPreview {
   hasThumb?: boolean;
 }
 
+/** Rich preview payload for SQLite database files containing table/view schemas, row counts, and sample rows. */
 export interface RichSqlitePreview {
   kind: "sqlite";
   formatLabel: string;
@@ -111,6 +117,7 @@ export interface RichSqlitePreview {
   }>;
 }
 
+/** Rich preview payload for compressed archives (ZIP, TAR, GZIP) containing entry listings, compression statistics, and optional inner text preview. */
 export interface RichArchivePreview {
   kind: "archive";
   formatLabel: string;
@@ -126,6 +133,7 @@ export interface RichArchivePreview {
   innerText?: string;
 }
 
+/** Rich preview payload for font files (TTF, OTF, WOFF, WOFF2) containing family/style names and specimen renderability. */
 export interface RichFontPreview {
   kind: "font";
   formatLabel: string;
@@ -135,6 +143,7 @@ export interface RichFontPreview {
   canRenderSpecimen: boolean;
 }
 
+/** Rich preview payload for structured data and configuration files (JSON, JSONL, YAML, TOML, INI, ENV, XML, Plist, GeoJSON). */
 export interface RichStructuredPreview {
   kind: "structured";
   subkind: "json" | "jsonl" | "yaml" | "toml" | "ini" | "env" | "xml" | "plist" | "bplist" | "geojson";
@@ -145,6 +154,7 @@ export interface RichStructuredPreview {
   formattedText?: string;
 }
 
+/** Rich preview payload for Jupyter Notebooks (`.ipynb`) containing ordered markdown/code/raw cells and rendered outputs. */
 export interface RichNotebookPreview {
   kind: "notebook";
   formatLabel: string;
@@ -158,6 +168,7 @@ export interface RichNotebookPreview {
   }>;
 }
 
+/** Rich preview payload for subtitle and synced lyrics files (SRT, VTT, ASS, SSA, SBV, LRC) containing timed caption cues. */
 export interface RichSubtitlesPreview {
   kind: "subtitles";
   formatLabel: string;
@@ -166,6 +177,7 @@ export interface RichSubtitlesPreview {
   totalCues: number;
 }
 
+/** Rich preview payload for audio/video playlist files (M3U, M3U8, PLS) containing ordered track entries and durations. */
 export interface RichPlaylistPreview {
   kind: "playlist";
   formatLabel: string;
@@ -173,6 +185,7 @@ export interface RichPlaylistPreview {
   tracks: Array<{ index: number; title: string; duration?: string; path: string }>;
 }
 
+/** Rich preview payload for iCalendar schedule files (`.ics`) containing parsed events and todo items. */
 export interface RichCalendarPreview {
   kind: "calendar";
   formatLabel: string;
@@ -188,6 +201,7 @@ export interface RichCalendarPreview {
   }>;
 }
 
+/** Rich preview payload for vCard address book files (`.vcf`) containing contact cards with phone numbers, emails, and addresses. */
 export interface RichContactPreview {
   kind: "contact";
   formatLabel: string;
@@ -204,6 +218,7 @@ export interface RichContactPreview {
   }>;
 }
 
+/** Rich preview payload for cryptographic certificates and public keys (PEM, CRT, CER, DER, CSR, SSH `.pub`) with SHA-256/SHA-1 fingerprints. */
 export interface RichCertificatePreview {
   kind: "certificate";
   formatLabel: string;
@@ -217,6 +232,7 @@ export interface RichCertificatePreview {
   }>;
 }
 
+/** Rich preview payload for 3D geometry meshes (OBJ, STL, PLY, glTF, GLB) containing normalized wireframe vertices and edges. */
 export interface RichModel3dPreview {
   kind: "model3d";
   formatLabel: string;
@@ -225,6 +241,7 @@ export interface RichModel3dPreview {
   edges: Array<[number, number]>;
 }
 
+/** Rich preview payload for unified diff and patch files (`.diff`, `.patch`) containing per-file line additions, deletions, and hunks. */
 export interface RichDiffPreview {
   kind: "diff";
   formatLabel: string;
@@ -238,6 +255,7 @@ export interface RichDiffPreview {
   }>;
 }
 
+/** Rich preview payload for application log files (`.log`) with severity level counts and parsed timestamped entries. */
 export interface RichLogPreview {
   kind: "log";
   formatLabel: string;
@@ -246,6 +264,7 @@ export interface RichLogPreview {
   entries: Array<{ line: number; level: "ERROR" | "WARN" | "INFO" | "DEBUG" | "OTHER"; timestamp?: string; text: string }>;
 }
 
+/** Rich preview payload for arbitrary binary files (executables, object files, unknown binaries) with hex+ASCII dump lines and printable strings. */
 export interface RichBinaryPreview {
   kind: "binary";
   formatLabel: string;
@@ -254,6 +273,7 @@ export interface RichBinaryPreview {
   strings: string[];
 }
 
+/** Discriminated union of all rich file preview payloads rendered by the File Manager Quick Look / Info panel. */
 export type RichPreview =
   | RichSpreadsheetPreview
   | RichDocumentPreview
@@ -288,6 +308,7 @@ function flattenGroups(groups: InfoGroup[]): Array<[string, string]> {
 // Hex + ASCII + Printable Strings + Entropy
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Formats the first `maxBytes` of `buf` into classic 16-byte-per-row hexadecimal + ASCII dump lines. */
 export function buildHexLines(buf: Uint8Array, maxBytes = 2048): string[] {
   const len = Math.min(buf.length, maxBytes);
   const lines: string[] = [];
@@ -314,6 +335,7 @@ export function buildHexLines(buf: Uint8Array, maxBytes = 2048): string[] {
   return lines;
 }
 
+/** Extracts up to `maxCount` printable ASCII runs of length at least `minLen` from the first 64 KiB of `buf`. */
 export function extractPrintableStrings(buf: Uint8Array, minLen = 4, maxCount = 120): string[] {
   const out: string[] = [];
   let cur = "";
@@ -351,6 +373,7 @@ function shannonEntropy(buf: Uint8Array): number {
 // Apple Binary Property List (bplist00) Pure-TS Decoder
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Decodes an Apple `bplist00` binary property list buffer into its JavaScript value representation, or returns `null` if invalid. */
 export function parseBinaryPlist(buf: Buffer): unknown {
   if (buf.length < 40 || buf.subarray(0, 8).toString("ascii") !== "bplist00") return null;
   const trailer = buf.subarray(buf.length - 32);
@@ -467,6 +490,7 @@ export function parseBinaryPlist(buf: Buffer): unknown {
 // RTF (Rich Text Format) Reader
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Parses a Rich Text Format (`.rtf`) document into structured `DocBlock` paragraphs, plain text, and document info metadata. */
 export function parseRtfDocument(raw: string): { blocks: DocBlock[]; plainText: string; meta: Array<[string, string]> } {
   const skipDests = new Set([
     "fonttbl", "colortbl", "stylesheet", "info", "pict", "object", "datafield",
@@ -741,6 +765,7 @@ function parseHtmlToBlocks(xhtml: string, maxBlocks = 250): DocBlock[] {
   return blocks;
 }
 
+/** Chapter, block, and part byte limits when extracting a rich preview or full text from an EPUB archive. */
 export interface EpubInspectLimits {
   maxChapters?: number;
   maxBlocksPerChapter?: number;
@@ -1783,6 +1808,7 @@ async function inspectSqliteRich(src: Source, path: string): Promise<RichSqliteP
 // Subtitles (.srt, .vtt, .sbv, .ass, .ssa, .lrc) & Playlists (.m3u, .m3u8, .pls, .xspf)
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Parses subtitle and lyric files (`.srt`, `.vtt`, `.sbv`, `.ass`, `.ssa`, `.lrc`) into a `RichSubtitlesPreview`. */
 export function parseSubtitlesRich(text: string, ext: string): RichSubtitlesPreview {
   const clean = text.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n");
   const cues: RichSubtitlesPreview["cues"] = [];
@@ -1863,6 +1889,7 @@ export function parseSubtitlesRich(text: string, ext: string): RichSubtitlesPrev
   };
 }
 
+/** Parses media playlist files (`.m3u`, `.m3u8`, `.pls`) into a `RichPlaylistPreview`. */
 export function parsePlaylistRich(text: string, ext: string): RichPlaylistPreview {
   const lines = text.replace(/\r\n?/g, "\n").split("\n").map((l) => l.trim()).filter(Boolean);
   const tracks: RichPlaylistPreview["tracks"] = [];
@@ -1942,6 +1969,7 @@ function formatIcsDate(raw: string): string {
   return `${date} ${m[4]}:${m[5]}${m[6] ? `:${m[6]}` : ""}${m[7] ? " UTC" : ""}`;
 }
 
+/** Parses an iCalendar (`.ics`) text document into a `RichCalendarPreview` of events and tasks. */
 export function parseCalendarRich(text: string): RichCalendarPreview {
   const lines = unfoldIcsLines(text);
   const events: RichCalendarPreview["events"] = [];
@@ -1993,6 +2021,7 @@ export function parseCalendarRich(text: string): RichCalendarPreview {
   };
 }
 
+/** Parses a vCard (`.vcf`) text document into a `RichContactPreview` of contact cards. */
 export function parseContactRich(text: string): RichContactPreview {
   const lines = unfoldIcsLines(text);
   const contacts: RichContactPreview["contacts"] = [];
@@ -2070,6 +2099,7 @@ function extractDerReadableStrings(der: Buffer): Array<[string, string]> {
   return details;
 }
 
+/** Parses PEM, DER, or OpenSSH public key/certificate content into a `RichCertificatePreview` with fingerprints and ASN.1 fields. */
 export function parseCertificateRich(buf: Buffer, text: string, ext: string): RichCertificatePreview {
   const blocks: RichCertificatePreview["blocks"] = [];
   if (ext === "pub" || /^(?:ssh-(?:rsa|ed25519|dss)|ecdsa-sha2-nistp\d+)\s+/i.test(text.trim())) {
@@ -2174,6 +2204,7 @@ function normalizeWireframe(verts: Array<[number, number, number]>, rawEdges: Ar
   };
 }
 
+/** Parses 3D model files (`.obj`, `.stl`, `.ply`, `.gltf`, `.glb`) into a `RichModel3dPreview` with normalized wireframe geometry and metadata. */
 export function parseModel3dRich(buf: Buffer, text: string, ext: string): RichModel3dPreview {
   const verts: Array<[number, number, number]> = [];
   const rawEdges: Array<[number, number]> = [];
@@ -2314,6 +2345,7 @@ export function parseModel3dRich(buf: Buffer, text: string, ext: string): RichMo
 // Jupyter Notebook (.ipynb), Diff (.diff/.patch), Log (.log)
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Parses a Jupyter Notebook (`.ipynb`) JSON string into a `RichNotebookPreview`, or returns `null` if invalid. */
 export function parseNotebookRich(text: string): RichNotebookPreview | null {
   try {
     const nb = JSON.parse(text);
@@ -2365,6 +2397,7 @@ export function parseNotebookRich(text: string): RichNotebookPreview | null {
   }
 }
 
+/** Parses a unified diff or patch document (`.diff`, `.patch`) into a `RichDiffPreview`. */
 export function parseDiffRich(text: string): RichDiffPreview {
   const files: RichDiffPreview["files"] = [];
   let curFile: RichDiffPreview["files"][number] | null = null;
@@ -2415,6 +2448,7 @@ export function parseDiffRich(text: string): RichDiffPreview {
   };
 }
 
+/** Parses a plain-text log file into a `RichLogPreview` with severity counts and structured log lines. */
 export function parseLogRich(text: string): RichLogPreview {
   const counts = { error: 0, warn: 0, info: 0, debug: 0, other: 0 };
   const entries: RichLogPreview["entries"] = [];
@@ -2629,6 +2663,7 @@ function inspectStructuredText(text: string, ext: string, baseName: string): Ric
 // Main Entry Point: inspectRichPreview
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Inspects an open file handle, header bytes, and optional decoded UTF-8 text to produce a format-specific `RichPreview` for Quick Look. */
 export async function inspectRichPreview(
   handle: fsp.FileHandle,
   path: string,

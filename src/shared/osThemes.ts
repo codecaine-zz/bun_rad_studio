@@ -1,7 +1,12 @@
+/**
+ * Operating-system-inspired color themes (Linux distributions, Windows releases, macOS versions,
+ * and classic desktop environments) conforming to the `SimpleGUITheme` schema.
+ */
 // Linux distribution, Windows version and macOS version themes.
 // Each entry follows the SimpleGUITheme shape; `registerOsThemes` merges them into the main table.
 import type { SimpleGUITheme } from "../simplegui";
 
+/** Dictionary of OS-inspired `SimpleGUITheme` definitions keyed by theme ID. */
 export const OS_THEMES: Record<string, SimpleGUITheme> = {
     debian_dark: {
         name: "Debian Dark",
@@ -810,6 +815,7 @@ export const OS_THEMES: Record<string, SimpleGUITheme> = {
     },
 };
 
+/** Ordered list of all theme IDs defined in `OS_THEMES`. */
 export const OS_THEME_KEYS: string[] = Object.keys(OS_THEMES);
 
 /** Lesser-known systems people loved (BeOS, OS/2, CDE, Palm, Zune...), shown in their own group. */

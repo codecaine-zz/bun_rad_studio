@@ -1,3 +1,7 @@
+/**
+ * Unit tests for the interactive `gdu` TUI keyboard dispatcher, state reducer,
+ * item details modal, and directory browser frame renderer.
+ */
 import { describe, expect, it } from "bun:test";
 import {
   applyGduTuiAction,

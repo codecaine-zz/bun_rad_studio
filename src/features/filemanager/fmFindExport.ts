@@ -9,7 +9,9 @@ import { absolutePath, assertCreatable, assertFolder, pathApi, type FmContext } 
 import { FmError, uniqueName, validateName } from "./fmPaths";
 import type { FindItem } from "./fmFindShared";
 
+/** Supported text serialization formats for exporting Find results. */
 export const EXPORT_FORMATS = ["json", "csv", "tsv", "md", "paths"] as const;
+/** Identifier for a supported Find result export format. */
 export type ExportFormat = (typeof EXPORT_FORMATS)[number];
 const EXTENSION: Record<ExportFormat, string> = { json: "json", csv: "csv", tsv: "tsv", md: "md", paths: "txt" };
 /** The most text that can be put on the clipboard in one go (the page's own limit is lower still). */
@@ -29,6 +31,7 @@ function rowsOf(items: FindItem[]): ExportRow[] {
   return items.map((i) => ({ name: flat(i.name), type: i.type, humanSize: formatHumanSize(i.sizeBytes), relativePath: flat(i.relativePath), mtimeStr: iso(i.mtimeMs), permStr: i.permStr }));
 }
 
+/** Serializes a list of `FindItem` matches into JSON, CSV, TSV, Markdown table, or newline-delimited paths. */
 export function formatResults(items: FindItem[], format: ExportFormat): string {
   switch (format) {
     case "json":
@@ -48,6 +51,7 @@ export function formatResults(items: FindItem[], format: ExportFormat): string {
   }
 }
 
+/** Validates that `value` is a supported `ExportFormat`, or throws a `BAD_FORMAT` `FmError`. */
 export function exportFormat(value: unknown): ExportFormat {
   if (typeof value === "string" && (EXPORT_FORMATS as readonly string[]).includes(value)) return value as ExportFormat;
   throw new FmError("BAD_FORMAT", `Choose a format: ${EXPORT_FORMATS.join(", ")}.`);

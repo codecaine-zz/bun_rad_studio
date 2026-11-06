@@ -4,6 +4,7 @@ import {
   CITIES, COMPANY_A, COMPANY_B, EMAIL_DOMAINS, FIRST_NAMES, LAST_NAMES, LOREM, STREETS, STREET_SUFFIX,
 } from "./words";
 
+/** Returns a deterministic 32-bit Mulberry32 pseudo-random number generator yielding floats in `[0, 1)`. */
 export function mulberry32(seed: number): () => number {
   let a = seed >>> 0;
   return () => {
@@ -25,11 +26,15 @@ export function hashString(s: string): number {
   return h >>> 0;
 }
 
+/** Converts an ISO `YYYY-MM-DD` date prefix into whole UTC days since the Unix epoch. */
 export const dayOf = (s: string): number => Math.floor(Date.parse(`${s.slice(0, 10)}T00:00:00Z`) / 86400000);
+/** Formats a whole UTC day count since the Unix epoch as an ISO `YYYY-MM-DD` string. */
 export const dayStr = (n: number): string => new Date(n * 86400000).toISOString().slice(0, 10);
+/** Adds `n` whole days to an ISO `YYYY-MM-DD` date string and returns the resulting `YYYY-MM-DD` string. */
 export const addDays = (s: string, n: number): string => dayStr(dayOf(s) + n);
 const p2 = (n: number) => (n < 10 ? `0${n}` : String(n));
 
+/** Computes the single Luhn mod-10 check digit for a numeric string payload. */
 export function luhnCheckDigit(base: string): string {
   let sum = 0;
   let dbl = true;
@@ -45,6 +50,7 @@ export function luhnCheckDigit(base: string): string {
   return String((10 - (sum % 10)) % 10);
 }
 
+/** Returns `true` when the given numeric string ends with a valid Luhn check digit. */
 export function luhnValid(num: string): boolean {
   return luhnCheckDigit(num.slice(0, -1)) === num.slice(-1);
 }
@@ -60,8 +66,10 @@ export function ibanLike(country: string, bban: string): string {
   return `${country}${p2(98 - rem)}${bban}`;
 }
 
+/** Deterministic per-table random value generator providing distributions, dates, names, and foreign-key helpers. */
 export class Gen {
   private rand: () => number;
+  /** Creates a seeded `Gen` instance scoped to a single table generation pass. */
   constructor(
     public readonly seed: number,
     public readonly scale: Scale,
@@ -75,10 +83,15 @@ export class Gen {
   }
 
   // ---- primitives
+  /** Returns the next uniform random float in `[0, 1)`. */
   r(): number { return this.rand(); }
+  /** Returns a uniform random integer in the inclusive range `[a, b]`. */
   int(a: number, b: number): number { return a + Math.floor(this.rand() * (b - a + 1)); }
+  /** Returns a uniform random floating-point number in `[a, b]` rounded to `dp` decimal places. */
   float(a: number, b: number, dp = 2): number { return Number((a + this.rand() * (b - a)).toFixed(dp)); }
+  /** Returns `true` with probability `p` (default `0.5`). */
   bool(p = 0.5): boolean { return this.rand() < p; }
+  /** Picks a uniformly random element from a non-empty array. */
   pick<T>(arr: readonly T[]): T { return arr[Math.floor(this.rand() * arr.length)]!; }
   /** Weighted choice: weights need not sum to one. */
   w<T>(items: readonly (readonly [T, number])[]): T {
@@ -93,16 +106,23 @@ export class Gen {
   }
   /** Index in [0, n) skewed towards 0 (power-law-like: a few hot items, a long tail). */
   skew(n: number, k = 2.5): number { return Math.min(n - 1, Math.floor(n * Math.pow(this.rand(), k))); }
+  /** Picks an element from `arr` using a power-law skew towards earlier indices. */
   pickSkew<T>(arr: readonly T[], k = 2.5): T { return arr[this.skew(arr.length, k)]!; }
+  /** Draws a normal (Gaussian) random variate with the given `mean` and standard deviation `sd`. */
   normal(mean: number, sd: number): number {
     const u = Math.max(this.rand(), 1e-12);
     const v = this.rand();
     return mean + sd * Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
   }
+  /** Draws a log-normal random variate with the specified `median` and log-scale `sigma`. */
   logNormal(median: number, sigma = 0.6): number { return median * Math.exp(this.normal(0, sigma)); }
+  /** Clamps `x` to the closed interval `[lo, hi]`. */
   clamp(x: number, lo: number, hi: number): number { return Math.min(hi, Math.max(lo, x)); }
+  /** Rounds `x` to `dp` decimal places (default `2`). */
   round(x: number, dp = 2): number { return Number(x.toFixed(dp)); }
+  /** Generates a log-normally distributed monetary amount clamped to `[min, max]` and rounded to 2 decimal places. */
   money(median: number, sigma = 0.6, min = 0.01, max = 1e9): number { return this.round(this.clamp(this.logNormal(median, sigma), min, max)); }
+  /** Draws up to `k` distinct random elements from `arr` without replacement. */
   sample<T>(arr: readonly T[], k: number): T[] {
     const copy = arr.slice();
     const out: T[] = [];
@@ -111,6 +131,7 @@ export class Gen {
   }
 
   // ---- dates (all returned as text: 'YYYY-MM-DD' and 'YYYY-MM-DD HH:MM:SS')
+  /** Generates a uniform random `YYYY-MM-DD` date string between `from` and `to` (inclusive). */
   date(from: string, to: string): string { return dayStr(this.int(dayOf(from), dayOf(to))); }
   /** A date with month and weekday weights (index 0 = January / Sunday). */
   seasonal(from: string, to: string, months: readonly number[], dows?: readonly number[]): string {
@@ -123,35 +144,51 @@ export class Gen {
     }
     return dayStr(this.int(a, b));
   }
+  /** Generates a random `HH:MM:SS` time string with hours in `[fromHour, toHour]`. */
   time(fromHour = 0, toHour = 23): string { return `${p2(this.int(fromHour, toHour))}:${p2(this.int(0, 59))}:${p2(this.int(0, 59))}`; }
+  /** Combines a `YYYY-MM-DD` date with a random `HH:MM:SS` time in `[fromHour, toHour]`. */
   ts(date: string, fromHour = 0, toHour = 23): string { return `${date} ${this.time(fromHour, toHour)}`; }
+  /** Generates a random `YYYY-MM-DD HH:MM:SS` timestamp between `from` and `to` dates. */
   tsBetween(from: string, to: string): string { return this.ts(this.date(from, to)); }
   /** Shift a 'YYYY-MM-DD[ HH:MM:SS]' value by whole days, keeping any time part. */
   shift(value: string, days: number): string { return dayStr(dayOf(value) + days) + value.slice(10); }
+  /** Returns the earlier of two ISO date or timestamp strings `a` and `b`. */
   minDate(a: string, b: string): string { return a <= b ? a : b; }
 
   // ---- people and places
+  /** Picks a random given name from `FIRST_NAMES`. */
   first(): string { return this.pickSkew(FIRST_NAMES, 1.6); }
+  /** Picks a random family name from `LAST_NAMES`. */
   last(): string { return this.pickSkew(LAST_NAMES, 1.6); }
+  /** Formats a synthetic email address for a given first and last name and optional disambiguating number. */
   email(first: string, last: string, n = 0): string {
     return `${first}.${last}${n ? n : ""}@${this.pick(EMAIL_DOMAINS)}`.toLowerCase().replace(/[^a-z0-9.@_-]/g, "");
   }
+  /** Generates a synthetic North American `555-XXX-XXXX` telephone number. */
   phone(): string { return `555-${this.int(100, 999)}-${String(this.int(0, 9999)).padStart(4, "0")}`; }
+  /** Generates a synthetic street address line (`<number> <street> <suffix>`). */
   street(): string { return `${this.int(10, 9899)} ${this.pick(STREETS)} ${this.pick(STREET_SUFFIX)}`; }
+  /** Picks a synthetic US city, state code, and 5-digit ZIP code. */
   place(): { city: string; state: string; zip: string } {
     const [city, state, z3] = this.pickSkew(CITIES, 1.4);
     return { city, state, zip: `${z3}${String(this.int(0, 99)).padStart(2, "0")}` };
   }
+  /** Generates a two-word synthetic company name. */
   company(): string { return `${this.pick(COMPANY_A)} ${this.pick(COMPANY_B)}`; }
+  /** Generates `n` space-separated words from the neutral `LOREM` vocabulary. */
   words(n: number): string { return Array.from({ length: n }, () => this.pick(LOREM)).join(" "); }
+  /** Generates a capitalized sentence of `n` synthetic words ending with a period. */
   sentence(n = 8): string { const s = this.words(n); return s.charAt(0).toUpperCase() + s.slice(1) + "."; }
 
   // ---- identifiers
+  /** Generates a deterministic version-4-formatted UUID string. */
   uuid(): string {
     const h = (n: number) => Array.from({ length: n }, () => this.int(0, 15).toString(16)).join("");
     return `${h(8)}-${h(4)}-4${h(3)}-${this.pick(["8", "9", "a", "b"])}${h(3)}-${h(12)}`;
   }
+  /** Generates a lowercase hexadecimal string of `n` characters. */
   hex(n: number): string { return Array.from({ length: n }, () => this.int(0, 15).toString(16)).join(""); }
+  /** Generates a string of `n` random decimal digits, optionally disallowing a leading zero. */
   digits(n: number, leadingZero = true): string {
     let s = "";
     for (let i = 0; i < n; i++) s += String(i === 0 && !leadingZero ? this.int(1, 9) : this.int(0, 9));
@@ -171,6 +208,7 @@ export class Gen {
   ndc(labeler?: number, product?: number, pkg?: number): string {
     return `${String(labeler ?? this.int(100, 99999)).padStart(5, "0")}-${String(product ?? this.int(1, 9999)).padStart(4, "0")}-${String(pkg ?? this.int(1, 99)).padStart(2, "0")}`;
   }
+  /** Formats a zero-padded sequential identifier code (`<prefix><000...n>`). */
   code(prefix: string, n: number, width = 6): string { return `${prefix}${String(n).padStart(width, "0")}`; }
 
   private memos = new Map<string, unknown>();
@@ -181,11 +219,13 @@ export class Gen {
   }
 
   // ---- access to rows generated for earlier tables
+  /** Returns the generated row array of an earlier parent or dependency table. */
   rows(table: string): Row[] {
     const rows = this.store.get(table);
     if (!rows) throw new Error(`${this.table}: rows of ${table} are not available (declare it in uses or as a foreign key)`);
     return rows;
   }
+  /** Returns the number of rows generated for an earlier parent or dependency table. */
   count(table: string): number { return this.rows(table).length; }
   /** The i-th child row maps to parent i for the first `parents` rows (every parent gets one), the rest skew to popular parents. */
   spread(parents: number, i: number, k = 2): number { return i <= parents ? i : 1 + this.skew(parents, k); }

@@ -10,8 +10,10 @@ import { csvCell } from "../subfinder/subfinderNames";
 import type { DiscoverySummary, SourceStatus } from "../subfinder/subfinderEngine";
 import type { SubdomainResult } from "../subfinder/subfinderTypes";
 
+/** Supported file formats for exporting discovered subdomains. */
 export type ExportFormat = "txt" | "csv" | "json";
 
+/** Metadata summarizing a subdomain discovery run for export and report generation. */
 export interface RunMeta {
   domain: string;
   unicode: string;
@@ -26,16 +28,19 @@ export interface RunMeta {
 
 const byHost = (a: SubdomainResult, b: SubdomainResult) => (a.host < b.host ? -1 : a.host > b.host ? 1 : 0);
 
+/** Formats subdomain results as a sorted newline-separated list of hostnames. */
 export function toTxt(rows: SubdomainResult[]): string {
   return [...rows].sort(byHost).map((r) => r.host).join("\n") + (rows.length ? "\n" : "");
 }
 
+/** Formats subdomain results as a CSV table with formula-injection protection. */
 export function toCsv(rows: SubdomainResult[]): string {
   const head = ["host", "sources", "ip addresses", "http status", "page title", "open ports", "wildcard", "note"];
   const lines = [...rows].sort(byHost).map((r) => [r.host, r.sources.join(" "), (r.ip ?? []).join(" "), r.httpStatus ?? "", r.httpTitle ?? "", (r.openPorts ?? []).join(" "), r.isWildcard ? "yes" : "", r.note ?? ""].map(csvCell).join(","));
   return `${[head.join(","), ...lines].join("\r\n")}\r\n`;
 }
 
+/** Formats subdomain results and run metadata as a pretty-printed JSON document. */
 export function toJson(meta: RunMeta, rows: SubdomainResult[]): string {
   return `${JSON.stringify({
     target: meta.domain,
@@ -52,6 +57,7 @@ export function mdEscape(value: unknown): string {
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
+/** Maximum number of host rows included in the Markdown report table before truncating. */
 export const REPORT_TABLE_LIMIT = 1000;
 
 /** A Markdown report with the date, target, sources, counts, the hosts and notes in plain words. */
@@ -98,6 +104,7 @@ export function toReport(meta: RunMeta, rows: SubdomainResult[], now = new Date(
   return lines.join("\n");
 }
 
+/** Renders subdomain results into the requested export format (`txt`, `csv`, or `json`). */
 export function renderExport(format: ExportFormat, meta: RunMeta, rows: SubdomainResult[]): string {
   return format === "csv" ? toCsv(rows) : format === "json" ? toJson(meta, rows) : toTxt(rows);
 }

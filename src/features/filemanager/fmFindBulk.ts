@@ -173,6 +173,7 @@ function modeOf(value: unknown): number {
   }
 }
 
+/** File Manager operation handlers for bulk Find actions (copy, move, trash, delete, archive, export, exec, chmod, renameplan). */
 export const bulkOperations: Record<string, FmHandler> = {
   async "find/copy"(ctx, b) {
     return await transferOp(ctx, b, true);

@@ -1,8 +1,10 @@
 /** Shared shapes of the staging import. Plain data only, so they can be sent to the page as JSON. */
 import type { Engine } from "../types";
 
+/** Broad data type family used for staging validation and type coercion rules. */
 export type TypeClass = "integer" | "decimal" | "float" | "boolean" | "date" | "time" | "timestamp" | "uuid" | "json" | "enum" | "text" | "binary" | "other";
 
+/** Metadata describing a single column in the target database table. */
 export interface TargetColumn {
   name: string;
   /** The type exactly as the database reports it, for example "varchar(50)" or "numeric(10,2)". */
@@ -26,6 +28,7 @@ export interface TargetColumn {
   collation?: string;
 }
 
+/** Foreign key constraint on a target table referencing another table's columns. */
 export interface TargetForeignKey {
   columns: string[];
   refSchema?: string;
@@ -33,6 +36,7 @@ export interface TargetForeignKey {
   refColumns: string[];
 }
 
+/** Full schema description of the target database table for a staging import. */
 export interface TargetTable {
   engine: Engine;
   schema?: string;
@@ -48,6 +52,7 @@ export interface TargetTable {
   virtual?: boolean;
 }
 
+/** A single cell transformation or normalization step applied during staging or review. */
 export type Step =
   | { t: "trim" }
   | { t: "collapse" }
@@ -63,6 +68,7 @@ export type Step =
   | { t: "replace"; find: string; with: string }
   | { t: "default"; value: string };
 
+/** Specification of how a target column's raw value is derived from incoming source columns. */
 export type SourceSpec =
   | { kind: "column"; column: string }
   | { kind: "concat"; columns: string[]; separator: string }
@@ -70,12 +76,14 @@ export type SourceSpec =
   | { kind: "constant"; value: string | null }
   | { kind: "skip" };
 
+/** Mapping and transformation rule for populating a single target column. */
 export interface ColumnRule {
   target: string;
   source: SourceSpec;
   steps: Step[];
 }
 
+/** Custom user-defined validation rule evaluated against staged column values. */
 export interface UserRule {
   column: string;
   kind: "regex" | "min" | "max" | "oneof" | "length" | "notempty";
@@ -84,6 +92,7 @@ export interface UserRule {
   message?: string;
 }
 
+/** Complete configuration plan for mapping, validating, and promoting a staging import. */
 export interface ImportPlan {
   /** Target table name; for a new table this is the name the table will get. */
   target: string;
@@ -97,10 +106,13 @@ export interface ImportPlan {
   newTable?: { columns: { name: string; kind: string; nullable: boolean }[]; autoId: boolean };
 }
 
+/** Lifecycle status of an import batch in the staging ledger. */
 export type BatchStatus = "staged" | "checked" | "promoted" | "undone" | "dropped";
 
+/** Strategy for promoting validated rows from the staging table into the target table. */
 export type PromoteMode = "insert-new" | "insert-all" | "upsert" | "update-only" | "append";
 
+/** Structured validation or load problem recorded on a staged row. */
 export interface RowError {
   /** Column the problem is about (null for the whole row). */
   c: string | null;
@@ -114,5 +126,7 @@ export interface RowError {
   s?: "load";
 }
 
+/** Prefix reserved for internal bookkeeping columns on staging tables. */
 export const STG_PREFIX = "_stg_";
+/** Ordered list of metadata column names present on every staging table. */
 export const META_COLUMNS = ["_stg_row_id", "_stg_batch_id", "_stg_source_file", "_stg_row_number", "_stg_loaded_at", "_stg_status", "_stg_errors", "_stg_match", "_stg_raw"] as const;

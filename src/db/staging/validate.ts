@@ -13,6 +13,7 @@ import { limits, StagingError } from "./limits";
 import type { ImportPlan, RowError, TargetColumn, TargetTable, UserRule } from "./types";
 import { daysInMonth, parseBoolean, parseDate, parseNumber } from "./values";
 
+/** Aggregate counts, per-column error breakdown, and notes produced by a staging validation pass. */
 export interface ValidationSummary {
   total: number;
   valid: number;
@@ -34,6 +35,7 @@ export interface ValidationSummary {
   truncated: boolean;
 }
 
+/** Parameters for running a validation check over a staged import batch. */
 export interface ValidateOptions {
   db: StageDb;
   batch: BatchRecord;
@@ -248,6 +250,7 @@ export async function classifyMatches(db: StageDb, conn: StageConn, stg: string,
 
 class Cancelled extends Error {}
 
+/** Validates all staged rows in a batch against target column types, custom rules, uniqueness, and foreign keys. */
 export async function validateStaging(o: ValidateOptions): Promise<ValidationSummary> {
   const { db, batch, target, plan } = o;
   const e = db.engine;
@@ -488,6 +491,7 @@ export async function validateStaging(o: ValidateOptions): Promise<ValidationSum
   }
 }
 
+/** Queries aggregate row counts grouped by status and target match state for a staging table. */
 export async function summarize(db: StageDb, c: StageConn, stg: string): Promise<Omit<ValidationSummary, "byColumn" | "blocking" | "notes" | "checkedAt" | "truncated">> {
   const e = db.engine;
   const r = await c.query(`SELECT ${q(e, "_stg_status")} AS st, ${q(e, "_stg_match")} AS m, COUNT(*) AS c FROM ${refOf(db, stg)} GROUP BY ${q(e, "_stg_status")}, ${q(e, "_stg_match")}`);

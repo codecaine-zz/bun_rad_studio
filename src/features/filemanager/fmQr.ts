@@ -17,7 +17,9 @@ import { openCommand } from "./fmOpen";
 import { FmError, describeFsError, uniqueName, validateName } from "./fmPaths";
 
 // A request may be about 1 MB (see MAX_BODY_BYTES in fmServer.ts), and base64 adds a third.
+/** Maximum allowed decoded byte size for a saved or copied QR/PNG image (700 KiB). */
 export const MAX_QR_PNG_BYTES = 700 * 1024;
+/** Maximum allowed UTF-8 byte size for a saved SVG or plain-text QR payload (900 KiB). */
 export const MAX_QR_TEXT_BYTES = 900 * 1024;
 
 const KINDS = { png: ".png", svg: ".svg", txt: ".txt" } as const;
@@ -118,6 +120,7 @@ export async function openQrUrl(ctx: FmContext, input: unknown): Promise<{ opene
   return { opened: url.href };
 }
 
+/** Map of File Manager API operation handlers for saving/copying QR codes and PNGs and safely opening external HTTP(S) URLs. */
 export const qrOperations: Record<string, FmHandler> = {
   async "qr/save"(ctx, b) {
     return await saveQr(ctx, b);

@@ -2,6 +2,7 @@
  * Core type definitions for bun-simplcli
  */
 
+/** Numeric severity levels for `Logger` filtering. */
 export enum LogLevel {
   TRACE = 0,
   DEBUG = 1,
@@ -11,8 +12,10 @@ export enum LogLevel {
   SILENT = 5,
 }
 
+/** Case-insensitive string names corresponding to `LogLevel` values. */
 export type LogLevelName = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'silent';
 
+/** Visual callout styles for terminal alert boxes. */
 export enum AlertKind {
   INFO = 'info',
   SUCCESS = 'success',
@@ -22,6 +25,7 @@ export enum AlertKind {
   NOTE = 'note',
 }
 
+/** Execution status states for terminal task list items. */
 export enum TaskStatus {
   PENDING = 'pending',
   RUNNING = 'running',
@@ -30,6 +34,7 @@ export enum TaskStatus {
   SKIPPED = 'skipped',
 }
 
+/** Supported input control types for interactive CLI form wizards. */
 export enum FormFieldKind {
   TEXT = 'text',
   NUMBER = 'number',
@@ -38,6 +43,7 @@ export enum FormFieldKind {
   SELECT = 'select',
 }
 
+/** Schema definition for a single field in an interactive CLI form wizard. */
 export interface FormField {
   key: string;
   label: string;
@@ -47,6 +53,7 @@ export interface FormField {
   choices?: string[];
 }
 
+/** Filesystem validation modes for interactive path prompts and file pickers. */
 export enum PathMode {
   ANY = 'any',
   MUST_EXIST = 'must_exist',
@@ -54,15 +61,18 @@ export enum PathMode {
   DIRECTORY = 'directory',
 }
 
+/** Hierarchical tree node used for rendering ASCII/Unicode tree views in the terminal. */
 export class TreeNode {
   public label: string;
   public children: TreeNode[];
 
+  /** Creates a new `TreeNode` with the given display label and an empty child list. */
   constructor(label: string) {
     this.label = label;
     this.children = [];
   }
 
+  /** Appends a child node (created from a label string or passed as a `TreeNode`) and returns the child. */
   public addChild(childLabelOrNode: string | TreeNode): TreeNode {
     if (typeof childLabelOrNode === 'string') {
       const child = new TreeNode(childLabelOrNode);
@@ -74,19 +84,23 @@ export class TreeNode {
     }
   }
 
+  /** Appends an existing `TreeNode` as a child and returns it. */
   public addNode(child: TreeNode): TreeNode {
     this.children.push(child);
     return child;
   }
 }
 
+/** Named execution step within a `Pipeline`. */
 export interface PipelineStep {
   name: string;
   stepFn: () => boolean | Promise<boolean>;
 }
 
+/** Supported data types for CLI command-line flags. */
 export type FlagKind = 'string' | 'int' | 'float' | 'bool' | 'array';
 
+/** Configuration metadata for a registered CLI command-line flag. */
 export interface FlagOption {
   name: string;
   short?: string;
@@ -97,6 +111,7 @@ export interface FlagOption {
   choices?: string[];
 }
 
+/** Result returned by shell command execution helpers in `Sys`. */
 export interface ExecResult {
   output: string;
   exitCode: number;
@@ -105,6 +120,7 @@ export interface ExecResult {
   attempts: number;
 }
 
+/** Filesystem disk space statistics in bytes and usage percentage. */
 export interface DiskStats {
   totalBytes: number;
   freeBytes: number;
@@ -112,6 +128,7 @@ export interface DiskStats {
   percent: number;
 }
 
+/** Detailed file or directory metadata returned by `Sys.fileMetadata`. */
 export interface FileMetadata {
   path: string;
   name: string;
@@ -124,6 +141,7 @@ export interface FileMetadata {
   modifiedTime: number;
 }
 
+/** Lightweight HTTP response structure returned by basic HTTP helpers. */
 export interface SimpleHttpResponse {
   statusCode: number;
   body: string;
@@ -136,6 +154,7 @@ export interface SimpleHttpResponse {
   durationMs?: number;
 }
 
+/** Rich HTTP response returned by `BackendClient` with parsed data, timing, retry count, and helper accessors. */
 export interface BackendResponse<T = any> extends SimpleHttpResponse {
   ok: boolean;
   status: number;
@@ -153,6 +172,7 @@ export interface BackendResponse<T = any> extends SimpleHttpResponse {
   header(name: string): string | undefined;
 }
 
+/** Outgoing HTTP request context passed to request, response, and error interceptors. */
 export interface BackendRequestContext {
   method: string;
   url: string;
@@ -160,20 +180,24 @@ export interface BackendRequestContext {
   body?: any;
 }
 
+/** Interceptor function invoked before sending an HTTP request, optionally returning a modified context. */
 export type RequestInterceptor = (
   ctx: BackendRequestContext
 ) => BackendRequestContext | void | Promise<BackendRequestContext | void>;
 
+/** Interceptor function invoked after receiving an HTTP response, optionally returning a modified response. */
 export type ResponseInterceptor<T = any> = (
   res: BackendResponse<T>,
   ctx: BackendRequestContext
 ) => BackendResponse<T> | void | Promise<BackendResponse<T> | void>;
 
+/** Interceptor function invoked when an HTTP request fails with an error. */
 export type ErrorInterceptor = (
   err: Error,
   ctx: BackendRequestContext
 ) => void | Promise<void>;
 
+/** Configuration options for constructing a `BackendClient` instance. */
 export interface BackendClientOptions {
   baseUrl?: string;
   headers?: Record<string, string>;
@@ -197,6 +221,7 @@ export interface BackendClientOptions {
   };
 }
 
+/** Per-request override options for `BackendClient` HTTP calls. */
 export interface RequestOptions {
   headers?: Record<string, string>;
   query?: Record<string, any>;
@@ -216,6 +241,7 @@ export interface RequestOptions {
   signal?: AbortSignal;
 }
 
+/** Non-throwing result envelope returned by `BackendClient.tryRequest` and related `try*` methods. */
 export interface SafeApiResult<T = any> {
   ok: boolean;
   data: T | null;
@@ -225,6 +251,7 @@ export interface SafeApiResult<T = any> {
   response: BackendResponse<T> | null;
 }
 
+/** Standard GraphQL error entry returned in a GraphQL response payload. */
 export interface GraphQLErrorItem {
   message: string;
   locations?: Array<{ line: number; column: number }>;
@@ -232,6 +259,7 @@ export interface GraphQLErrorItem {
   extensions?: Record<string, any>;
 }
 
+/** Parsed response envelope returned by `BackendClient.graphql`. */
 export interface GraphQLResult<T = any> {
   ok: boolean;
   data: T | null;
@@ -241,6 +269,7 @@ export interface GraphQLResult<T = any> {
   headers: Record<string, string>;
 }
 
+/** Parsed Server-Sent Event (SSE) message frame yielded by `BackendClient.streamSse`. */
 export interface SseEvent {
   id?: string;
   event: string;
@@ -249,6 +278,7 @@ export interface SseEvent {
   json<T = any>(): T | null;
 }
 
+/** Options controlling automatic pagination in `BackendClient.paginate` and `BackendClient.fetchAllPages`. */
 export interface PaginationOptions<T = any> {
   mode?: 'page' | 'offset' | 'cursor' | 'link';
   pageParam?: string;
@@ -264,6 +294,7 @@ export interface PaginationOptions<T = any> {
   extractNextCursor?: (data: any, response: BackendResponse<any>) => string | null | undefined;
 }
 
+/** Result of probing a service health endpoint via `BackendClient.healthCheck`. */
 export interface HealthCheckResult {
   healthy: boolean;
   statusCode: number;
@@ -273,6 +304,7 @@ export interface HealthCheckResult {
   error?: string;
 }
 
+/** Connectivity and latency result for a single URL tested by `BackendClient.probeEndpoints`. */
 export interface EndpointProbeResult {
   url: string;
   ok: boolean;
@@ -281,6 +313,7 @@ export interface EndpointProbeResult {
   error?: string;
 }
 
+/** Load parameters for benchmarking an HTTP endpoint via `BackendClient.benchmark`. */
 export interface BenchmarkOptions {
   requests?: number;
   concurrency?: number;
@@ -290,6 +323,7 @@ export interface BenchmarkOptions {
   timeoutMs?: number;
 }
 
+/** Aggregated latency percentiles, success rate, and throughput from `BackendClient.benchmark`. */
 export interface BenchmarkStats {
   url: string;
   method: string;
@@ -307,6 +341,7 @@ export interface BenchmarkStats {
   rps: number;
 }
 
+/** File payload specification accepted by `BackendClient.upload` for multipart uploads. */
 export type UploadFileInput =
   | string
   | Uint8Array
@@ -318,6 +353,7 @@ export type UploadFileInput =
       contentType?: string;
     };
 
+/** Single HTTP request item in a `BackendClient.batch` execution list. */
 export interface BatchRequestItem {
   method?: string;
   path: string;
@@ -325,6 +361,7 @@ export interface BatchRequestItem {
   options?: RequestOptions;
 }
 
+/** Decomposed URL components returned by `Stdlib.parseUrl`. */
 export interface SimpleURL {
   raw: string;
   scheme: string;
@@ -335,8 +372,10 @@ export interface SimpleURL {
   fragment: string;
 }
 
+/** Callback handler invoked when a registered CLI command or subcommand is executed. */
 export type CommandAction = (flags: Record<string, any>, args: string[]) => void | Promise<void>;
 
+/** Metadata and flag definitions for a registered `SimpleCLI` subcommand. */
 export interface CommandDefinition {
   name: string;
   description: string;
@@ -345,6 +384,7 @@ export interface CommandDefinition {
   action?: CommandAction;
 }
 
+/** Filtering and navigation options for the interactive terminal file picker (`Prompts.filePicker`). */
 export interface FilePickerOptions {
   baseDir?: string;
   mode?: PathMode;
@@ -352,7 +392,9 @@ export interface FilePickerOptions {
   allowHidden?: boolean;
 }
 
+/** Output serialization formats supported by `SimpleCLI.output`. */
 export type OutputFormat = 'json' | 'table' | 'kv' | 'markdown' | 'text';
 
+/** Target shell types supported for auto-completion script generation. */
 export type ShellType = 'bash' | 'zsh' | 'fish';
 

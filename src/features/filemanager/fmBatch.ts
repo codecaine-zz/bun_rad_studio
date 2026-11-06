@@ -43,6 +43,7 @@ export function startBatch(ctx: FmContext, actionId: unknown, paths: unknown): P
 // Installing
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Starts a background job to install one or more missing external conversion tools using the system package manager. */
 export function startInstall(ctx: FmContext, tools: unknown): JobView {
   const wanted = (Array.isArray(tools) ? tools : [tools]).filter((t): t is ToolId => typeof t === "string" && (TOOL_IDS as string[]).includes(t));
   if (!wanted.length) throw new FmError("UNKNOWN_TOOL", "Choose a program to install.");

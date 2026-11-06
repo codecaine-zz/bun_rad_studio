@@ -2,6 +2,7 @@
 import { absolutePath, type FmContext } from "./fmCore";
 import { clip, helperEnv, helperProgram, installHint, MAX_ROWS, regularFile, runProgram, type InfoGroup } from "./fmInfoCommon";
 
+/** Result of running the optional `exiftool` helper program on a file. */
 export interface ExiftoolResult {
   available: boolean;
   hint: string;
@@ -24,6 +25,7 @@ function show(v: unknown): string {
   return clip(String(v));
 }
 
+/** Groups parsed `exiftool -json -G1` output into sorted `InfoGroup` sections with descriptive hints. */
 export function groupExiftoolJson(json: unknown): { groups: InfoGroup[]; tags: number; truncated: boolean } {
   const obj = Array.isArray(json) ? (json[0] as Record<string, unknown> | undefined) : undefined;
   const byGroup = new Map<string, Array<{ label: string; value: string }>>();
@@ -50,6 +52,7 @@ export function groupExiftoolJson(json: unknown): { groups: InfoGroup[]; tags: n
   return { groups, tags, truncated };
 }
 
+/** Runs `exiftool` (if installed) to extract all metadata tags from `input` and groups them by tag family. */
 export async function exiftoolInfo(ctx: FmContext, input: unknown): Promise<ExiftoolResult> {
   const t = await regularFile(ctx, input);
   const path = absolutePath(ctx, input);

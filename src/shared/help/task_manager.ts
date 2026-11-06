@@ -1,3 +1,6 @@
+/**
+ * Interactive UI help tooltips and audit skip rules for Task Manager Studio (`task_manager`), covering system resource monitoring, process inspection, and termination controls.
+ */
 import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Task Manager Pro (the process monitor, app file process_studio / task_manager). */

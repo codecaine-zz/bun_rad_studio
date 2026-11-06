@@ -23,11 +23,16 @@ import { TEST_TIMEOUT_MS, type TestInput } from "./fmDbTest";
 import { makeSqliteFile } from "./fmNewSqlite";
 import { FmError, cleanName, validateName } from "./fmPaths";
 
+/** Strategy for handling existing target tables or Redis keys during a database clone operation. */
 export type CloneConflictMode = "replace" | "truncate" | "append" | "upsert" | "skip" | "fail";
+/** Selection of what to clone: schema + data (`all`), schema DDL only (`schema`), or rows only (`data`). */
 export type CloneContentMode = "all" | "schema" | "data";
+/** Strategy for cloning SQL views: recreate as a view when same engine (`view`) or materialize as a table (`table`). */
 export type CloneViewMode = "view" | "table";
+/** Target storage representation when cloning relational rows into Redis (`hash` or `json`) or vice versa. */
 export type CloneRedisFormat = "hash" | "json";
 
+/** Engine-neutral canonical column data type used for cross-engine SQL schema translation. */
 export type CloneCanonicalType =
   | "integer"
   | "bigint"
@@ -43,6 +48,7 @@ export type CloneCanonicalType =
   | "json"
   | "uuid";
 
+/** Normalized column metadata and canonical type inspected from a source table or view. */
 export interface CloneSourceColumn {
   name: string;
   dataType: string;
@@ -57,6 +63,7 @@ export interface CloneSourceColumn {
   generated: boolean;
 }
 
+/** Schema, row count, columns, keys, indexes, and foreign keys inspected from a source table, view, or Redis key group. */
 export interface CloneSourceObject {
   name: string;
   schema?: string;
@@ -71,6 +78,7 @@ export interface CloneSourceObject {
   sampleKeys?: string[];
 }
 
+/** Source endpoint metadata and list of inspectable tables, views, or Redis key groups. */
 export interface CloneInspectResult {
   source: {
     kind: "profile" | "sqliteFile";
@@ -87,6 +95,7 @@ export interface CloneInspectResult {
   totalRows: number;
 }
 
+/** User-configurable options controlling object selection, renaming, conflict handling, and batching for a database clone. */
 export interface CloneOptions {
   /** Selected source object names (tables, views, or Redis key groups). Empty/omitted = all objects. */
   tables?: string[];
@@ -112,6 +121,7 @@ export interface CloneOptions {
   redisFormat?: CloneRedisFormat;
 }
 
+/** Planned action, estimated row count, and generated target DDL statements for a single cloned object. */
 export interface CloneTablePlan {
   sourceName: string;
   targetName: string;
@@ -122,6 +132,7 @@ export interface CloneTablePlan {
   ddl: string[];
 }
 
+/** Dry-run clone preview containing source/target info, per-object plans, combined DDL script, and warnings. */
 export interface ClonePreviewResult {
   source: CloneInspectResult["source"];
   target: {
@@ -142,6 +153,7 @@ export interface ClonePreviewResult {
   confirmReason?: "production" | "readonly" | "destructive";
 }
 
+/** Execution outcome and copied row/index/foreign-key counts for a single cloned table, view, or Redis group. */
 export interface CloneTableResult {
   sourceName: string;
   targetName: string;
@@ -153,6 +165,7 @@ export interface CloneTableResult {
   note?: string;
 }
 
+/** Final summary and per-object results returned after executing a cross-engine database clone. */
 export interface CloneRunResult {
   summary: {
     sourceLabel: string;
@@ -203,6 +216,7 @@ function sanitizeTargetIdentifier(raw: string, fallback: string): string {
   return safe || fallback;
 }
 
+/** Maps a raw engine-specific SQL column type string into a `CloneCanonicalType` with length/precision/scale. */
 export function classifyCanonicalType(engine: DbEngine, rawType: string): {
   canonicalType: CloneCanonicalType;
   length?: number;
@@ -243,6 +257,7 @@ export function classifyCanonicalType(engine: DbEngine, rawType: string): {
   return { canonicalType: "text" };
 }
 
+/** Translates a `CloneSourceColumn` into the appropriate native SQL type declaration for `targetEngine`. */
 export function columnTypeForTarget(
   col: CloneSourceColumn,
   targetEngine: Engine,
@@ -347,6 +362,7 @@ function safeRule(rule?: string): string {
   return "NO ACTION";
 }
 
+/** Generates a `CREATE TABLE` DDL statement and warnings for `obj` targeting `targetEngine`. */
 export function buildCreateTableDdl(
   obj: CloneSourceObject,
   targetName: string,
@@ -824,6 +840,7 @@ async function inspectSqlEndpoint(ctx: FmContext, ep: ResolvedEndpoint): Promise
   }
 }
 
+/** Connects to a source profile or SQLite file and inspects all tables, views, or Redis key groups. */
 export async function inspectCloneSource(ctx: FmContext, sourceInput: unknown): Promise<CloneInspectResult> {
   const ep = await resolveEndpoint(ctx, sourceInput, "source", true);
   try {
@@ -1083,6 +1100,7 @@ function buildPlanAndPreview(
   };
 }
 
+/** Inspects source and target endpoints and builds a dry-run `ClonePreviewResult` without modifying the target. */
 export async function previewClone(ctx: FmContext, body: Record<string, any>): Promise<ClonePreviewResult> {
   const src = await resolveEndpoint(ctx, body.source, "source", true);
   const dst = await resolveEndpoint(ctx, body.target, "target", false);
@@ -1810,6 +1828,7 @@ async function executeSqlToRedisClone(
   }
 }
 
+/** Executes a cross-engine schema and data clone between the specified source and target database endpoints. */
 export async function runClone(ctx: FmContext, body: Record<string, any>): Promise<CloneRunResult> {
   const started = performance.now();
   const src = await resolveEndpoint(ctx, body.source, "source", true);
@@ -1911,6 +1930,7 @@ export async function runClone(ctx: FmContext, body: Record<string, any>): Promi
   }
 }
 
+/** File Manager API handlers for `db/clone/inspect`, `db/clone/preview`, and `db/clone/run`. */
 export const cloneOperations: Record<string, FmHandler> = {
   async "db/clone/inspect"(ctx, b) {
     return await inspectCloneSource(ctx, isObject(b) ? (b.source ?? b) : undefined);

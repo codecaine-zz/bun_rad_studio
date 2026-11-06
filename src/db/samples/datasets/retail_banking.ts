@@ -1,3 +1,7 @@
+/**
+ * Synthetic Retail Banking sample dataset definition covering customers, deposit and loan
+ * accounts, double-entry general ledger postings, card settlements, transfers, and balances.
+ */
 import { addDays, dayOf, dayStr, hashString, ibanLike, mulberry32 } from "../gen";
 import { dataset, query, table, view, type Scale } from "../model";
 

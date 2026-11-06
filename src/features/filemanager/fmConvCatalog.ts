@@ -8,6 +8,7 @@ import { MORE_PICTURE_DEFS, MORE_SOUND_DEFS, MORE_VIDEO_DEFS } from "./fmConvMed
 import { STUDIO_DEFS } from "./fmConvStudio";
 import type { ConvDef } from "./fmConvTypes";
 
+/** Complete ordered list of all conversion definitions across pictures, video, sound, documents, data, text, and archives. */
 export const CATALOG: ConvDef[] = [
   ...PICTURE_DEFS,
   ...MORE_PICTURE_DEFS,
@@ -27,4 +28,5 @@ export const CATALOG: ConvDef[] = [
   ...STUDIO_DEFS,
 ];
 
+/** Lookup map indexing every conversion definition in `CATALOG` by its unique `id`. */
 export const CATALOG_BY_ID = new Map(CATALOG.map((d) => [d.id, d]));

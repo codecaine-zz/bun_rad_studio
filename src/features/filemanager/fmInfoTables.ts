@@ -1,5 +1,6 @@
 /** Names and plain-words meanings of EXIF tags and values. Data only. */
 
+/** Tag ID to tag name mapping for primary TIFF/EXIF IFD0 and IFD1 image directories. */
 export const IFD0_TAGS: Record<number, string> = {
   0x0100: "ImageWidth", 0x0101: "ImageLength", 0x0102: "BitsPerSample", 0x0103: "Compression", 0x0106: "PhotometricInterpretation",
   0x010e: "ImageDescription", 0x010f: "Make", 0x0110: "Model", 0x0111: "StripOffsets", 0x0112: "Orientation", 0x0115: "SamplesPerPixel",
@@ -9,6 +10,7 @@ export const IFD0_TAGS: Record<number, string> = {
   0x83bb: "IPTC-NAA", 0x8649: "Photoshop", 0x8769: "ExifIFD", 0x8773: "ICC_Profile", 0x8825: "GPSIFD",
 };
 
+/** Tag ID to tag name mapping for the EXIF sub-IFD camera and capture settings directory. */
 export const EXIF_TAGS: Record<number, string> = {
   0x829a: "ExposureTime", 0x829d: "FNumber", 0x8822: "ExposureProgram", 0x8827: "ISOSpeedRatings", 0x8830: "SensitivityType",
   0x8832: "RecommendedExposureIndex", 0x9000: "ExifVersion", 0x9003: "DateTimeOriginal", 0x9004: "DateTimeDigitized",
@@ -24,6 +26,7 @@ export const EXIF_TAGS: Record<number, string> = {
   0xa431: "BodySerialNumber", 0xa432: "LensSpecification", 0xa433: "LensMake", 0xa434: "LensModel", 0xa435: "LensSerialNumber",
 };
 
+/** Tag ID to tag name mapping for the EXIF GPS sub-IFD directory. */
 export const GPS_TAGS: Record<number, string> = {
   0: "GPSVersionID", 1: "GPSLatitudeRef", 2: "GPSLatitude", 3: "GPSLongitudeRef", 4: "GPSLongitude", 5: "GPSAltitudeRef", 6: "GPSAltitude",
   7: "GPSTimeStamp", 8: "GPSSatellites", 9: "GPSStatus", 10: "GPSMeasureMode", 11: "GPSDOP", 12: "GPSSpeedRef", 13: "GPSSpeed",
@@ -31,24 +34,37 @@ export const GPS_TAGS: Record<number, string> = {
   20: "GPSDestLatitude", 21: "GPSDestLongitudeRef", 22: "GPSDestLongitude", 29: "GPSDateStamp", 30: "GPSDifferential",
 };
 
+/** Tag ID to tag name mapping for the EXIF Interoperability sub-IFD directory. */
 export const INTEROP_TAGS: Record<number, string> = { 1: "InteropIndex", 2: "InteropVersion" };
 
 type Names = Record<number, string>;
 
+/** Human-readable descriptions for EXIF `Orientation` tag codes (1–8). */
 export const ORIENTATION: Names = {
   1: "Normal", 2: "Mirrored", 3: "Upside down (rotated 180°)", 4: "Mirrored upside down", 5: "Mirrored, turned 90° left", 6: "Turned 90° right (clockwise)",
   7: "Mirrored, turned 90° right", 8: "Turned 90° left (counter-clockwise)",
 };
+/** Human-readable unit names for EXIF `ResolutionUnit` tag codes. */
 export const RESOLUTION_UNIT: Names = { 1: "no unit", 2: "inch", 3: "centimetre" };
+/** Human-readable descriptions for EXIF `ColorSpace` tag codes. */
 export const COLOR_SPACE: Names = { 1: "sRGB", 2: "Adobe RGB", 0xfffd: "Wide gamut RGB", 0xffff: "Not calibrated" };
+/** Human-readable descriptions for EXIF `ExposureProgram` tag codes. */
 export const EXPOSURE_PROGRAM: Names = { 0: "Not defined", 1: "Manual", 2: "Normal program", 3: "Aperture priority", 4: "Shutter priority", 5: "Creative (slow)", 6: "Action (fast)", 7: "Portrait", 8: "Landscape" };
+/** Human-readable descriptions for EXIF `MeteringMode` tag codes. */
 export const METERING: Names = { 0: "Unknown", 1: "Average", 2: "Center-weighted", 3: "Spot", 4: "Multi-spot", 5: "Pattern (matrix)", 6: "Partial", 255: "Other" };
+/** Human-readable descriptions for EXIF `ExposureMode` tag codes. */
 export const EXPOSURE_MODE: Names = { 0: "Auto", 1: "Manual", 2: "Auto bracket" };
+/** Human-readable descriptions for EXIF `WhiteBalance` tag codes. */
 export const WHITE_BALANCE: Names = { 0: "Auto", 1: "Manual" };
+/** Human-readable descriptions for EXIF `SceneCaptureType` tag codes. */
 export const SCENE_TYPE: Names = { 0: "Standard", 1: "Landscape", 2: "Portrait", 3: "Night" };
+/** Human-readable descriptions for EXIF `SensingMethod` sensor type codes. */
 export const SENSING: Names = { 1: "Not defined", 2: "One-chip color sensor", 3: "Two-chip color sensor", 4: "Three-chip color sensor", 5: "Color sequential area sensor", 7: "Trilinear sensor", 8: "Color sequential linear sensor" };
+/** Human-readable descriptions for EXIF `LightSource` illumination codes. */
 export const LIGHT_SOURCE: Names = { 0: "Unknown", 1: "Daylight", 2: "Fluorescent", 3: "Tungsten (incandescent)", 4: "Flash", 9: "Fine weather", 10: "Cloudy", 11: "Shade", 17: "Standard light A", 18: "Standard light B", 19: "Standard light C", 20: "D55", 21: "D65", 22: "D75", 255: "Other" };
+/** Human-readable descriptions for TIFF `Compression` tag codes. */
 export const COMPRESSION_TIFF: Names = { 1: "None", 2: "CCITT 1D", 3: "CCITT Group 3", 4: "CCITT Group 4", 5: "LZW", 6: "JPEG (old)", 7: "JPEG", 8: "Deflate (Adobe)", 32773: "PackBits", 32946: "Deflate", 34712: "JPEG 2000", 34925: "LZMA", 50000: "Zstandard", 50001: "WebP" };
+/** Human-readable descriptions for TIFF `PhotometricInterpretation` color model codes. */
 export const PHOTOMETRIC: Names = { 0: "White is zero", 1: "Black is zero", 2: "RGB", 3: "Palette", 4: "Transparency mask", 5: "CMYK", 6: "YCbCr", 8: "CIE L*a*b*" };
 
 /** The Flash tag is a bit field: bit 0 fired, bits 1-2 return light, bits 3-4 mode, bit 5 no flash function, bit 6 red-eye. */
@@ -67,4 +83,5 @@ export function flashText(v: number): string {
   return parts.join(", ");
 }
 
+/** Looks up the human-readable label for a numeric tag value in `table`, falling back to `"Code <v>"`. */
 export const name = (table: Names, v: number): string => table[v] ?? `Code ${v}`;

@@ -1,6 +1,14 @@
+/**
+ * CLI showcase runner demonstrating all 44 modules of the Bun RAD (Rapid Application Development)
+ * utility suite with interactive terminal output and execution timing.
+ */
 import { rad } from "./index.ts";
 import { colors } from "../../shared/colors.ts";
 
+/**
+ * Executes the interactive 44-module RAD showcase in the terminal, printing formatted
+ * demonstrations and benchmarks for each utility domain.
+ */
 export async function runRadShowcase(): Promise<void> {
   console.log(colors.bold(colors.cyan("==================================================")));
   console.log(colors.bold(colors.cyan("   Bun System Utilities: 44-Module RAD Showcase   ")));

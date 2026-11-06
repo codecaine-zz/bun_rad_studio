@@ -1,3 +1,7 @@
+/**
+ * Coordinator workflows for `watchexec`, managing recursive filesystem watchers,
+ * debounce timers, child process lifecycle, and graceful signal cleanup.
+ */
 import { watch } from "node:fs";
 import type { ProcessState, WatchexecOptions } from "./watchexecTypes.ts";
 import {
@@ -9,6 +13,10 @@ import {
 } from "./watchexecDoers.ts";
 import { colors } from "../../shared/colors.ts";
 
+/**
+ * Creates a callback that optionally clears the terminal, kills any previous child process,
+ * and spawns the configured command when a watched file changes.
+ */
 export function createExecutionHandler(
   options: WatchexecOptions,
   state: ProcessState
@@ -27,6 +35,10 @@ export function createExecutionHandler(
   };
 }
 
+/**
+ * Starts recursive `node:fs` watchers on all configured `watchPaths`, debouncing matching
+ * events before invoking `onTrigger`, and returns a handle to close all watchers and kill the active subprocess.
+ */
 export function startWatcher(
   options: WatchexecOptions,
   state: ProcessState,
@@ -61,6 +73,10 @@ export function startWatcher(
   };
 }
 
+/**
+ * Initializes and runs the `watchexec` coordinator, optionally executing the command immediately
+ * on startup and registering `exit`/`SIGINT`/`SIGTERM` cleanup handlers.
+ */
 export async function runWatchexecCoordinator(
   options: WatchexecOptions
 ): Promise<{ close: () => void }> {

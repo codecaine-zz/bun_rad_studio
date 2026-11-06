@@ -28,6 +28,7 @@ export interface EditorHooks {
   open(path: string, options: { editor?: string; line?: number; column?: number; command?: string }): void;
 }
 
+/** Execution context for File Manager operations holding platform paths, Recycle Bin root, job hub, and injectable OS hooks. */
 export interface FmContext {
   platform: Platform;
   /** The user's home folder (places, "~", protection). */
@@ -87,6 +88,7 @@ export interface FmContext {
 /** One API operation: takes the JSON body and returns the JSON answer (or throws an FmError). */
 export type FmHandler = (ctx: FmContext, body: Record<string, any>) => Promise<unknown>;
 
+/** Configuration and dependency-injection overrides for constructing an `FmContext`. */
 export interface FmContextOptions {
   platform?: Platform;
   home?: string;
@@ -109,6 +111,7 @@ export interface FmContextOptions {
 const isWinHostPath = (s?: string) =>
   process.platform === "win32" && typeof s === "string" && (/^[A-Za-z]:[\\/]/.test(s) || s.startsWith("\\"));
 
+/** Creates a new `FmContext` with resolved home/data/trash directories and default or custom subsystem hooks. */
 export function createContext(options: FmContextOptions = {}): FmContext {
   const platform = options.platform ?? platformName();
   const rawHome = options.home ?? homedir();
@@ -163,6 +166,7 @@ export function absolutePath(ctx: FmContext, input: unknown): string {
   return p.resolve(input);
 }
 
+/** Returns `nodePath.win32` or `nodePath.posix` matching the context's target platform. */
 export function pathApi(ctx: Pick<FmContext, "platform"> & { home?: string; dataDir?: string }) {
   return ctx.platform === "win32" || isWinHostPath(ctx.home) || isWinHostPath(ctx.dataDir)
     ? nodePath.win32
@@ -188,6 +192,7 @@ function deepestRealPath(target: string): string | null {
   return null;
 }
 
+/** Throws an `FmError("PROTECTED")` if `target` (or its resolved real path) is a protected system, home, or Recycle Bin path. */
 export function assertModifiable(ctx: FmContext, target: string): void {
   const reason = protectedReason(target, { platform: ctx.platform, home: ctx.home, extraProtected: [ctx.trashRoot] }, "modify");
   if (reason) throw new FmError("PROTECTED", reason);
@@ -204,6 +209,7 @@ export function assertModifiable(ctx: FmContext, target: string): void {
   }
 }
 
+/** Throws an `FmError("PROTECTED")` if new items may not be created inside `parent`. */
 export function assertCreatable(ctx: FmContext, parent: string): void {
   const reason = protectedReason(parent, { platform: ctx.platform, home: ctx.home, extraProtected: [ctx.trashRoot] }, "create");
   if (reason) throw new FmError("PROTECTED", reason);
@@ -218,6 +224,7 @@ export function assertCreatable(ctx: FmContext, parent: string): void {
   }
 }
 
+/** Returns `fsp.lstat(target)` or `null` when the path does not exist (`ENOENT`/`ENOTDIR`). */
 export async function lstatOrNull(target: string): Promise<fs.Stats | null> {
   try {
     return await fsp.lstat(target);
@@ -227,10 +234,12 @@ export async function lstatOrNull(target: string): Promise<fs.Stats | null> {
   }
 }
 
+/** Returns true if a file, directory, or symlink exists at `target` (without following symlinks). */
 export async function exists(target: string): Promise<boolean> {
   return (await lstatOrNull(target)) !== null;
 }
 
+/** Verifies that `target` exists and is a directory, throwing a descriptive `FmError` otherwise. */
 export async function assertFolder(target: string, what = "That location"): Promise<void> {
   let st: fs.Stats;
   try {
@@ -282,6 +291,7 @@ export async function sameEntry(a: string, b: string): Promise<boolean> {
   }
 }
 
+/** Throws an `FmError("INTO_ITSELF")` if moving or copying `source` into `destDir` would place a folder inside itself. */
 export function assertNotIntoItself(ctx: FmContext, source: string, destDir: string): void {
   if (isSameOrInside(destDir, source, ctx.platform)) throw new FmError("INTO_ITSELF", "A folder can't be placed inside itself.");
   if (ctx.platform === process.platform) {

@@ -15,8 +15,11 @@ import * as nodePath from "path";
 import type { FmContext } from "./fmCore";
 import type { JobHooks, JobView, StepState } from "./fmJobs";
 
+/** Schema version number for the persisted `file_operations.json` history file. */
 export const HISTORY_VERSION = 1;
+/** Maximum number of operation entries retained in `file_operations.json`. */
 export const MAX_ENTRIES = 200;
+/** Maximum number of per-item step records stored inside a single `HistoryEntry`. */
 export const MAX_ITEMS = 200;
 const FILE_KINDS = ["copy", "move", "rename", "delete", "mixed"] as const;
 type FileOpKind = (typeof FILE_KINDS)[number];
@@ -24,6 +27,7 @@ const STATES = ["waiting", "running", "done", "failed", "cancelled", "interrupte
 type HistoryState = (typeof STATES)[number];
 const ITEM_STATES: readonly StepState[] = ["waiting", "running", "done", "failed", "skipped"];
 
+/** Per-item record within a persisted file operation history entry. */
 export interface HistoryItem {
   source: string;
   destination: string | null;
@@ -31,6 +35,7 @@ export interface HistoryItem {
   message: string;
 }
 
+/** Summary and item log of a single file operation persisted to `file_operations.json`. */
 export interface HistoryEntry {
   id: string;
   kind: FileOpKind;
@@ -52,6 +57,7 @@ export interface HistoryEntry {
   retryOf: string | null;
 }
 
+/** Type guard checking whether a job `kind` string is one of the tracked file operation kinds (`copy`, `move`, `rename`, `delete`, `mixed`). */
 export const isFileOp = (kind: string): kind is FileOpKind => (FILE_KINDS as readonly string[]).includes(kind);
 
 const text = (v: unknown, max: number): string => (typeof v === "string" ? v.replace(/\0/g, "").slice(0, max) : "");
@@ -90,6 +96,7 @@ function sanitizeEntry(raw: unknown): HistoryEntry | null {
   };
 }
 
+/** Returns the absolute path to the `file_operations.json` history file inside `ctx.dataDir`. */
 export const historyFile = (ctx: Pick<FmContext, "dataDir">) => nodePath.join(ctx.dataDir, "file_operations.json");
 
 async function readEntries(ctx: Pick<FmContext, "dataDir">): Promise<HistoryEntry[]> {
@@ -124,6 +131,7 @@ export async function loadHistory(ctx: Pick<FmContext, "dataDir">, live: Readonl
   return entries;
 }
 
+/** Converts a live `JobView` snapshot from the job hub into a bounded, sanitised `HistoryEntry` for persistence. */
 export function entryFromJob(view: JobView): HistoryEntry {
   const items: HistoryItem[] = view.steps.slice(0, MAX_ITEMS).map((s) => ({
     source: text(s.item?.source ?? s.label, 4096),

@@ -43,16 +43,20 @@ export const MIME_TYPES: Readonly<Record<string, string>> = Object.freeze({
   glb: "model/gltf-binary", gltf: `model/gltf+json${TEXT}`, obj: `text/plain${TEXT}`, wat: `text/plain${TEXT}`,
 });
 
+/** Default MIME type sent for unrecognized file extensions (`"application/octet-stream"`). */
 export const FALLBACK_MIME = "application/octet-stream";
 
+/** Extracts the lowercase file extension (without the leading dot) from `name`, or `""` if none exists. */
 export function extensionOfName(name: string): string {
   const dot = name.lastIndexOf(".");
   return dot >= 0 ? name.slice(dot + 1).toLowerCase() : "";
 }
 
+/** Resolves the `Content-Type` header value for `name` based on its file extension, falling back to `FALLBACK_MIME`. */
 export function mimeFor(name: string): string {
   const ext = extensionOfName(name);
   return Object.hasOwn(MIME_TYPES, ext) ? MIME_TYPES[ext]! : FALLBACK_MIME;
 }
 
+/** Returns `true` if `name` has an HTML or XHTML file extension (`.htm`, `.html`, or `.xhtml`). */
 export const isHtmlName = (name: string) => /\.(html?|xhtml)$/i.test(name);

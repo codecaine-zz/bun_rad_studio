@@ -7,6 +7,7 @@ import { clampPasswordLength, generatePassword } from "../../crypto_tools";
 import { FmError } from "./fmPaths";
 import { VAULT_WORDS } from "./fmVaultWords";
 
+/** Result of generating a random password, passphrase, or pronounceable secret. */
 export interface Generated {
   mode: string;
   value: string;
@@ -25,6 +26,7 @@ function pick(chars: string): string {
   return chars[randomInt(chars.length)]!;
 }
 
+/** Generates a random password, multi-word passphrase, or pronounceable password according to `body` options. */
 export function generateSecret(body: Record<string, any>): Generated {
   const mode = body.mode === undefined ? "password" : body.mode;
   if (mode === "passphrase") {

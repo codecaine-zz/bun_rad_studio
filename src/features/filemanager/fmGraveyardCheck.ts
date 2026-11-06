@@ -19,6 +19,7 @@ const LIST_CAP = 200;
 const NOFOLLOW = (constants as Record<string, number>).O_NOFOLLOW ?? 0;
 const DEEP_LIMIT = 25 * 1024 * 1024;
 
+/** Diagnostic report comparing the graveyard's manifest records against the actual files on disk. */
 export interface VerifyReport {
   dir: string;
   damaged: boolean;
@@ -68,6 +69,7 @@ async function findOrphans(dir: string, knownIds: Set<string>, ids: string[]): P
   return out;
 }
 
+/** Verifies the graveyard's manifest and entry directories, optionally recomputing SHA-256 digests when `options.deep` is true. */
 export async function verifyGraveyard(ctx: FmContext, options: { deep?: boolean } = {}): Promise<VerifyReport> {
   const dir = graveyardDirOf(ctx);
   const state = await readGrave(dir);
@@ -118,6 +120,7 @@ export async function quarantineDamaged(dir: string): Promise<string | null> {
   return backup;
 }
 
+/** Flags selecting which categories of graveyard inconsistencies `repairGraveyard` should fix. */
 export interface RepairOptions {
   missing: boolean;
   orphans: boolean;
@@ -125,6 +128,7 @@ export interface RepairOptions {
   damaged: boolean;
 }
 
+/** Summary of records dropped, orphan entries adopted, and staging directories cleaned by `repairGraveyard`. */
 export interface RepairReport {
   droppedRecords: number;
   adopted: number;
@@ -134,6 +138,7 @@ export interface RepairReport {
   damagedBackup: string | null;
 }
 
+/** Repairs the graveyard manifest and staging folder according to `options` without ever deleting buried user payloads. */
 export async function repairGraveyard(ctx: FmContext, options: RepairOptions): Promise<RepairReport> {
   const dir = graveyardDirOf(ctx);
   const report: RepairReport = { droppedRecords: 0, adopted: 0, leftAlone: 0, stagingCleared: 0, damagedBackup: null };
@@ -220,6 +225,7 @@ export async function repairGraveyard(ctx: FmContext, options: RepairOptions): P
 // Preview
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Read-only preview payload for a buried graveyard item (text snippet, image data URL, folder listing, symlink target, or binary notice). */
 export type Preview =
   | { kind: "text"; text: string; truncated: boolean; bytes: number }
   | { kind: "image"; mime: string; dataUrl: string; bytes: number }

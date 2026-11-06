@@ -1,3 +1,6 @@
+/**
+ * Interactive UI help tooltips and audit skip rules for Calculator Studio (`calculator_studio`), covering standard, scientific, programmer, financial, and graphing modes.
+ */
 import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Help tips for `calculator_studio` (Orbit Computing Suite). Keys: see src/shared/helpTips.ts. Check with: bun run scripts/help_controls.ts calculator_studio --missing */

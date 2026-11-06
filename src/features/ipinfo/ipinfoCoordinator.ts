@@ -1,3 +1,7 @@
+/**
+ * High-level orchestration for IPInfo workflows, coordinating DNS/IP resolution,
+ * upstream geolocation lookups, CIDR subnet math, bulk file processing, and output formatting.
+ */
 import type { IpInfoOptions, IpInfoResult } from "./ipinfoTypes.ts";
 import {
   calculateSubnet,
@@ -16,6 +20,9 @@ import {
   resolveTargetToIp,
 } from "./ipinfoDoers.ts";
 
+/**
+ * Resolves a target hostname or IP and fetches its enriched geolocation and reverse-DNS details.
+ */
 export async function queryIp(
   target?: string,
   token?: string
@@ -32,6 +39,10 @@ export async function queryIp(
   return data;
 }
 
+/**
+ * Executes the requested IPInfo workflow (local interfaces, CIDR math, bulk lookup, or single IP query)
+ * and formats the output according to the provided CLI options.
+ */
 export async function runIpInfoCoordinator(options: IpInfoOptions): Promise<string> {
   const token = options.token ?? process.env.IPINFO_TOKEN;
 

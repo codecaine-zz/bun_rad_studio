@@ -1,8 +1,15 @@
 #!/usr/bin/env bun
+/**
+ * Command-line interface for `watchexec`, parsing watch paths, extension/ignore/filter
+ * options, and target commands to execute on file modifications.
+ */
 import { parseArgs } from "node:util";
 import { runWatchexecCoordinator } from "./watchexecCoordinator.ts";
 import type { WatchexecOptions } from "./watchexecTypes.ts";
 
+/**
+ * Parses command-line arguments (including `--` command separators) into `WatchexecOptions`.
+ */
 export function parseWatchexecArguments(args: string[]): WatchexecOptions {
   // Find where "--" or positional command begins
   const dashIndex = args.indexOf("--");
@@ -66,6 +73,9 @@ export function parseWatchexecArguments(args: string[]): WatchexecOptions {
   };
 }
 
+/**
+ * Prints usage instructions and CLI options for `watchexec` to stdout.
+ */
 export function printWatchexecHelp(): void {
   console.log(`Usage: watchexec [options] [--] <command...>
 

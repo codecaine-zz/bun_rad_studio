@@ -16,6 +16,7 @@ import { DbStore, type DbProfile, type RedisProfile } from "./fmDbStore";
 import { FmError } from "./fmPaths";
 import { SNIFF_BYTES, sniffType } from "./fmSniff";
 
+/** Tracks which engine, profile, or SQLite file path a running studio was opened for and whether writes were confirmed. */
 export interface StudioSource {
   engine: DbEngine;
   profileId: string | null;
@@ -29,7 +30,9 @@ export interface StudioSource {
 export class LazySecretStore implements SecretStore {
   private real: Promise<SecretStore> | null = null;
   private resolved: SecretStore | null = null;
+  /** Creates a lazy secret store wrapper that defers probing the OS keychain until a password is requested. */
   constructor(private readonly find: () => Promise<SecretStore>) {}
+  /** Returns the resolved secret store kind, or `"memory"` before the keychain has been probed. */
   get kind(): SecretStore["kind"] {
     return this.resolved?.kind ?? "memory";
   }
@@ -38,17 +41,21 @@ export class LazySecretStore implements SecretStore {
     this.real ??= this.find().then((s) => (this.resolved = s));
     return this.real;
   }
+  /** Retrieves a connection password by ID after ensuring the underlying secret store is initialized. */
   async get(id: string) {
     return (await this.ensure()).get(id);
   }
+  /** Stores a connection password by ID after ensuring the underlying secret store is initialized. */
   async set(id: string, password: string) {
     return (await this.ensure()).set(id, password);
   }
+  /** Deletes a stored connection password by ID after ensuring the underlying secret store is initialized. */
   async delete(id: string) {
     return (await this.ensure()).delete(id);
   }
 }
 
+/** Per-context state container for the Databases feature holding hooks, secret store, profile store, studios, and password stash. */
 export interface DbState {
   hooks: DatabasesHooks;
   secrets: LazySecretStore;
@@ -66,6 +73,7 @@ export interface DbState {
 
 const states = new WeakMap<FmContext, DbState>();
 
+/** Returns (or lazily initializes) the `DbState` associated with the given `FmContext`. */
 export function dbState(ctx: FmContext): DbState {
   let s = states.get(ctx);
   if (s) return s;
@@ -88,6 +96,7 @@ export function dbState(ctx: FmContext): DbState {
   return s;
 }
 
+/** Convenience accessor returning the `DbStore` for the given `FmContext`. */
 export const dbStore = (ctx: FmContext) => dbState(ctx).store;
 
 /** The keychain kind (looks for it if that hasn't happened yet). */
@@ -97,6 +106,7 @@ export async function secretKind(ctx: FmContext): Promise<SecretStore["kind"]> {
   return s.secrets.kind;
 }
 
+/** Builds a fresh `EnvView` of connection environment variables and `.env` files for `ctx`. */
 export async function envView(ctx: FmContext): Promise<EnvView> {
   const { hooks } = dbState(ctx);
   return buildEnvView({ env: hooks.env(), cwd: hooks.cwd(), roots: hooks.appRoots(), home: ctx.home });
@@ -108,6 +118,7 @@ export function asFmError(err: unknown): unknown {
   return err;
 }
 
+/** Executes an async database operation and translates any `DbError` into a user-facing `FmError`. */
 export async function guarded<T>(fn: () => Promise<T>): Promise<T> {
   try {
     return await fn();
@@ -122,6 +133,7 @@ export function sameSecret(state: DbState, a: string | undefined | null, b: stri
   return timingSafeEqual(h(a), h(b));
 }
 
+/** Temporarily stashes a password parsed from a pasted connection URL in memory and returns a short-lived token. */
 export function stashPassword(state: DbState, engine: DbEngine, password: string): string {
   const now = state.hooks.now();
   for (const [k, v] of state.stash) if (v.expires < now) state.stash.delete(k);
@@ -131,6 +143,7 @@ export function stashPassword(state: DbState, engine: DbEngine, password: string
   return token;
 }
 
+/** Retrieves and validates a stashed password by token and engine, throwing if expired. */
 export function takeStashed(state: DbState, token: unknown, engine: DbEngine): string | undefined {
   if (typeof token !== "string") return undefined;
   const hit = state.stash.get(token);
@@ -142,6 +155,7 @@ export function takeStashed(state: DbState, token: unknown, engine: DbEngine): s
   return hit.password;
 }
 
+/** Computes the non-secret connection fingerprint for a saved SQL or Redis profile. */
 export function profileFingerprint(p: DbProfile): string {
   if (p.engine === "sqlite") return connectionFingerprint("sqlite", { path: (p as ConnectionProfile).path });
   if (p.engine === "redis") {

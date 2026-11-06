@@ -1,3 +1,6 @@
+/**
+ * Comprehensive end-to-end unit test suite covering all 44 modules of the Bun RAD utility library.
+ */
 import { describe, expect, it } from "bun:test";
 import { rad } from "./index.ts";
 

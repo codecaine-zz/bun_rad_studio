@@ -1,3 +1,7 @@
+/**
+ * Bit manipulation utilities: fixed-size `BitSet` backed by `Uint32Array`, 32-bit integer bit operations,
+ * and named bitmask flag helpers.
+ */
 // Feature: RAD - bitutils
 // Bit manipulation: a fixed-size BitSet (Uint32Array words) with set algebra and fast iteration,
 // 32-bit integer bit helpers, and named-flag bitmasks (define / combine / describe).
@@ -17,6 +21,10 @@ export class BitSet {
   private words: Uint32Array;
   readonly size: number;
 
+  /**
+   * Creates a fixed-size `BitSet` with `size` addressable bits initialized to `0`.
+   * @param size - Total number of bits (must be > 0).
+   */
   constructor(size: number) {
     if (!(size > 0)) throw new Error(`[bitutils] BitSet size must be > 0 (got ${size})`);
     this.size = Math.floor(size);
@@ -38,6 +46,9 @@ export class BitSet {
     return bs;
   }
 
+  /**
+   * Sets or clears the bit at `index` (out-of-range indices are ignored).
+   */
   set(index: number, val = true): void {
     if (index < 0 || index >= this.size) return;
     const w = index >>> 5;
@@ -45,15 +56,24 @@ export class BitSet {
     this.words[w] = val ? this.words[w]! | mask : this.words[w]! & ~mask;
   }
 
+  /**
+   * Returns `true` if the bit at `index` is set (`false` when out of range).
+   */
   get(index: number): boolean {
     if (index < 0 || index >= this.size) return false;
     return (this.words[index >>> 5]! & (1 << (index & 31))) !== 0;
   }
 
+  /**
+   * Clears the bit at `index` (sets it to `0`).
+   */
   clear(index: number): void {
     this.set(index, false);
   }
 
+  /**
+   * Flips the bit at `index`.
+   */
   toggle(index: number): void {
     this.set(index, !this.get(index));
   }
@@ -71,14 +91,23 @@ export class BitSet {
     return count;
   }
 
+  /**
+   * Returns `true` if at least one bit in the set is `1`.
+   */
   any(): boolean {
     return this.words.some((w) => w !== 0);
   }
 
+  /**
+   * Returns `true` if every bit in the set is `0`.
+   */
   none(): boolean {
     return !this.any();
   }
 
+  /**
+   * Returns `true` if every bit in the set is `1`.
+   */
   all(): boolean {
     return this.countSet() === this.size;
   }
@@ -105,14 +134,23 @@ export class BitSet {
     return [...this.indices()];
   }
 
+  /**
+   * Returns a new `BitSet` containing the bitwise intersection (`AND`) with `other`.
+   */
   and(other: BitSet): BitSet {
     return this.combine(other, (a, b) => a & b);
   }
 
+  /**
+   * Returns a new `BitSet` containing the bitwise union (`OR`) with `other`.
+   */
   or(other: BitSet): BitSet {
     return this.combine(other, (a, b) => a | b);
   }
 
+  /**
+   * Returns a new `BitSet` containing the bitwise symmetric difference (`XOR`) with `other`.
+   */
   xor(other: BitSet): BitSet {
     return this.combine(other, (a, b) => a ^ b);
   }
@@ -122,12 +160,18 @@ export class BitSet {
     return this.combine(other, (a, b) => a & ~b);
   }
 
+  /**
+   * Returns an independent copy of this `BitSet`.
+   */
   clone(): BitSet {
     const c = new BitSet(this.size);
     c.words.set(this.words);
     return c;
   }
 
+  /**
+   * Returns `true` if `other` has the same size and identical bits set.
+   */
   equals(other: BitSet): boolean {
     return this.size === other.size && this.words.every((w, i) => w === other.words[i]);
   }
@@ -241,6 +285,9 @@ export function describeFlags<N extends string>(value: number, flagMap: Record<N
   return (Object.keys(flagMap) as N[]).filter((n) => hasFlag(value, flagMap[n]));
 }
 
+/**
+ * Namespace of bit manipulation utilities, `BitSet`, and named bitmask flag helpers.
+ */
 export const bitutils = {
   BitSet,
   popcount,

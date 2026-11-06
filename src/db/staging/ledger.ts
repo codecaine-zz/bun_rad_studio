@@ -6,6 +6,7 @@ import { q, refOf, runOnce, type StageConn, type StageDb } from "./db";
 import { CHANGES, LEDGER, ledgerDdl, Params } from "./dialect";
 import type { BatchStatus, PromoteMode } from "./types";
 
+/** Persistent metadata record representing a single staging import batch in `_import_batches`. */
 export interface BatchRecord {
   batchId: string;
   createdAt: string;
@@ -31,6 +32,7 @@ export interface BatchRecord {
   note: string | null;
 }
 
+/** Returns the current UTC timestamp formatted as an ISO-8601 string. */
 export const nowIso = () => new Date().toISOString();
 
 const ensured = new WeakSet<object>();
@@ -94,6 +96,7 @@ function toRecord(r: Record<string, any>): BatchRecord {
   };
 }
 
+/** Inserts a new batch record into the `_import_batches` ledger table. */
 export async function insertBatch(db: StageDb, c: StageConn, rec: BatchRecord): Promise<void> {
   const p = new Params(db.engine);
   const vals = [rec.batchId, rec.createdAt, rec.sourceName, rec.targetTable, rec.newTable ? 1 : 0, rec.stagingTable, rec.mode, rec.status, rec.rowsTotal, rec.rowsValid, rec.rowsInvalid, rec.rowsDuplicate, rec.rowsInserted, rec.rowsUpdated, rec.rowsSkipped, rec.promotedAt, rec.undoneAt, rec.droppedAt, rec.undoable ? 1 : 0, rec.undoNote, rec.config === null || rec.config === undefined ? null : JSON.stringify(rec.config), rec.note];
@@ -122,6 +125,7 @@ const FIELD: Record<string, string> = {
   note: "note",
 };
 
+/** Updates selected fields of an existing batch record in `_import_batches`. */
 export async function updateBatch(db: StageDb, c: StageConn, batchId: string, patch: Partial<Omit<BatchRecord, "batchId">>): Promise<void> {
   const p = new Params(db.engine);
   const sets: string[] = [];
@@ -136,6 +140,7 @@ export async function updateBatch(db: StageDb, c: StageConn, batchId: string, pa
   await c.query(`UPDATE ${refOf(db, LEDGER)} SET ${sets.join(", ")} WHERE ${q(db.engine, "batch_id")} = ${idp}`, p.values);
 }
 
+/** Fetches a single batch record by ID from `_import_batches`, or returns `null` if not found. */
 export async function getBatch(db: StageDb, batchId: string): Promise<BatchRecord | null> {
   await ensureLedger(db);
   const p = new Params(db.engine);
@@ -143,12 +148,14 @@ export async function getBatch(db: StageDb, batchId: string): Promise<BatchRecor
   return r.rows[0] ? toRecord(r.rows[0]) : null;
 }
 
+/** Lists all import batch records in `_import_batches` ordered newest first. */
 export async function listBatches(db: StageDb): Promise<BatchRecord[]> {
   await ensureLedger(db);
   const r = await runOnce(db, `SELECT * FROM ${refOf(db, LEDGER)} ORDER BY ${q(db.engine, "created_at")} DESC, ${q(db.engine, "batch_id")} DESC`);
   return r.rows.map(toRecord);
 }
 
+/** Column names of the `_import_batch_changes` undo-tracking table. */
 export const CHANGE_COLS = { id: "change_id", batch: "batch_id", action: "action", ref: "ref_row_id", pk: "pk_json", before: "before_json", after: "after_hash" } as const;
 
 export { CHANGES };

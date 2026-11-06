@@ -1,3 +1,6 @@
+/**
+ * Interactive UI help tooltips and audit skip rules for OmniTool Studio (`omnitool_studio`), covering multi-tool developer utilities, text transforms, and generators.
+ */
 import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** DevTools Studio / OmniTool Studio: search, find, replace, trash and JSON query in one window. */

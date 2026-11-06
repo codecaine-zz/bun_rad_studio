@@ -5,9 +5,12 @@
  */
 import { createHash } from "crypto";
 
+/** Identifier for the four database engines supported by File Manager (`sqlite`, `mysql`, `postgres`, `redis`). */
 export type DbEngine = "sqlite" | "mysql" | "postgres" | "redis";
+/** Ordered list of all supported `DbEngine` identifiers. */
 export const DB_ENGINES: DbEngine[] = ["sqlite", "mysql", "postgres", "redis"];
 
+/** Display metadata, default port, and studio script name for a supported `DbEngine`. */
 export interface EngineInfo {
   id: DbEngine;
   label: string;
@@ -18,6 +21,7 @@ export interface EngineInfo {
   studioName: string;
 }
 
+/** Metadata catalog keyed by `DbEngine`. */
 export const ENGINES: Record<DbEngine, EngineInfo> = {
   sqlite: { id: "sqlite", label: "SQLite", icon: "🪶", script: "sqlite_studio", studioName: "SQLite Studio" },
   mysql: { id: "mysql", label: "MySQL / MariaDB", icon: "🐬", script: "mysql_studio", defaultPort: 3306, studioName: "MySQL Studio" },
@@ -25,8 +29,10 @@ export const ENGINES: Record<DbEngine, EngineInfo> = {
   redis: { id: "redis", label: "Redis", icon: "🧰", script: "redis_studio", defaultPort: 6379, studioName: "Redis Studio" },
 };
 
+/** Type guard that returns true when `v` is a valid `DbEngine` identifier. */
 export const isEngine = (v: unknown): v is DbEngine => typeof v === "string" && (DB_ENGINES as string[]).includes(v);
 
+/** Connection configuration field name across SQLite, MySQL, PostgreSQL, and Redis connections. */
 export type FieldName = "host" | "port" | "user" | "password" | "database" | "schema" | "tls" | "path" | "dbIndex";
 
 /**
@@ -129,13 +135,18 @@ export function isScrubbedVariable(name: string): boolean {
 
 /* ------------------------------------------------------------------ hosts, ports, names */
 
+/** Regular expression matching valid DNS hostnames, IPv4 addresses, and IPv6 literals. */
 export const HOST_PATTERN = /^(?:[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?|[0-9A-Fa-f:.]*:[0-9A-Fa-f:.]+)$/;
+/** Returns true if `h` is a non-empty hostname or IP literal up to 255 characters matching `HOST_PATTERN`. */
 export const validHost = (h: string) => h.length > 0 && h.length <= 255 && HOST_PATTERN.test(h);
+/** Returns true if `p` is an integer TCP port between 1 and 65535. */
 export const validPort = (p: number) => Number.isInteger(p) && p >= 1 && p <= 65535;
+/** Returns true if `h` is `localhost`, an IPv4 `127.x.x.x` address, or IPv6 `::1`. */
 export const isLoopbackHost = (h: string) => /^(localhost|127(\.\d{1,3}){3}|::1)$/i.test(h);
 
 /* ------------------------------------------------------------------ connection addresses */
 
+/** Connection fields extracted from a parsed `mysql://`, `postgres://`, `redis://`, or `sqlite://` URL. */
 export interface ParsedConnectionUrl {
   engine: DbEngine;
   host?: string;
@@ -154,6 +165,7 @@ export interface ParsedConnectionUrl {
   notes: string[];
 }
 
+/** Discriminated union returned by `parseConnectionUrl` containing either parsed fields or a plain-language error. */
 export type UrlResult = { ok: true; value: ParsedConnectionUrl } | { ok: false; error: string };
 
 const SCHEMES: Record<string, { engine: DbEngine; tls?: boolean }> = {
@@ -336,6 +348,7 @@ export function maskUrl(text: string): string {
 
 /* ------------------------------------------------------------------ fingerprints */
 
+/** Non-secret connection endpoint fields hashed to compute a stable deduplication fingerprint. */
 export interface FingerprintParts {
   host?: string;
   port?: number;

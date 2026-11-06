@@ -7,11 +7,14 @@ import { promises as fsp } from "fs";
 import { absolutePath, assertFolder, pathApi, tick, type FmContext } from "./fmCore";
 import { FmError } from "./fmPaths";
 
+/** Maximum number of workspace files collected when listing or searching a directory tree. */
 export const MAX_FILES = 20_000;
+/** Maximum number of text search matches returned by a workspace search. */
 export const MAX_RESULTS = 1000;
 const SKIP_DIRS = new Set(["node_modules", ".git", ".hg", ".svn", "dist", ".next", ".nuxt", ".cache", ".venv", "__pycache__", ".idea", ".gradle", ".tox", "coverage"]);
 const BIG_DIR = 5000;
 
+/** Result of listing workspace files under a root directory, including truncation and skipped-folder metadata. */
 export interface FileList { root: string; files: string[]; truncated: boolean; timedOut: boolean; skipped: string[] }
 
 /** Relative paths (with "/") of the files under `root`, breadth first. Links are never followed. */
@@ -59,7 +62,9 @@ export async function listWorkspaceFiles(ctx: FmContext, rootInput: unknown, opt
 // Find in files (worker thread)
 // ---------------------------------------------------------------------------------------------------------------
 
+/** A single line/column match found during a workspace text or regex search. */
 export interface SearchMatch { path: string; line: number; col: number; length: number; text: string }
+/** Aggregated matches and statistics returned when a worker-thread workspace search finishes. */
 export interface SearchOutcome { matches: SearchMatch[]; filesSearched: number; skippedBinary: number; truncated: boolean; timedOut: boolean }
 
 /** The worker's program. It only ever reads, and receives a list of files from the server. */
@@ -106,6 +111,7 @@ self.onmessage = (e) => {
 };
 `;
 
+/** Searches the given workspace files in a background Worker thread with timeout protection. */
 export function searchWorkspace(ctx: FmContext, root: string, files: string[], q: { query: string; regex: boolean; caseSensitive: boolean; wholeWord: boolean }, timeMs = 12_000): Promise<SearchOutcome> {
   const p = pathApi(ctx);
   return new Promise((resolve, reject) => {

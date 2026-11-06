@@ -19,6 +19,7 @@ export class Stage {
   private root: string | null = null;
   private count = 0;
 
+  /** Lazily creates and returns the temporary staging root directory for the current conversion step. */
   dir(): string {
     this.root ??= mkdtempSync(nodePath.join(tmpdir(), "fm-conv-"));
     return this.root;
@@ -31,12 +32,14 @@ export class Stage {
     return d;
   }
 
+  /** Writes string content to a uniquely named temporary file inside the staging directory and returns its path. */
   file(name: string, content: string): string {
     const p = nodePath.join(this.dir(), `${++this.count}-${name.replace(/[^A-Za-z0-9_.-]/g, "_")}`);
     writeFileSync(p, content);
     return p;
   }
 
+  /** Copies a source file into a fresh subdirectory inside the staging area with a sanitized filename. */
   copy(source: string, name: string): string {
     const d = this.subDir("copy");
     const p = nodePath.join(d, name.replace(/[^A-Za-z0-9_.-]/g, "_"));
@@ -56,6 +59,7 @@ export class Stage {
     return target;
   }
 
+  /** Recursively deletes the temporary staging directory if one was created. */
   cleanup(): void {
     if (this.root) rmSync(this.root, { recursive: true, force: true });
     this.root = null;
@@ -105,11 +109,13 @@ export function publishFolder(source: string, final: string): void {
 // Folder size limits and links
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Maximum total byte size and entry count allowed in an extracted directory tree. */
 export interface TreeLimits {
   maxBytes: number;
   maxEntries: number;
 }
 
+/** Default size and entry count caps enforced while monitoring archive extraction folders. */
 export const EXTRACT_LIMITS: TreeLimits = { maxBytes: 8 * 1024 ** 3, maxEntries: 100_000 };
 
 /** Size and number of items in a folder, stopping as soon as a limit is passed. */
@@ -172,6 +178,7 @@ export async function sanitizeExtracted(root: string, limits: TreeLimits): Promi
 // Running programs
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Execution options, environment, output redirection, and cancellation signal for running external conversion commands. */
 export interface RunOptions {
   env?: Record<string, string>;
   cwd?: string;

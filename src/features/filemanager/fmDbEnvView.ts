@@ -8,6 +8,7 @@ import { promises as fsp } from "fs";
 import { readDotenvFolder, type DotenvFolder } from "./fmDbDotenv";
 import { isAnyConnectionVariable } from "./fmDbModel";
 
+/** Origin metadata describing whether an environment variable came from `process.env`, a `.env` file, or a local probe. */
 export interface Provenance {
   kind: "process" | "file" | "local";
   variable: string;
@@ -23,12 +24,14 @@ export interface Provenance {
   overrides?: string[];
 }
 
+/** An environment variable name, resolved value, and provenance record. */
 export interface EnvVar {
   name: string;
   value: string;
   prov: Provenance;
 }
 
+/** Summary of a `.env` file inspected in the application's start or install directory. */
 export interface FileNote {
   file: string;
   where: "application" | "start" | "install";
@@ -38,12 +41,14 @@ export interface FileNote {
   count: number;
 }
 
+/** Combined view of connection-related environment variables, `.env` file notes, and active `NODE_ENV`. */
 export interface EnvView {
   vars: Map<string, EnvVar>;
   files: FileNote[];
   nodeEnv: string;
 }
 
+/** Process environment, working directory, application roots, and home directory used to build an `EnvView`. */
 export interface EnvViewInput {
   env: Record<string, string | undefined>;
   cwd: string;
@@ -51,6 +56,7 @@ export interface EnvViewInput {
   home: string;
 }
 
+/** Replaces a leading `home` directory prefix on `path` with `~` and normalizes slashes for display. */
 export const tilde = (path: string, home: string) => (home && (path === home || path.startsWith(home + "/") || path.startsWith(home + "\\")) ? "~" + path.slice(home.length).replace(/\\/g, "/") : path);
 
 async function real(path: string): Promise<string> {
@@ -61,6 +67,7 @@ async function real(path: string): Promise<string> {
   }
 }
 
+/** Inspects `process.env` and `.env*` files in `cwd` and `roots` to attribute provenance to every connection variable. */
 export async function buildEnvView(input: EnvViewInput): Promise<EnvView> {
   const dirs: Array<{ real: string; shown: string }> = [];
   for (const d of [input.cwd, ...input.roots]) {

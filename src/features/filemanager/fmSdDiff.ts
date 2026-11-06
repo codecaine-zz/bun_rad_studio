@@ -9,6 +9,7 @@ interface Op {
   s: string;
 }
 
+/** Formatted unified diff result and summary counts for a single file comparison. */
 export interface UnifiedDiff {
   text: string;
   hunks: number;
@@ -17,10 +18,12 @@ export interface UnifiedDiff {
   truncated: boolean;
 }
 
+/** Number of unchanged context lines included before and after each diff hunk. */
 export const DIFF_CONTEXT = 3;
 /** Past this many differing lines in one stretch the comparison gives up on pairing lines and shows the stretch as replaced. */
 const MAX_EDIT_DISTANCE = 1500;
 
+/** Splits a text string into an array of lines, dropping a trailing empty element caused by a final newline. */
 export function splitLines(text: string): string[] {
   const parts = text.split("\n");
   if (parts[parts.length - 1] === "") parts.pop();
@@ -85,6 +88,7 @@ function myers(a: string[], b: string[], maxD: number): Op[] | null {
   return out.reverse();
 }
 
+/** Computes a line-by-line edit script (`' '`, `'-'`, `'+'`) transforming `a` into `b`. */
 export function editScript(a: string[], b: string[]): Op[] {
   let start = 0;
   while (start < a.length && start < b.length && a[start] === b[start]) start++;
@@ -103,6 +107,7 @@ export function editScript(a: string[], b: string[]): Op[] {
 /** A carriage return would be invisible, so a line that ends in one shows "␍" instead. */
 const show = (s: string) => (s.endsWith("\r") ? `${s.slice(0, -1)}␍` : s);
 
+/** Generates a unified diff (`diff -u` style) between `before` and `after` for `path`, bounded by `limits`. */
 export function unifiedDiff(path: string, before: string, after: string, limits: { maxLines: number; maxChars: number }): UnifiedDiff {
   const ops = editScript(splitLines(before), splitLines(after));
   let added = 0;

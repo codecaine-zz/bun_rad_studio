@@ -8,9 +8,12 @@
 import { performance } from "perf_hooks";
 import { FmError } from "./fmPaths";
 
+/** Supported password hashing algorithms available in the Crypto tab (`Bun.password`). */
 export const PASSWORD_ALGORITHMS = ["argon2id", "argon2i", "argon2d", "bcrypt"] as const;
+/** Union of supported password hashing algorithm identifiers. */
 export type PasswordAlgorithm = (typeof PASSWORD_ALGORITHMS)[number];
 
+/** Safe parameter bounds and execution timeout limits for password hashing and verification. */
 export const PASSWORD_LIMITS = {
   /** Argon2 memory in KiB (8 KiB to 1 GiB). */
   memoryCost: { min: 8, max: 1024 * 1024, default: 65536 },
@@ -24,6 +27,7 @@ export const PASSWORD_LIMITS = {
   timeoutMs: 60_000,
 };
 
+/** Algorithm choice and work-factor parameters for hashing a password. */
 export interface PasswordParams {
   algorithm: PasswordAlgorithm;
   memoryCost?: number;
@@ -59,6 +63,7 @@ export function estimatePasswordMs(p: Required<PasswordParams>): number {
   return Math.max(1, Math.round((p.memoryCost / 1024) * p.timeCost * 0.5));
 }
 
+/** Algorithm and cost parameters parsed from a PHC Argon2 or modular crypt bcrypt hash string. */
 export interface ParsedHash {
   algorithm: PasswordAlgorithm;
   memoryCost?: number;
@@ -79,6 +84,7 @@ export function parsePasswordHash(hash: string): ParsedHash | null {
   return null;
 }
 
+/** Formats a human-readable summary of a parsed password hash's algorithm, memory, passes, and parallelism/cost. */
 export const describeHash = (p: ParsedHash): string =>
   p.algorithm === "bcrypt" ? `bcrypt, cost ${p.cost}` : `${p.algorithm}, ${p.memoryCost! >= 1024 ? `${Math.round((p.memoryCost! / 1024) * 10) / 10} MiB` : `${p.memoryCost} KiB`} of memory, ${p.timeCost} pass${p.timeCost === 1 ? "" : "es"}, ${p.parallelism} thread${p.parallelism === 1 ? "" : "s"}`;
 
@@ -102,6 +108,7 @@ async function exclusive<T>(run: () => Promise<T>): Promise<T> {
   }
 }
 
+/** Result returned by `hashPassword`, including the encoded hash string, timing metrics, and compatibility notes. */
 export interface HashedPassword {
   hash: string;
   algorithm: PasswordAlgorithm;
@@ -134,6 +141,7 @@ export async function hashPassword(password: string, p: Required<PasswordParams>
   };
 }
 
+/** Result returned by `checkPassword` indicating whether the candidate password matched the stored hash. */
 export interface PasswordCheck {
   /** Named `matches`, not `ok`: `ok` is the HTTP envelope's own flag. */
   matches: boolean;

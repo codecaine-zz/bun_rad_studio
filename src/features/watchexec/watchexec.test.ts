@@ -1,3 +1,7 @@
+/**
+ * Unit and process-lifecycle tests for `watchexec`, covering extension/ignore/filter
+ * matching, child process and process-tree termination, environment variables, and shell formatting.
+ */
 import { describe, expect, it } from "bun:test";
 import {
   matchesExtension,

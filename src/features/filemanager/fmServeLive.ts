@@ -8,12 +8,19 @@ import { existsSync, promises as fsp, watch as fsWatch, type FSWatcher } from "f
 import { randomBytes } from "crypto";
 import { describeFsError } from "./fmPaths";
 
+/** Reserved HTTP path for the Server-Sent Events live-reload stream. */
 export const LIVE_PATH = "/__live__";
+/** Reserved HTTP path serving the client-side live-reload script. */
 export const LIVE_SCRIPT_PATH = "/__live__/client.js";
+/** HTML script tag injected into served HTML pages for live reload. */
 export const LIVE_TAG = `<script src="${LIVE_SCRIPT_PATH}" data-fm-live></script>`;
+/** Maximum number of subdirectories to watch before disabling live reload. */
 export const MAX_WATCHED_DIRS = 5000;
+/** Default debounce interval in milliseconds before broadcasting file changes. */
 export const DEBOUNCE_MS = 100;
+/** Default heartbeat ping interval in milliseconds for connected SSE clients. */
 export const HEARTBEAT_MS = 15_000;
+/** Maximum number of concurrent SSE live-reload client connections. */
 export const MAX_SSE_CLIENTS = 50;
 const MAX_QUEUED_BYTES = 1024 * 1024;
 const MAX_LISTED_FILES = 20;
@@ -102,6 +109,7 @@ interface Client {
   controller: ReadableStreamDefaultController<Uint8Array>;
 }
 
+/** Configuration options for the `LiveHub` file watcher and SSE broadcaster. */
 export interface LiveOptions {
   root: string;
   allowDotfiles?: boolean;
@@ -114,6 +122,7 @@ export interface LiveOptions {
 
 const enc = new TextEncoder();
 
+/** Watches a served directory tree and broadcasts reload or CSS-swap events to connected browser pages over SSE. */
 export class LiveHub {
   readonly serverId = randomBytes(6).toString("hex");
   /** Plain words, or "" when all is well: why live reload isn't working. */
@@ -130,12 +139,15 @@ export class LiveHub {
   private stopped = false;
   private quietUntil = 0;
 
+  /** Creates a new `LiveHub` instance for the given directory options. */
   constructor(private opts: LiveOptions) {}
 
+  /** Number of currently connected browser SSE clients. */
   get clientCount(): number {
     return this.clients.size;
   }
 
+  /** Starts watching the root directory and begins sending periodic SSE heartbeats. */
   async start(): Promise<void> {
     const cap = this.opts.maxDirs ?? MAX_WATCHED_DIRS;
     const dirs = await countDirs(this.opts.root, cap, this.opts.allowDotfiles);

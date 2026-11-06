@@ -1,6 +1,11 @@
+/**
+ * Normalized database error codes (`DbError`), credential redaction, driver error classification,
+ * and defense-in-depth read-only statement checks.
+ */
 import type { Engine } from "./types";
 import { leadingKeyword } from "./splitter";
 
+/** Canonical error code category across SQLite, MySQL, and PostgreSQL adapters. */
 export type DbErrorCode =
   | "CONNECTION_REFUSED"
   | "HOST_NOT_FOUND"
@@ -26,6 +31,7 @@ export class DbError extends Error {
   readonly code: DbErrorCode;
   readonly hint?: string;
   readonly engineCode?: string;
+  /** Creates a normalized `DbError` with a stable `code`, user-facing `message`, optional remediation `hint`, and raw `engineCode`. */
   constructor(code: DbErrorCode, message: string, hint?: string, engineCode?: string) {
     super(message);
     this.name = "DbError";
@@ -33,11 +39,13 @@ export class DbError extends Error {
     this.hint = hint;
     this.engineCode = engineCode;
   }
+  /** Serializes the error into a plain JSON object (`code`, `message`, `hint`, `engineCode`) for HTTP responses. */
   toJSON() {
     return { code: this.code, message: this.message, hint: this.hint, engineCode: this.engineCode };
   }
 }
 
+/** Replaces known `secrets` and inline URI/key-value passwords in `text` with `********`. */
 export function redact(text: string, secrets: (string | undefined)[]): string {
   let out = String(text);
   for (const s of secrets) if (s && s.length >= 3) out = out.split(s).join("********");

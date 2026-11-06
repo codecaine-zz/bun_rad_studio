@@ -3,7 +3,9 @@ import { promises as fsp } from "fs";
 import { absolutePath, assertCreatable, assertFolder, pathApi, type FmContext } from "./fmCore";
 import { FmError, uniqueName, validateName } from "./fmPaths";
 
+/** Primitive cell value (`string`, `number`, or `null`) in an exported developer report table. */
 export type Cell = string | number | null;
+/** Titled tabular dataset with column headers and rows ready for CSV, Markdown, or JSON export. */
 export interface Table {
   title: string;
   columns: string[];
@@ -12,10 +14,14 @@ export interface Table {
   meta?: Record<string, unknown>;
 }
 
+/** Supported export file formats (`csv`, `json`, `md`) for Developer Tools reports. */
 export const EXPORT_FORMATS = ["csv", "json", "md"] as const;
+/** Union of supported Developer Tools report export format identifiers. */
 export type ExportFormat = (typeof EXPORT_FORMATS)[number];
+/** Maximum number of table rows included when rendering an exported Developer Tools report. */
 export const MAX_EXPORT_ROWS = 100_000;
 
+/** Validates that `v` is a supported `ExportFormat` (`csv`, `json`, or `md`), throwing `BAD_FORMAT` otherwise. */
 export const parseFormat = (v: unknown): ExportFormat => {
   if (typeof v === "string" && (EXPORT_FORMATS as readonly string[]).includes(v)) return v as ExportFormat;
   throw new FmError("BAD_FORMAT", "Choose CSV, JSON or Markdown.");
@@ -29,12 +35,14 @@ function csvCell(c: Cell): string {
   return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
+/** Serializes a `Table` into RFC 4180 CRLF-delimited CSV text. */
 export function toCsv(t: Table): string {
   return `${[t.columns, ...t.rows].map((r) => r.map(csvCell).join(",")).join("\r\n")}\r\n`;
 }
 
 const mdCell = (c: Cell) => (c === null ? "" : String(c).replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/[\r\n]+/g, " "));
 
+/** Renders a `Table` as a GitHub-flavored Markdown table with right-aligned numeric columns. */
 export function toMarkdown(t: Table): string {
   const numeric = t.columns.map((_, i) => t.rows.length > 0 && t.rows.every((r) => typeof r[i] === "number" || r[i] === null));
   const head = `| ${t.columns.map(mdCell).join(" | ")} |`;
@@ -43,11 +51,13 @@ export function toMarkdown(t: Table): string {
   return `${[head, sep, ...body].join("\n")}\n`;
 }
 
+/** Serializes a `Table` into pretty-printed JSON containing the title and an array of row objects. */
 export function toJson(t: Table): string {
   const rows = t.rows.map((r) => Object.fromEntries(t.columns.map((c, i) => [c, r[i] ?? null])));
   return `${JSON.stringify({ title: t.title, ...(t.meta ?? {}), rows }, null, 2)}\n`;
 }
 
+/** Cuts `t` to `MAX_EXPORT_ROWS` and formats it as CSV, Markdown, or JSON. */
 export function render(t: Table, format: ExportFormat): string {
   const capped = t.rows.length > MAX_EXPORT_ROWS ? { ...t, rows: t.rows.slice(0, MAX_EXPORT_ROWS) } : t;
   return format === "csv" ? toCsv(capped) : format === "md" ? toMarkdown(capped) : toJson(capped);

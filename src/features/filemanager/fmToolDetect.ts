@@ -11,6 +11,7 @@ import {
   type InstallPlan, type ManagerId, type Managers, type ToolId,
 } from "./fmTools";
 
+/** Spawns a command with a hard timeout and captures its combined stdout/stderr text and exit code. */
 export async function capture(argv: string[], env: Record<string, string>, timeoutMs = 8000): Promise<{ code: number | null; text: string }> {
   let proc: ReturnType<typeof Bun.spawn>;
   try {
@@ -48,6 +49,7 @@ export async function capture(argv: string[], env: Record<string, string>, timeo
 
 const MANAGER_PROGRAMS: Record<ManagerId, string[]> = { brew: ["brew"], winget: ["winget"], scoop: ["scoop"], choco: ["choco"], apt: ["apt-get"], dnf: ["dnf"], pacman: ["pacman"] };
 
+/** Detects which supported system package managers (`brew`, `winget`, `scoop`, `choco`, `apt`, `dnf`, `pacman`) are installed. */
 export function detectManagers(ctx: FmContext): Managers {
   const dirs = searchDirs(ctx);
   const found: Managers = {};
@@ -65,6 +67,7 @@ export function resolveTool(ctx: FmContext, tool: ToolId, program?: string): str
   return findExecutable(ctx.platform, names, dirs, ctx.platform === "win32" && tool === "libreoffice" ? [".com", ".exe", ".cmd", ".bat"] : undefined);
 }
 
+/** Detected installation status, version, capabilities, and installation plan for an external helper tool. */
 export interface ToolStatus {
   id: ToolId;
   name: string;
@@ -162,18 +165,21 @@ async function capabilitiesOf(ctx: FmContext, id: ToolId, path: string, env: Rec
   return caps;
 }
 
+/** Returns the name of the first available PDF engine (`typst`, `xelatex`, `lualatex`, `pdflatex`, `wkhtmltopdf`, `weasyprint`) for Pandoc, or `null`. */
 export function pdfEngineFor(ctx: FmContext): string | null {
   const dirs = searchDirs(ctx);
   for (const e of PDF_ENGINES) if (findExecutable(ctx.platform, [e], dirs)) return e;
   return null;
 }
 
+/** Probes all external helper tools and package managers, returning their installation status and capabilities. */
 export async function toolStatus(ctx: FmContext): Promise<{ platform: string; managers: Managers; tools: ToolStatus[] }> {
   const managers = detectManagers(ctx);
   const tools = await Promise.all(TOOL_IDS.map((id) => probe(ctx, id, managers)));
   return { platform: ctx.platform, managers, tools };
 }
 
+/** Translates raw stderr/stdout output and exit code from a failed helper tool invocation into a user-friendly explanation. */
 export function explainFailure(tool: ToolId | "builtin", text: string, code: number | null): string {
   const t = text.replace(/\r/g, "\n");
   const generic = lastLines(t, 2) || `It stopped with an error (code ${code}).`;

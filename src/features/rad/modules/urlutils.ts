@@ -1,3 +1,10 @@
+/**
+ * RFC 3986 URL decomposition, clean path-segment joining, and credential redaction utilities.
+ */
+
+/**
+ * Decomposed URL structure returned by {@link parseUrl}, including split path segments and query dictionary.
+ */
 export interface ParsedUrl {
   href: string;
   protocol: string;
@@ -15,6 +22,9 @@ export interface ParsedUrl {
 }
 
 // Coordinator: Parse standard RFC 3986 URL with convenient RAD getters
+/**
+ * Parses an RFC 3986 URL string into a {@link ParsedUrl} with pre-split `pathSegments` and `queryParams`.
+ */
 export function parseUrl(urlStr: string): ParsedUrl {
   const u = new URL(urlStr);
   const segments = u.pathname.split("/").filter((s) => s.length > 0);
@@ -41,6 +51,9 @@ export function parseUrl(urlStr: string): ParsedUrl {
 }
 
 // Doer: Join URL base with path segments cleanly without double slashes
+/**
+ * Joins a base URL and one or more path segments using single forward slashes, trimming duplicate slashes.
+ */
 export function joinUrl(base: string, ...segments: string[]): string {
   let result = base.replace(/\/+$/, "");
   for (const seg of segments) {
@@ -54,6 +67,9 @@ export function joinUrl(base: string, ...segments: string[]): string {
 }
 
 // Doer: Redact credentials in connection strings or URLs for safe logging
+/**
+ * Replaces any password embedded in a URL or connection string (`scheme://user:pass@host`) with `***` for safe logging.
+ */
 export function redactCredentials(urlStr: string): string {
   try {
     const u = new URL(urlStr);
@@ -66,6 +82,9 @@ export function redactCredentials(urlStr: string): string {
   }
 }
 
+/**
+ * Namespace bundling URL parsing, joining, and credential redaction functions.
+ */
 export const urlutils = {
   parseUrl,
   joinUrl,

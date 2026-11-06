@@ -10,7 +10,9 @@ import { absolutePath, pathApi, type FmContext, type FmHandler } from "./fmCore"
 import { FmError, describeFsError, pathToFileUrl } from "./fmPaths";
 import { loadSettings } from "./fmSettings";
 
+/** Supported external editor identifiers selectable in File Manager settings. */
 export const EDITOR_IDS = ["default", "vscode", "subl", "webstorm", "idea"] as const;
+/** Union type of supported external editor identifiers. */
 export type EditorId = (typeof EDITOR_IDS)[number];
 
 interface EditorInfo {
@@ -33,6 +35,7 @@ const AUTO_ORDER: Array<Exclude<EditorId, "default">> = ["vscode", "subl", "webs
 const TERMINAL_EDITORS = new Set(["vim", "vi", "nvim", "nano", "emacs", "micro", "pico", "joe", "ne", "hx", "helix", "kak", "ed", "ex", "view", "less", "more"]);
 const MAX_LINE = 10_000_000;
 
+/** Type guard checking whether an unknown value is a valid `EditorId`. */
 export const isEditorId = (value: unknown): value is EditorId => (EDITOR_IDS as readonly unknown[]).includes(value);
 
 /** The command named by $VISUAL or $EDITOR ("code --wait" gives "code"), or "". */
@@ -42,6 +45,7 @@ function environmentEditor(ctx: FmContext): string {
   return first.replace(/\\/g, "/").split("/").pop()!.replace(/\.(exe|cmd|bat)$/i, "");
 }
 
+/** UI descriptor for an external code editor option and whether its CLI launcher is installed. */
 export interface EditorChoice {
   id: EditorId;
   label: string;
@@ -66,6 +70,7 @@ function intField(value: unknown, what: string): number | undefined {
   return n;
 }
 
+/** Confirmation details returned after launching an external code editor for a file. */
 export interface OpenedInEditor {
   opened: string;
   editor: EditorId;
@@ -128,6 +133,7 @@ export async function openInEditor(ctx: FmContext, input: { path: unknown; edito
   return { opened: path, editor: want, via };
 }
 
+/** File Manager API handlers for querying available editors, opening a file in an editor, and building `file://` URLs. */
 export const editorOperations: Record<string, FmHandler> = {
   async "editor/info"(ctx) {
     return { choices: editorChoices(ctx), current: (await loadSettings(ctx)).editor };

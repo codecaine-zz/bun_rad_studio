@@ -9,7 +9,9 @@ import { pathToFileURL } from "url";
 import { optNum, optStr, type OptionValues } from "./fmConvOptions";
 import { choiceOpt, exts, numberOpt, pagesOpt, toggleOpt, type BuildContext, type ConvDef, type Engine } from "./fmConvTypes";
 
+/** Space-separated list of package/bundle document extensions (such as `.epub`, `.rtfd`, `.pages`, `.numbers`). */
 export const DOC_PKG_EXTS = "epub ibooks rtfd textbundle scriv ulysses pages numbers key playground playgroundbook oo3 mindnode graffle";
+/** Set of input document extensions accepted by standard document conversions. */
 export const DOC_IN = exts(`md markdown txt html htm docx odt rtf ${DOC_PKG_EXTS} tex rst org textile`);
 const DOC_IN_PLUS = exts(`md markdown txt html htm docx odt rtf ${DOC_PKG_EXTS} tex rst org textile adoc asciidoc ipynb wiki mediawiki`);
 const LO_WRITER = exts("doc docx dot dotx rtf wps wpd odt ott sxw pages");
@@ -151,8 +153,10 @@ const EXTRACT_ENGINES = (): Engine[] => [
   { tool: "unar", limitOutput: true, argv: (c) => ["-q", "-D", "-o", c.output, c.inputs[0]!] },
 ];
 
+/** Set of archive file extensions accepted by external archive extraction and listing tools. */
 export const ARCHIVE_IN = exts("zip tar.gz tgz tar tar.bz2 tbz2 tar.xz txz tar.zst tzst 7z rar iso cab dmg cpio lzh lha xar rpm");
 
+/** Catalog of document, markup, office, and OCR conversion definitions. */
 export const DOC_DEFS: ConvDef[] = [
   doc("doc-html", "Convert to a web page (HTML)", "One self-contained page.", "html", [
     pandoc("html", ["-s", "--embed-resources"]),
@@ -215,12 +219,14 @@ export const DOC_DEFS: ConvDef[] = [
   { id: "ocr-pdf", label: "Make a scanned PDF searchable (OCR)", hint: "A new PDF that looks the same, but where you can search and copy the text.", group: "Documents", inputs: new Set([...OCR_IMAGES, "pdf"]), out: "pdf", suffix: "searchable", mode: "each", engines: [ocr("pdf")], options: [LANGUAGE_OPTION, { ...numberOpt("dpi", "Scan detail (for PDF files)", "Higher reads small print better and takes longer.", 100, 600, 300, "dpi", 50), forExts: ["pdf"] }], keywords: "ocr scan searchable text layer" },
 ];
 
+/** Catalog of e-book format conversion definitions powered by Calibre. */
 export const EBOOK_DEFS: ConvDef[] = [
   ...([["mobi", "MOBI", "For older Kindles."], ["azw3", "AZW3 (Kindle)", "For Kindle e-readers."], ["docx", "Word (DOCX)", "Opens in Word."]] as const).map(([out, name, hint]): ConvDef => ({
     id: `eb-${out}`, label: `Convert an e-book to ${name}`, hint, group: "Ebooks", inputs: EB_FROM, out, suffix: "converted", mode: "each", rejectSame: true, engines: [{ tool: "calibre", argv: (c) => [c.inputs[0]!, c.output] }], keywords: "kindle ebook",
   })),
 ];
 
+/** Catalog of PDF merge, split, page extraction, compression, rotation, and encryption definitions. */
 export const PDF_DEFS: ConvDef[] = [
   pdfTool("pdf-merge", "Merge PDFs into one", "The selected PDF files, in the order you choose, become one PDF.", "pdf", "merged", [gs((c) => [...GS, "-sDEVICE=pdfwrite", `-sOutputFile=${c.output}`, ...c.inputs])], { mode: "all", allName: "Merged PDF", minFiles: 2, options: [choiceOpt("order", "Order", "Which PDF comes first.", [["name", "By name"], ["selected", "As selected"], ["modified", "By date"]], "name")], keywords: "join combine" }),
   pdfTool("pdf-split", "Split into single pages", "A new folder with one PDF for every page.", "", "pages", [gs((c) => [...GS, "-sDEVICE=pdfwrite", `-sOutputFile=${nodePath.join(c.output, "page-%03d.pdf")}`, c.inputs[0]!])], { outKind: "folder", keywords: "separate pages" }),
@@ -252,6 +258,7 @@ export const PDF_DEFS: ConvDef[] = [
   ], { keywords: "extract text copy words" }),
 ];
 
+/** Set of font file extensions (`.ttf`, `.otf`, `.woff`, `.woff2`) accepted by font conversions. */
 export const FONT_IN = exts("ttf otf woff woff2");
 const font = (id: string, label: string, hint: string, out: string, inputs: string, engines: Engine[]): ConvDef => ({
   id, label, hint, group: "Fonts", inputs: exts(inputs), out, suffix: "converted", mode: "each", rejectSame: true, engines, keywords: "typeface webfont",
@@ -259,6 +266,7 @@ const font = (id: string, label: string, hint: string, out: string, inputs: stri
 
 const TTX_OUT = ["-q", "-f"];
 
+/** Catalog of web-font and desktop-font conversion definitions. */
 export const FONT_DEFS: ConvDef[] = [
   font("font-woff2", "Make a WOFF2 web font", "The smallest font file for websites.", "woff2", "ttf otf woff", [
     { tool: "fonttools", needs: "woff2", argv: (c) => ["ttLib.woff2", "compress", c.inputs[0]!, "-o", c.output] },
@@ -277,6 +285,7 @@ export const FONT_DEFS: ConvDef[] = [
   ]),
 ];
 
+/** Catalog of archive unpacking, listing, 7z packing, and decompression definitions using external archive tools. */
 export const ARCHIVE_TOOL_DEFS: ConvDef[] = [
   { id: "arc-extract", label: "Unpack into a folder", hint: "Opens a zip, tar.gz, tar.zst, 7z, RAR, ISO or DMG file into a new folder next to it.", group: "Archives", inputs: ARCHIVE_IN, out: "", suffix: "unpacked", mode: "each", outKind: "folder", engines: EXTRACT_ENGINES(), keywords: "extract unzip decompress open rar 7z iso dmg tar" },
   { id: "arc-list", label: "List what is inside", hint: "A text file with the names, sizes and dates of everything in the archive.", group: "Archives", inputs: ARCHIVE_IN, out: "txt", suffix: "contents", mode: "each", engines: [

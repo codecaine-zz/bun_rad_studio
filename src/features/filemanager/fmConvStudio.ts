@@ -22,6 +22,7 @@ const needsAlpha = (o: OptionValues) => optStr(o, "crop") === "circle" || optNum
 /** The new file's format: as chosen, else PNG when see-through parts are made, else the original's. */
 const imageOut = (o: OptionValues): string => (optStr(o, "format") !== "keep" ? optStr(o, "format") : needsAlpha(o) ? "png" : "");
 
+/** Builds the complete ImageMagick argument list for all sliders, crops, adjustments, and watermarks set in Image Studio. */
 export function imageStudioArgs(c: BuildContext): string[] {
   const o = c.opts;
   const a: string[] = [c.inputs[0]!, ...FIRST_FRAME, "-auto-orient"];
@@ -148,6 +149,7 @@ function videoChain(o: OptionValues, length: number | null): string[] {
   return f;
 }
 
+/** Builds the complete `ffmpeg` argument list for trimming, cropping, speed, filters, and encoding set in Media Studio. */
 export function mediaStudioArgs(c: BuildContext): string[] {
   const o = c.opts;
   const input = c.inputs[0]!;
@@ -213,6 +215,7 @@ const mediaNeed = (ext: string, o: OptionValues) => {
   return VID_IN.has(ext) && (f === "mp4" || (f === "auto" && H264_CONTAINERS.has(ext))) ? "x264" : undefined;
 };
 
+/** Hidden conversion definitions (`studio-image` and `studio-media`) backing the Image Studio and Media Studio tabs. */
 export const STUDIO_DEFS: ConvDef[] = [
   pic("studio-image", "Image Studio", "Every change made in the Image Studio, saved as a new picture.", imageOut, "edited", [{
     ...im(imageStudioArgs), needs: (ext, o) => imNeeds(WRITE_NEED[imageOut(o)])(ext),

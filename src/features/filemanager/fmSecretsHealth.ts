@@ -10,12 +10,14 @@ import { passwordBits } from "./fmSecretsCrypto";
 import type { SecretsHooks } from "./fmSecretsHooks";
 import { hostOf, type SecretItem } from "./fmSecretsModel";
 
+/** Single item finding in a vault password health audit. */
 export interface HealthEntry {
   id: string;
   title: string;
   /** a short plain reason */
   why: string;
 }
+/** Complete offline password hygiene report for an unlocked Secrets vault. */
 export interface HealthReport {
   checked: number;
   weak: HealthEntry[];
@@ -56,6 +58,7 @@ function normalizedUrl(url: string): string {
   }
 }
 
+/** Audits active login items in `items` for weak, reused, stale (`oldDays`), 2FA-missing, duplicate-URL, and plaintext-in-notes passwords. */
 export function healthReport(items: SecretItem[], now: number, oldDays = 365): HealthReport {
   const logins = items.filter(isLoginLike);
   const withPw = logins.filter((i) => i.fields.password);
@@ -101,7 +104,9 @@ export function healthReport(items: SecretItem[], now: number, oldDays = 365): H
 // Breach check (opt in): Have I Been Pwned "Pwned Passwords" range API, k-anonymity.
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Base URL for the Have I Been Pwned k-anonymity SHA-1 range query endpoint. */
 export const BREACH_URL = "https://api.pwnedpasswords.com/range/";
+/** Summary of an opt-in Have I Been Pwned password breach check across login items. */
 export interface BreachResult {
   checked: number;
   breached: Array<{ id: string; title: string; count: number }>;

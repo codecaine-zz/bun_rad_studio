@@ -1,3 +1,7 @@
+/**
+ * Interactive terminal user interface (TUI) for `procs`, supporting live process auto-refresh,
+ * incremental filtering, column sorting, detailed process inspection, and signal termination.
+ */
 import type { ProcessInfo, SortField } from "./procsTypes.ts";
 import {
   fetchListeningPorts,
@@ -8,6 +12,9 @@ import {
 } from "./procsDoers.ts";
 import { colors } from "../../shared/colors.ts";
 
+/**
+ * Mutable state container for an interactive `procs` TUI session.
+ */
 export interface ProcsTuiState {
   allProcesses: ProcessInfo[];
   filteredProcesses: ProcessInfo[];
@@ -22,6 +29,9 @@ export interface ProcsTuiState {
   shouldExit: boolean;
 }
 
+/**
+ * Discriminated union of user actions dispatched by keyboard input in the `procs` TUI.
+ */
 export type ProcsTuiAction =
   | { type: "MOVE"; delta: number }
   | { type: "KILL"; force?: boolean }
@@ -38,6 +48,9 @@ export type ProcsTuiAction =
   | { type: "NONE" };
 
 // Doer: filter and sort process list based on current query and sort field
+/**
+ * Filters `all` processes by `query` and sorts the resulting list by `sortBy`.
+ */
 export function recalculateFiltered(
   all: ProcessInfo[],
   query: string,
@@ -48,6 +61,9 @@ export function recalculateFiltered(
 }
 
 // Doer: parse input keypress into a semantic TUI action
+/**
+ * Translates a raw terminal key sequence into a semantic `ProcsTuiAction`, respecting active filter-input mode.
+ */
 export function handleProcsTuiKey(keyStr: string, isFiltering = false): ProcsTuiAction {
   if (isFiltering) {
     if (keyStr === "\r" || keyStr === "\n") return { type: "FILTER_CONFIRM" };
@@ -79,6 +95,9 @@ export function handleProcsTuiKey(keyStr: string, isFiltering = false): ProcsTui
 }
 
 // Doer: update state based on action
+/**
+ * Applies a `ProcsTuiAction` to the current `ProcsTuiState`, updating selection, filters, sorting, or sending signals.
+ */
 export function applyProcsTuiAction(state: ProcsTuiState, action: ProcsTuiAction): ProcsTuiState {
   if (action.type === "QUIT") {
     if (state.showingDetails) {
@@ -179,6 +198,9 @@ export function applyProcsTuiAction(state: ProcsTuiState, action: ProcsTuiAction
 }
 
 // Doer: format detailed process inspection card
+/**
+ * Renders a multi-line inspection card for a single selected process, including child PIDs and listening ports.
+ */
 export function renderProcsDetails(proc: ProcessInfo, all: ProcessInfo[]): string {
   const children = all.filter((p) => p.ppid === proc.pid).map((p) => p.pid);
   const childStr = children.length > 0 ? children.join(", ") : "None";
@@ -206,6 +228,9 @@ export function renderProcsDetails(proc: ProcessInfo, all: ProcessInfo[]): strin
 }
 
 // Doer: render full TUI frame with controls, filter bar, and process table
+/**
+ * Renders a complete TUI screen frame showing the header bar, active filter/status, and scrollable process list.
+ */
 export function renderProcsTuiFrame(
   state: ProcsTuiState,
   maxRows: number = 15
@@ -249,6 +274,9 @@ export function renderProcsTuiFrame(
 }
 
 // Coordinator: orchestrate the interactive process TUI session
+/**
+ * Launches the interactive `procs` terminal UI loop when attached to a TTY, refreshing every 2 seconds until quit.
+ */
 export async function runProcsTui(
   sortBy: SortField = "cpu",
   initialFilter?: string

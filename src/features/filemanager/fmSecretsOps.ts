@@ -12,6 +12,7 @@ import { generateSecret } from "./fmSecretsGen";
 import { itemOperations } from "./fmSecretsItemOps";
 import { readVaultFile } from "./fmSecretsStore";
 
+/** File Manager API handlers (`secrets/*`) for vault lifecycle, authentication, recovery, device unlock, backups, and secret items. */
 export const secretsOperations: Record<string, FmHandler> = {
   "secrets/status": secretsOp((svc) => ({ status: svc.status() }), { touch: false }),
 

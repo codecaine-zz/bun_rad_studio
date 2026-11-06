@@ -24,6 +24,7 @@ async function namesIn(dir: string): Promise<Set<string>> {
 // New folder / file
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Creates a new folder inside `parentInput`, choosing a free `"New folder"` name when `nameInput` is omitted. */
 export async function makeFolder(ctx: FmContext, parentInput: unknown, nameInput?: unknown): Promise<{ path: string; name: string }> {
   const parent = absolutePath(ctx, parentInput);
   await assertFolder(parent, "The folder you are in");
@@ -40,6 +41,7 @@ export async function makeFolder(ctx: FmContext, parentInput: unknown, nameInput
   return { path, name };
 }
 
+/** Creates a new file inside `parentInput` without overwriting existing files, choosing a free `"New file.txt"` name when `nameInput` is omitted. */
 export async function makeFile(ctx: FmContext, parentInput: unknown, nameInput?: unknown, content = ""): Promise<{ path: string; name: string }> {
   const parent = absolutePath(ctx, parentInput);
   await assertFolder(parent, "The folder you are in");
@@ -116,8 +118,10 @@ export async function relocate(ctx: FmContext, pairs: unknown): Promise<Outcome<
 // Copy and move
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Conflict resolution policy when copying or moving an item onto an existing name (`"rename"`, `"replace"`, or `"skip"`). */
 export type Policy = "rename" | "replace" | "skip";
 
+/** Per-item outcome of a copy or move operation, including any existing item moved to the Recycle Bin under `"replace"`. */
 export interface TransferResult {
   source: string;
   destination: string | null;
@@ -190,19 +194,23 @@ async function transfer(ctx: FmContext, sourcesInput: unknown, destInput: unknow
   );
 }
 
+/** Copies `sources` into `dest` using the specified conflict `policy` (`"rename"` by default). */
 export const copyItems = (ctx: FmContext, sources: unknown, dest: unknown, policy?: unknown) => transfer(ctx, sources, dest, policy, true);
+/** Moves `sources` into `dest` using the specified conflict `policy` (`"rename"` by default). */
 export const moveItems = (ctx: FmContext, sources: unknown, dest: unknown, policy?: unknown) => transfer(ctx, sources, dest, policy, false);
 
 // ---------------------------------------------------------------------------------------------------------------
 // Bulk rename
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Rule specification for a bulk rename operation (`replace`, `number`, `case`, or `affix` mode). */
 export type BulkSpec =
   | { mode: "replace"; find: string; replace: string; matchCase?: boolean; useRegex?: boolean }
   | { mode: "number"; pattern: string; start?: number; padding?: number }
   | { mode: "case"; style: "lower" | "upper" | "title" | "sentence" | "snake" | "kebab" | "camel" }
   | { mode: "affix"; prefix?: string; suffix?: string };
 
+/** Preview or execution row for a single file in a bulk rename operation. */
 export interface BulkRow {
   from: string;
   to: string;
@@ -329,6 +337,7 @@ export function planBulkRename(names: string[], spec: BulkSpec, existing: Set<st
   return rows;
 }
 
+/** Previews (`apply = false`) or atomically executes (`apply = true`) a bulk rename of `namesInput` inside `folderInput` using temporary staging names. */
 export async function bulkRename(ctx: FmContext, folderInput: unknown, namesInput: unknown, spec: BulkSpec, apply: boolean): Promise<{ rows: BulkRow[]; applied: boolean }> {
   const folder = absolutePath(ctx, folderInput);
   await assertFolder(folder, "That folder");

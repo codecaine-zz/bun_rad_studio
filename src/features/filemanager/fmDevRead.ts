@@ -5,8 +5,10 @@
 import { constants, promises as fsp } from "fs";
 import type { FileHandle } from "fs/promises";
 
+/** Maximum file size in bytes read into memory when counting lines or scanning source files. */
 export const MAX_READ_BYTES = 8 * 1024 * 1024;
 
+/** Discriminated union returned when attempting to read a regular text file for analysis. */
 export type ReadResult =
   | { kind: "ok"; buf: Buffer; size: number; mtimeMs: number }
   | { kind: "big"; size: number; mtimeMs: number }
@@ -68,6 +70,7 @@ export function decodeText(buf: Buffer): string {
   return text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
 }
 
+/** Maximum file size in bytes accepted when reading a project manifest file. */
 export const MAX_MANIFEST_BYTES = 512 * 1024;
 
 /** A small text file (a manifest), or null when it is missing, too big, not a regular file or binary. */

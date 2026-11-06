@@ -1,9 +1,13 @@
+/**
+ * MySQL / MariaDB database adapter (`MysqlAdapter`) built on `BunSqlAdapter` and `information_schema` introspection.
+ */
 import type { Capabilities, ColumnInfo, ForeignKeyInfo, IndexInfo, ObjectRef, TableInfo } from "../types";
 import { DbError, normalizeError } from "../errors";
 import { BunSqlAdapter } from "./bunsql";
 
 const TEMPORAL = /^(date|datetime|timestamp|time|year)/i;
 
+/** MySQL and MariaDB implementation of `DbAdapter` using Bun's built-in MySQL driver. */
 export class MysqlAdapter extends BunSqlAdapter {
   readonly engine = "mysql" as const;
   protected readonly beginSql = "START TRANSACTION";
@@ -11,15 +15,19 @@ export class MysqlAdapter extends BunSqlAdapter {
   protected readonly versionSql = "SELECT VERSION() AS v, DATABASE() AS d";
   protected readonly backendIdSql = "SELECT CONNECTION_ID() AS id";
 
+  /** Returns MySQL-specific driver options such as `allowPublicKeyRetrieval`. */
   protected driverOptions() {
     return { allowPublicKeyRetrieval: Boolean(this.config.allowPublicKeyRetrieval) };
   }
+  /** Builds `SET SESSION max_execution_time = <ms>` to bound `SELECT` execution time. */
   protected setTimeoutSql(ms: number) {
     return `SET SESSION max_execution_time = ${Math.max(0, Math.trunc(ms))}`;
   }
+  /** Resets `max_execution_time` back to `0` (unlimited) on the session. */
   protected resetTimeoutSql() {
     return "SET SESSION max_execution_time = 0";
   }
+  /** Builds `KILL QUERY <id>` to abort the currently running statement on MySQL connection `id`. */
   protected cancelSql(id: string) {
     if (!/^\d+$/.test(id)) throw new Error("bad connection id");
     return `KILL QUERY ${id}`;
@@ -31,14 +39,17 @@ export class MysqlAdapter extends BunSqlAdapter {
   protected override prepareReadOnlyConnection() {
     return ["SET SESSION transaction_read_only = 1"];
   }
+  /** Applies the per-statement `max_execution_time` guard when `timeoutMs` is positive. */
   protected async enterGuard(conn: { unsafe(sql: string): Promise<unknown> }, timeoutMs: number) {
     if (timeoutMs) await conn.unsafe(this.setTimeoutSql(timeoutMs));
     return false;
   }
+  /** Resets `max_execution_time` after a guarded statement finishes. */
   protected async leaveGuard(conn: { unsafe(sql: string): Promise<unknown> }, _began: boolean, timeoutMs: number) {
     if (timeoutMs) await conn.unsafe(this.resetTimeoutSql());
   }
 
+  /** Casts `expr` to `CHAR` for `LIKE` text filtering in MySQL. */
   protected textCast(expr: string) {
     return `CAST(${expr} AS CHAR)`;
   }
@@ -53,6 +64,7 @@ export class MysqlAdapter extends BunSqlAdapter {
     return /char|text|enum|set/i.test(col.dataType) ? `BINARY ${q} = BINARY ${ph}` : `${q} = ${ph}`;
   }
 
+  /** Reports MySQL / MariaDB capabilities, version, read-only enforcement, and transactional DDL caveats. */
   async capabilities(): Promise<Capabilities> {
     const info = await this.ping();
     const mariadb = /mariadb/i.test(info.version);
@@ -77,6 +89,7 @@ export class MysqlAdapter extends BunSqlAdapter {
     };
   }
 
+  /** Lists all base tables and views in the current MySQL database via `information_schema.tables`. */
   async listObjects(): Promise<ObjectRef[]> {
     try {
       const rows = (await this.p.unsafe(
@@ -88,6 +101,7 @@ export class MysqlAdapter extends BunSqlAdapter {
     }
   }
 
+  /** Introspects columns, primary key, foreign keys, and indexes for `ref` from MySQL `information_schema`. */
   async describeTable(ref: ObjectRef): Promise<TableInfo> {
     try {
       const t = (await this.p.unsafe("SELECT table_name AS name, table_type AS type, table_comment AS comment FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?", [ref.name])) as { name: string; type: string; comment: string }[];

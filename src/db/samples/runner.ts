@@ -11,13 +11,16 @@ import {
   renderCreateTable, renderIndexes, renderTriggers, renderViews,
 } from "./render";
 
+/** Error thrown when a running sample database creation job is cancelled by the user. */
 export class SeedCancelled extends Error {
+  /** Creates a `SeedCancelled` error indicating that sample generation was aborted. */
   constructor() {
     super("Sample creation was cancelled");
     this.name = "SeedCancelled";
   }
 }
 
+/** A sample table definition paired with its deterministically generated matrix of cell values. */
 export interface GeneratedTable {
   table: TableDef;
   rows: Cell[][];
@@ -86,6 +89,9 @@ export function datasetHash(ds: DatasetDef, scale: Scale, seed: number = ds.seed
   return h.digest("hex");
 }
 
+/**
+ * Progress snapshot emitted during sample dataset seeding.
+ */
 export interface SeedProgress {
   phase: "schema" | "data" | "indexes" | "views" | "triggers" | "finish";
   table?: string;
@@ -96,6 +102,9 @@ export interface SeedProgress {
   percent: number;
 }
 
+/**
+ * Optional lifecycle callbacks for reporting progress, checking cancellation, and yielding the event loop during seeding.
+ */
 export interface SeedHooks {
   onProgress?: (p: SeedProgress) => void;
   isCancelled?: () => boolean;
@@ -103,6 +112,9 @@ export interface SeedHooks {
   yieldNow?: () => Promise<void>;
 }
 
+/**
+ * Summary statistics returned when a sample dataset seed operation completes.
+ */
 export interface SeedSummary {
   datasetId: string;
   scale: Scale;
@@ -114,8 +126,14 @@ export interface SeedSummary {
   elapsedMs: number;
 }
 
+/**
+ * Asynchronous callback that executes a single rendered SQL statement against the target database.
+ */
 export type RunSql = (sql: string) => Promise<void>;
 
+/**
+ * Creates tables, inserts generated synthetic data and metadata dictionaries, and builds indexes, views, triggers, and comments for a dataset.
+ */
 export async function seedDataset(
   ds: DatasetDef, dialect: Dialect, run: RunSql,
   opts: { scale: Scale; seed?: number } & SeedHooks,

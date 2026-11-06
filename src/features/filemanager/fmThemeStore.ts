@@ -11,18 +11,29 @@ import { FmError } from "./fmPaths";
 import type { ThemeFx } from "../../shared/fxThemes";
 import { normalizeAtmosphereSpec } from "../../../resources/file_manager/ui/atmosphereCatalog.js";
 
+/** Maximum number of custom user themes stored in `file_manager_themes.json` (`50`). */
 export const MAX_CUSTOM_THEMES = 50;
+/** Maximum character length of a custom theme name (`40`). */
 export const MAX_THEME_NAME = 40;
+/** Maximum byte length accepted when importing a single shared theme (`20,000`). */
 export const MAX_IMPORT_BYTES = 20_000;
+/** Maximum byte length accepted when importing a multi-theme pack (`200,000`). */
 export const MAX_PACK_IMPORT_BYTES = 200_000;
+/** Format identifier tag embedded in exported single-theme JSON objects. */
 export const EXPORT_FORMAT = "bun-rad-studio-file-manager-theme";
+/** Format identifier tag embedded in exported multi-theme pack JSON objects. */
 export const EXPORT_PACK_FORMAT = "bun-rad-studio-file-manager-theme-pack";
 
+/** Color keys required on every theme draft (`"background"`, `"text"`, `"accent"`). */
 export const REQUIRED_COLOURS = ["background", "text", "accent"] as const;
+/** Optional semantic and surface color keys supported on a theme draft. */
 export const OPTIONAL_COLOURS = ["secondary", "card", "border", "danger", "warning", "success", "info"] as const;
+/** Combined list of all required and optional theme color keys. */
 export const COLOUR_KEYS = [...REQUIRED_COLOURS, ...OPTIONAL_COLOURS] as const;
+/** Valid color slot key in a custom theme's `colors` record. */
 export type ColourKey = (typeof COLOUR_KEYS)[number];
 
+/** Unsaved or imported custom theme definition containing its name, dark flag, base reference, colors, and optional FX. */
 export interface ThemeDraft {
   name: string;
   dark: boolean;
@@ -32,6 +43,7 @@ export interface ThemeDraft {
   fx?: ThemeFx;
 }
 
+/** Persisted custom theme with its assigned `custom_<hex>` identifier. */
 export interface CustomTheme extends ThemeDraft {
   id: string;
 }
@@ -227,7 +239,9 @@ export function sanitizeCustomCss(raw: unknown): string {
   return stripped.trim();
 }
 
+/** Prefix for compact single-theme share codes (`"CCFM-THEME-v1:"`). */
 export const THEME_SHARE_CODE_PREFIX = "CCFM-THEME-v1:";
+/** Prefix for compact multi-theme pack share codes (`"CCFM-PACK-v1:"`). */
 export const PACK_SHARE_CODE_PREFIX = "CCFM-PACK-v1:";
 
 /** Encodes any ThemeDraft (premade or custom/hacked) into a compact one-line shareable code (`CCFM-THEME-v1:...`). */
@@ -397,8 +411,10 @@ export function toSimpleTheme(t: ThemeDraft): SimpleGUITheme {
 
 const file = (ctx: FmContext) => nodePath.join(ctx.dataDir, "file_manager_themes.json");
 const ID = /^custom_[0-9a-f]{8}$/;
+/** Type guard returning `true` when `key` is a valid custom theme ID (`custom_` followed by 8 hex digits). */
 export const isCustomKey = (key: unknown): key is string => typeof key === "string" && ID.test(key);
 
+/** Loads and validates all saved custom themes from `file_manager_themes.json`, ignoring corrupted entries. */
 export async function loadCustom(ctx: FmContext): Promise<CustomTheme[]> {
   let parsed: unknown;
   try {
@@ -451,6 +467,7 @@ export async function saveCustom(ctx: FmContext, draftInput: unknown, id?: unkno
   return made;
 }
 
+/** Deletes the custom theme with `id` from `file_manager_themes.json`, throwing `NOT_FOUND` if absent. */
 export async function deleteCustom(ctx: FmContext, id: unknown): Promise<void> {
   if (!isCustomKey(id)) throw new FmError("BAD_REQUEST", "That isn't one of your themes.");
   const all = await loadCustom(ctx);
@@ -608,10 +625,13 @@ export function parseThemePack(input: unknown): ThemeDraft[] {
   return drafts;
 }
 
+/** Alias for `parseThemePack` that parses bulk theme input into validated `ThemeDraft` objects. */
 export const parseBulkThemes = parseThemePack;
 
+/** Resolution strategy when an imported theme's name collides with an existing custom theme or another item in the batch. */
 export type ThemeConflictStrategy = "replace" | "keep_both" | "skip" | "merge_fx";
 
+/** Pre-import conflict analysis for a single theme in a bulk import batch. */
 export interface BulkThemeInspectItem {
   index: number;
   draft: ThemeDraft;
@@ -632,6 +652,7 @@ export interface BulkThemeInspectItem {
   recommendedAction: ThemeConflictStrategy;
 }
 
+/** Summary and per-item details produced by `inspectBulkThemeImport` before committing a bulk import. */
 export interface BulkThemeInspection {
   totalCount: number;
   conflictCount: number;
@@ -641,6 +662,7 @@ export interface BulkThemeInspection {
   items: BulkThemeInspectItem[];
 }
 
+/** Per-item conflict resolution directive for a bulk theme import. */
 export interface BulkItemResolution {
   index?: number;
   name?: string;
@@ -649,6 +671,7 @@ export interface BulkItemResolution {
   targetId?: string;
 }
 
+/** Options controlling conflict handling, filtering, and auto-renaming during a bulk theme import. */
 export interface BulkImportOptions {
   /** Default strategy when a conflict occurs and no per-item resolution is specified. */
   onConflict?: ThemeConflictStrategy | "prompt";
@@ -660,6 +683,7 @@ export interface BulkImportOptions {
   autoRenameConflicts?: boolean;
 }
 
+/** Outcome report returned after executing or dry-running a bulk theme import. */
 export interface BulkImportReport {
   imported: CustomTheme[];
   count: number;

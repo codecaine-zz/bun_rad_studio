@@ -8,9 +8,12 @@ import type { FmContext } from "./fmCore";
 import { FmError } from "./fmPaths";
 import type { Cancellable } from "./fmDevWalk";
 
+/** Category of background Developer Tools scan job (`stats`, `disk`, `todo`, `dupes`, or `compare`). */
 export type DevJobKind = "stats" | "disk" | "todo" | "dupes" | "compare";
+/** Execution state of a Developer Tools background job (`running`, `done`, `failed`, or `cancelled`). */
 export type DevJobState = "running" | "done" | "failed" | "cancelled";
 
+/** In-memory state, progress counters, and result payload for a running or finished Developer Tools background job. */
 export interface DevJob extends Cancellable {
   id: string;
   kind: DevJobKind;
@@ -45,11 +48,13 @@ function registry(ctx: FmContext): Map<string, DevJob> {
   return reg;
 }
 
+/** Merges `patch` into `job.progress` and increments `job.seq` for incremental UI polling. */
 export function setProgress(job: DevJob, patch: Record<string, number | string | null>): void {
   Object.assign(job.progress, patch);
   job.seq++;
 }
 
+/** Registers and starts a new asynchronous Developer Tools scan job, enforcing the concurrent job limit. */
 export function startDevJob(ctx: FmContext, kind: DevJobKind, root: string, run: (job: DevJob) => Promise<unknown>): DevJob {
   const reg = registry(ctx);
   if ([...reg.values()].filter((j) => j.state === "running").length >= MAX_RUNNING) throw new FmError("BUSY", "Several scans are already running. Wait for one to finish or cancel it.");
@@ -87,6 +92,7 @@ export function findDevJob(ctx: FmContext, id: unknown, kinds?: DevJobKind[]): D
   return job;
 }
 
+/** Returns the current state, progress, and result (if modified since `body.since`) for a Developer Tools job. */
 export function pollDevJob(ctx: FmContext, body: Record<string, any>): Record<string, unknown> {
   const job = findDevJob(ctx, body.id);
   const since = typeof body.since === "number" ? body.since : 0;
@@ -97,6 +103,7 @@ export function pollDevJob(ctx: FmContext, body: Record<string, any>): Record<st
   return view;
 }
 
+/** Marks a running Developer Tools job as cancelled so its walker terminates on the next iteration. */
 export function cancelDevJob(ctx: FmContext, body: Record<string, any>): Record<string, unknown> {
   const job = findDevJob(ctx, body.id);
   if (job.state === "running") {

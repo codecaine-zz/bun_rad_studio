@@ -79,6 +79,7 @@ const failure = (code: string, message: string) => ({ ok: false as const, code, 
 // Operations
 // ---------------------------------------------------------------------------------------------------------------
 
+/** File Manager API route handlers for `grave/*` operations (status, list, check, bury, restore, decompose, verify, repair, preview). */
 export const graveyardOperations: Record<string, FmHandler> = {
   async "grave/status"(ctx) {
     return { status: await graveStats(ctx) };

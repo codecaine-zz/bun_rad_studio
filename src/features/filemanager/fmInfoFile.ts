@@ -21,6 +21,7 @@ const MIME: Record<string, string> = {
 const ZIP_BASED = new Set(["docx", "xlsx", "pptx", "odt", "ods", "odp", "epub", "jar", "apk", "xpi", "cbz", "war", "aar", "ipa", "vsix", "nupkg", "whl", "kmz", "numbers", "pages", "key"]);
 const TEXTY = new Set(["text", "binary", "script", "html", "xml", "svg"]);
 
+/** Determines the MIME type of a file from its sniffed signature or its extension fallback. */
 export function mimeOf(path: string, sniffed: Sniffed | null): string {
   if (sniffed && MIME[sniffed.kind]) return MIME[sniffed.kind]!;
   const t = Bun.file(path).type;
@@ -34,6 +35,7 @@ export function localTime(ms: number): string {
   return `${p(d.getFullYear(), 4)}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 }
 
+/** Formats a POSIX file mode bitmask into a 9-character `rwxrwxrwx` string (including setuid, setgid, and sticky bits). */
 export function permissionText(mode: number): string {
   const bits = "rwxrwxrwx";
   let s = "";
@@ -76,6 +78,7 @@ export function parseMdls(text: string): Record<string, string[]> {
   return out;
 }
 
+/** Parses a macOS `com.apple.quarantine` extended attribute string into flags, timestamp, and originating app name. */
 export function parseQuarantine(value: string): { app: string; when: string | null; flags: string } | null {
   const parts = value.trim().split(";");
   if (parts.length < 3 || !/^[0-9a-f]{1,4}$/i.test(parts[0]!)) return null;
@@ -147,6 +150,7 @@ async function linuxExtras(ctx: FmContext, path: string): Promise<InfoGroup[]> {
   return g ? [g] : [];
 }
 
+/** General file, folder, or symbolic link inspection result including OS-specific metadata groups. */
 export interface FileInfoResult {
   path: string;
   name: string;
@@ -162,6 +166,7 @@ export interface FileInfoResult {
   groups: InfoGroup[];
 }
 
+/** Collects general metadata, dates, permissions, MIME/sniffed type, and OS attributes for a single path. */
 export async function fileInfo(ctx: FmContext, input: unknown): Promise<FileInfoResult> {
   const t = await lstatTarget(ctx, input);
   const path = absolutePath(ctx, input);

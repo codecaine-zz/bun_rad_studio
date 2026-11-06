@@ -1,3 +1,7 @@
+/**
+ * Synthetic Airline Reservations sample dataset definition covering airports, routes,
+ * aircraft fleet, flight schedules, passenger bookings, tickets, and delay analytics.
+ */
 import { addDays, dayOf, dayStr, hashString, mulberry32 } from "../gen";
 import { dataset, query, table, view, type Scale } from "../model";
 

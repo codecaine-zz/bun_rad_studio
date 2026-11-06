@@ -78,6 +78,7 @@ export function fillPlaceholders(token: string, path: string, platform: string):
   });
 }
 
+/** Planned execution of a program across one or more argument lists derived from matched paths. */
 export interface ExecPlan {
   program: string;
   /** One list of arguments per run. */
@@ -111,6 +112,7 @@ export function planExec(templateInput: unknown, paths: string[], mode: "each" |
   return { program, runs: [{ path: null, args }] };
 }
 
+/** Result of a single command invocation, capturing exit code, bounded output, and timing. */
 export interface ExecRun {
   path: string | null;
   command: string;
@@ -122,6 +124,7 @@ export interface ExecRun {
   durationMs: number;
 }
 
+/** Aggregated outcome of running an `ExecPlan`, including per-run results and timeout/truncation status. */
 export interface ExecOutcome {
   runs: ExecRun[];
   truncated: boolean;

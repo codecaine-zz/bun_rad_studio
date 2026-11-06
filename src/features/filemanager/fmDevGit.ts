@@ -8,6 +8,7 @@ import * as nodePath from "path";
 import { tick } from "./fmCore";
 import { parseStatus, runGit } from "./fmCodeGit";
 
+/** Repository health summary including branch status, commit counts, top authors, largest tracked files, and submodules. */
 export interface GitSummary {
   available: boolean;
   isRepo: boolean;
@@ -76,6 +77,7 @@ async function folderBytes(dir: string, cap = 60_000): Promise<number | null> {
   return total;
 }
 
+/** Runs read-only `git` commands in `root` to collect repository status, commit history, authors, and tracked file stats. */
 export async function gitSummary(root: string, now = new Date()): Promise<GitSummary> {
   const top = await runGit(root, ["rev-parse", "--show-toplevel"], 6000);
   if (top.missing) return { available: false, isRepo: false, message: "Git isn't installed (or isn't on your PATH), so there is no Git summary." };

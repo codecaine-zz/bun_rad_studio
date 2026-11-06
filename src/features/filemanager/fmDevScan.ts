@@ -18,6 +18,7 @@ import { FmError } from "./fmPaths";
 export const MAX_TOTAL_BYTES = 1024 * 1024 * 1024;
 const CHUNK = 12;
 
+/** Validates and normalizes user-supplied options for a code statistics scan. */
 export function parseStatsOptions(b: Record<string, any>): StatsOptions {
   const engine = b.engine === "tokei" || b.engine === "builtin" ? b.engine : "auto";
   const excludes = Array.isArray(b.excludes) ? b.excludes.filter((e: unknown): e is string => typeof e === "string" && e.trim().length > 0 && e.length <= 300 && !e.includes("\0")).map((e: string) => e.trim()).slice(0, 50) : [];
@@ -144,6 +145,7 @@ export async function runStats(ctx: FmContext, job: DevJob, o: StatsOptions): Pr
   return { ...baseResult, engine: "builtin", engineLabel: "Built-in counter", ...result, elapsedMs: Date.now() - started, notes, fileCount: files.length };
 }
 
+/** Filtering, sorting, and pagination parameters for querying per-file code statistics. */
 export interface FilesQuery {
   language?: string;
   sort: "code" | "comments" | "blanks" | "lines" | "size" | "path";

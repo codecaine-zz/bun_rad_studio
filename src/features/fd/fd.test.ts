@@ -1,3 +1,7 @@
+/**
+ * Unit and integration tests for `fd` predicates and filesystem search workflows,
+ * covering smart-case matching, extension/type/size/duration filters, and workspace discovery.
+ */
 import { describe, expect, it } from "bun:test";
 import { resolve } from "node:path";
 import { searchFiles } from "./fdCoordinator.ts";

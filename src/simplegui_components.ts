@@ -1,3 +1,7 @@
+/**
+ * SimpleGUI enterprise component suite providing client-side CSS, JS hydration runtime, and default dimensions
+ * for advanced UI components rendered via `raw_html` controls.
+ */
 // SimpleGUI enterprise component suite.
 //
 // Only components that did NOT already exist in SimpleWindow live here (everything MUI/Ant-like that was already
@@ -10,6 +14,7 @@
 //
 // NOTE: the client code is a String.raw template: never use backticks, `${ }` or a closing script tag inside it.
 
+/** Identifier for the supported enterprise UI component types in `SimpleGUI`. */
 export type UIComponentType =
     | "skeleton" | "paper" | "emptyState" | "result" | "appBar" | "bottomNav" | "fab" | "speedDial" | "backToTop"
     | "drawer" | "backdrop" | "popover" | "popconfirm" | "tour" | "autocomplete" | "cascader" | "treeSelect"

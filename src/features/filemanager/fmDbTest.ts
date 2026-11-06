@@ -10,8 +10,10 @@ import { createAdapter } from "../../db";
 import { DbError, normalizeError, redact, type DbErrorCode } from "../../db/errors";
 import type { DbEngine } from "./fmDbModel";
 
+/** Default connection test timeout in milliseconds (`10,000` ms). */
 export const TEST_TIMEOUT_MS = 10_000;
 
+/** Connection parameters passed to `testConnection` for verifying reachability and credentials. */
 export interface TestInput {
   engine: DbEngine;
   host?: string;
@@ -29,6 +31,7 @@ export interface TestInput {
   production: boolean;
 }
 
+/** Result of probing a database connection, including latency, server version, or classified error details. */
 export interface TestResult {
   ok: boolean;
   ms: number;
@@ -68,6 +71,7 @@ const withTimeout = <T>(p: Promise<T>, ms: number): Promise<T> =>
     p.then((v) => (clearTimeout(t), resolve(v)), (e) => (clearTimeout(t), reject(e)));
   });
 
+/** Tests connectivity and authentication against a SQLite file, MySQL/PostgreSQL server, or Redis instance. */
 export async function testConnection(input: TestInput, timeoutMs = TEST_TIMEOUT_MS): Promise<TestResult> {
   const started = performance.now();
   const done = (r: Omit<TestResult, "ms" | "facts"> & { facts?: string[] }): TestResult => ({ ms: Math.round(performance.now() - started), facts: [], ...r, message: `${r.message}${r.ok && input.production ? " This was only a test: nothing was changed or opened." : ""}` });

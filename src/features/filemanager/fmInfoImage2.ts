@@ -3,6 +3,7 @@ import { ascii, be32, formatDuration, le16, le32, readBoxes, Rows, type Source }
 import { parseExifBlock, type ExifData } from "./fmInfoExif";
 import { parseIcc, parseXmp, type IccInfo, type XmpInfo } from "./fmInfoMeta";
 
+/** Parsed dimensions, animation/transparency flags, display rows, and embedded EXIF/XMP/ICC metadata for a WebP image. */
 export interface WebpInfo {
   width: number | null;
   height: number | null;
@@ -17,6 +18,7 @@ export interface WebpInfo {
 
 const le24 = (b: Uint8Array, o: number) => (b[o] ?? 0) | ((b[o + 1] ?? 0) << 8) | ((b[o + 2] ?? 0) << 16);
 
+/** Walks RIFF/WEBP chunks in `src` to extract dimensions, encoding type, animation parameters, and EXIF/XMP/ICC metadata. */
 export async function parseWebp(src: Source, deadline = Date.now() + 6000): Promise<WebpInfo> {
   const info: WebpInfo = { width: null, height: null, rows: new Rows(), animated: false, alpha: null, exif: null, xmp: null, icc: null, partial: false };
   const r = info.rows;
@@ -83,6 +85,7 @@ export async function parseWebp(src: Source, deadline = Date.now() + 6000): Prom
   return info;
 }
 
+/** Parsed dimensions and ISOBMFF container metadata rows for a HEIC or AVIF image. */
 export interface HeifInfo {
   width: number | null;
   height: number | null;
@@ -90,6 +93,7 @@ export interface HeifInfo {
   partial: boolean;
 }
 
+/** Parses ISOBMFF boxes (`ftyp`, `meta`, `ispe`, `pixi`, `irot`, `colr`) from a HEIC or AVIF image source. */
 export async function parseHeif(src: Source): Promise<HeifInfo> {
   const rows = new Rows();
   const buf = await src.read(0, 4 * 1024 * 1024);

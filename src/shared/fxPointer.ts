@@ -1,3 +1,7 @@
+/**
+ * Delegated, requestAnimationFrame-throttled pointer effect script for cursor glow,
+ * 3D card tilt, magnetic toolbar buttons, and sliding navigation pills.
+ */
 // The one script the fx layer needs: a delegated, rAF-throttled pointer handler (about 60 lines of plain JavaScript).
 // It only writes CSS custom properties; every visual change is a CSS transform or opacity that runs on the compositor.
 //   --fx-pointer-x / --fx-pointer-y   position inside the hovered button, card or panel (cursor glow)
@@ -7,7 +11,9 @@
 // It does nothing unless <html data-fx="on">, ignores touch, listens passively, and `dispose()` removes everything.
 import { FX_MAGNET_TARGETS, FX_PILL_BARS, FX_POINTER_TARGETS, FX_TILT_TARGETS } from "./fxSelectors";
 
+/** Maximum 3D tilt angle in degrees applied to hovered card elements. */
 export const FX_TILT_MAX_DEG = 4;
+/** Maximum magnetic displacement in pixels applied to hovered toolbar/navigation items. */
 export const FX_MAGNET_MAX_PX = 6;
 
 /** A function expression: `(function (win) { ... })`. Call it with a window to install; it returns `{ dispose, refresh }`. */
@@ -122,6 +128,7 @@ export const FX_POINTER_FUNCTION = `(function (win) {
 /** Statement that installs the helper in a page: embed inside a <script> tag. */
 export const FX_POINTER_SOURCE = `${FX_POINTER_FUNCTION}(window);`;
 
+/** Handle returned by `installFxPointer` for refreshing tab pills or removing pointer event listeners. */
 export interface FxPointerHandle {
     dispose(): void;
     refresh(): void;

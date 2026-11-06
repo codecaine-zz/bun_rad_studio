@@ -8,6 +8,7 @@
  */
 import { studioStagingClient } from "./studioStagingClient";
 
+/** CSS stylesheet for the shared "Import with staging" modal wizard in the database studios. */
 export const STUDIO_STAGING_STYLE = `
     /* ===== Import with staging wizard (shared by the SQLite / MySQL / PostgreSQL studios) ===== */
     .stg-overlay { position: fixed; inset: 0; z-index: 9000; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(2, 6, 15, 0.62); backdrop-filter: blur(3px); }

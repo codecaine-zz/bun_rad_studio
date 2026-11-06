@@ -1,3 +1,6 @@
+/**
+ * Interactive UI help tooltips and audit skip rules for Git Studio (`git_studio`), covering working tree staging, commit history, branch management, and diffs.
+ */
 import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Help tips for `git_studio`. Keys: see src/shared/helpTips.ts. Check with: bun run scripts/help_controls.ts <app file> --missing */

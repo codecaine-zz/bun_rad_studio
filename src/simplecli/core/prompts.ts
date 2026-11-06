@@ -9,6 +9,9 @@ import { homedir } from 'node:os';
 import { resolve, join, dirname } from 'node:path';
 import * as readline from 'node:readline';
 
+/**
+ * Static utility class providing interactive terminal prompts, selection menus, fuzzy finders, and multi-field forms.
+ */
 export class Prompts {
   /**
    * Helper to expand tilde in paths

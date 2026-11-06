@@ -1,3 +1,7 @@
+/**
+ * Interactive terminal user interface (TUI) for `gdu`, supporting directory drill-down navigation,
+ * live filtering, sort cycling, item inspection, system viewer launch, and confirmed deletion.
+ */
 import type { DiskUsageItem, GduSortBy } from "./gduTypes.ts";
 import {
   deleteDiskItem,
@@ -10,6 +14,9 @@ import {
 } from "./gduDoers.ts";
 import { colors } from "../../shared/colors.ts";
 
+/**
+ * Mutable session state for an interactive `gdu` TUI browser.
+ */
 export interface GduTuiState {
   currentDir: DiskUsageItem;
   history: DiskUsageItem[];
@@ -24,6 +31,9 @@ export interface GduTuiState {
   shouldExit: boolean;
 }
 
+/**
+ * Discriminated union of actions dispatched by user keyboard input in the `gdu` TUI.
+ */
 export type GduTuiAction =
   | { type: "MOVE"; delta: number }
   | { type: "ENTER" }
@@ -44,6 +54,9 @@ export type GduTuiAction =
   | { type: "NONE" };
 
 // Doer: filter and sort visible items
+/**
+ * Filters a directory's immediate children by `filterQuery` (case-insensitive substring) and sorts them by `sortBy`.
+ */
 export function getVisibleItems(
   dir: DiskUsageItem,
   filterQuery: string,
@@ -58,6 +71,9 @@ export function getVisibleItems(
 }
 
 // Doer: translate input keypress into a semantic action
+/**
+ * Maps a raw terminal keypress sequence into a `GduTuiAction`, respecting delete-confirmation and filter-entry modes.
+ */
 export function handleGduTuiKey(keyStr: string, state?: GduTuiState): GduTuiAction {
   if (state?.confirmingDelete) {
     if (keyStr === "y" || keyStr === "Y") return { type: "CONFIRM_DELETE" };
@@ -95,6 +111,9 @@ export function handleGduTuiKey(keyStr: string, state?: GduTuiState): GduTuiActi
 }
 
 // Doer: update state based on action
+/**
+ * Applies a `GduTuiAction` to the current `GduTuiState`, handling directory navigation, sorting, filtering, opening, and deletion.
+ */
 export function applyGduTuiAction(state: GduTuiState, action: GduTuiAction): GduTuiState {
   if (action.type === "QUIT") {
     if (state.showingDetails) {
@@ -250,6 +269,9 @@ export function applyGduTuiAction(state: GduTuiState, action: GduTuiAction): Gdu
 }
 
 // Doer: format item details inspection view
+/**
+ * Formats a detailed modal view for a selected file or directory, including byte size, item count, parent share, and mtime.
+ */
 export function renderGduItemDetails(item: DiskUsageItem, parentSize: number): string {
   const pct = parentSize > 0 ? ((item.size / parentSize) * 100).toFixed(1) : "100.0";
   const mtimeStr = new Date(item.mtime).toLocaleString();
@@ -271,6 +293,9 @@ export function renderGduItemDetails(item: DiskUsageItem, parentSize: number): s
 }
 
 // Doer: render full TUI frame
+/**
+ * Renders a complete TUI frame for `gdu`, displaying the directory header, keybinding bar, status banner, and scrollable item list.
+ */
 export function renderGduTuiFrame(
   state: GduTuiState,
   maxRows: number = 20
@@ -324,6 +349,9 @@ export function renderGduTuiFrame(
 }
 
 // Coordinator: interactive TUI event loop for gdu
+/**
+ * Runs the interactive `gdu` terminal UI loop starting from `rootItem` when attached to a TTY.
+ */
 export async function runGduTui(rootItem: DiskUsageItem): Promise<void> {
   if (!process.stdin.isTTY) return;
 

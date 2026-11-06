@@ -13,6 +13,7 @@ import * as nodePath from "path";
 import { absolutePath, assertCreatable, assertModifiable, eachItem, exists, lstatOrNull, moveTree, pathApi, type FmContext } from "./fmCore";
 import { FmError, describeFsError, uniqueName } from "./fmPaths";
 
+/** Metadata entry stored in `index.json` for an item inside the File Manager's Recycle Bin. */
 export interface TrashRecord {
   id: string;
   name: string;
@@ -79,6 +80,7 @@ async function writeIndex(ctx: FmContext, records: TrashRecord[]): Promise<void>
   }
 }
 
+/** Lists all items currently in the File Manager's Recycle Bin, sorted newest-deleted first. */
 export async function listTrash(ctx: FmContext): Promise<{ items: TrashRecord[]; count: number }> {
   return serialized(ctx, async () => {
     const items = await readIndex(ctx);
@@ -87,12 +89,14 @@ export async function listTrash(ctx: FmContext): Promise<{ items: TrashRecord[];
   });
 }
 
+/** Result returned for a single item moved into the Recycle Bin. */
 export interface TrashResult {
   path: string;
   id: string;
   name: string;
 }
 
+/** Moves the specified files or folders into the File Manager's Recycle Bin and records their original paths. */
 export async function moveToTrash(ctx: FmContext, inputs: unknown): Promise<Array<{ ok: true; value: TrashResult } | { ok: false; code: string; message: string }>> {
   if (!Array.isArray(inputs) || inputs.length === 0) throw new FmError("BAD_REQUEST", "Nothing was selected.");
   const paths = inputs.map((i) => absolutePath(ctx, i));
@@ -123,6 +127,7 @@ export async function moveToTrash(ctx: FmContext, inputs: unknown): Promise<Arra
   });
 }
 
+/** Restores the specified Recycle Bin items back to their original parent folders (using a unique name if needed). */
 export async function restoreFromTrash(ctx: FmContext, ids: unknown): Promise<Array<{ ok: true; value: { id: string; restoredTo: string } } | { ok: false; code: string; message: string }>> {
   if (!Array.isArray(ids) || ids.length === 0) throw new FmError("BAD_REQUEST", "Nothing was selected.");
   return serialized(ctx, async () => {

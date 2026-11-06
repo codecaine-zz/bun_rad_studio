@@ -7,13 +7,16 @@
 
 import { format as formatSql } from "sql-formatter";
 
+/** Supported database engine dialects for shared Studio SQL formatting, filtering, and schema diffing. */
 export type StudioDialect = "sqlite" | "mysql" | "postgres";
 
+/** Single column sort direction specification (`ASC` or `DESC`) for multi-column grid queries. */
 export interface SortColumnSpec {
   col: string;
   dir: "ASC" | "DESC" | "asc" | "desc";
 }
 
+/** Formats a SQL query string using `sql-formatter` configured for the specified `dialect`, falling back to the trimmed input on syntax error. */
 export function formatSqlDialect(sql: string, dialect: StudioDialect = "sqlite"): string {
   const raw = String(sql ?? "").trim();
   if (!raw) return "";
@@ -414,6 +417,7 @@ export function buildOrderClause(
   return parts.length > 0 ? `ORDER BY ${parts.join(", ")}` : "";
 }
 
+/** Normalized table and column metadata shape used as input to `computeSchemaDiffDdl`. */
 export interface DiffTableShape {
   name: string;
   columns: Array<{
@@ -425,6 +429,7 @@ export interface DiffTableShape {
   }>;
 }
 
+/** Result of comparing two database schemas (`baselineTables` vs `currentTables`), including summary counts and forward migration DDL. */
 export interface SchemaDiffResult {
   hasChanges: boolean;
   summary: {

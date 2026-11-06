@@ -3,21 +3,44 @@
  * Layer 1 (Surface), Layer 2 (Smart Math Engine), and Layer 3 (Granular CSS Variables) Types
  */
 
+/**
+ * Base luminance and contrast polarity mode for a theme surface.
+ */
 export type BaseMode = "light" | "dark" | "midnight" | "high-contrast";
 
+/**
+ * Material elevation and surface finish style applied to panels and cards.
+ */
 export type SurfaceVibe = "flat" | "frosted-glass" | "matte" | "neon-border";
 
+/**
+ * Spacing, control height, and typographic compactness preset.
+ */
 export type InterfaceDensity = "compact" | "comfortable" | "spacious";
 
 /**
  * The 10 canonical shade steps from 50 to 950 (plus 900 for compatibility with 11-step consumers).
  */
 export const SHADE_STEPS_10 = [50, 100, 200, 300, 400, 500, 600, 700, 800, 950] as const;
+
+/**
+ * Complete 11-step shade stops from 50 through 950 (including 900).
+ */
 export const SHADE_STEPS_ALL = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950] as const;
 
+/**
+ * Union of the 10 primary shade step numbers (`50` through `950`, excluding `900`).
+ */
 export type ShadeStep10 = (typeof SHADE_STEPS_10)[number];
+
+/**
+ * Union of all 11 shade step numbers (`50` through `950`, including `900`).
+ */
 export type ShadeStep = (typeof SHADE_STEPS_ALL)[number];
 
+/**
+ * Mapping from each `ShadeStep` (`50`..`950`) to its computed `#rrggbb` hex color.
+ */
 export type ShadeScale = Record<ShadeStep, string>;
 
 /**
@@ -148,6 +171,9 @@ export type InspectorCategory =
   | "Scrollbars"
   | "Shadows";
 
+/**
+ * Ordered list of all 8 inspector accordion category names.
+ */
 export const INSPECTOR_CATEGORIES: readonly InspectorCategory[] = [
   "Backgrounds",
   "Typography",
@@ -159,8 +185,14 @@ export const INSPECTOR_CATEGORIES: readonly InspectorCategory[] = [
   "Shadows",
 ] as const;
 
+/**
+ * Editor control kind used by the Pro Inspector to render an appropriate input widget for a CSS variable.
+ */
 export type VariableInputKind = "color" | "length" | "shadow" | "font" | "text";
 
+/**
+ * Metadata describing a single customizable CSS custom property in the Theme Studio catalog.
+ */
 export interface ThemeVariableDescriptor {
   /** CSS custom property name, e.g. "--bg-app" */
   name: `--${string}`;

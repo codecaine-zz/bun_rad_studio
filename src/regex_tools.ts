@@ -4,9 +4,12 @@
  * Pure functions, no GUI dependencies.
  */
 
+/** Default cap on the number of regex matches returned in a single evaluation. */
 export const MAX_MATCHES = 1000;
+/** Maximum test corpus size in bytes (5 MiB) accepted by Regex Studio. */
 export const MAX_CORPUS_BYTES = 5 * 1024 * 1024;
 
+/** Detailed position, text, and capture-group metadata for a single regular expression match. */
 export interface MatchInfo {
   num: number;
   text: string;
@@ -19,6 +22,7 @@ export interface MatchInfo {
   named: Record<string, string | undefined>;
 }
 
+/** Result of evaluating a regular expression against a corpus, including timing and timeout status. */
 export interface RunResult {
   matches: MatchInfo[];
   capped: boolean;
@@ -27,6 +31,7 @@ export interface RunResult {
   timedOut?: boolean;
 }
 
+/** Result of performing a regular expression replacement on a corpus. */
 export interface ReplaceResult {
   text: string;
   count: number;
@@ -34,10 +39,12 @@ export interface ReplaceResult {
   timedOut?: boolean;
 }
 
+/** Concatenates enabled regex boolean flag toggles (`g`, `i`, `m`, `s`, `u`) into a RegExp flags string. */
 export function buildFlags(o: { g?: boolean; i?: boolean; m?: boolean; s?: boolean; u?: boolean }): string {
   return (o.g ? "g" : "") + (o.i ? "i" : "") + (o.m ? "m" : "") + (o.s ? "s" : "") + (o.u ? "u" : "");
 }
 
+/** Compilation status and capture-group metadata for a regular expression pattern. */
 export interface PatternInfo {
   ok: boolean;
   error?: string;
@@ -78,6 +85,7 @@ function locate(starts: number[], index: number): { line: number; col: number } 
   return { line: lo + 1, col: index - starts[lo]! + 1 };
 }
 
+/** Converts a 0-based character offset in `text` into 1-based `{ line, col }` coordinates. */
 export function lineCol(text: string, index: number): { line: number; col: number } {
   return locate(lineStarts(text), index);
 }
@@ -110,6 +118,7 @@ export function runRegexSync(pattern: string, flags: string, corpus: string, lim
   return { matches, capped, ms: performance.now() - t0 };
 }
 
+/** Synchronously applies a regular expression replacement to `corpus` and counts the number of matches replaced. */
 export function replaceSync(pattern: string, flags: string, corpus: string, subst: string): ReplaceResult {
   const info = validatePattern(pattern, flags);
   if (!info.ok) return { text: corpus, count: 0, error: info.error };
@@ -149,6 +158,7 @@ function callWorker<T>(msg: any, timeoutMs: number, fallback: () => T, onTimeout
   });
 }
 
+/** Evaluates a regular expression in a worker thread with a timeout guard against catastrophic backtracking. */
 export function runRegexSafe(pattern: string, flags: string, corpus: string, limit = MAX_MATCHES, timeoutMs = 4000): Promise<RunResult> {
   const info = validatePattern(pattern, flags);
   if (!info.ok) return Promise.resolve({ matches: [], capped: false, ms: 0, error: info.error });
@@ -161,6 +171,7 @@ export function runRegexSafe(pattern: string, flags: string, corpus: string, lim
   );
 }
 
+/** Performs a regular expression replacement in a worker thread with a timeout guard against catastrophic backtracking. */
 export function replaceSafe(pattern: string, flags: string, corpus: string, subst: string, timeoutMs = 4000): Promise<ReplaceResult> {
   const info = validatePattern(pattern, flags);
   if (!info.ok) return Promise.resolve({ text: corpus, count: 0, error: info.error });
@@ -188,6 +199,7 @@ export function markMatches(corpus: string, matches: MatchInfo[], open = "«", c
   return out + corpus.slice(pos);
 }
 
+/** Formats numbered and named capture groups for a match into a compact display summary. */
 export function groupsLabel(m: MatchInfo): string {
   const named = Object.entries(m.named);
   const parts = m.groups.map((g, i) => `G${i + 1}: ${g ?? ""}`);
@@ -204,6 +216,7 @@ function csvCell(v: string): string {
   return /[",\n\r]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
 }
 
+/** Serializes regex match results and their numbered capture groups into a CSV string. */
 export function matchesToCsv(matches: MatchInfo[]): string {
   const maxG = matches.reduce((a, m) => Math.max(a, m.groups.length), 0);
   const head = ["match", "text", "index", "end", "line", "col", ...Array.from({ length: maxG }, (_, i) => `group${i + 1}`)];
@@ -211,6 +224,7 @@ export function matchesToCsv(matches: MatchInfo[]): string {
   return [head, ...rows].map((r) => r.map(csvCell).join(",")).join("\n") + "\n";
 }
 
+/** Serializes regex match results into a formatted JSON string. */
 export function matchesToJson(matches: MatchInfo[]): string {
   return JSON.stringify(matches.map((m) => ({ matchNum: m.num, text: m.text, index: m.index, end: m.end, length: m.length, line: m.line, col: m.col, groups: m.groups, named: m.named })), null, 2);
 }
@@ -308,6 +322,7 @@ export function explainPattern(pattern: string): string[] {
   return out;
 }
 
+/** Compact quick-reference cheatsheet of regular expression syntax, flags, and replacement tokens. */
 export const CHEATSHEET = `Characters      .  any char      \\d digit   \\w word   \\s space   \\D \\W \\S the opposites
 Anchors         ^ start   $ end   \\b word boundary   \\B not a boundary
 Sets            [abc] any of   [^abc] none of   [a-z] range
@@ -322,12 +337,14 @@ Replacement     $1 group   $<name> named group   $& whole match   $$ literal dol
 // Code generation
 // ---------------------------------------------------------------------------
 
+/** Target programming languages supported by Regex Studio's snippet generator. */
 export const CODE_LANGUAGES = ["TypeScript", "JavaScript", "Python", "Go", "Java", "PHP"] as const;
 
 function toPythonNamed(p: string): string {
   return p.replace(/\(\?<([A-Za-z_]\w*)>/g, "(?P<$1>").replace(/\\k<([A-Za-z_]\w*)>/g, "(?P=$1)");
 }
 
+/** Generates a ready-to-use regular expression matching code snippet in the specified language. */
 export function generateCode(lang: string, pattern: string, flags: string): string {
   const has = (f: string) => flags.includes(f);
   switch (lang) {
@@ -362,6 +379,7 @@ export function generateCode(lang: string, pattern: string, flags: string): stri
 // Presets & workspace files
 // ---------------------------------------------------------------------------
 
+/** Built-in library of common regular expression patterns for Regex Studio. */
 export const PRESETS: { name: string; pattern: string }[] = [
   { name: "1. Email Addresses", pattern: "([a-zA-Z0-9_.+-]+)@([a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+)" },
   { name: "2. IPv4 Addresses", pattern: "\\b(?:\\d{1,3}\\.){3}\\d{1,3}\\b" },
@@ -379,6 +397,7 @@ export const PRESETS: { name: string; pattern: string }[] = [
   { name: "14. Leading/Trailing Whitespace", pattern: "^\\s+|\\s+$" },
 ];
 
+/** Serialized Regex Studio workspace document format. */
 export interface WorkspaceFile {
   format: "bun-rad-regex-workspace";
   version: 1;
@@ -388,10 +407,12 @@ export interface WorkspaceFile {
   flags: { g: boolean; i: boolean; m: boolean; s: boolean; u: boolean };
 }
 
+/** Serializes a Regex Studio workspace state into a formatted JSON string. */
 export function serializeWorkspace(w: Omit<WorkspaceFile, "format" | "version">): string {
   return JSON.stringify({ format: "bun-rad-regex-workspace", version: 1, ...w }, null, 2);
 }
 
+/** Parses and validates a Regex Studio workspace JSON file. */
 export function parseWorkspace(text: string): WorkspaceFile {
   let o: any;
   try { o = JSON.parse(text); } catch { throw new Error("The file is not valid JSON"); }

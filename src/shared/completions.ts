@@ -1,8 +1,14 @@
+/**
+ * Shell completion script generators (Bash, Zsh, and Fish) and CLI flag definitions for Studio tools.
+ */
+
+/** Represents a CLI option flag and its human-readable description for shell autocompletion. */
 export interface FlagDefinition {
   flag: string;
   desc: string;
 }
 
+/** Generates a Bash completion script (`complete -F`) for `cliName` with the given `flags`. */
 export function generateBashCompletion(cliName: string, flags: string[]): string {
   const optsStr = flags.join(" ");
   return `# Bash completion for ${cliName}
@@ -20,6 +26,7 @@ complete -F _${cliName} ${cliName}
 `;
 }
 
+/** Generates a Zsh `#compdef` completion script with descriptions for `cliName`. */
 export function generateZshCompletion(
   cliName: string,
   flagDefs: FlagDefinition[]
@@ -46,6 +53,7 @@ _${cliName} "$@"
 `;
 }
 
+/** Generates a Fish shell completion script (`complete -c`) for `cliName`. */
 export function generateFishCompletion(
   cliName: string,
   flagDefs: FlagDefinition[]
@@ -66,6 +74,7 @@ export function generateFishCompletion(
   return lines.join("\n") + "\n";
 }
 
+/** Built-in flag definitions keyed by CLI tool name (`fd`, `sd`, `rip`, `procs`, `watchexec`, `tokei`, `gdu`, `ipinfo`, `subfinder`, `doggo`). */
 export const TOOL_FLAGS: Record<string, FlagDefinition[]> = {
   fd: [
     { flag: "-t", desc: "Filter by entry type (f, d, l, x)" },
@@ -173,6 +182,7 @@ export const TOOL_FLAGS: Record<string, FlagDefinition[]> = {
   ],
 };
 
+/** Renders a completion script for `cliName` targeting the specified `shell` (`bash`, `zsh`, or `fish`). */
 export function renderCompletionScript(
   cliName: string,
   shell: string,

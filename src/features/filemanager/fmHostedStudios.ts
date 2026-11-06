@@ -20,6 +20,7 @@ import { dbState } from "./fmDbState";
 import { FmError } from "./fmPaths";
 import { openQrUrl } from "./fmQr";
 
+/** Metadata and lazy window factory for a SimpleGUI studio embedded inside the File Manager. */
 export interface HostedStudioInfo {
   id: string;
   title: string;
@@ -29,6 +30,7 @@ export interface HostedStudioInfo {
   create: () => Promise<SimpleWindow>;
 }
 
+/** Registry of SimpleGUI studios (`api`, `bundler`, `env`) that can be hosted in an iframe inside the File Manager. */
 export const HOSTED_STUDIOS: Record<string, HostedStudioInfo> = {
   api: {
     id: "api", title: "API Studio", icon: "🛰️",
@@ -47,6 +49,7 @@ export const HOSTED_STUDIOS: Record<string, HostedStudioInfo> = {
   },
 };
 
+/** Descriptor for an external studio or arcade application that can be launched in its own OS window. */
 export interface ToolWindowInfo {
   id: string;
   title: string;
@@ -54,6 +57,7 @@ export interface ToolWindowInfo {
   args?: string[];
 }
 
+/** Registry of all studio tools and arcade games that can be spawned as standalone windows from the File Manager. */
 export const TOOL_WINDOW_APPS: Record<string, ToolWindowInfo> = {
   paint: { id: "paint", title: "Paint Studio", script: "paint_studio" },
   calc: { id: "calc", title: "Calculator", script: "calculator_studio" },
@@ -152,6 +156,7 @@ export const TOOL_WINDOW_APPS: Record<string, ToolWindowInfo> = {
 
 const dashed = (s: string) => s.replace(/_/g, "-");
 
+/** Resolves the command and executable layout needed to launch a standalone studio script (`bundle`, `app`, `executable`, or `dev`). */
 export function resolveToolWindowCommand(script: string, layout: StudioLayout = realLayout()): StudioCommand | null {
   const bundle = `${dashed(script)}.js`;
   const argvDir = layout.argv1 ? dirname(layout.argv1) : "";
@@ -186,6 +191,7 @@ export function resolveToolWindowCommand(script: string, layout: StudioLayout = 
 
 const hubs = new WeakMap<FmContext, HostedHub>();
 
+/** Returns (or lazily creates and registers for cleanup) the `HostedHub` managing embedded studios for `ctx`. */
 export function hubOf(ctx: FmContext): HostedHub {
   let hub = hubs.get(ctx);
   if (!hub) {
@@ -202,6 +208,7 @@ const HOSTED_LIMIT = 6;
 const isStudioId = (id: unknown): id is string => typeof id === "string" && Object.prototype.hasOwnProperty.call(HOSTED_STUDIOS, id);
 const isToolWindowId = (id: unknown): id is string => typeof id === "string" && Object.prototype.hasOwnProperty.call(TOOL_WINDOW_APPS, id);
 
+/** File Manager API handlers for listing, opening, closing, and spawning hosted studios or external browser URLs. */
 export const hostedStudioOperations: Record<string, FmHandler> = {
   async "studios/list"() {
     return { studios: Object.values(HOSTED_STUDIOS).map(({ id, title, icon, note }) => ({ id, title, icon, note })) };
@@ -285,6 +292,7 @@ export function hostedCsp(host: string, parentOrigin: string | null): string {
   ].join("; ");
 }
 
+/** Builds the WebSocket URL path (`/app/hostedws/<id>`) for a hosted studio session. */
 export function hostedSocketPath(id: string): string {
   return `/app/hostedws/${id}`;
 }

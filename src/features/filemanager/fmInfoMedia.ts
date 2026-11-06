@@ -119,6 +119,7 @@ async function localLyrics(ctx: FmContext, path: string): Promise<Array<{ text: 
   return lyrics;
 }
 
+/** Structured media inspection result including stream groups, lyrics, and `ffprobe` helper status. */
 export interface MediaResult {
   groups: InfoGroup[];
   source: "ffprobe" | "built-in";
@@ -127,6 +128,7 @@ export interface MediaResult {
   notes: string[];
 }
 
+/** Inspects an audio or video file using `ffprobe` (when available) or the built-in container parsers, plus sidecar lyrics. */
 export async function mediaInfo(ctx: FmContext, input: unknown): Promise<MediaResult> {
   const t = await regularFile(ctx, input);
   const path = absolutePath(ctx, input);

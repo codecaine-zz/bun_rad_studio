@@ -9,6 +9,7 @@ import * as nodePath from "node:path";
 import { END_ENTRY, MAX_DEPTH, MAX_ENTRIES, MAX_PATH_BYTES, MAX_WARNINGS, componentProblem, encodeDirEntry, encodeFileEntry, encodeManifest, type Manifest } from "./fmVaultContainer";
 import { VaultError, throwIfAborted } from "./fmVaultFormat";
 
+/** Pre-encryption scan summary of a source file or directory tree. */
 export interface ScanResult {
   kind: "file" | "folder";
   name: string;

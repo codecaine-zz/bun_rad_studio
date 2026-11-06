@@ -3,9 +3,12 @@
  * request files, benchmark statistics, history). No GUI and no network access.
  */
 
+/** Supported HTTP request methods in API Studio. */
 export const HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"] as const;
+/** Supported authentication modes in API Studio. */
 export const AUTH_MODES = ["None", "Bearer Token", "Basic Auth", "API Key Header"] as const;
 
+/** Returns `true` when the given HTTP method normally carries a request body. */
 export function methodHasBody(method: string): boolean {
   return !["GET", "HEAD", "OPTIONS"].includes(method.toUpperCase());
 }
@@ -15,12 +18,14 @@ export function isUnsafeMethod(method: string): boolean {
   return !["GET", "HEAD", "OPTIONS"].includes(method.toUpperCase());
 }
 
+/** Formats a byte count into a human-readable string (`B`, `KB`, `MB`). */
 export function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
   return `${(n / 1024 / 1024).toFixed(2)} MB`;
 }
 
+/** Parses `v` as a base-10 integer and clamps it to `[min, max]`, returning `dflt` if not finite. */
 export function clampInt(v: any, min: number, max: number, dflt: number): number {
   const n = parseInt(String(v), 10);
   return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : dflt;
@@ -79,6 +84,7 @@ export function buildUrl(url: string, paramsText: string): string {
 // Variables: {{name}} plus {{$timestamp}}, {{$isoTimestamp}}, {{$uuid}}, {{$randomInt}}
 // ---------------------------------------------------------------------------
 
+/** Parses `key=value` variable lines (ignoring blank lines and `#` comments) into a dictionary. */
 export function parseVariables(text: string): Record<string, string> {
   const out: Record<string, string> = {};
   for (const raw of String(text || "").split(/\r?\n/)) {
@@ -91,6 +97,7 @@ export function parseVariables(text: string): Record<string, string> {
   return out;
 }
 
+/** Substitutes `{{name}}` and built-in dynamic placeholders (`{{$timestamp}}`, `{{$isoTimestamp}}`, `{{$uuid}}`, `{{$randomInt}}`) in `text`. */
 export function applyVariables(text: string, vars: Record<string, string>, now = new Date()): { text: string; missing: string[] } {
   const missing = new Set<string>();
   const out = String(text ?? "").replace(/\{\{\s*([$A-Za-z_][\w.$-]*)\s*\}\}/g, (whole, name: string) => {
@@ -111,6 +118,7 @@ export function applyVariables(text: string, vars: Record<string, string>, now =
 // Headers & auth
 // ---------------------------------------------------------------------------
 
+/** Parses multiline `Header-Name: value` text into a header dictionary. */
 export function parseHeaderLines(text: string): Record<string, string> {
   const out: Record<string, string> = {};
   for (const line of String(text || "").split(/\r?\n/)) {
@@ -122,6 +130,7 @@ export function parseHeaderLines(text: string): Record<string, string> {
   return out;
 }
 
+/** Returns a new headers object with the configured authentication header (`Bearer`, `Basic`, or `X-API-Key`) applied. */
 export function applyAuth(headers: Record<string, string>, mode: string, cred: string): Record<string, string> {
   const out = { ...headers };
   const c = String(cred || "").trim();
@@ -132,6 +141,7 @@ export function applyAuth(headers: Record<string, string>, mode: string, cred: s
   return out;
 }
 
+/** Checks case-insensitively whether `headers` contains a header named `name`. */
 export function hasHeader(headers: Record<string, string>, name: string): boolean {
   const n = name.toLowerCase();
   return Object.keys(headers).some((k) => k.toLowerCase() === n);
@@ -149,6 +159,7 @@ export function withDefaultContentType(headers: Record<string, string>, method: 
 
 const sq = (s: string) => `'${s.replace(/'/g, `'\\''`)}'`;
 
+/** Parameters describing an HTTP request to be formatted as a shell `curl` command. */
 export interface CurlExport {
   method: string;
   url: string;
@@ -159,6 +170,7 @@ export interface CurlExport {
   timeoutSec?: number;
 }
 
+/** Builds a POSIX-quoted multiline `curl` command string from a `CurlExport` specification. */
 export function buildCurlCommand(r: CurlExport): string {
   const parts = [r.method === "HEAD" ? `curl -I ${sq(r.url)}` : `curl -X ${r.method} ${sq(r.url)}`];
   for (const [k, v] of Object.entries(r.headers)) parts.push(`-H ${sq(`${k}: ${v}`)}`);
@@ -215,6 +227,7 @@ export function tokenizeShell(cmd: string): string[] {
   return out;
 }
 
+/** Structured HTTP request fields extracted by `parseCurlCommand`. */
 export interface ParsedCurl {
   method: string;
   url: string;
@@ -303,6 +316,7 @@ export function parseCurlCommand(cmd: string): ParsedCurl {
 // Request files
 // ---------------------------------------------------------------------------
 
+/** Saved API Studio request document format (excluding sensitive credentials). */
 export interface RequestFile {
   format: "bun-rad-api-request";
   version: 1;
@@ -321,6 +335,7 @@ export function serializeRequest(r: Omit<RequestFile, "format" | "version">): st
   return JSON.stringify(f, null, 2);
 }
 
+/** Parses and validates a saved API Studio request JSON file. */
 export function parseRequestFile(text: string): RequestFile {
   let o: any;
   try { o = JSON.parse(text); } catch { throw new Error("The file is not valid JSON"); }
@@ -344,6 +359,7 @@ export function parseRequestFile(text: string): RequestFile {
 // Benchmark & history
 // ---------------------------------------------------------------------------
 
+/** Executes `n` asynchronous tasks using a worker pool bounded by `concurrency` and returns their results in order. */
 export async function runPool<T>(n: number, concurrency: number, fn: (i: number) => Promise<T>): Promise<T[]> {
   const results: T[] = new Array(n);
   let next = 0;
@@ -357,6 +373,7 @@ export async function runPool<T>(n: number, concurrency: number, fn: (i: number)
   return results;
 }
 
+/** Latency percentiles and throughput summary for an HTTP benchmark run. */
 export interface BenchStats {
   count: number;
   min: number;
@@ -368,6 +385,7 @@ export interface BenchStats {
   rps: number;
 }
 
+/** Computes min, avg, p50, p95, p99, max latency and requests-per-second from a list of latency samples. */
 export function summarizeBench(latencies: number[], totalMs: number): BenchStats | null {
   if (latencies.length === 0) return null;
   const l = [...latencies].sort((a, b) => a - b);
@@ -385,6 +403,7 @@ export function summarizeBench(latencies: number[], totalMs: number): BenchStats
   };
 }
 
+/** Recorded HTTP request/response entry in API Studio's session history. */
 export interface HistoryEntry {
   id: number;
   method: string;
@@ -396,6 +415,7 @@ export interface HistoryEntry {
   body: string;
 }
 
+/** Prepends a new `HistoryEntry` to `list` and truncates the history to at most `max` entries. */
 export function pushHistory(list: HistoryEntry[], e: HistoryEntry, max = 30): HistoryEntry[] {
   return [e, ...list].slice(0, max);
 }

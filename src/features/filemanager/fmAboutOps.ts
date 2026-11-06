@@ -8,6 +8,7 @@ import { type FmContext, type FmHandler } from "./fmCore";
 import { openCommand } from "./fmOpen";
 import { FmError } from "./fmPaths";
 
+/** Metadata for an external project, documentation, or support link shown in the About dialog. */
 export interface AboutLink {
   id: string;
   label: string;
@@ -15,6 +16,7 @@ export interface AboutLink {
   url: string;
 }
 
+/** Static catalog of allowed external links displayed in the File Manager About view. */
 export const ABOUT_LINKS: readonly AboutLink[] = [
   { id: "project", label: "Project on GitHub", hint: "The source code, releases and documentation of Bun RAD Studio.", url: "https://github.com/codecaine-zz/bun_rad_studio" },
   { id: "website", label: "Website: codefreelance.net", hint: "The author's website, with more apps, tutorials and projects.", url: "https://www.codefreelance.net" },
@@ -34,6 +36,7 @@ const ASSET_IDS: Record<string, Record<"arm64" | "x64", string>> = {
   linux: { arm64: "linux-arm64", x64: "linux-x64" },
 };
 
+/** Runtime environment details including Bun version, build revision, OS platform, and CPU architecture. */
 export interface RuntimeInfo {
   /** The Bun the app runs on (`Bun.version`) and the short form of its build (`Bun.revision`). */
   bun: string;
@@ -43,6 +46,7 @@ export interface RuntimeInfo {
   arch: string;
 }
 
+/** Result of checking GitHub Releases for a newer version of the application. */
 export interface UpdateCheck {
   currentVersion: string;
   latestVersion: string | null;
@@ -55,11 +59,13 @@ export interface UpdateCheck {
   error: string | null;
 }
 
+/** Strips a leading "v" or "V" prefix and whitespace from a semantic version string. */
 export function normalizeVersion(version: string): string {
   const trimmed = `${version}`.trim();
   return trimmed.startsWith("v") || trimmed.startsWith("V") ? trimmed.slice(1) : trimmed;
 }
 
+/** Maps an OS platform and CPU architecture to the release asset identifier suffix, or null if unsupported. */
 export function assetIdForPlatform(platform: string, arch: string): string | null {
   const archName = arch === "arm64" ? "arm64" : arch === "x64" ? "x64" : null;
   if (!archName) return null;
@@ -67,6 +73,7 @@ export function assetIdForPlatform(platform: string, arch: string): string | nul
   return byPlatform ? byPlatform[archName] ?? null : null;
 }
 
+/** Compares two version strings using Bun's semver ordering (-1, 0, or 1). */
 export function compareVersions(a: string, b: string): number {
   return Bun.semver.order(normalizeVersion(a), normalizeVersion(b));
 }
@@ -76,6 +83,7 @@ function downloadFolderFor(ctx: FmContext): string {
   return ctx.platform === "win32" ? nodePath.join(home, "Downloads") : nodePath.join(home, "Downloads");
 }
 
+/** Finds the matching downloadable ZIP asset for the given platform and architecture from a GitHub release payload. */
 export function releaseAssetForPlatform(release: any, platform: string, arch: string): { name: string; url: string } | null {
   const assetId = assetIdForPlatform(platform, arch);
   if (!assetId || !release || !Array.isArray(release.assets)) return null;
@@ -85,6 +93,7 @@ export function releaseAssetForPlatform(release: any, platform: string, arch: st
   return { name: asset.name, url: asset.browser_download_url };
 }
 
+/** Queries the latest GitHub release and compares it against the running application version. */
 export async function checkForUpdates(ctx: FmContext): Promise<UpdateCheck> {
   const { APP_VERSION } = await import("./fmServer");
   const currentVersion = normalizeVersion(APP_VERSION);
@@ -136,6 +145,7 @@ async function openLink(ctx: FmContext, link: AboutLink): Promise<void> {
   }
 }
 
+/** Downloads the latest platform release archive into the user's Downloads folder. */
 export async function installLatestUpdate(ctx: FmContext): Promise<{ path: string; file: string; releaseUrl: string }> {
   const update = await checkForUpdates(ctx);
   if (!update.hasUpdate || !update.assetUrl) {
@@ -152,6 +162,7 @@ export async function installLatestUpdate(ctx: FmContext): Promise<{ path: strin
   return { path: folder, file: target, releaseUrl: update.releaseUrl };
 }
 
+/** File Manager API handlers for the About panel, update checks, update downloads, and external link launching. */
 export const aboutOperations: Record<string, FmHandler> = {
   async "about/info"(ctx) {
     // Read when asked, not when this file loads: the server module that owns the name imports this one.

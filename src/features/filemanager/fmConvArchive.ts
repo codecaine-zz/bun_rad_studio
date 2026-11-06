@@ -17,6 +17,7 @@ import { ZipFileWriter } from "./fmConvZip";
 import { readCentralDirectory, readZipEntry, safeEntryPath } from "./fmZip";
 import type { Platform } from "./fmPaths";
 
+/** Safety caps on total uncompressed bytes and entry count for archive creation and extraction. */
 export interface ArchiveLimits {
   /** Most bytes that may be written or produced in total. */
   maxBytes: number;
@@ -24,6 +25,7 @@ export interface ArchiveLimits {
   maxEntries: number;
 }
 
+/** Default archive safety limits (8 GB total bytes and 100,000 entries). */
 export const DEFAULT_ARCHIVE_LIMITS: ArchiveLimits = { maxBytes: 8 * 1024 ** 3, maxEntries: 100_000 };
 const MAX_ENTRY_IN_MEMORY = 512 * 1024 ** 2;
 const BLOCK = 512;
@@ -229,6 +231,7 @@ function unzstdStream(input: string, limit: number, what: string): Readable {
   return chain(fs.createReadStream(input), zstdCompleteness(what), zlib.createZstdDecompress(), capped(limit, what));
 }
 
+/** Decompresses a single `.zst` Zstandard file to `output` while enforcing an output byte cap. */
 export async function unzstdFile(input: string, output: string, limit = DEFAULT_ARCHIVE_LIMITS.maxBytes): Promise<void> {
   if ((await fsp.stat(input)).size === 0) throw new ConvError("The file is empty: there is nothing to open.");
   const out = new Out(output);
@@ -245,6 +248,7 @@ export async function unzstdFile(input: string, output: string, limit = DEFAULT_
 // Single files: gzip and brotli
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Compresses a single file to `output` using gzip at the specified compression level. */
 export async function gzipFile(input: string, output: string, level = 6): Promise<void> {
   const out = new Out(output, zlib.createGzip({ level }));
   try {
@@ -256,6 +260,7 @@ export async function gzipFile(input: string, output: string, level = 6): Promis
   }
 }
 
+/** Decompresses a single `.gz` file to `output` while enforcing an output byte cap. */
 export async function gunzipFile(input: string, output: string, limit = DEFAULT_ARCHIVE_LIMITS.maxBytes): Promise<void> {
   const out = new Out(output);
   try {
@@ -267,6 +272,7 @@ export async function gunzipFile(input: string, output: string, limit = DEFAULT_
   }
 }
 
+/** Compresses a single file to `output` using Brotli quality 9. */
 export async function brotliFile(input: string, output: string): Promise<void> {
   const out = new Out(output, zlib.createBrotliCompress({ params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 9 } }));
   try {
@@ -278,6 +284,7 @@ export async function brotliFile(input: string, output: string): Promise<void> {
   }
 }
 
+/** Decompresses a single `.br` Brotli file to `output` while enforcing an output byte cap. */
 export async function unbrotliFile(input: string, output: string, limit = DEFAULT_ARCHIVE_LIMITS.maxBytes): Promise<void> {
   const out = new Out(output);
   try {
@@ -338,6 +345,7 @@ function tarHeader(name: string, size: number, type: "0" | "5", mode: number, mt
   return out;
 }
 
+/** Header metadata and streaming byte generator for a single entry read from a tar archive. */
 export interface TarItem {
   name: string;
   type: "file" | "dir" | "link" | "other";
@@ -546,12 +554,14 @@ async function* fileChunks(path: string, expected: number): AsyncGenerator<Buffe
   if (seen !== expected) throw new ConvError(`"${nodePath.basename(path)}" changed while it was being archived. Try again when nothing is using it.`);
 }
 
+/** Summary counts of files, folders, and skipped symlinks after creating an archive. */
 export interface Made {
   files: number;
   folders: number;
   skippedLinks: number;
 }
 
+/** Creates a new `.zip` archive at `output` containing the given source files and directories. */
 export async function createZipFrom(sources: string[], output: string, limits = DEFAULT_ARCHIVE_LIMITS): Promise<Made> {
   const { items, skippedLinks } = await plan(sources, limits);
   if (!items.length) throw new ConvError("There is nothing to put in the zip file (links are skipped, and empty selections have no files).");
@@ -575,10 +585,12 @@ export async function createZipFrom(sources: string[], output: string, limits = 
   return { files, folders, skippedLinks };
 }
 
+/** Creates a new `.tar.gz` archive at `output` from the given source files and directories. */
 export async function createTarGzFrom(sources: string[], output: string, limits = DEFAULT_ARCHIVE_LIMITS, level = 6): Promise<Made> {
   return await createTarFrom(sources, output, limits, zlib.createGzip({ level }));
 }
 
+/** Creates a new `.tar.zst` Zstandard-compressed tar archive at `output` from the given source paths. */
 export async function createTarZstFrom(sources: string[], output: string, limits = DEFAULT_ARCHIVE_LIMITS, level = 3): Promise<Made> {
   return await createTarFrom(sources, output, limits, zlib.createZstdCompress({ params: { [zlib.constants.ZSTD_c_compressionLevel]: level, [zlib.constants.ZSTD_c_checksumFlag]: 1 } }));
 }
@@ -614,6 +626,7 @@ async function createTarFrom(sources: string[], output: string, limits: ArchiveL
 // Extracting tar.gz
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Summary statistics and skipped-entry notices returned after unpacking or converting an archive. */
 export interface Extracted {
   files: number;
   folders: number;
@@ -676,6 +689,7 @@ export async function extractTarGz(input: string, dest: string, platform: Platfo
 // zip <-> tar.gz without unpacking to disk
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Streams entries from a `.zip` archive directly into a new `.tar.gz` archive without unpacking to disk. */
 export async function zipToTarGz(input: string, output: string, platform: Platform, limits = DEFAULT_ARCHIVE_LIMITS): Promise<Extracted> {
   const handle = await fsp.open(input, "r");
   const result: Extracted = { files: 0, folders: 0, bytes: 0, skipped: [] };
@@ -726,6 +740,7 @@ export async function zipToTarGz(input: string, output: string, platform: Platfo
   return result;
 }
 
+/** Streams entries from a `.tar`, `.tar.gz`, or `.tar.zst` archive directly into a new `.zip` archive. */
 export async function tarGzToZip(input: string, output: string, platform: Platform, limits = DEFAULT_ARCHIVE_LIMITS): Promise<Extracted> {
   const result: Extracted = { files: 0, folders: 0, bytes: 0, skipped: [] };
   const zip = await ZipFileWriter.create(output);

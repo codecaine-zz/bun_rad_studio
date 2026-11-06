@@ -38,6 +38,7 @@ export function editorArguments(editor: string | undefined, path: string, line?:
   return [at];
 }
 
+/** Creates the default production `EditorHooks` implementation that locates and spawns external code editors. */
 export function defaultEditorHooks(context: { platform: FmContext["platform"]; home: string; toolDirs?: string[] }): EditorHooks {
   return {
     which(name) {

@@ -4,8 +4,10 @@
  * Nothing here touches the disk or the clipboard.
  */
 
+/** Bullet mask string used to redact secret values in masked `.env` views. */
 export const MASK = "••••••••••••••••";
 
+/** A single parsed `KEY=VALUE` assignment from a `.env` file with its 1-based line number and quote state. */
 export interface EnvVar {
   key: string;
   value: string;
@@ -13,6 +15,7 @@ export interface EnvVar {
   quoted: boolean;
 }
 
+/** Result of parsing a `.env` document, including extracted variables, duplicate keys, and syntax errors. */
 export interface ParsedEnv {
   vars: EnvVar[];
   duplicates: string[];
@@ -79,6 +82,7 @@ function isPlainSetting(key: string): boolean {
   return words.includes("PORT") || words.includes("HOST") || (words.includes("NODE") && words.includes("ENV"));
 }
 
+/** Returns true when `key` is a non-secret plain setting (such as `PORT`, `HOST`, or `NODE_ENV`) with a safe literal `value` that can be preserved in `.env.example`. */
 export function isSafeExampleValue(key: string, value: string): boolean {
   return !isSecretKey(key) && isPlainSetting(key) && /^[\w.:-]{0,64}$/.test(value);
 }
@@ -130,6 +134,7 @@ export function makeExample(text: string): { text: string; count: number; kept: 
   return { text: out.join("\n") + "\n", count: done.size, kept };
 }
 
+/** Summary of differences between an active `.env` configuration and a `.env.example` template. */
 export interface EnvDiff {
   activeCount: number;
   templateCount: number;
@@ -138,6 +143,7 @@ export interface EnvDiff {
   empty: string[];
 }
 
+/** Compares `active` `.env` content against `template` `.env` content and returns missing, extra, and empty keys. */
 export function diffEnv(active: string, template: string): EnvDiff {
   const a = parseEnv(active);
   const t = parseEnv(template);
@@ -152,6 +158,7 @@ export function diffEnv(active: string, template: string): EnvDiff {
   };
 }
 
+/** Formats an `EnvDiff` into a human-readable multi-line comparison report. */
 export function formatDiff(d: EnvDiff): string {
   const list = (keys: string[], sign: string, none: string) => (keys.length ? keys.map((k) => `  ${sign} ${k}`).join("\n") : `  ${none}`);
   return [
@@ -169,6 +176,7 @@ export function formatDiff(d: EnvDiff): string {
   ].join("\n");
 }
 
+/** Diagnostic report returned by `auditEnv` containing syntax errors, warnings, and duplicate variable names. */
 export interface Audit {
   total: number;
   errors: string[];

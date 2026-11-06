@@ -4,6 +4,7 @@
  * Kept free of GUI/process side effects so they are unit-testable.
  */
 
+/** Metadata and runtime status for an application entry in Launcher Studio. */
 export interface LauncherApp {
   id: string;
   name: string;
@@ -105,7 +106,9 @@ function isSubsequence(needle: string, hay: string): boolean {
   return i === needle.length;
 }
 
+/** Supported sort modes for ordering applications in Launcher Studio. */
 export type SortMode = "default" | "recent" | "most_used" | "name";
+/** Human-readable dropdown labels corresponding to each `SortMode`. */
 export const SORT_LABELS: Record<SortMode, string> = {
   default: "Favorites, running, A-Z",
   recent: "Recently used",
@@ -113,11 +116,13 @@ export const SORT_LABELS: Record<SortMode, string> = {
   name: "Name A-Z",
 };
 
+/** Maps a UI sort dropdown label back to its `SortMode` key, defaulting to `"default"`. */
 export function sortModeFromLabel(label: string): SortMode {
   for (const [k, v] of Object.entries(SORT_LABELS)) if (v === label || label.includes(v)) return k as SortMode;
   return "default";
 }
 
+/** Returns a new array of applications sorted according to the specified `SortMode`. */
 export function sortApps<T extends LauncherApp>(apps: T[], mode: SortMode): T[] {
   const copy = apps.slice();
   const byName = (a: T, b: T) => a.displayName.localeCompare(b.displayName);

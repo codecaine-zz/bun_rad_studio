@@ -1,3 +1,7 @@
+/**
+ * Unit test suite for RAD text, string, regex, HTML, diff, template, and color utilities
+ * (`strutils`, `regexutils`, `htmlutils`, `diffutils`, `templateutils`, and `colorutils`).
+ */
 import { describe, expect, test } from "bun:test";
 import { colorutils, diffutils, htmlutils, regexutils, strutils, templateutils } from "./index.ts";
 

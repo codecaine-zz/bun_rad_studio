@@ -1,3 +1,7 @@
+/**
+ * In-memory caching utilities providing an O(1) `LRUCache` and a `TTLCache` with per-entry expiration,
+ * sliding TTL refresh, in-flight request deduplication, and hit/miss statistics.
+ */
 // Feature: RAD - cacheutils
 // In-memory caches: O(1) LRUCache (Map insertion order) with eviction callbacks, peek, resize and
 // hit/miss stats; TTLCache with per-entry TTLs, sliding refresh, in-flight request de-duplication
@@ -86,18 +90,22 @@ export class LRUCache<K, V> {
     return fresh;
   }
 
+  /** Returns `true` if `key` is currently in the cache without updating recency or stats. */
   has(key: K): boolean {
     return this.cache.has(key);
   }
 
+  /** Removes `key` from the cache and returns `true` if it was present. */
   delete(key: K): boolean {
     return this.cache.delete(key);
   }
 
+  /** Removes all entries from the cache. */
   clear(): void {
     this.cache.clear();
   }
 
+  /** Returns the current number of entries in the cache. */
   size(): number {
     return this.cache.size;
   }
@@ -124,6 +132,7 @@ export class LRUCache<K, V> {
     return [...this.cache.entries()];
   }
 
+  /** Returns cumulative hit, miss, eviction, size, and hit-rate metrics. */
   stats(): CacheStats {
     return makeStats(this.hits, this.misses, this.evictions, this.cache.size);
   }
@@ -173,6 +182,11 @@ export class TTLCache<K, V> {
   readonly defaultTtlMs: number;
   readonly sliding: boolean;
 
+  /**
+   * Creates a time-to-live cache with a default entry lifetime in milliseconds.
+   * @param defaultTtlMs - Default time-to-live per entry in milliseconds (default `60000`, must be > 0).
+   * @param options - Optional background sweep interval and sliding expiration flag.
+   */
   constructor(defaultTtlMs = 60_000, options: TTLCacheOptions = {}) {
     if (!(defaultTtlMs > 0)) throw new Error(`[cacheutils] TTLCache defaultTtlMs must be > 0 (got ${defaultTtlMs})`);
     this.defaultTtlMs = defaultTtlMs;
@@ -242,10 +256,12 @@ export class TTLCache<K, V> {
     return true;
   }
 
+  /** Removes `key` from the cache and returns `true` if an entry existed. */
   delete(key: K): boolean {
     return this.store.delete(key);
   }
 
+  /** Removes all entries from the cache. */
   clear(): void {
     this.store.clear();
   }
@@ -276,6 +292,7 @@ export class TTLCache<K, V> {
     return [...this.store.keys()];
   }
 
+  /** Returns cumulative hit, miss, eviction, live size, and hit-rate statistics. */
   stats(): CacheStats {
     return makeStats(this.hits, this.misses, this.evictions, this.size());
   }
@@ -298,6 +315,9 @@ export class TTLCache<K, V> {
   }
 }
 
+/**
+ * Namespace of in-memory caching classes (`LRUCache`, `TTLCache`).
+ */
 export const cacheutils = {
   LRUCache,
   TTLCache,

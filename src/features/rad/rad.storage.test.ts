@@ -1,3 +1,8 @@
+/**
+ * Unit and integration test suite for RAD file, storage, archive, compression, state, and cache
+ * modules (`fileutils`, `sqliteutils`, `tomlutils`, `archiveutils`, `compressutils`, `tarutils`,
+ * `stateutils`, and `cacheutils`).
+ */
 import { describe, expect, it } from "bun:test";
 import { join } from "node:path";
 import { rad } from "./index.ts";

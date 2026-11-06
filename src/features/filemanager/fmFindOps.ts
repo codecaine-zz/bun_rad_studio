@@ -32,6 +32,7 @@ function presetAge(label: string): string {
   return "";
 }
 
+/** Complete map of `find/*` API handlers registered with the File Manager server, combining search, inspection, analysis, watching, and bulk operations. */
 export const findOperations: Record<string, FmHandler> = {
   ...bulkOperations,
 

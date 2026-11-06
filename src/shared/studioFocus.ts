@@ -13,6 +13,7 @@
  * (localStorage, per studio), so it also survives a reload.
  */
 
+/** CSS stylesheet for the shared Studio Focus mode bar, toggles, and full-window section layout. */
 export const STUDIO_FOCUS_STYLE = `
     /* ===== Focus mode ===== */
     .sf-btn { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; white-space: nowrap; margin-left: auto; padding: 2px 9px; min-height: 24px; border-radius: 6px; border: 1px solid color-mix(in srgb, var(--cyan) 50%, transparent); background: color-mix(in srgb, var(--cyan) 10%, transparent); color: var(--cyan); font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; }
@@ -341,4 +342,5 @@ function studioFocusClient() {
   };
 }
 
+/** Self-invoking browser script that registers `window.StudioFocus` for full-window section focus mode. */
 export const STUDIO_FOCUS_SCRIPT = `(${studioFocusClient.toString()})();`;

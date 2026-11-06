@@ -1,3 +1,7 @@
+/**
+ * Classic mutable data structures with predictable time complexity: `SimpleStack`, `SimpleQueue`,
+ * `SimpleDeque`, `SimpleRingBuffer`, `SimpleMinHeap`, `SimplePriorityQueue`, `SimpleTrie`, and `DisjointSet`.
+ */
 // Feature: RAD - structutils
 // Classic mutable data structures with predictable complexity, all iterable:
 // Stack (LIFO), Queue (FIFO, amortised O(1) dequeue), Deque, RingBuffer, MinHeap,
@@ -22,26 +26,32 @@ export class SimpleStack<T> {
     return s;
   }
 
+  /** Pushes an item onto the top of the stack. */
   push(item: T): void {
     this.items.push(item);
   }
 
+  /** Removes and returns the top item, or `undefined` if empty. */
   pop(): T | undefined {
     return this.items.pop();
   }
 
+  /** Returns the top item without removing it, or `undefined` if empty. */
   peek(): T | undefined {
     return this.items[this.items.length - 1];
   }
 
+  /** Returns `true` when the stack contains no items. */
   isEmpty(): boolean {
     return this.items.length === 0;
   }
 
+  /** Returns the number of items currently on the stack. */
   size(): number {
     return this.items.length;
   }
 
+  /** Removes all items from the stack. */
   clear(): void {
     this.items = [];
   }
@@ -70,16 +80,19 @@ export class SimpleQueue<T> {
   private items: T[] = [];
   private head = 0;
 
+  /** Builds a `SimpleQueue` containing the elements of `items` in iteration order. */
   static from<T>(items: Iterable<T>): SimpleQueue<T> {
     const q = new SimpleQueue<T>();
     for (const i of items) q.enqueue(i);
     return q;
   }
 
+  /** Appends an item to the back of the queue. */
   enqueue(item: T): void {
     this.items.push(item);
   }
 
+  /** Removes and returns the front item of the queue, or `undefined` if empty. */
   dequeue(): T | undefined {
     if (this.head >= this.items.length) return undefined;
     const item = this.items[this.head];
@@ -91,18 +104,22 @@ export class SimpleQueue<T> {
     return item;
   }
 
+  /** Returns the front item without removing it, or `undefined` if empty. */
   peek(): T | undefined {
     return this.items[this.head];
   }
 
+  /** Returns `true` when the queue contains no items. */
   isEmpty(): boolean {
     return this.size() === 0;
   }
 
+  /** Returns the number of items currently in the queue. */
   size(): number {
     return this.items.length - this.head;
   }
 
+  /** Removes all items from the queue. */
   clear(): void {
     this.items = [];
     this.head = 0;
@@ -113,6 +130,7 @@ export class SimpleQueue<T> {
     return this.items.slice(this.head);
   }
 
+  /** Iterates items from front to back without removing them. */
   *[Symbol.iterator](): IterableIterator<T> {
     for (let i = this.head; i < this.items.length; i++) yield this.items[i]!;
   }
@@ -133,12 +151,14 @@ export class SimpleDeque<T> {
   private head = 0;
   private count = 0;
 
+  /** Appends an item to the back of the deque in amortised O(1) time. */
   pushBack(item: T): void {
     this.grow();
     this.buf[(this.head + this.count) % this.buf.length] = item;
     this.count++;
   }
 
+  /** Prepends an item to the front of the deque in amortised O(1) time. */
   pushFront(item: T): void {
     this.grow();
     this.head = (this.head - 1 + this.buf.length) % this.buf.length;
@@ -146,6 +166,7 @@ export class SimpleDeque<T> {
     this.count++;
   }
 
+  /** Removes and returns the front item, or `undefined` if empty. */
   popFront(): T | undefined {
     if (this.count === 0) return undefined;
     const item = this.buf[this.head];
@@ -155,6 +176,7 @@ export class SimpleDeque<T> {
     return item;
   }
 
+  /** Removes and returns the back item, or `undefined` if empty. */
   popBack(): T | undefined {
     if (this.count === 0) return undefined;
     const idx = (this.head + this.count - 1) % this.buf.length;
@@ -164,10 +186,12 @@ export class SimpleDeque<T> {
     return item;
   }
 
+  /** Returns the front item without removing it, or `undefined` if empty. */
   peekFront(): T | undefined {
     return this.count ? this.buf[this.head] : undefined;
   }
 
+  /** Returns the back item without removing it, or `undefined` if empty. */
   peekBack(): T | undefined {
     return this.count ? this.buf[(this.head + this.count - 1) % this.buf.length] : undefined;
   }
@@ -178,24 +202,29 @@ export class SimpleDeque<T> {
     return k >= 0 && k < this.count ? this.buf[(this.head + k) % this.buf.length] : undefined;
   }
 
+  /** Returns the number of elements in the deque. */
   size(): number {
     return this.count;
   }
 
+  /** Returns `true` when the deque is empty. */
   isEmpty(): boolean {
     return this.count === 0;
   }
 
+  /** Removes all elements and resets the internal circular buffer. */
   clear(): void {
     this.buf = new Array(16);
     this.head = 0;
     this.count = 0;
   }
 
+  /** Copies the deque contents into an array ordered from front to back. */
   toArray(): T[] {
     return Array.from({ length: this.count }, (_, i) => this.buf[(this.head + i) % this.buf.length] as T);
   }
 
+  /** Iterates elements from front to back. */
   *[Symbol.iterator](): IterableIterator<T> {
     yield* this.toArray();
   }
@@ -224,6 +253,10 @@ export class SimpleRingBuffer<T> {
   private count = 0;
   readonly capacity: number;
 
+  /**
+   * Creates a fixed-capacity ring buffer.
+   * @param capacity - Maximum number of elements held before overwriting oldest items (must be > 0).
+   */
   constructor(capacity: number) {
     if (!(capacity > 0)) throw new Error(`[structutils] RingBuffer capacity must be > 0 (got ${capacity})`);
     this.capacity = Math.floor(capacity);
@@ -266,18 +299,22 @@ export class SimpleRingBuffer<T> {
     return k >= 0 && k < this.count ? this.buffer[(this.head + k) % this.capacity] : undefined;
   }
 
+  /** Returns `true` when the buffer has reached `capacity`. */
   isFull(): boolean {
     return this.count === this.capacity;
   }
 
+  /** Returns `true` when the buffer contains no elements. */
   isEmpty(): boolean {
     return this.count === 0;
   }
 
+  /** Returns the number of elements currently stored in the buffer. */
   size(): number {
     return this.count;
   }
 
+  /** Removes all elements from the buffer. */
   clear(): void {
     this.buffer = new Array(this.capacity);
     this.head = this.tail = this.count = 0;
@@ -288,6 +325,7 @@ export class SimpleRingBuffer<T> {
     return Array.from({ length: this.count }, (_, i) => this.buffer[(this.head + i) % this.capacity] as T);
   }
 
+  /** Iterates elements from oldest to newest. */
   *[Symbol.iterator](): IterableIterator<T> {
     yield* this.toArray();
   }
@@ -308,6 +346,10 @@ export class SimpleMinHeap<T> {
   private heap: T[] = [];
   private compare: (a: T, b: T) => number;
 
+  /**
+   * Creates a binary min-heap ordered by `compareFn`.
+   * @param compareFn - Comparator returning negative when `a < b` (defaults to `<` / `>` ordering).
+   */
   constructor(compareFn: (a: T, b: T) => number = (a, b) => (a < b ? -1 : a > b ? 1 : 0)) {
     this.compare = compareFn;
   }
@@ -320,11 +362,13 @@ export class SimpleMinHeap<T> {
     return h;
   }
 
+  /** Inserts an item into the heap in O(log n) time. */
   push(item: T): void {
     this.heap.push(item);
     this.bubbleUp(this.heap.length - 1);
   }
 
+  /** Removes and returns the smallest item according to `compareFn`, or `undefined` if empty. */
   pop(): T | undefined {
     if (this.heap.length === 0) return undefined;
     const top = this.heap[0];
@@ -336,18 +380,22 @@ export class SimpleMinHeap<T> {
     return top;
   }
 
+  /** Returns the smallest item without removing it, or `undefined` if empty. */
   peek(): T | undefined {
     return this.heap[0];
   }
 
+  /** Returns the number of elements in the heap. */
   size(): number {
     return this.heap.length;
   }
 
+  /** Returns `true` when the heap is empty. */
   isEmpty(): boolean {
     return this.heap.length === 0;
   }
 
+  /** Removes all elements from the heap. */
   clear(): void {
     this.heap = [];
   }
@@ -403,26 +451,32 @@ export class SimplePriorityQueue<T> {
     (a, b) => a.priority - b.priority || a.seq - b.seq
   );
 
+  /** Enqueues `item` with numeric `priority` (lower value = higher urgency, default `0`). */
   enqueue(item: T, priority = 0): void {
     this.heap.push({ item, priority, seq: this.seq++ });
   }
 
+  /** Removes and returns the highest-priority item (FIFO on ties), or `undefined` if empty. */
   dequeue(): T | undefined {
     return this.heap.pop()?.item;
   }
 
+  /** Returns the highest-priority item without removing it, or `undefined` if empty. */
   peek(): T | undefined {
     return this.heap.peek()?.item;
   }
 
+  /** Returns the number of queued items. */
   size(): number {
     return this.heap.size();
   }
 
+  /** Returns `true` when the priority queue is empty. */
   isEmpty(): boolean {
     return this.heap.isEmpty();
   }
 
+  /** Removes all items from the priority queue. */
   clear(): void {
     this.heap.clear();
   }
@@ -447,6 +501,9 @@ export class SimpleTrie {
   private root: TrieNode = { children: new Map(), terminal: false };
   private count = 0;
 
+  /**
+   * Creates a prefix trie optionally pre-populated with `words`.
+   */
   constructor(words: Iterable<string> = []) {
     for (const w of words) this.add(w);
   }
@@ -496,6 +553,7 @@ export class SimpleTrie {
     return out;
   }
 
+  /** Returns the total number of distinct words stored in the trie. */
   size(): number {
     return this.count;
   }
@@ -557,6 +615,7 @@ export class DisjointSet<T> {
     return true;
   }
 
+  /** Returns `true` if `a` and `b` belong to the same disjoint set. */
   connected(a: T, b: T): boolean {
     return this.find(a) === this.find(b);
   }
@@ -578,6 +637,9 @@ export class DisjointSet<T> {
   }
 }
 
+/**
+ * Namespace of classic mutable data structures (`SimpleStack`, `SimpleQueue`, `SimpleDeque`, `SimpleRingBuffer`, `SimpleMinHeap`, `SimplePriorityQueue`, `SimpleTrie`, `DisjointSet`).
+ */
 export const structutils = {
   SimpleStack,
   SimpleQueue,

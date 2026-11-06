@@ -10,6 +10,7 @@ import type { FmContext } from "./fmCore";
 import { FmError } from "./fmPaths";
 import { parsePortSpec } from "../../network_tools";
 
+/** Concurrency, timeout, port count, and buffer size limits enforced by the Network tool. */
 export const NET_LIMITS = {
   maxPorts: 1024,
   maxConcurrency: 64,
@@ -40,6 +41,7 @@ export const TOP_PORTS: Array<{ port: number; service: string }> = [
   { port: 8080, service: "HTTP Proxy/Dev" }, { port: 27017, service: "MongoDB" },
 ];
 
+/** Quick-select target host and port presets offered in the Network tool UI. */
 export const PRESETS = [
   { id: "localhost", label: "Localhost", host: "127.0.0.1", port: 3000, note: "This computer itself (a good place to practice)." },
   { id: "cloudflare", label: "Cloudflare", host: "1.1.1.1", port: 443, note: "Cloudflare's public DNS service." },
@@ -99,6 +101,7 @@ export function validateHost(input: unknown): string {
 /** What to actually connect to: "localhost" always means this computer over IPv4. */
 export const connectTarget = (host: string): string => (host === "localhost" ? "127.0.0.1" : host);
 
+/** Validates that `input` is an integer TCP port between 1 and 65535, or throws a `BAD_PORT` `FmError`. */
 export function validatePort(input: unknown, what = "The port"): number {
   const n = typeof input === "number" ? input : typeof input === "string" && /^\d{1,5}$/.test(input) ? Number(input) : NaN;
   if (!Number.isInteger(n) || n < 1 || n > 65535) throw new FmError("BAD_PORT", `${what} must be a whole number from 1 to 65535.`);
@@ -113,6 +116,7 @@ export function clampTimeout(input: unknown, fallback: number): number {
   return Math.round(Math.min(NET_LIMITS.maxTimeoutMs, Math.max(NET_LIMITS.minTimeoutMs, n)));
 }
 
+/** Parses `input` as a whole number clamped to `[min, max]`, returning `fallback` when `input` is not a valid integer. */
 export function clampInt(input: unknown, min: number, max: number, fallback: number): number {
   const n = typeof input === "number" ? input : typeof input === "string" && /^\d+$/.test(input.trim()) ? Number(input) : NaN;
   return Number.isFinite(n) ? Math.min(max, Math.max(min, Math.round(n))) : fallback;
@@ -132,16 +136,21 @@ export function cleanText(value: unknown, max = 500): string {
   return String(value ?? "").replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]+/g, " ").slice(0, max);
 }
 
+/** Rounds a floating-point number `n` to one decimal place. */
 export const round1 = (n: number): number => Math.round(n * 10) / 10;
 
 // ---------------------------------------------------------------------------------------------------------------
 // State kept for one File Manager server
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Timestamped diagnostic log entry recorded during a network probe, scan, or ping. */
 export interface LogLine { at: number; level: "info" | "ok" | "warn" | "error"; text: string }
+/** Single port check result row recorded during a TCP port scan. */
 export interface ScanRow { port: number; service: string; status: "OPEN" | "CLOSED" | "TIMEOUT"; latencyMs: number; code?: string }
+/** Entry in the per-session network connection audit table. */
 export interface ActivityRow { n: number; at: number; kind: string; target: string; result: string; ms: number | null }
 
+/** In-memory state of a background TCP port scan or TCP ping task. */
 export interface NetTask {
   id: string;
   kind: "scan" | "ping";
@@ -167,6 +176,7 @@ export interface NetTask {
   peakInFlight: number;
 }
 
+/** Per-server Network tool state tracking active tasks, open sockets, timers, and the connection activity log. */
 export interface NetState {
   tasks: Map<string, NetTask>;
   sockets: Set<Socket>;
@@ -182,6 +192,7 @@ export interface NetState {
 
 const states = new WeakMap<FmContext, NetState>();
 
+/** Returns or initializes the `NetState` associated with `ctx`, registering a disposer to abort tasks and close sockets on shutdown. */
 export function netState(ctx: FmContext): NetState {
   let state = states.get(ctx);
   if (state) return state;
@@ -227,12 +238,14 @@ export function sleep(state: NetState, ms: number, signal?: AbortSignal): Promis
   });
 }
 
+/** Appends a bounded connection audit entry to `state.activity`. */
 export function addActivity(state: NetState, kind: string, target: string, result: string, ms: number | null): void {
   state.activityTotal++;
   state.activity.push({ n: state.activityTotal, at: Date.now(), kind, target, result: cleanText(result, 200), ms: ms === null ? null : round1(ms) });
   if (state.activity.length > NET_LIMITS.maxActivityRows) state.activity.splice(0, state.activity.length - NET_LIMITS.maxActivityRows);
 }
 
+/** Appends a sanitized, timestamped log entry to `log`, trimming oldest entries beyond `NET_LIMITS.maxLogLines`. */
 export function pushLog(log: LogLine[], level: LogLine["level"], text: string): void {
   log.push({ at: Date.now(), level, text: cleanText(text, 400) });
   if (log.length > NET_LIMITS.maxLogLines) log.splice(0, log.length - NET_LIMITS.maxLogLines);
@@ -253,7 +266,9 @@ export async function withSyncSlot<T>(state: NetState, fn: () => Promise<T>): Pr
 // Opening one connection
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Outcome status of a single TCP connection attempt. */
 export type Reach = "OPEN" | "CLOSED" | "TIMEOUT" | "CANCELLED" | "NAME_ERROR";
+/** Result of a single TCP connection attempt, including reachability status, latency in milliseconds, and optional OS error code. */
 export interface ConnectResult { status: Reach; latencyMs: number; code?: string }
 
 const NAME_ERRORS = new Set(["ENOTFOUND", "EAI_AGAIN", "EAI_NONAME", "EAI_FAIL"]);

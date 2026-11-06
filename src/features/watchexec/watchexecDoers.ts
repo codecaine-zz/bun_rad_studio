@@ -1,8 +1,16 @@
+/**
+ * Path-filtering predicates, terminal control, process-tree termination, environment
+ * variable builders, and subprocess spawning helpers for `watchexec`.
+ */
 import { extname } from "node:path";
 import { spawnSync } from "node:child_process";
 import * as os from "node:os";
 import type { Subprocess } from "bun";
 
+/**
+ * Checks whether `filename` has an extension matching any entry in `extensions`
+ * (returns `true` when `extensions` is undefined or empty).
+ */
 export function matchesExtension(
   filename: string,
   extensions?: string[]
@@ -12,6 +20,9 @@ export function matchesExtension(
   return extensions.some((e) => e.replace(/^\./, "").toLowerCase() === ext);
 }
 
+/**
+ * Returns `true` if `filename` (normalized to forward slashes) matches any pattern in `ignorePatterns`.
+ */
 export function shouldIgnore(
   filename: string,
   ignorePatterns: string[]
@@ -22,11 +33,19 @@ export function shouldIgnore(
   });
 }
 
+/**
+ * Checks whether `filename` matches at least one substring or regex pattern in `filters`
+ * (returns `true` when `filters` is undefined or empty).
+ */
 export function matchesFilter(filename: string, filters?: string[]): boolean {
   if (!filters || filters.length === 0) return true;
   return filters.some((f) => filename.includes(f) || new RegExp(f).test(filename));
 }
 
+/**
+ * Determines whether a filesystem event on `filename` should trigger command execution
+ * after evaluating ignore patterns, allowed extensions, and positive filter patterns.
+ */
 export function shouldTrigger(
   filename: string,
   extensions?: string[],
@@ -39,10 +58,17 @@ export function shouldTrigger(
   return matchesFilter(filename, filters);
 }
 
+/**
+ * Clears the terminal screen using the ANSI reset escape sequence (`\x1bc`).
+ */
 export function clearTerminal(): void {
   process.stdout.write("\x1bc");
 }
 
+/**
+ * Recursively terminates a process and all of its descendant child processes across
+ * Windows (`taskkill /T /F`) and Unix (`pgrep -P` and process-group kill).
+ */
 export function killProcessTree(pid: number, signal: NodeJS.Signals = "SIGTERM"): void {
   if (!pid || pid <= 0) return;
   const platform = os.platform();
@@ -79,6 +105,9 @@ export function killProcessTree(pid: number, signal: NodeJS.Signals = "SIGTERM")
   } catch {}
 }
 
+/**
+ * Safely stops a running Bun `Subprocess` and its entire child process tree.
+ */
 export function killRunningProcess(proc: Subprocess | null): void {
   if (proc) {
     const pid = proc.pid;
@@ -98,6 +127,9 @@ export function killRunningProcess(proc: Subprocess | null): void {
   }
 }
 
+/**
+ * Builds the `WATCHEXEC_*` environment variables describing the file change that triggered execution.
+ */
 export function buildWatchexecEnv(
   triggeredPath?: string,
   watchPath?: string
@@ -113,11 +145,18 @@ export function buildWatchexecEnv(
   return env;
 }
 
+/**
+ * Wraps `command` arguments in a shell invocation (`[shell, "-c", ...]`) when `shell` is specified,
+ * or returns `command` unchanged for direct execution.
+ */
 export function formatShellCommand(command: string[], shell?: string): string[] {
   if (!shell) return command;
   return [shell, "-c", command.join(" ")];
 }
 
+/**
+ * Spawns `command` as a child `Subprocess` with inherited stdio and optional extra environment variables or shell wrapper.
+ */
 export function spawnCommand(
   command: string[],
   options?: { env?: Record<string, string>; shell?: string }

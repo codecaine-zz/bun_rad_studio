@@ -9,16 +9,19 @@ import { choiceOpt, exts, numberOpt, timeOpt, type BuildContext, type ConvDef } 
 
 /** Picture shapes, as ImageMagick's width:height crop and a label. */
 export const SHAPES: Array<[string, string]> = [["1:1", "Square (1:1)"], ["4:5", "Portrait post (4:5)"], ["9:16", "Tall: stories, reels, shorts (9:16)"], ["16:9", "Wide: YouTube, screens (16:9)"], ["4:3", "Classic photo (4:3)"], ["3:2", "Camera photo (3:2)"]];
+/** Background color choices `[value, label]` for padding, borders, and rounded-corner image operations. */
 export const COLORS: Array<[string, string]> = [["white", "White"], ["black", "Black"], ["#808080", "Gray"], ["none", "See-through (PNG)"]];
 
 /** A crop of the middle of the picture to a width:height shape. */
 export const shapeCrop = (shape: string) => ["-gravity", "center", "-crop", shape, "+repage"];
 /** Cuts the picture to a circle (the corners become see-through). */
 export const CIRCLE = ["-gravity", "center", "-crop", "1:1", "+repage", "(", "+clone", "-alpha", "extract", "-fill", "black", "-colorize", "100", "-fill", "white", "-draw", "circle %[fx:w/2],%[fx:h/2] %[fx:w/2],0", ")", "-alpha", "off", "-compose", "CopyOpacity", "-composite"];
+/** Returns ImageMagick arguments that mask an image with rounded corners of radius `r` pixels. */
 export const rounded = (r: number) => ["(", "+clone", "-alpha", "extract", "-fill", "black", "-colorize", "100", "-fill", "white", "-draw", `roundrectangle 0,0 %[fx:w-1],%[fx:h-1] ${r},${r}`, ")", "-alpha", "off", "-compose", "CopyOpacity", "-composite"];
 
 const shapeOpt = (def = "1:1") => choiceOpt("shape", "Shape", "The middle of the picture is kept; the edges are cut.", SHAPES, def);
 
+/** Extended catalog of image effects, filters, crops, borders, shadows, and contact-sheet definitions. */
 export const MORE_PICTURE_DEFS: ConvDef[] = [
   pic("img-sepia", "Old photo (sepia)", "Warm brown tones, like an old print.", "", "sepia", [im((c) => [c.inputs[0]!, ...FIRST_FRAME, "-auto-orient", "-sepia-tone", `${optNum(c.opts, "amount")}%`, c.output])], {
     options: [numberOpt("amount", "Strength", "", 10, 100, 80, "%")], keywords: "vintage retro brown effect filter",
@@ -122,6 +125,7 @@ const fadeOpts = [numberOpt("fadeIn", "Fade in", "0 for none.", 0, 60, 2, "secon
 const VIDEO_SHAPES = SHAPES.filter(([s]) => s !== "4:3" && s !== "3:2");
 const x264 = ["-crf", "23", "-preset", "medium"];
 
+/** Extended catalog of video aspect-ratio crops, vertical blur-padding, boomerang, fade, and filter definitions. */
 export const MORE_VIDEO_DEFS: ConvDef[] = [
   vid("vid-crop-shape", "Crop to a shape (vertical, square…)", "Keeps the middle of the picture: make a wide video tall for shorts and reels, or square.", "mp4", "cropped", [ffEngine((c) => ff(c, [], ["-vf", videoShapeCrop(optStr(c.opts, "shape")), ...H264, ...x264, "-c:a", "copy", ...FASTSTART]), "x264")], {
     options: [choiceOpt("shape", "Shape", "", VIDEO_SHAPES, "9:16")], keywords: "vertical portrait tiktok reels shorts square aspect",
@@ -194,6 +198,7 @@ export const MORE_VIDEO_DEFS: ConvDef[] = [
 const sndSame = (c: BuildContext) => sameCodec(extOfPath(c.inputs[0]!));
 const sndFilter = (af: string) => (c: BuildContext) => ff(c, [], ["-vn", "-af", af, ...sndSame(c)]);
 
+/** Extended catalog of audio volume, fade, tempo, pitch, voice-cleaning, and silence-trimming definitions. */
 export const MORE_SOUND_DEFS: ConvDef[] = [
   snd("aud-volume", "Make louder or quieter", "Changes the volume of the whole file.", "", "volume", [ffEngine((c) => ff(c, [], ["-vn", "-af", `volume=${optNum(c.opts, "volume") / 100}`, ...sndSame(c)]))], {
     options: [numberOpt("volume", "Volume", "100 keeps it, 200 is twice as loud, 50 is half.", 0, 500, 150, "%")], keywords: "loud quiet gain boost",

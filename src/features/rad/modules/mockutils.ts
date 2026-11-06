@@ -1,3 +1,11 @@
+/**
+ * Synthetic test data generator for user profiles, contact details, network endpoints, and
+ * formatted Lorem Ipsum placeholder text.
+ */
+
+/**
+ * Synthetic user profile record generated for testing, prototyping, and UI fixtures.
+ */
 export interface MockUser {
   id: string;
   name: string;
@@ -23,6 +31,9 @@ function pick<T>(arr: T[]): T {
 }
 
 // Doer: Generate synthetic single mock user
+/**
+ * Generates a single synthetic {@link MockUser} with randomized name, email, role, phone, and avatar URL.
+ */
 export function mockUser(): MockUser {
   const first = pick(FIRST_NAMES);
   const last = pick(LAST_NAMES);
@@ -36,11 +47,17 @@ export function mockUser(): MockUser {
 }
 
 // Doer: Generate array of synthetic mock users
+/**
+ * Generates an array of `count` synthetic {@link MockUser} records.
+ */
 export function mockUsers(count: number): MockUser[] {
   return Array.from({ length: count }, () => mockUser());
 }
 
 // Doer: Generate random mock email
+/**
+ * Generates a synthetic `@example.com` email address, optionally derived from `name`.
+ */
 export function mockEmail(name?: string): string {
   const prefix = name ? name.toLowerCase().replace(/\s+/g, ".") : pick(FIRST_NAMES).toLowerCase();
   const num = Math.floor(Math.random() * 900) + 100;
@@ -48,6 +65,9 @@ export function mockEmail(name?: string): string {
 }
 
 // Doer: Generate synthetic telephone number
+/**
+ * Generates a synthetic North American (`+1 (XXX) XXX-XXXX`) telephone number string.
+ */
 export function mockPhone(): string {
   const area = Math.floor(Math.random() * 800) + 200;
   const mid = Math.floor(Math.random() * 900) + 100;
@@ -56,11 +76,17 @@ export function mockPhone(): string {
 }
 
 // Doer: Generate synthetic IPv4 address
+/**
+ * Generates a random dotted-quad IPv4 address string.
+ */
 export function mockIpv4(): string {
   return Array.from({ length: 4 }, () => Math.floor(Math.random() * 254) + 1).join(".");
 }
 
 // Doer: Generate synthetic web URL
+/**
+ * Generates a synthetic HTTPS endpoint URL for mock services and APIs.
+ */
 export function mockUrl(): string {
   const domains = ["example.com", "service.io", "cloud.dev", "api.internal"];
   const paths = ["v1/status", "dashboard", "users", "health", "metrics"];
@@ -68,11 +94,17 @@ export function mockUrl(): string {
 }
 
 // Doer: Generate count random placeholder words
+/**
+ * Generates a space-separated string of `count` random lowercase Lorem Ipsum words.
+ */
 export function loremWords(count: number): string {
   return Array.from({ length: count }, () => pick(LOREM_WORDS)).join(" ");
 }
 
 // Coordinator: Generate formatted lorem ipsum placeholder paragraphs
+/**
+ * Generates `paragraphs` paragraphs of capitalized, period-terminated Lorem Ipsum sentences.
+ */
 export function loremText(paragraphs = 1, minSentences = 3, maxSentences = 6): string {
   const paras: string[] = [];
   for (let p = 0; p < paragraphs; p++) {
@@ -88,6 +120,9 @@ export function loremText(paragraphs = 1, minSentences = 3, maxSentences = 6): s
   return paras.join("\n\n");
 }
 
+/**
+ * Namespace bundling all synthetic mock data and Lorem Ipsum generator functions.
+ */
 export const mockutils = {
   mockUser,
   mockUsers,

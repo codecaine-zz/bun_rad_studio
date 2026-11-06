@@ -12,6 +12,7 @@ import { getLocalInterfaces } from "../ipinfo/ipinfoDoers";
 import { canonicalIp, familyOf, mappedV4, type Family } from "./fmIpMath";
 import { FmError } from "./fmPaths";
 
+/** Configurable timeout and response-size limits for IP lookup HTTP requests and DNS queries. */
 export const netLimits = {
   /** Longest wait for one web request (including reading the answer). */
   fetchTimeoutMs: 8000,
@@ -24,6 +25,7 @@ export const netLimits = {
   maxAnswerBytes: 64 * 1024,
 };
 
+/** Overridable DNS resolution hook used by `resolveHostname` (replaced in unit tests). */
 export const ipHooks = {
   /** Replaceable in tests. Returns the addresses of a name. */
   resolveHost: async (host: string): Promise<string[]> => (await dnsLookup(host, { all: true })).map((a) => a.address),
@@ -33,6 +35,7 @@ export const ipHooks = {
 // What may be typed
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Parsed and validated lookup target (`myip`, IP literal, CIDR block, hostname, or local network interface). */
 export type Target =
   | { kind: "myip" }
   | { kind: "ip"; ip: string; mappedFrom?: string }
@@ -40,6 +43,7 @@ export type Target =
   | { kind: "host"; host: string }
   | { kind: "iface"; name: string; ip: string };
 
+/** Maximum character length allowed for an input target string (matching DNS maximum hostname length). */
 export const MAX_TARGET_LENGTH = 253;
 const CONTROL = /[\u0000-\u001f\u007f-\u009f\u2028\u2029]/;
 const HELP = "Type an IP address (like 8.8.8.8), a domain name (like example.com) or a CIDR block (like 192.168.1.0/24).";
@@ -224,7 +228,9 @@ export async function httpsJson(url: string, options: { bearer?: string; timeout
 // Pages that "Open" may start
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Supported external web link types that the IP Info tool can open (`map`, `ipinfo`, or `bgp`). */
 export type LinkKind = "map" | "ipinfo" | "bgp";
+/** Supported map providers for opening geolocation coordinates (`google` or `osm`). */
 export type MapProvider = "google" | "osm";
 
 /** Hosts a web page may be opened on. Anything else is refused. */

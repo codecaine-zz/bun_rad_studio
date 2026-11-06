@@ -7,6 +7,9 @@
 import { SourceError, MAX_RAW_NAMES } from "./subfinderSources.ts";
 import { validateTargetDomain } from "./subfinderNames.ts";
 
+/**
+ * Minimal handle to a spawned `subfinder` child process with piped `stdout`/`stderr`, exit promise, and signal termination.
+ */
 export interface ProgramProcess {
   stdout: ReadableStream<Uint8Array> | null;
   stderr: ReadableStream<Uint8Array> | null;
@@ -14,11 +17,20 @@ export interface ProgramProcess {
   kill(signal?: "SIGTERM" | "SIGKILL"): void;
 }
 
+/**
+ * Function signature for spawning the external `subfinder` binary without a shell.
+ */
 export type SpawnLike = (argv: string[], options: { env: Record<string, string | undefined> }) => ProgramProcess;
 
+/**
+ * Default `SpawnLike` implementation backed by `Bun.spawn` with piped `stdout` and `stderr`.
+ */
 export const defaultSpawn: SpawnLike = (argv, options) =>
   Bun.spawn(argv, { stdin: "ignore", stdout: "pipe", stderr: "pipe", env: options.env as Record<string, string> }) as unknown as ProgramProcess;
 
+/**
+ * Byte caps applied when reading `stdout` and `stderr` from the external `subfinder` process.
+ */
 export const PROGRAM_LIMITS = { maxOutputBytes: 4 * 1024 * 1024, maxStderrBytes: 16 * 1024 } as const;
 
 /** The arguments for one passive run: only flags that exist in `subfinder -h`, and the domain as its own element (so it can never be read as a flag or a shell word). */
@@ -85,6 +97,9 @@ function collect(stream: ReadableStream<Uint8Array> | null, maxBytes: number, on
   return { done, cancel: () => { reader?.cancel().catch(() => {}); } };
 }
 
+/**
+ * Parsed candidate hostnames and optional truncation/timeout note returned from running the external `subfinder` binary.
+ */
 export interface ProgramResult { names: string[]; note?: string }
 
 /** Runs `exe` for `domain`. Throws a SourceError when it can't start, fails without any answer, or is cancelled. */

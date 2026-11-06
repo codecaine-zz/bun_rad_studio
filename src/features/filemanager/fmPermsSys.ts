@@ -22,18 +22,21 @@ export interface PermStat {
   isFile(): boolean;
 }
 
+/** Minimal filesystem operations required by the permissions subsystem (`lstat`, `readdir`, `chmod`). */
 export interface PermsFs {
   lstat(path: string): Promise<PermStat>;
   readdir(path: string): Promise<string[]>;
   chmod(path: string, mode: number): Promise<void>;
 }
 
+/** Exit code and captured output streams from executing a native permission helper command. */
 export interface RunResult {
   code: number | null;
   stdout: string;
   stderr: string;
 }
 
+/** Safety and preview caps governing recursive permission inspection and modification runs. */
 export interface PermsLimits {
   /** Most items one recursive run may look at. */
   maxItems: number;
@@ -48,8 +51,10 @@ export interface PermsLimits {
   maxProblems: number;
 }
 
+/** Default safety and preview limits for permission runs. */
 export const DEFAULT_LIMITS: PermsLimits = { maxItems: 100_000, maxMillis: 60_000, maxPaths: 1000, manyItems: 50, maxExamples: 200, maxProblems: 50 };
 
+/** Replaceable system dependency bundle for permission operations, enabling deterministic unit testing. */
 export interface PermsHooks {
   fs: PermsFs;
   run(argv: string[]): Promise<RunResult>;
@@ -60,6 +65,7 @@ export interface PermsHooks {
   now(): number;
 }
 
+/** Spawns `argv` without a shell under a 15-second timeout and returns its exit code, stdout, and stderr. */
 export async function defaultRun(argv: string[]): Promise<RunResult> {
   try {
     const proc = Bun.spawn(argv, { stdin: "ignore", stdout: "pipe", stderr: "pipe", env: { ...process.env, LC_ALL: "C" } });
@@ -75,6 +81,7 @@ export async function defaultRun(argv: string[]): Promise<RunResult> {
   }
 }
 
+/** Constructs the default production `PermsHooks` implementation for `platform`. */
 export function defaultHooks(platform: Platform): PermsHooks {
   const system32 = process.env.SystemRoot ? nodePath.win32.join(process.env.SystemRoot, "System32", "attrib.exe") : "attrib.exe";
   return {
@@ -98,6 +105,7 @@ export function setPermsHooks(ctx: FmContext, hooks: Partial<PermsHooks>): void 
   overrides.set(ctx, hooks);
 }
 
+/** Returns the effective `PermsHooks` for `ctx`, merging any test overrides onto the platform defaults. */
 export function hooksFor(ctx: FmContext): PermsHooks {
   const base = defaultHooks(ctx.platform);
   const o = overrides.get(ctx);

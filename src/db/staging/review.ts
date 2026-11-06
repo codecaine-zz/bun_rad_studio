@@ -12,6 +12,7 @@ import type { RowError, Step } from "./types";
 
 const col = (db: StageDb, n: string) => q(db.engine, n);
 
+/** Returns the ordered non-metadata data column names of a batch's staging table. */
 export async function stagingDataColumns(db: StageDb, batch: BatchRecord): Promise<string[]> {
   const cfg = batch.config?.dataColumns;
   if (Array.isArray(cfg) && cfg.length) return cfg.map(String);
@@ -26,6 +27,7 @@ async function need(db: StageDb, batchId: string): Promise<BatchRecord & { stagi
   return b as BatchRecord & { stagingTable: string };
 }
 
+/** A single row read from a staging table along with its status, match state, and parsed errors. */
 export interface StagedRow {
   rowId: number;
   rowNumber: number | null;
@@ -45,6 +47,7 @@ const parseErrors = (t: unknown): RowError[] => {
   }
 };
 
+/** Filter and keyset pagination options when listing staged rows. */
 export interface RowFilter {
   status?: string | string[];
   match?: string;
@@ -58,6 +61,7 @@ export interface RowFilter {
 
 const STATUSES = new Set(["new", "valid", "invalid", "duplicate", "promoted", "skipped"]);
 
+/** Queries a keyset-paginated page of rows from a batch's staging table matching the given filter. */
 export async function listStagedRows(db: StageDb, batchId: string, f: RowFilter): Promise<{ rows: StagedRow[]; columns: string[]; next: number | null }> {
   const b = await need(db, batchId);
   const cols = await stagingDataColumns(db, b);
@@ -96,6 +100,7 @@ export async function listStagedRows(db: StageDb, batchId: string, f: RowFilter)
   return { rows: out, columns: cols, next: out.length >= limit ? out[out.length - 1]!.rowId : null };
 }
 
+/** Flattened validation or load error entry associated with a specific staged row and column. */
 export interface ErrorLine {
   rowId: number;
   rowNumber: number | null;
@@ -225,6 +230,7 @@ export async function* rejectsCsv(db: StageDb, batchId: string): AsyncGenerator<
 
 // ---- the staging area ---------------------------------------------------------------------------------------------------
 
+/** Overview entry for an import batch in the staging area, including live row count, byte size, and age. */
 export interface StagingEntry {
   batch: BatchRecord;
   /** Rows in the staging table now (null when it was dropped). */
@@ -235,6 +241,7 @@ export interface StagingEntry {
   stale: boolean;
 }
 
+/** Lists all import batches in the staging area along with orphaned staging tables and retention policy. */
 export async function stagingArea(db: StageDb): Promise<{ entries: StagingEntry[]; orphans: string[]; retainDays: number }> {
   await ensureLedger(db);
   const batches = await listBatches(db);

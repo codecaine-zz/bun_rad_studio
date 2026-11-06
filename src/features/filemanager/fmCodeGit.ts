@@ -9,8 +9,10 @@ import { FmError } from "./fmPaths";
 const TIMEOUT_MS = 8000;
 const MAX_OUTPUT = 2 * 1024 * 1024;
 
+/** Result of running a read-only `git` subprocess with timeout and output caps. */
 export interface GitRun { ok: boolean; missing: boolean; stdout: string; stderr: string; truncated: boolean }
 
+/** Executes a `git` command in `cwd` using an argument array (no shell) and captures bounded output. */
 export function runGit(cwd: string, args: string[], timeoutMs = TIMEOUT_MS): Promise<GitRun> {
   return new Promise((resolve) => {
     let stdout = "";
@@ -48,6 +50,7 @@ export function runGit(cwd: string, args: string[], timeoutMs = TIMEOUT_MS): Pro
 
 const STATUS_NAMES: Record<string, string> = { M: "modified", A: "added", D: "deleted", R: "renamed", C: "copied", U: "conflict", "?": "new (untracked)", "!": "ignored", T: "type changed" };
 
+/** Parsed working-tree or index status entry for a single file in a Git repository. */
 export interface GitFile { path: string; from?: string; x: string; y: string; label: string }
 
 function unquoteGitPath(raw: string): string {
@@ -76,6 +79,7 @@ function unquoteGitPath(raw: string): string {
   return Buffer.from(bytes).toString("utf8");
 }
 
+/** Parses `git status --porcelain -b` output into branch name, ahead/behind counts, and changed file entries. */
 export function parseStatus(output: string): { branch: string; ahead: number; behind: number; files: GitFile[] } {
   let branch = "";
   let ahead = 0;

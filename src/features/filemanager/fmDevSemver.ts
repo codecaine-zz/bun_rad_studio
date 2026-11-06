@@ -12,8 +12,11 @@ import type { FmContext } from "./fmCore";
 import { detectEnvironment } from "./fmDevEnv";
 import { FmError } from "./fmPaths";
 
+/** Maximum number of version lines accepted when sorting a semantic version list. */
 export const MAX_LIST_LINES = 2000;
+/** Maximum character length of a single semantic version string. */
 export const MAX_VERSION_CHARS = 100;
+/** Maximum character length of a semantic version range expression. */
 export const MAX_RANGE_CHARS = 200;
 
 const VERSION = /^[v=]?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+([0-9A-Za-z.-]+))?$/;
@@ -48,6 +51,7 @@ function mustVersion(text: unknown, which: string): string {
   return v;
 }
 
+/** Result of comparing two semantic version strings (`a` vs `b`), including difference level and human summary. */
 export interface Comparison {
   a: string;
   b: string;
@@ -71,6 +75,7 @@ export function compareVersions(aText: unknown, bText: unknown): Comparison {
   return { a, b, order, message, notes };
 }
 
+/** Result of testing whether a semantic version satisfies a range expression. */
 export interface RangeCheck {
   version: string;
   range: string;
@@ -93,6 +98,7 @@ export function checkRange(versionText: unknown, rangeText: unknown): RangeCheck
   return { version, range, satisfies, message: satisfies ? `${version} fits ${range}.` : `${version} does not fit ${range}.`, notes };
 }
 
+/** Sorted list of valid semantic versions (newest first and oldest first) along with any invalid input lines. */
 export interface SortedList {
   sorted: string[];
   /** Lines that aren't versions: [line number, text]. */
@@ -125,6 +131,7 @@ export function sortVersions(text: unknown, descending = false): SortedList {
 // What a project asks for, compared with what is installed
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Engine or runtime version constraint declared in a project manifest, compared against the installed tool version. */
 export interface Requirement {
   tool: string;
   /** Where the requirement was written. */

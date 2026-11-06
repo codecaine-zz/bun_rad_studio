@@ -12,8 +12,10 @@ import { TAR_MAX_BYTES, ZIP_STAGE_MAX_BYTES, type TarOutcome } from "./fmFindSha
 import { runWorkerJob } from "./fmFindRun";
 import { commonFolder, dropNested } from "./fmFindQuery";
 
+/** Supported archive formats for packing matched Find items. */
 export type ArchiveFormat = "zip" | "tar.gz";
 
+/** Summary of a newly created `.zip` or `.tar.gz` archive containing matched Find items. */
 export interface ArchiveResult {
   archivePath: string;
   format: ArchiveFormat;
@@ -31,11 +33,13 @@ function defaultBaseName(now = new Date()): string {
   return `fd_archive_${now.getFullYear()}${p(now.getMonth() + 1)}${p(now.getDate())}_${p(now.getHours())}${p(now.getMinutes())}`;
 }
 
+/** Validates that `value` is `"zip"` or `"tar.gz"`, throwing a `BAD_FORMAT` `FmError` otherwise. */
 export function archiveFormat(value: unknown): ArchiveFormat {
   if (value === "zip" || value === "tar.gz") return value;
   throw new FmError("BAD_FORMAT", 'Choose "zip" or "tar.gz".');
 }
 
+/** Packs the given `pathsInput` into a new `.zip` or `.tar.gz` archive inside `destInput` without overwriting existing files. */
 export async function archivePaths(ctx: FmContext, pathsInput: string[], format: ArchiveFormat, destInput: unknown, nameInput?: unknown): Promise<ArchiveResult> {
   const dest = absolutePath(ctx, destInput);
   await assertFolder(dest, "The folder for the archive");

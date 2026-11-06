@@ -10,8 +10,10 @@ import { FmError, cleanName, uniqueName, validateName } from "./fmPaths";
 
 const DEFAULT_NAME = "New database.sqlite";
 
+/** Starter schema template choice when creating a new SQLite database file. */
 export type SqliteStarterTemplate = "empty" | "starter" | "kv" | "notes";
 
+/** Optional configuration when creating a new SQLite database file, including starter template and connection profile registration. */
 export interface MakeSqliteOptions {
   template?: unknown;
   saveProfile?: unknown;
@@ -69,6 +71,7 @@ function applyTemplate(db: Database, template: SqliteStarterTemplate): void {
   }
 }
 
+/** Creates a new, non-overwriting SQLite database file in `parentInput`, applies an optional starter schema template, and optionally saves a Database Studio connection profile. */
 export async function makeSqliteFile(
   ctx: FmContext,
   parentInput: unknown,

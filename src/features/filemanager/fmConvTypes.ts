@@ -10,10 +10,13 @@ import { splitName, uniqueName } from "./fmPaths";
 import type { OptionDef, OptionValues } from "./fmConvOptions";
 import type { ToolId } from "./fmTools";
 
+/** Category tab name in the Convert & Process window. */
 export type ConvGroup = "Pictures" | "Video" | "Sound" | "Documents" | "Data & text" | "Archives" | "PDF tools" | "Ebooks" | "Fonts" | "Other";
 
+/** Ordered list of conversion category groups shown in the Convert & Process UI. */
 export const CONV_GROUPS: ConvGroup[] = ["Pictures", "Video", "Sound", "Documents", "Data & text", "Archives", "PDF tools", "Ebooks", "Fonts", "Other"];
 
+/** Context passed to an engine's `argv` builder containing resolved executable, staged input/output paths, and validated options. */
 export interface BuildContext {
   /** The program to start (the first element of the command). */
   exe: string;
@@ -41,9 +44,12 @@ export interface BuildContext {
   caps: string[];
 }
 
+/** Command-line argument array passed directly to a spawned conversion tool. */
 export type Argv = string[];
+/** One or more capability identifiers required from an external tool for a specific conversion. */
 export type Need = string | string[] | undefined;
 
+/** Specification of a built-in worker task or external CLI tool capable of performing a conversion. */
 export interface Engine {
   tool: ToolId | "builtin";
   /** A capability the installed program must have (see `capabilitiesOf` in fmBatch); may depend on the file and options. */
@@ -73,6 +79,7 @@ export interface Engine {
   timeoutMs?: number;
 }
 
+/** Complete catalog definition of a file conversion action, its accepted inputs, options, and candidate engines. */
 export interface ConvDef {
   id: string;
   label: string;
@@ -122,6 +129,7 @@ export function extOf(name: string): string {
   return splitName(name)[1].replace(/^\./, "").toLowerCase();
 }
 
+/** Resolves the output file extension for a conversion definition given the current option values. */
 export function outExtOf(def: ConvDef, opts: OptionValues): string {
   return typeof def.out === "function" ? def.out(opts) : def.out;
 }
@@ -166,11 +174,17 @@ export const exts = (list: string): Set<string> => new Set(list.split(/\s+/).fil
 // Shorthands for describing options
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Helper that constructs a numeric `OptionDef` with min, max, default value, unit, and step. */
 export const numberOpt = (id: string, label: string, hint: string, min: number, max: number, def: number, unit = "", step = 1): OptionDef => ({ id, label, hint, kind: "number", min, max, step, unit, default: def });
+/** Helper that constructs a single-select choice `OptionDef` from `[value, label, needs?]` tuples. */
 export const choiceOpt = (id: string, label: string, hint: string, choices: Array<[string, string] | [string, string, string]>, def: string): OptionDef => ({
   id, label, hint, kind: "choice", default: def, choices: choices.map(([value, text, needs]) => ({ value, label: text, ...(needs ? { needs } : {}) })),
 });
+/** Helper that constructs a time/duration `OptionDef` (`mm:ss` or seconds). */
 export const timeOpt = (id: string, label: string, hint: string): OptionDef => ({ id, label, hint, kind: "time", default: "" });
+/** Helper that constructs a boolean toggle `OptionDef`. */
 export const toggleOpt = (id: string, label: string, hint: string, def = false): OptionDef => ({ id, label, hint, kind: "toggle", default: def });
+/** Helper that constructs a single-line text `OptionDef` with a maximum character length. */
 export const textOpt = (id: string, label: string, hint: string, def = "", maxLength = 100): OptionDef => ({ id, label, hint, kind: "text", default: def, maxLength });
+/** Helper that constructs a page-range `OptionDef` (e.g., `1-3,5`). */
 export const pagesOpt = (id: string, label: string, hint: string, def = ""): OptionDef => ({ id, label, hint, kind: "pages", default: def });

@@ -1,3 +1,6 @@
+/**
+ * Interactive UI help tooltips and audit skip rules for Ripgrep Search Studio (`rip_studio`), covering full-text code search, regex flags, context lines, and file globs.
+ */
 import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Rip Studio: bury files in a recoverable graveyard instead of deleting them. */

@@ -83,13 +83,17 @@ import { MAX_INPUT_BYTES, clampSize, createTerminalHub, shellFolder, terminalSup
 import { deleteFromTrash, deletePermanently, listTrash, moveToTrash, restoreFromTrash } from "./fmTrash";
 import { archiveExtensionOf, createZip, extractArchive, extractItems, extractZip, isExtractableName } from "./fmZip";
 
+/** Application identifier for the File Manager studio. */
 export const APP_ID = "file_manager_studio";
 /** The product name: the window title, the page title and the health answer. */
 export const APP_NAME = "Codecaine File Manager";
+/** Semantic version string of the File Manager application. */
 export const APP_VERSION = "1.3.0";
+/** Maximum allowed byte size for JSON API request bodies (1 MiB). */
 export const MAX_BODY_BYTES = 1024 * 1024;
 const MAX_RAW_BYTES = 100 * 1024 * 1024;
 
+/** Configuration options for starting the local File Manager HTTP and WebSocket server. */
 export interface FileManagerServerOptions {
   port?: number;
   host?: string;
@@ -101,6 +105,7 @@ export interface FileManagerServerOptions {
   startPath?: string;
 }
 
+/** Resolves the filesystem directory containing the File Manager's static HTML, CSS, and JS assets. */
 export function getFileManagerAssetsDir(): string {
   const candidates = [
     nodePath.join(import.meta.dir, "..", "resources", "file_manager"),
@@ -171,6 +176,7 @@ const gameEmbed = (dir: string): EmbeddedApp => ({
   hideCss: "",
 });
 
+/** Registry of self-contained embedded web apps and games served on the alternate loopback origin. */
 export const EMBEDDED_APPS: Record<string, EmbeddedApp> = {
   calc: {
     dir: "universal_calculator",
@@ -582,6 +588,7 @@ Object.assign(operations, downloadOperations);
 // Built-in RAD Studio command-line utilities folder and catalog.
 Object.assign(operations, cliUtilsOperations, taskManagerOperations, sysinfoOperations, PHONON_OPS, OLLAMA_OPS, BIONIC_OPS);
 
+/** List of all registered File Manager JSON API operation names. */
 export const API_OPERATIONS = Object.keys(operations);
 
 function json(status: number, data: unknown): Response {
@@ -598,6 +605,7 @@ function failure(err: unknown): Response {
   return json(unexpected ? 500 : 400, { ok: false, error: info });
 }
 
+/** Starts the File Manager local HTTP and WebSocket server on `127.0.0.1` and returns the running server handle. */
 export function startFileManagerServer(options: FileManagerServerOptions = {}) {
   const ctx = createContext(options.context);
   const token = options.token ?? randomBytes(24).toString("base64url");

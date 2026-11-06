@@ -4,6 +4,7 @@ import { ascii, be16, be32, clip, Rows, type InfoGroup, type Source } from "./fm
 import { parseExifBlock, type ExifData } from "./fmInfoExif";
 import { parseIcc, parseXmp, type IccInfo, type XmpInfo } from "./fmInfoMeta";
 
+/** Parsed dimensions, color metadata, chunks, APNG animation info, and embedded EXIF/ICC/XMP data for a PNG image. */
 export interface PngInfo {
   width: number | null;
   height: number | null;
@@ -39,6 +40,7 @@ const cut = (b: Uint8Array, from: number): number => {
   return -1;
 };
 
+/** Walks the chunk list of a PNG (or APNG) image source and extracts header, color, text, ICC, EXIF, and XMP metadata. */
 export async function parsePng(src: Source, deadline = Date.now() + 6000): Promise<PngInfo> {
   const info: PngInfo = { width: null, height: null, rows: new Rows(), groups: [], exif: null, icc: null, xmp: null, hasAlpha: false, frames: 0, textCount: 0, chunkNames: [], partial: false };
   const rows = info.rows;

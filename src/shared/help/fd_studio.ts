@@ -1,3 +1,6 @@
+/**
+ * Interactive UI help tooltips and audit skip rules for fd File Finder Studio (`fd_studio`), covering fast filesystem search, glob/regex patterns, and file type filtering.
+ */
 import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Help tips for `fd_studio`. Keys: see src/shared/helpTips.ts. Check with: bun run scripts/help_controls.ts <app file> --missing */

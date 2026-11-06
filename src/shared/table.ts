@@ -1,5 +1,9 @@
+/**
+ * Plain-text column-aligned table formatter with ANSI escape code width compensation.
+ */
 // Plain text column-aligned table formatter
 
+/** Column specification for rendering a typed row `T` in a plain-text CLI table. */
 export interface ColumnDef<T> {
   header: string;
   align?: "left" | "right";
@@ -7,11 +11,13 @@ export interface ColumnDef<T> {
 }
 
 // Strip ANSI codes when calculating visible width
+/** Removes ANSI SGR escape sequences from `text` so visible character width can be measured accurately. */
 export function stripAnsi(text: string): string {
   return text.replace(/\x1b\[[0-9;]*m/g, "");
 }
 
 // Calculate max width for each column based on headers and rows
+/** Computes the maximum visible character width for each column across the header and all data `rows`. */
 export function calculateColumnWidths<T>(
   columns: ColumnDef<T>[],
   rows: T[]
@@ -27,6 +33,7 @@ export function calculateColumnWidths<T>(
 }
 
 // Format a single cell with padding and alignment
+/** Pads `text` with spaces to `width` visible characters using left or right alignment. */
 export function formatCell(
   text: string,
   width: number,
@@ -38,6 +45,7 @@ export function formatCell(
 }
 
 // Render complete table string
+/** Renders `rows` into a newline-separated, column-aligned plain-text table with a header line. */
 export function renderTable<T>(columns: ColumnDef<T>[], rows: T[]): string {
   const widths = calculateColumnWidths(columns, rows);
   const headerLine = columns

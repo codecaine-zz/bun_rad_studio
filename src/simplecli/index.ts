@@ -16,14 +16,17 @@ export * from './stdlib/index.ts';
 
 import { SimpleCLI } from './core/SimpleCLI.ts';
 
+/** Creates a new `SimpleCLI` application instance with the specified name and version. */
 export function newApp(name: string, version: string = '1.0.0'): SimpleCLI {
   return new SimpleCLI(name, version);
 }
 
+/** Alias for `newApp` that creates a new `SimpleCLI` application instance. */
 export function createApp(name: string, version: string = '1.0.0'): SimpleCLI {
   return new SimpleCLI(name, version);
 }
 
+/** Initializes a `SimpleCLI` application using metadata inferred from `package.json` or the script filename. */
 export function initApp(): SimpleCLI {
   return SimpleCLI.initApp();
 }

@@ -16,6 +16,7 @@ import { parseJson as parseLenientJson } from "../features/filemanager/fmConvDat
 import { analyzeSource, cleanHeaderNames, isSourceFormat, newReadContext, readRows, type SourceFormat, type SourceSettings } from "./staging/reader";
 import { fileSource, memorySource, type ByteSource } from "./staging/source";
 
+/** Input options for `parseUniversalTable`, supporting raw text, byte arrays, base64, or file paths. */
 export interface UniversalParseOptions {
   content?: string;
   bytes?: Uint8Array;
@@ -29,6 +30,7 @@ export interface UniversalParseOptions {
   sheet?: string;
 }
 
+/** Normalized tabular output returned by `parseUniversalTable` across all supported file formats. */
 export interface UniversalParsedTable {
   format: SourceFormat;
   columns: string[];
@@ -40,6 +42,7 @@ export interface UniversalParsedTable {
   warnings: string[];
 }
 
+/** Wraps an in-memory `Uint8Array` into a chunked `ByteSource` for streaming format analysis and row reading. */
 export function binarySource(bytes: Uint8Array, name = "upload"): ByteSource {
   return {
     name,
@@ -76,6 +79,7 @@ function coerceCellValue(val: string | null): any {
   return val;
 }
 
+/** Parses any supported tabular, spreadsheet, document, or key-value input into a `UniversalParsedTable`. */
 export async function parseUniversalTable(opts: UniversalParseOptions): Promise<UniversalParsedTable> {
   const filename = opts.fileName ?? opts.filename ?? (opts.filePath ? opts.filePath.split(/[\\/]/).pop() : undefined) ?? "import.txt";
   let src: ByteSource;

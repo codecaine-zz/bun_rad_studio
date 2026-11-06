@@ -1,3 +1,7 @@
+/**
+ * HTTP operation handlers for the File Manager Crypto & Security power tool (hashing, HMAC, AES encryption, entropy estimation, UUID/secret generation, encoding, JWT inspection, color conversion, and password hashing).
+ */
+
 import { promises as fsp } from "fs";
 import { performance } from "perf_hooks";
 import { formatDigestReport, type HashRow } from "../../crypto_tools";

@@ -24,6 +24,7 @@ import {
   type WindowPrefs,
 } from "./fmWindow";
 
+/** Options for creating a `WindowController` that manages window placement and persistence. */
 export interface WindowControllerOptions {
   native: WindowNative;
   dataDir: string;
@@ -36,6 +37,7 @@ export interface WindowControllerOptions {
   graceMs?: number;
 }
 
+/** Result returned when processing a window geometry change report from the webview. */
 export interface ChangeResult {
   ok: boolean;
   /** The report was written as the new preference. */
@@ -47,6 +49,7 @@ export interface ChangeResult {
   modeSwitched: boolean;
 }
 
+/** Result of applying or resetting a window display mode on the live window. */
 export interface ApplyResult {
   ok: boolean;
   /** False while the window is still on its way (leaving full screen takes a moment): the page asks again. */
@@ -56,6 +59,7 @@ export interface ApplyResult {
   fellBack?: boolean;
 }
 
+/** Controller interface for querying, planning, applying, and persisting native window geometry and mode. */
 export interface WindowController {
   prefs(): WindowPrefs;
   /** Where the window goes now: the saved preference against the screens that exist. */
@@ -84,6 +88,7 @@ const guard = <T>(fn: () => T, fallback: T): T => {
 
 const MAX_FILL_RETRIES = 12;
 
+/** Creates a `WindowController` backed by the provided native window adapter and preferences directory. */
 export function createWindowController(options: WindowControllerOptions): WindowController {
   const { native, dataDir } = options;
   const persist = options.persist !== false;
@@ -267,6 +272,7 @@ export function createWindowController(options: WindowControllerOptions): Window
   };
 }
 
+/** Minimal interface for a webview object capable of binding host functions into the page's global scope. */
 export interface Bindable {
   bind(name: string, callback: (...args: any[]) => unknown): void;
 }
@@ -282,6 +288,7 @@ export function bindWindowControl(webview: Bindable, controller: WindowControlle
   webview.bind("fmWindowAlwaysOnTop", safe((on: unknown) => controller.setAlwaysOnTop(on), { ok: false, alwaysOnTop: false, message: "Couldn't change always on top." }));
 }
 
+/** Options for opening and binding a managed application window via `openManagedWindow`. */
 export interface ManagedWindowOptions<W extends Bindable> {
   /** Creates the window (with this size, which is only the default: the real size is set next). */
   createWindow: (size: { width: number; height: number }) => W;
@@ -294,6 +301,7 @@ export interface ManagedWindowOptions<W extends Bindable> {
   now?: () => number;
 }
 
+/** Handle returned by `openManagedWindow` bundling the created window, its controller, and initial placement plan. */
 export interface ManagedWindow<W extends Bindable> {
   window: W;
   controller: WindowController;

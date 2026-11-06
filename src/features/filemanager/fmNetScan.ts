@@ -50,8 +50,10 @@ function failTask(task: NetTask, err: unknown): void {
 // Scan
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Raw request payload for starting a background TCP port scan. */
 export type ScanRequest = Record<string, unknown>;
 
+/** Validates `req` and starts an asynchronous background TCP port scan task (`single`, `top`, or `list` mode). */
 export function startScan(ctx: FmContext, req: ScanRequest): NetTask {
   const host = validateHost(req.host);
   const mode = req.mode === undefined ? "single" : req.mode;
@@ -141,6 +143,7 @@ async function runScan(state: NetState, task: NetTask, target: string, ports: nu
   else if (task.state === "done") task.headline = "No open ports were found.";
 }
 
+/** Formats a human-readable summary sentence describing a single scanned port's status and known service. */
 export function portSentence(r: ScanRow): string {
   const what = r.service !== "Custom" ? ` (usually ${r.service})` : "";
   if (r.status === "OPEN") return `Port ${r.port} is open: something is listening there${what}.`;
@@ -152,6 +155,7 @@ export function portSentence(r: ScanRow): string {
 // TCP ping
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Validates `req` and starts an asynchronous background TCP ping task that measures connection latency across repeated probes. */
 export function startPing(ctx: FmContext, req: Record<string, unknown>): NetTask {
   const host = validateHost(req.host);
   const port = validatePort(req.port ?? 443);
@@ -204,6 +208,7 @@ async function runPing(state: NetState, task: NetTask, target: string, port: num
 // Progress and cancel
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Returns a serializable progress and result snapshot of `task`, optionally slicing log and result arrays from `logFrom` and `resultFrom`. */
 export function snapshot(task: NetTask, logFrom = 0, resultFrom = 0) {
   const sum = task.kind === "ping" ? summarizeLatencies(task.samples) : null;
   return {
@@ -218,12 +223,14 @@ export function snapshot(task: NetTask, logFrom = 0, resultFrom = 0) {
   };
 }
 
+/** Looks up a network task by ID in `ctx` or throws a `NO_TASK` `FmError` if not found. */
 export function findTask(ctx: FmContext, id: unknown): NetTask {
   const task = typeof id === "string" ? netState(ctx).tasks.get(id) : undefined;
   if (!task) throw new FmError("NO_TASK", "That check isn't known any more. Start it again.");
   return task;
 }
 
+/** Returns a lightweight summary list of all registered network tasks in `ctx`. */
 export function briefTasks(ctx: FmContext) {
   return [...netState(ctx).tasks.values()].map((t) => ({ id: t.id, kind: t.kind, mode: t.mode, host: t.host, state: t.state, done: t.done, total: t.total }));
 }
@@ -238,6 +245,7 @@ export async function cancelTasks(ctx: FmContext, id?: unknown): Promise<number>
   return running.length;
 }
 
+/** Formats the port scan results of `task` (sorted by port number) as a CSV document. */
 export function scanCsv(task: NetTask): string {
   return scanResultsToCsv(task.host, [...task.results].sort((a, b) => a.port - b.port));
 }

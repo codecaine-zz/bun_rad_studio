@@ -4,13 +4,19 @@
  *
  * The transpiler only removes types and rewrites JSX: it does not type-check and does not bundle.
  */
+/** File extensions recognized as TypeScript source files (`ts`, `tsx`, `mts`, `cts`). */
 export const TS_EXTENSIONS = new Set(["ts", "tsx", "mts", "cts"]);
+/** File extensions recognized as JavaScript source files (`js`, `jsx`, `mjs`, `cjs`). */
 export const JS_EXTENSIONS = new Set(["js", "jsx", "mjs", "cjs"]);
+/** Combined set of all supported TypeScript and JavaScript source file extensions. */
 export const CODE_EXTENSIONS = new Set([...TS_EXTENSIONS, ...JS_EXTENSIONS]);
 
+/** Runtime environment target passed to `Bun.Transpiler`. */
 export type JsTarget = "browser" | "bun" | "node";
+/** JSX factory preset (`react` or `preact`) used when transpiling JSX/TSX files. */
 export type JsxStyle = "react" | "preact";
 
+/** Configuration options for transpiling TypeScript/JSX source code into JavaScript. */
 export interface TranspileOptions {
   target?: JsTarget;
   minifyWhitespace?: boolean;
@@ -35,6 +41,7 @@ export function jsExtensionFor(ext: string): string {
 
 /** A failure of the transpiler in plain words, with line and column numbers (at most three problems). */
 export class TranspileError extends Error {
+  /** Creates a `TranspileError` with a human-readable summary message and structured line/column diagnostics. */
   constructor(message: string, readonly problems: Array<{ line: number; column: number; text: string }>) {
     super(message);
     this.name = "TranspileError";
@@ -73,11 +80,13 @@ export function transpileSource(source: string, ext: string, options: TranspileO
   }
 }
 
+/** Static import and export declarations discovered by scanning a JavaScript or TypeScript module. */
 export interface ModuleScan {
   imports: Array<{ kind: string; path: string }>;
   exports: string[];
 }
 
+/** Maximum number of import or export entries returned by `scanModule`. */
 export const MAX_SCAN_ITEMS = 200;
 
 /** What a JavaScript or TypeScript file imports (import, dynamic import, require) and exports. Throws a TranspileError for a syntax error. */

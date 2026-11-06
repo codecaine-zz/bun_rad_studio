@@ -1,3 +1,6 @@
+/**
+ * Interactive UI help tooltips and audit skip rules for Subprocess Pipe Studio (`subprocess_pipe_studio`), covering multi-stage shell pipeline construction and stream inspection.
+ */
 import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Help tips for `subprocess_pipe_studio`. Keys: see src/shared/helpTips.ts. Check with: bun run scripts/help_controls.ts <app file> --missing */

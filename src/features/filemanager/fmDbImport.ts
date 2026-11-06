@@ -15,6 +15,7 @@ import { isObject } from "./fmDbCommon";
 import type { StudioInfo } from "./fmDbStudios";
 import { FmError } from "./fmPaths";
 
+/** Set of file extensions accepted by the database studio staging/import wizard. */
 export const IMPORT_EXTENSIONS = new Set([
   "csv",
   "tsv",
@@ -48,6 +49,7 @@ export const IMPORT_EXTENSIONS = new Set([
   "ods",
 ]);
 
+/** Request payload specifying whether to open the studio import wizard and which staged file to preselect. */
 export interface ImportAsk {
   /** A data file the wizard should start with. */
   file?: string;
@@ -58,8 +60,11 @@ export interface ImportAsk {
 /** studio id -> the secret that studio was started with */
 const tokens = new Map<string, string>();
 
+/** Generates a random 36-character hex secret token for authenticating staging requests to a studio. */
 export const newStagingToken = (): string => randomBytes(18).toString("hex");
+/** Associates a studio instance ID with its active staging authentication token. */
 export const rememberStagingToken = (studioId: string, token: string): void => void tokens.set(studioId, token);
+/** Removes the stored staging authentication token when a studio stops. */
 export const forgetStagingToken = (studioId: string): void => void tokens.delete(studioId);
 
 /** A real, readable data file the person chose. Read-only: nothing here writes to it. */
@@ -117,6 +122,7 @@ export async function grantImport(info: StudioInfo, ask: ImportAsk | null): Prom
   }
 }
 
+/** File Manager API handlers for validating files before staging them into a database studio (`db/import/check`). */
 export const importOperations: Record<string, FmHandler> = {
   /** Is this a file the import can read? (Used before the person picks where it should go.) */
   async "db/import/check"(ctx, b) {

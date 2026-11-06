@@ -1,3 +1,6 @@
+/**
+ * Interactive UI help tooltips and audit skip rules for RAD Studio (`rad_studio`), covering project scaffolding, form design, and desktop window controls.
+ */
 import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** RAD Utilities Studio: a catalog of 44 small helper modules with code recipes. */

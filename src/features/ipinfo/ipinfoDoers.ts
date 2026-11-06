@@ -1,15 +1,26 @@
+/**
+ * Core operational helpers ("doers") for IPInfo: target sanitization, RFC bogon/private IP
+ * classification, DNS/DoH resolution, upstream geolocation fetching (`ipinfo.io` / `ipwho.is`),
+ * CIDR subnet math, local network adapter discovery, and CLI table/JSON/CSV formatting.
+ */
 import { lookup, reverse, Resolver } from "node:dns/promises";
 import { networkInterfaces } from "node:os";
 import type { IpInfoResult, LocalInterfaceInfo, SubnetInfo } from "./ipinfoTypes.ts";
 import { colors } from "../../shared/colors.ts";
 import { renderTable, type ColumnDef } from "../../shared/table.ts";
 
+/**
+ * Checks whether a string matches a basic IPv4 or IPv6 address pattern.
+ */
 export function isIpAddress(input: string): boolean {
   const ipv4 = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/;
   const ipv6 = /^[0-9a-fA-F:]+$/;
   return ipv4.test(input) || (input.includes(":") && ipv6.test(input));
 }
 
+/**
+ * Checks whether a string is a valid IPv4 CIDR notation (`<ip>/<0..32>`).
+ */
 export function isCidr(input: string): boolean {
   const parts = input.trim().split("/");
   if (parts.length !== 2) return false;
@@ -17,6 +28,9 @@ export function isCidr(input: string): boolean {
   return isIpAddress(parts[0]!) && !isNaN(prefix) && prefix >= 0 && prefix <= 32;
 }
 
+/**
+ * Strips URL schemes, paths, query strings, fragments, and non-IPv6 ports from a target string.
+ */
 export function cleanTarget(input: string): string {
   let s = input.trim();
   s = s.replace(/^[a-zA-Z]+:\/\//, ""); // strip protocol
@@ -30,6 +44,9 @@ export function cleanTarget(input: string): string {
   return s.trim();
 }
 
+/**
+ * Performs a synchronous HTTP/HTTPS JSON fetch via `curl` with a configurable timeout in seconds.
+ */
 export function syncFetchJson(url: string, headers: Record<string, string> = {}, timeoutSec = 2): any {
   try {
     const cmd = ["curl", "-s", "--proto", "=https,http", "--max-time", String(timeoutSec)];
@@ -48,6 +65,9 @@ export function syncFetchJson(url: string, headers: Record<string, string> = {},
   return null;
 }
 
+/**
+ * Classification metadata indicating whether an IP belongs to a private, loopback, or bogon range.
+ */
 export interface IpClassification {
   isPrivateOrBogon: boolean;
   type: string;
@@ -55,6 +75,9 @@ export interface IpClassification {
   scope: string;
 }
 
+/**
+ * Classifies an IPv4 or IPv6 address against standard IANA/RFC special-purpose and private ranges.
+ */
 export function classifyIp(ip: string): IpClassification {
   const trimmed = ip.trim();
   if (trimmed === "127.0.0.1" || trimmed === "::1" || trimmed.startsWith("127.")) {
@@ -119,6 +142,9 @@ export function classifyIp(ip: string): IpClassification {
   return { isPrivateOrBogon: false, type: "Public IP", scope: "Public Internet" };
 }
 
+/**
+ * Synthesizes an `IpInfoResult` for private, loopback, or bogon IP addresses, enriching with local adapter info when matched.
+ */
 export function createPrivateIpResult(ip: string, classification?: IpClassification): IpInfoResult {
   const cls = classification || classifyIp(ip);
   let matched: LocalInterfaceInfo | undefined;
@@ -150,6 +176,9 @@ export function createPrivateIpResult(ip: string, classification?: IpClassificat
   };
 }
 
+/**
+ * Resolves a target hostname, URL, interface name, or IP string into an IPv4/IPv6 address and optional domain name.
+ */
 export function resolveTargetToIp(
   target?: string
 ): { ip?: string; domain?: string } {
@@ -212,6 +241,10 @@ export function resolveTargetToIp(
   throw new Error(`[IpInfoResolve] Could not resolve host to IP: ${target}`);
 }
 
+/**
+ * Fetches geolocation and ASN details for an IP address (or the caller's public IP when omitted),
+ * handling private ranges locally and falling back from `ipinfo.io` to `ipwho.is`.
+ */
 export function fetchIpDetails(
   ip?: string,
   token?: string
@@ -303,6 +336,9 @@ export function fetchIpDetails(
   throw new Error(`[IpInfoFetch] Failed to fetch IP details for: ${ip || "myip"}`);
 }
 
+/**
+ * Extracts a single named property from an `IpInfoResult`, throwing if the property is missing.
+ */
 export function extractField(data: IpInfoResult, fieldName: string): string {
   const key = fieldName.toLowerCase().trim() as keyof IpInfoResult;
   const val = data[key];
@@ -312,6 +348,9 @@ export function extractField(data: IpInfoResult, fieldName: string): string {
   return typeof val === "string" ? val : JSON.stringify(val);
 }
 
+/**
+ * Formats an `IpInfoResult` as a colorized key-value summary for terminal display.
+ */
 export function formatSummary(data: IpInfoResult): string {
   const mapUrl = data.loc ? `https://maps.google.com/?q=${data.loc}` : undefined;
   const fields: [string, string | undefined][] = [
@@ -334,10 +373,16 @@ export function formatSummary(data: IpInfoResult): string {
   return lines.join("\n");
 }
 
+/**
+ * Serializes one or more `IpInfoResult` objects as pretty-printed JSON.
+ */
 export function formatJson(data: IpInfoResult | IpInfoResult[]): string {
   return JSON.stringify(data, null, 2);
 }
 
+/**
+ * Formats a single `IpInfoResult` as a two-line CSV string (header row plus values row).
+ */
 export function formatCsv(data: IpInfoResult): string {
   const headers = ["ip", "hostname", "city", "region", "country", "loc", "org", "postal", "timezone"];
   const values = headers.map((h) => {
@@ -347,6 +392,9 @@ export function formatCsv(data: IpInfoResult): string {
   return `${headers.join(",")}\n${values.join(",")}`;
 }
 
+/**
+ * Reads a newline-delimited list of IP/host targets from a file path or stdin (`"-"`), ignoring blank lines and `#` comments.
+ */
 export async function readIpTargets(target: string): Promise<string[]> {
   const text = target === "-" ? await Bun.stdin.text() : await Bun.file(target).text();
   return text
@@ -355,6 +403,9 @@ export async function readIpTargets(target: string): Promise<string[]> {
     .filter((l) => l.length > 0 && !l.startsWith("#"));
 }
 
+/**
+ * Renders an array of `IpInfoResult` records as an aligned CLI table.
+ */
 export function formatBulkTable(results: IpInfoResult[]): string {
   const columns: ColumnDef<IpInfoResult>[] = [
     { header: "IP", align: "left", getValue: (r) => colors.bold(colors.cyan(r.ip)) },
@@ -366,14 +417,23 @@ export function formatBulkTable(results: IpInfoResult[]): string {
   return renderTable(columns, results);
 }
 
+/**
+ * Converts a dotted-quad IPv4 string into an unsigned 32-bit integer.
+ */
 export function ipToInt(ip: string): number {
   return ip.split(".").reduce((acc, octet) => ((acc << 8) + parseInt(octet, 10)) >>> 0, 0);
 }
 
+/**
+ * Converts an unsigned 32-bit integer into a dotted-quad IPv4 string.
+ */
 export function intToIp(int: number): string {
   return [(int >>> 24) & 255, (int >>> 16) & 255, (int >>> 8) & 255, int & 255].join(".");
 }
 
+/**
+ * Computes network, broadcast, netmask, wildcard mask, usable host range, and host counts for an IPv4 CIDR block.
+ */
 export function calculateSubnet(cidr: string): SubnetInfo {
   const [ipStr, prefixStr] = cidr.trim().split("/");
   const prefix = parseInt(prefixStr ?? "", 10);
@@ -398,6 +458,9 @@ export function calculateSubnet(cidr: string): SubnetInfo {
   };
 }
 
+/**
+ * Formats a `SubnetInfo` calculation into a colorized key-value summary for terminal output.
+ */
 export function formatSubnetInfo(info: SubnetInfo): string {
   const fields: [string, string][] = [
     ["CIDR Range", info.cidr],
@@ -414,6 +477,9 @@ export function formatSubnetInfo(info: SubnetInfo): string {
     .join("\n");
 }
 
+/**
+ * Enumerates all configured network interfaces on the local host (or returns deterministic mock interfaces in screenshot mode).
+ */
 export function getLocalInterfaces(): LocalInterfaceInfo[] {
   if (process.env.SCREENSHOT_MODE === "1") {
     return [
@@ -440,6 +506,9 @@ export function getLocalInterfaces(): LocalInterfaceInfo[] {
   return result;
 }
 
+/**
+ * Renders an array of `LocalInterfaceInfo` entries as a formatted CLI table.
+ */
 export function formatLocalInterfaces(ifaces: LocalInterfaceInfo[]): string {
   const columns: ColumnDef<LocalInterfaceInfo>[] = [
     { header: "INTERFACE", align: "left", getValue: (i) => colors.bold(colors.cyan(i.name)) },
@@ -452,6 +521,9 @@ export function formatLocalInterfaces(ifaces: LocalInterfaceInfo[]): string {
   return renderTable(columns, ifaces);
 }
 
+/**
+ * Performs an asynchronous reverse-DNS (`PTR`) lookup for an IP address, returning the first hostname or `undefined`.
+ */
 export async function lookupPtr(ip: string): Promise<string | undefined> {
   if (!isIpAddress(ip)) return undefined;
   try {

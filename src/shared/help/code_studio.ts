@@ -1,3 +1,6 @@
+/**
+ * Interactive UI help tooltips and audit skip rules for Code Studio (`code_studio`), covering code editing, formatting, execution, and language selection.
+ */
 import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Help tips for `code_studio` (NovaCode Studio Pro). Keys: see src/shared/helpTips.ts. Check with: bun run scripts/help_controls.ts <app file> --missing */

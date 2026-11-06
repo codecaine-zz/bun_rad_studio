@@ -1,3 +1,6 @@
+/**
+ * Interactive UI help tooltips and audit skip rules for Interval Timer Studio (`interval_timer_studio`), covering Pomodoro, HIIT/Tabata timers, stopwatch, and audio cues.
+ */
 import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Help tips for `interval_timer_studio`. Keys: see src/shared/helpTips.ts. Check with: bun run scripts/help_controls.ts <app file> --missing */

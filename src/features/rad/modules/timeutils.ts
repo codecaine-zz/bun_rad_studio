@@ -1,4 +1,12 @@
+/**
+ * Date, time, calendar boundary, and high-resolution monotonic benchmarking utilities
+ * powered by `performance.now()` and `Bun.nanoseconds()`.
+ */
+
 // Doer: Human relative time description ("2 hours ago", "in 3 days")
+/**
+ * Formats a timestamp or `Date` as a human-readable relative time phrase (e.g., `"2 hours ago"`, `"in 3 days"`).
+ */
 export function timeAgo(input: Date | number | string, now = new Date()): string {
   const d = input instanceof Date ? input : new Date(input);
   const diffMs = now.getTime() - d.getTime();
@@ -25,11 +33,17 @@ export function timeAgo(input: Date | number | string, now = new Date()): string
 }
 
 // Doer: Format date as ISO 8601 string
+/**
+ * Formats a `Date` instance as an ISO 8601 UTC string (`YYYY-MM-DDTHH:mm:ss.sssZ`).
+ */
 export function formatIso(date = new Date()): string {
   return date.toISOString();
 }
 
 // Doer: Parse ISO 8601 string into Date
+/**
+ * Parses an ISO 8601 date string into a `Date` object, throwing if the string is invalid.
+ */
 export function parseIso(isoStr: string): Date {
   const parsed = new Date(isoStr);
   if (Number.isNaN(parsed.getTime())) {
@@ -39,6 +53,9 @@ export function parseIso(isoStr: string): Date {
 }
 
 // Doer: Return Date set to 00:00:00.000 of the given date
+/**
+ * Returns a new `Date` set to the start of the local calendar day (`00:00:00.000`).
+ */
 export function startOfDay(date = new Date()): Date {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
@@ -46,6 +63,9 @@ export function startOfDay(date = new Date()): Date {
 }
 
 // Doer: Return Date set to 23:59:59.999 of the given date
+/**
+ * Returns a new `Date` set to the end of the local calendar day (`23:59:59.999`).
+ */
 export function endOfDay(date = new Date()): Date {
   const d = new Date(date);
   d.setHours(23, 59, 59, 999);
@@ -53,6 +73,9 @@ export function endOfDay(date = new Date()): Date {
 }
 
 // Doer: Return Date set to beginning of current month
+/**
+ * Returns a new `Date` set to the first millisecond of the local calendar month.
+ */
 export function startOfMonth(date = new Date()): Date {
   const d = new Date(date);
   d.setDate(1);
@@ -61,6 +84,9 @@ export function startOfMonth(date = new Date()): Date {
 }
 
 // Doer: Return Date set to last millisecond of current month
+/**
+ * Returns a new `Date` set to the last millisecond (`23:59:59.999`) of the local calendar month.
+ */
 export function endOfMonth(date = new Date()): Date {
   const d = new Date(date.getFullYear(), date.getMonth() + 1, 0);
   d.setHours(23, 59, 59, 999);
@@ -68,6 +94,9 @@ export function endOfMonth(date = new Date()): Date {
 }
 
 // Doer: Add N days to date
+/**
+ * Returns a new `Date` shifted by `days` calendar days (positive or negative).
+ */
 export function addDays(date: Date, days: number): Date {
   const d = new Date(date);
   d.setDate(d.getDate() + days);
@@ -75,6 +104,9 @@ export function addDays(date: Date, days: number): Date {
 }
 
 // Doer: Calculate integer day difference between two dates
+/**
+ * Computes the whole-day calendar difference (`d2 - d1`) in UTC days.
+ */
 export function diffDays(d1: Date, d2: Date): number {
   const msPerDay = 1000 * 60 * 60 * 24;
   const utc1 = Date.UTC(d1.getFullYear(), d1.getMonth(), d1.getDate());
@@ -83,6 +115,9 @@ export function diffDays(d1: Date, d2: Date): number {
 }
 
 // Coordinator: Precision stopwatch for benchmarking and execution timing
+/**
+ * High-resolution stopwatch controller for measuring elapsed execution time in milliseconds.
+ */
 export interface Stopwatch {
   start(): void;
   stop(): number;
@@ -90,6 +125,9 @@ export interface Stopwatch {
   reset(): void;
 }
 
+/**
+ * Creates and starts a high-resolution {@link Stopwatch} backed by `performance.now()`.
+ */
 export function createStopwatch(): Stopwatch {
   let startTime = performance.now();
   let stoppedTime: number | null = null;
@@ -117,10 +155,16 @@ export function createStopwatch(): Stopwatch {
 }
 
 // Doer: High-resolution monotonic timestamp in nanoseconds powered by native Bun.nanoseconds
+/**
+ * Returns the high-resolution monotonic clock reading in nanoseconds via `Bun.nanoseconds()`.
+ */
 export function nanoseconds(): number {
   return Bun.nanoseconds();
 }
 
+/**
+ * Namespace bundling all date formatting, calendar boundary, and timing functions.
+ */
 export const timeutils = {
   timeAgo,
   formatIso,

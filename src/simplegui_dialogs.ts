@@ -18,20 +18,25 @@ import * as os from "os";
 // Types
 // ---------------------------------------------------------------------------------------------------------------------
 
+/** Built-in status icon variants displayed at the top of a SimpleGUI dialog or toast. */
 export type DialogIcon = "success" | "error" | "warning" | "info" | "question";
 
+/** Supported interactive form input types rendered inside an input dialog. */
 export type DialogInputType =
     | "text" | "email" | "password" | "number" | "tel" | "url" | "search"
     | "date" | "time" | "datetime-local" | "month" | "week" | "color"
     | "range" | "textarea" | "select" | "radio" | "checkbox" | "file";
 
+/** Screen alignment anchor positions for modal dialogs and non-blocking toasts. */
 export type DialogPosition =
     | "top" | "top-start" | "top-end"
     | "center" | "center-start" | "center-end"
     | "bottom" | "bottom-start" | "bottom-end";
 
+/** Built-in declarative validation presets evaluated directly inside the webview client. */
 export type DialogValidationPreset = "required" | "email" | "url" | "number" | "integer";
 
+/** Declarative client-side validation rules for dialog input values. */
 export interface DialogValidationRules {
     required?: boolean;
     minLength?: number;
@@ -49,6 +54,7 @@ export type DialogInputOptions =
     | Record<string, any>
     | Array<string | [string, string] | { value: string; label: string }>;
 
+/** Complete configuration options for rendering a modal dialog, input prompt, or toast notification. */
 export interface DialogOptions {
     // content
     title?: string;
@@ -134,6 +140,7 @@ export interface DialogOptions {
     currentProgressStep?: number;
 }
 
+/** Outcome returned when a dialog or toast finishes (confirmed, denied, or dismissed). */
 export interface DialogResult<T = any> {
     isConfirmed: boolean;
     isDenied: boolean;
@@ -143,8 +150,10 @@ export interface DialogResult<T = any> {
     dismiss?: string;
 }
 
+/** Synchronous callback invoked when a dialog, prompt, or file picker completes. */
 export type DialogCallback<T = DialogResult> = (result: T) => void;
 
+/** Options controlling native or in-webview file and folder picker dialogs. */
 export interface FileDialogOptions {
     title?: string;
     /** Extensions, e.g. `"png,jpg"`, `"*.png;*.jpg"` or `["png","jpg"]`. */
@@ -161,8 +170,10 @@ export interface FileDialogOptions {
     native?: "auto" | "always" | "never";
 }
 
+/** Operation mode for the file picker (`"open"`, `"save"`, or `"folder"`). */
 export type FileDialogMode = "open" | "save" | "folder";
 
+/** Host bridge contract connecting `SimpleDialogs` to an active `SimpleWindow` webview instance. */
 export interface DialogHost {
     isRunning(): boolean;
     eval(code: string): void;
@@ -979,11 +990,16 @@ function runNative(mode: FileDialogMode, o: FileDialogOptions): NativeResult {
     }
 }
 
+/**
+ * Controller for SweetAlert2-style modal dialogs, input prompts, toasts, and native/fallback file pickers
+ * bound to a `SimpleWindow` host.
+ */
 export class SimpleDialogs {
     private host: DialogHost;
     private defaults: DialogOptions;
     private shared: { hooks: Map<string, { validator?: DialogOptions["inputValidator"]; preConfirm?: DialogOptions["preConfirm"] }>; open: Set<string> };
 
+    /** Creates a `SimpleDialogs` controller attached to the given window host with optional default dialog options. */
     constructor(host: DialogHost, defaults: DialogOptions = {}, shared?: SimpleDialogs["shared"]) {
         this.host = host;
         this.defaults = defaults;
@@ -1081,10 +1097,15 @@ export class SimpleDialogs {
         const callback = typeof text === "function" ? text : typeof opts === "function" ? opts : cb;
         return this.dispatch({ ...this.defaults, title, text: typeof text === "string" ? text : undefined, icon, ...extra }, callback);
     }
+    /** Shows a dialog with the `"success"` icon. */
     success(title: string, text?: string | DialogCallback, opts?: DialogOptions | DialogCallback, cb?: DialogCallback) { return this.iconDialog("success", title, text, opts, cb); }
+    /** Shows a dialog with the `"error"` icon. */
     error(title: string, text?: string | DialogCallback, opts?: DialogOptions | DialogCallback, cb?: DialogCallback) { return this.iconDialog("error", title, text, opts, cb); }
+    /** Shows a dialog with the `"warning"` icon. */
     warning(title: string, text?: string | DialogCallback, opts?: DialogOptions | DialogCallback, cb?: DialogCallback) { return this.iconDialog("warning", title, text, opts, cb); }
+    /** Shows a dialog with the `"info"` icon. */
     info(title: string, text?: string | DialogCallback, opts?: DialogOptions | DialogCallback, cb?: DialogCallback) { return this.iconDialog("info", title, text, opts, cb); }
+    /** Shows a dialog with the `"question"` icon. */
     question(title: string, text?: string | DialogCallback, opts?: DialogOptions | DialogCallback, cb?: DialogCallback) { return this.iconDialog("question", title, text, opts, cb); }
 
     /** Yes/No style confirmation. Resolves `true` when confirmed. */
@@ -1155,14 +1176,17 @@ export class SimpleDialogs {
 
     // ----- control --------------------------------------------------------------------------------------------------
 
+    /** Closes the currently active modal dialog, optionally resolving it with a partial result. */
     close(result?: Partial<DialogResult>): void {
         this.host.eval(`window.SimpleDialogClient&&window.SimpleDialogClient.close(${result ? JSON.stringify(result) : ""});`);
     }
+    /** Closes all open modal dialogs and active toast notifications immediately. */
     closeAll(): void { this.host.eval(`window.SimpleDialogClient&&window.SimpleDialogClient.closeAll();`); }
     /** Update the visible dialog in place (title, text, icon, button labels, ...). Function options are not supported here. */
     update(options: Omit<DialogOptions, "inputValidator" | "preConfirm">): void {
         this.host.eval(`window.SimpleDialogClient&&window.SimpleDialogClient.update(${JSON.stringify(options)});`);
     }
+    /** Returns `true` if a modal dialog is currently open in the window. */
     isVisible(): boolean { return this.shared.open.size > 0; }
 
     // ----- files ----------------------------------------------------------------------------------------------------
@@ -1196,13 +1220,18 @@ export class SimpleDialogs {
         });
     }
 
+    /** Opens a single-file selection dialog and resolves with the selected file path or `null` if cancelled. */
     openFile(opts: FileDialogOptions = {}, cb?: DialogCallback<string | null>) { return this.fileDialog("open", { ...opts, multiple: false }, cb as any) as Promise<string | null>; }
+    /** Opens a multi-file selection dialog and resolves with an array of selected file paths or `null` if cancelled. */
     openFiles(opts: FileDialogOptions = {}, cb?: DialogCallback<string[] | null>) { return this.fileDialog("open", { ...opts, multiple: true }, cb as any) as Promise<string[] | null>; }
+    /** Opens a save-file dialog and resolves with the chosen destination path or `null` if cancelled. */
     saveFile(opts: FileDialogOptions = {}, cb?: DialogCallback<string | null>) { return this.fileDialog("save", { ...opts, multiple: false }, cb as any) as Promise<string | null>; }
+    /** Opens a directory selection dialog and resolves with the chosen folder path or `null` if cancelled. */
     openFolder(opts: FileDialogOptions = {}, cb?: DialogCallback<string | null>) { return this.fileDialog("folder", { ...opts, multiple: false }, cb as any) as Promise<string | null>; }
 
     // ----- bridge (called once from SimpleWindow.show()) -------------------------------------------------------------
 
+    /** Binds the IPC handlers needed by the in-webview file picker and dialog validation hooks onto a Webview instance. */
     bindIpc(webview: { bind: (name: string, fn: (...a: any[]) => any) => void }): void {
         const safeBind = (name: string, fn: (...a: any[]) => any) => { try { webview.bind(name, fn); } catch { /* already bound */ } };
         safeBind("simpleguiBrowseDirIPC", (dir: string, showHidden?: boolean) => this.browseDir(dir, !!showHidden));

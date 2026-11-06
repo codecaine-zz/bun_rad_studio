@@ -19,6 +19,7 @@ async function startProgram(ctx: FmContext, command: string, args: string[], ver
   }
 }
 
+/** Executable command specification for launching an OS opener or file manager without invoking a shell. */
 export interface Command {
   command: string;
   args: string[];

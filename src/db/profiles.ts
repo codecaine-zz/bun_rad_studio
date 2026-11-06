@@ -1,3 +1,7 @@
+/**
+ * Database connection profile storage (`ProfileStore`), input sanitization, and OS credential store
+ * integration (`KeychainSecretStore` / `MemorySecretStore`).
+ */
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync, chmodSync } from "fs";
 import { homedir } from "os";
 import { dirname, join } from "path";
@@ -5,8 +9,10 @@ import { randomUUID } from "crypto";
 import type { ConnectionConfig, Engine } from "./types";
 import { DbError } from "./errors";
 
+/** Deployment environment tier for a database connection profile, determining confirmation strictness. */
 export type Environment = "development" | "test" | "staging" | "production";
 
+/** Persisted non-secret metadata for a saved database connection profile. */
 export interface ConnectionProfile {
   id: string;
   name: string;
@@ -38,6 +44,7 @@ export interface ConnectionProfile {
 /** A profile as shown to the browser: never carries a password, only whether one is stored. */
 export type PublicProfile = ConnectionProfile & { hasPassword: boolean };
 
+/** Abstraction for storing and retrieving connection passwords outside of `connections.json`. */
 export interface SecretStore {
   readonly kind: "os-keychain" | "memory";
   get(profileId: string): Promise<string | null>;
@@ -50,13 +57,17 @@ const SERVICE = "bun-rad-studio.database";
 /** Stores passwords in the OS credential store (Keychain / Credential Manager / libsecret) via Bun.secrets. */
 export class KeychainSecretStore implements SecretStore {
   readonly kind = "os-keychain" as const;
+  /** Creates a `KeychainSecretStore` scoped to the given OS keychain `service` name. */
   constructor(private readonly service = SERVICE) {}
+  /** Retrieves the stored password for profile `id` from the OS credential store, or `null` if not found. */
   async get(id: string) {
     return (await Bun.secrets.get({ service: this.service, name: id })) ?? null;
   }
+  /** Saves `password` for profile `id` in the OS credential store. */
   async set(id: string, password: string) {
     await Bun.secrets.set({ service: this.service, name: id, value: password });
   }
+  /** Deletes any stored password for profile `id` from the OS credential store. */
   async delete(id: string) {
     await Bun.secrets.delete({ service: this.service, name: id });
   }
@@ -66,12 +77,15 @@ export class KeychainSecretStore implements SecretStore {
 export class MemorySecretStore implements SecretStore {
   readonly kind = "memory" as const;
   private readonly map = new Map<string, string>();
+  /** Retrieves the in-memory password for profile `id`, or `null` if absent. */
   async get(id: string) {
     return this.map.get(id) ?? null;
   }
+  /** Stores `password` for profile `id` in process memory for the lifetime of the server. */
   async set(id: string, password: string) {
     this.map.set(id, password);
   }
+  /** Removes the in-memory password for profile `id`. */
   async delete(id: string) {
     this.map.delete(id);
   }
@@ -89,6 +103,7 @@ export async function detectSecretStore(service = SERVICE): Promise<SecretStore>
   return new MemorySecretStore();
 }
 
+/** Returns the directory where `connections.json` is stored (`STUDIO_DB_PROFILE_DIR` or `~/.bun_rad_studio`). */
 export function defaultProfileDir(): string {
   return process.env.STUDIO_DB_PROFILE_DIR || join(homedir(), ".bun_rad_studio");
 }
@@ -169,6 +184,7 @@ export class ProfileStore {
   private loaded = false;
   readonly file: string;
 
+  /** Initializes a `ProfileStore` reading/writing `connections.json` inside `dir` and storing passwords in `secrets`. */
   constructor(
     dir: string = defaultProfileDir(),
     private readonly secrets: SecretStore,
@@ -176,6 +192,7 @@ export class ProfileStore {
     this.file = join(dir, "connections.json");
   }
 
+  /** Indicates whether passwords are stored in the OS keychain (`"os-keychain"`) or process memory (`"memory"`). */
   get secretStoreKind() {
     return this.secrets.kind;
   }
@@ -207,6 +224,7 @@ export class ProfileStore {
     return { ...p, hasPassword: Boolean(p.passwordEnv) || (await this.secrets.get(p.id)) !== null };
   }
 
+  /** Returns all saved profiles enriched with `hasPassword` status from the credential store or `passwordEnv`. */
   async list(): Promise<PublicProfile[]> {
     this.load();
     return Promise.all(this.profiles.map((p) => this.pub(p)));
@@ -218,6 +236,7 @@ export class ProfileStore {
     return [...this.profiles];
   }
 
+  /** Looks up a saved `ConnectionProfile` by its `id`, or `undefined` if not found. */
   get(id: string): ConnectionProfile | undefined {
     this.load();
     return this.profiles.find((p) => p.id === id);
@@ -246,6 +265,7 @@ export class ProfileStore {
     return this.pub(profile);
   }
 
+  /** Deletes a connection profile by `id` along with any stored secret in the credential store. */
   async remove(id: string): Promise<void> {
     this.load();
     const i = this.profiles.findIndex((p) => p.id === id);
@@ -268,6 +288,7 @@ export class ProfileStore {
     return this.pub(copy);
   }
 
+  /** Updates `lastUsedAt` to the current timestamp for profile `id` and persists the store. */
   markUsed(id: string) {
     const p = this.get(id);
     if (!p) return;
@@ -291,6 +312,7 @@ export class ProfileStore {
   }
 }
 
+/** Converts a `ConnectionProfile` and optional resolved `password` into an adapter `ConnectionConfig`. */
 export function profileToConfig(p: ConnectionProfile, password?: string): ConnectionConfig {
   if (p.engine === "sqlite") {
     return { engine: "sqlite", path: p.path, sqliteMode: p.sqliteMode, readOnly: p.readOnly };

@@ -3,6 +3,7 @@
  * search history and limit parsing. No GUI or filesystem access, so they are unit-testable.
  */
 
+/** Saved search preset definition for Fd Studio. */
 export interface FdPreset {
   /** Dropdown label. */
   label: string;
@@ -15,8 +16,10 @@ export interface FdPreset {
   type: "all" | "file" | "directory" | "executable" | "symlink" | "empty";
 }
 
+/** Placeholder dropdown label when no search preset is active. */
 export const FD_PRESET_NONE = "Presets…";
 
+/** Built-in file search presets available in Fd Studio. */
 export const FD_PRESETS: FdPreset[] = [
   { label: "Large files (>10M)", pattern: "", exts: "", size: "+10M", age: "Any Time", type: "file" },
   { label: "Recently modified (24h)", pattern: "", exts: "", size: "", age: "Last 24 hours", type: "file" },
@@ -28,10 +31,12 @@ export const FD_PRESETS: FdPreset[] = [
   { label: "Directories only", pattern: "", exts: "", size: "", age: "Any Time", type: "directory" },
 ];
 
+/** Looks up a built-in `FdPreset` by its dropdown label. */
 export function findPreset(label: string): FdPreset | undefined {
   return FD_PRESETS.find((p) => p.label === label);
 }
 
+/** Available sort order labels for Fd Studio search results. */
 export const FD_SORT_KEYS = [
   "Default order",
   "Name (A→Z)",
@@ -42,6 +47,7 @@ export const FD_SORT_KEYS = [
   "Modified (oldest)",
 ] as const;
 
+/** Minimal file entry shape required for sorting and filtering Fd Studio results. */
 export interface SortableItem {
   name: string;
   sizeBytes: number;

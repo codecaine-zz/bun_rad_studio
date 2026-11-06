@@ -6,12 +6,18 @@
 import { optNum, optStr, parseTime, type OptionValues } from "./fmConvOptions";
 import { choiceOpt, exts, numberOpt, textOpt, timeOpt, toggleOpt, type BuildContext, type ConvDef, type Engine, type Need } from "./fmConvTypes";
 
+/** Set of all raster and vector image extensions accepted by picture conversions. */
 export const IMG_IN = exts("jpg jpeg png gif webp bmp tif tiff heic heif avif ico svg");
+/** Set of raster image extensions (excluding SVG) accepted by pixel-level image operations. */
 export const IMG_RASTER = exts("jpg jpeg png gif webp bmp tif tiff heic heif avif ico");
+/** Set of video container extensions accepted by video and audio-extraction conversions. */
 export const VID_IN = exts("mp4 mov mkv avi webm m4v wmv flv mpg mpeg 3gp ts");
+/** Set of audio file extensions accepted by sound conversions. */
 export const AUD_IN = exts("mp3 wav flac aac m4a ogg opus wma aiff aif");
+/** Set of subtitle file extensions (`.srt`, `.vtt`, `.ass`, `.ssa`). */
 export const SUB_IN = exts("srt vtt ass ssa");
 
+/** Returns the lowercase file extension (without the dot) from a file path. */
 export const extOfPath = (p: string) => p.split(".").pop()!.toLowerCase();
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -24,19 +30,23 @@ const IM_READ: Record<string, string> = { heic: "read-heic", heif: "read-heic", 
 /** The capabilities for opening this kind of file and (optionally) writing the output kind. */
 export const imNeeds = (write?: string) => (ext: string): Need => [write, IM_READ[ext]].filter((x): x is string => !!x);
 
+/** ImageMagick arguments (`-delete 1--1`) that keep only the first frame of multi-frame inputs. */
 export const FIRST_FRAME = ["-delete", "1--1"];
 const FLATTEN = ["-background", "white", "-alpha", "remove", "-alpha", "off"];
 
+/** Builds an ImageMagick `Engine` definition with automatic format capability checks and staging. */
 export const im = (argv: (c: BuildContext) => string[], write?: string, extra: Partial<Engine> = {}): Engine => ({ tool: "imagemagick", stage: true, needs: imNeeds(write), argv, ...extra });
 /** input, middle arguments, output */
 export const imSimple = (middle: string[]) => (c: BuildContext) => [c.inputs[0]!, ...middle, c.output];
 
+/** Builds a `ConvDef` entry in the `"Pictures"` conversion group. */
 export const pic = (id: string, label: string, hint: string, out: string | ConvDef["out"], suffix: string, engines: Engine[], extra: Partial<ConvDef> = {}): ConvDef => ({
   id, label, hint, group: "Pictures", inputs: IMG_IN, out, suffix, mode: "each", engines, ...extra,
 });
 
 const fit = (px: number) => ["-resize", `${px}x${px}>`];
 
+/** Preset social-media image dimensions `[id, label, width, height]` for cropping and padding. */
 export const SOCIAL_SIZES: Array<[string, string, number, number]> = [
   ["square", "Square post (1080 × 1080)", 1080, 1080],
   ["story", "Story or reel (1080 × 1920)", 1080, 1920],
@@ -46,10 +56,12 @@ export const SOCIAL_SIZES: Array<[string, string, number, number]> = [
   ["avatar", "Profile picture (400 × 400)", 400, 400],
 ];
 
+/** ImageMagick gravity choices `[value, label]` for watermark placement and cropping. */
 export const GRAVITY: Array<[string, string]> = [["SouthEast", "Bottom right"], ["SouthWest", "Bottom left"], ["NorthEast", "Top right"], ["NorthWest", "Top left"], ["Center", "Middle"], ["South", "Bottom middle"], ["North", "Top middle"]];
 
 const FRAME_OPTIONS = [numberOpt("delay", "Time for each picture", "", 40, 5000, 500, "milliseconds", 10), numberOpt("width", "Width", "Pictures wider than this are shrunk.", 100, 2000, 640, "pixels", 10)];
 
+/** Catalog of primary image format conversion, resizing, compression, and sheet/GIF assembly definitions. */
 export const PICTURE_DEFS: ConvDef[] = [
   pic("img-jpg", "Convert to JPG", "The most common picture format; small files.", "jpg", "converted", [im(imSimple([...FIRST_FRAME, "-auto-orient", ...FLATTEN, "-quality", "90"]), "jpeg")]),
   pic("img-png", "Convert to PNG", "Sharp pictures that keep see-through areas.", "png", "converted", [im(imSimple([...FIRST_FRAME, "-auto-orient"]), "png")]),
@@ -144,15 +156,21 @@ export const PICTURE_DEFS: ConvDef[] = [
 // Video: ffmpeg
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Default global `ffmpeg` flags (`-nostdin -hide_banner -loglevel error -n`) used across media conversions. */
 export const BASE = ["-nostdin", "-hide_banner", "-loglevel", "error", "-n"];
 /** A complete ffmpeg command: global options, then `pre` (before the input), the input, `mid` (after it), the output. */
 export const ff = (c: BuildContext, pre: string[], mid: string[]): string[] => [...BASE, ...pre, "-i", `file:${c.inputs[0]}`, ...mid, `file:${c.output}`];
+/** Builds an `ffmpeg` `Engine` definition with optional codec capability requirements. */
 export const ffEngine = (argv: (c: BuildContext) => string[], needs?: Need | ((ext: string, o: OptionValues) => Need), extra: Partial<Engine> = {}): Engine => ({ tool: "ffmpeg", needs, argv, ...extra });
 
+/** Standard `ffmpeg` arguments (`-c:v libx264 -pix_fmt yuv420p`) for widely compatible H.264 video output. */
 export const H264 = ["-c:v", "libx264", "-pix_fmt", "yuv420p"];
+/** Returns `ffmpeg` audio codec arguments for encoding AAC audio at the given bitrate. */
 export const AAC = (rate: string) => ["-c:a", "aac", "-b:a", rate];
+/** MP4/MOV `ffmpeg` flag (`-movflags +faststart`) placing the moov atom at the front for instant web playback. */
 export const FASTSTART = ["-movflags", "+faststart"];
 
+/** Builds a `ConvDef` entry in the `"Video"` conversion group. */
 export const vid = (id: string, label: string, hint: string, out: string | ConvDef["out"], suffix: string, engines: Engine[], extra: Partial<ConvDef> = {}): ConvDef => ({
   id, label, hint, group: "Video", inputs: VID_IN, out, suffix, mode: "each", engines, ...extra,
 });
@@ -172,6 +190,7 @@ export function filterPath(p: string): string {
   return `'${p.replace(/\\/g, "/").replace(/:/g, "\\:").replace(/'/g, "'\\''")}'`;
 }
 
+/** Supported output audio formats `[ext, label, capabilityNeed?]` for custom audio conversions and extraction. */
 export const AUDIO_FORMATS: Array<[string, string, string?]> = [
   ["mp3", "MP3 (plays everywhere)", "mp3"], ["m4a", "M4A / AAC (good quality, small)"], ["flac", "FLAC (lossless)"], ["wav", "WAV (uncompressed)"],
   ["ogg", "OGG Vorbis", "vorbis"], ["opus", "Opus (best at low sizes)", "opus"], ["aiff", "AIFF (uncompressed, Apple)"],
@@ -236,6 +255,7 @@ export function gifFromMixed(c: BuildContext): string[] {
   return [...BASE, ...inputs, "-filter_complex", `${chains.join(";")};${joined}${boomerang}${palette}`, "-map", "[out]", "-loop", repeat, "-f", "gif", `file:${c.output}`];
 }
 
+/** Catalog of primary video format conversion, resizing, trimming, GIF creation, and audio/subtitle definitions. */
 export const VIDEO_DEFS: ConvDef[] = [
   vid("gif-mixed", "Make an animated GIF from pictures and videos", "Select two or more pictures and video clips: they go, in the order you choose, into one looping GIF. (For one video, use “Make an animated GIF”.)", "gif", "animation", [ffEngine(gifFromMixed)], {
     mode: "all", allName: "Animation", minFiles: 2, inputs: new Set([...GIF_PICTURES, ...VID_IN, "gif"]),
@@ -361,6 +381,7 @@ export const VIDEO_DEFS: ConvDef[] = [
 // Sound: ffmpeg
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Builds a `ConvDef` entry in the `"Sound"` conversion group. */
 export const snd = (id: string, label: string, hint: string, out: string | ConvDef["out"], suffix: string, engines: Engine[], extra: Partial<ConvDef> = {}): ConvDef => ({
   id, label, hint, group: "Sound", inputs: AUD_IN, out, suffix, mode: "each", engines, ...extra,
 });
@@ -368,6 +389,7 @@ export const snd = (id: string, label: string, hint: string, out: string | ConvD
 /** Settings for a sound that is written in its own format again. */
 export const sameCodec = (ext: string): string[] => (ext === "mp3" ? ["-c:a", "libmp3lame", "-b:a", "192k"] : ext === "m4a" || ext === "aac" ? ["-c:a", "aac", "-b:a", "192k"] : ext === "ogg" ? ["-c:a", "libvorbis", "-b:a", "192k"] : ext === "opus" ? ["-c:a", "libopus", "-b:a", "160k"] : []);
 
+/** Catalog of primary audio format conversion, bitrate, trimming, normalization, and concatenation definitions. */
 export const SOUND_DEFS: ConvDef[] = [
   snd("aud-mp3", "Convert to MP3", "Plays everywhere.", "mp3", "converted", [ffEngine((c) => ff(c, [], ["-vn", "-c:a", "libmp3lame", "-q:a", "2"]), "mp3")], { rejectSame: true }),
   snd("aud-m4a", "Convert to M4A (AAC)", "Good quality in a small file.", "m4a", "converted", [ffEngine((c) => ff(c, [], ["-vn", "-c:a", "aac", "-b:a", "192k"]))], { rejectSame: true }),
@@ -427,6 +449,7 @@ const META_IN = exts("jpg jpeg png gif webp tif tiff heic heif avif mp4 mov m4v 
 const GPS_IN = exts("jpg jpeg tif tiff heic heif png webp mp4 mov m4v");
 const exif = (argv: (c: BuildContext) => string[], extra: Partial<Engine> = {}): Engine => ({ tool: "exiftool", stage: true, argv, ...extra });
 
+/** Catalog of ExifTool metadata export and GPS privacy stripping definitions. */
 export const META_DEFS: ConvDef[] = [
   { id: "meta-text", label: "Save the hidden details as a text file", hint: "Everything stored inside the file: camera, place, date, software and more.", group: "Other", inputs: META_IN, out: "txt", suffix: "details", mode: "each", engines: [exif((c) => ["-a", "-u", "-G1", "-s", c.inputs[0]!], { stdoutIsOutput: true })], keywords: "metadata exif info properties camera gps" },
   { id: "meta-json", label: "Save the hidden details as JSON", hint: "The same details in a form other programs can read.", group: "Other", inputs: META_IN, out: "json", suffix: "details", mode: "each", engines: [exif((c) => ["-json", "-a", "-u", "-G1", c.inputs[0]!], { stdoutIsOutput: true })], keywords: "metadata exif" },

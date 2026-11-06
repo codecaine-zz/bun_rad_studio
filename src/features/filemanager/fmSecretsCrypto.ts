@@ -17,9 +17,12 @@ export type { KdfParams };
 /** One message for every reason a vault cannot be opened, so a wrong password and a damaged file look the same. */
 export const WRONG_OR_DAMAGED = "Wrong password or key, or the vault file is damaged or has been changed.";
 
+/** Error subclass thrown for Secrets vault format, cryptographic, or throttling failures. */
 export class SecretsError extends FmError {}
 
+/** Named Argon2id key-derivation strength preset (`standard`, `strong`, or `maximum`). */
 export type Strength = "standard" | "strong" | "maximum";
+/** Ordered list of supported Argon2id strength preset names. */
 export const STRENGTHS: readonly Strength[] = ["standard", "strong", "maximum"];
 
 /** The default costs. Argon2id memory is the main brake on guessing: these are 256 MiB, 512 MiB and 1 GiB. */
@@ -29,11 +32,13 @@ export const DEFAULT_LEVELS: Record<Strength, SecretsKdfParams> = {
   maximum: { memoryKiB: 1024 * 1024, passes: 5, parallelism: 4 },
 };
 
+/** Returns the preset `Strength` name matching `p`, or `"custom"` when its parameters differ from the presets. */
 export function strengthOf(p: SecretsKdfParams, levels: Record<Strength, SecretsKdfParams>): Strength | "custom" {
   for (const s of STRENGTHS) if (levels[s].memoryKiB === p.memoryKiB && levels[s].passes === p.passes && levels[s].parallelism === p.parallelism) return s;
   return "custom";
 }
 
+/** Derives a subkey of `length` bytes from input key material `ikm` using HKDF-SHA-256. */
 export function hkdf(ikm: Buffer, salt: Buffer, info: string, length = 32): Buffer {
   return Buffer.from(hkdfSync("sha256", ikm, salt, info, length));
 }
@@ -76,10 +81,13 @@ export async function derivePasswordKek(password: string, keyFile: Buffer | null
 // ---------------------------------------------------------------------------------------------------------------
 
 const CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+/** Byte length of a raw vault recovery key (20 bytes = 160 bits). */
 export const RECOVERY_KEY_BYTES = 20;
 
+/** Generates a new 160-bit cryptographically random recovery key buffer. */
 export const newRecoveryKey = (): Buffer => randomBytes(RECOVERY_KEY_BYTES);
 
+/** Encodes a 20-byte recovery key into 8 hyphen-separated groups of 4 Crockford Base32 characters. */
 export function formatRecoveryKey(key: Buffer): string {
   let bits = 0;
   let acc = 0;
@@ -122,11 +130,13 @@ export function parseRecoveryKey(text: unknown): Buffer | null {
 /** The key that wraps the data key for "Unlock with this computer": from the 256-bit device key kept in the OS credential store. */
 export const deviceKek = (deviceKey: Buffer, vaultId: Buffer): Buffer => hkdf(deviceKey, vaultId, "radsec v1 device wrap key", 32);
 
+/** Derives the 256-bit key-encryption key used to wrap the vault data key with a recovery key and salt. */
 export const recoveryKek = (key: Buffer, recSalt: Buffer): Buffer => hkdf(key, recSalt, "radsec v1 recovery wrap key", 32);
 
 /** A random key file's bytes (64 of them). */
 export const newKeyFileBytes = (): Buffer => randomBytes(64);
 
+/** Computes the 32-byte SHA-256 digest of `data`. */
 export const sha256 = (data: Uint8Array): Buffer => createHash("sha256").update(data).digest();
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -165,8 +175,11 @@ export function passwordBits(password: string): number {
   return Math.round(bits);
 }
 
+/** Minimum character length required for a non-passphrase master password. */
 export const MIN_MASTER_CHARS = 12;
+/** Minimum estimated entropy in bits required for a non-passphrase master password. */
 export const MIN_MASTER_BITS = 60;
+/** Minimum number of distinct words required for a passphrase master password. */
 export const MIN_MASTER_WORDS = 5;
 
 /** A plain sentence saying why this master password may not be used, or null when it is acceptable. */

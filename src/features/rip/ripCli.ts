@@ -1,8 +1,15 @@
 #!/usr/bin/env bun
+/**
+ * Command-line interface for `rip` (rm-improved), parsing CLI flags and positional
+ * arguments to safely bury, restore, inspect, or purge files in a graveyard.
+ */
 import { parseArgs } from "node:util";
 import { runRipCoordinator } from "./ripCoordinator.ts";
 import type { RipOptions } from "./ripTypes.ts";
 
+/**
+ * Parses command-line arguments into a structured `RipOptions` configuration object.
+ */
 export function parseRipArguments(args: string[]): RipOptions {
   const { values, positionals } = parseArgs({
     args,
@@ -47,6 +54,9 @@ export function parseRipArguments(args: string[]): RipOptions {
   };
 }
 
+/**
+ * Prints usage instructions and CLI options for `rip` to stdout.
+ */
 export function printRipHelp(): void {
   console.log(`Usage: rip [options] [targets...]
 

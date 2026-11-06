@@ -1,3 +1,7 @@
+/**
+ * Immutable array and collection utility toolkit inspired by `es-toolkit`, `lodash`, and Kotlin
+ * collections. Every function accepts `readonly` arrays and returns a new array without mutating inputs.
+ */
 // Feature: RAD - arrutils (and sliceutils alias)
 // Immutable array & collection toolkit inspired by es-toolkit / lodash / Kotlin collections.
 // Every function returns a NEW array (inputs are never mutated) and accepts readonly arrays.
@@ -475,6 +479,9 @@ export function cartesianProduct<T>(...arrays: readonly (readonly T[])[]): T[][]
   return arrays.reduce<T[][]>((acc, arr) => acc.flatMap((combo) => arr.map((x) => [...combo, x])), [[]]);
 }
 
+/**
+ * Namespace containing all immutable array and collection helper functions.
+ */
 export const arrutils = {
   at,
   first,

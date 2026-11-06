@@ -1,3 +1,6 @@
+/**
+ * Interactive UI help tooltips and audit skip rules for Doggo DNS Studio (`doggo_studio`), covering DNS record lookups, resolver selection, and transport protocols.
+ */
 import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Help tips for `doggo_studio`. Keys: see src/shared/helpTips.ts. Check with: bun run scripts/help_controls.ts <app file> --missing */

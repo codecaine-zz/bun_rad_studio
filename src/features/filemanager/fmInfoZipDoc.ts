@@ -11,6 +11,7 @@ import { readCentralDirectory, readZipEntry, type CentralEntry } from "./fmZip";
 
 const PART_LIMIT = 1024 * 1024;
 
+/** Aggregated entry counts, total sizes, and largest members of an archive. */
 export interface ArchiveSummary {
   entries: number;
   files: number;
@@ -22,6 +23,7 @@ export interface ArchiveSummary {
   partial: boolean;
 }
 
+/** Computes entry counts, unpacked/packed totals, and the top 10 largest files from an archive entry list. */
 export function summarizeEntries(list: Array<{ name: string; size: number; packed?: number; dir?: boolean; encrypted?: boolean }>, partial = false): ArchiveSummary {
   const s: ArchiveSummary = { entries: list.length, files: 0, folders: 0, uncompressed: 0, compressed: 0, encrypted: 0, top: [], partial };
   for (const e of list) {
@@ -35,6 +37,7 @@ export function summarizeEntries(list: Array<{ name: string; size: number; packe
   return s;
 }
 
+/** Builds display `InfoGroup` sections for an archive summary, including compression ratios and zip-bomb warnings. */
 export function archiveGroups(kind: string, s: ArchiveSummary, fileSize: number): InfoGroup[] {
   const r = new Rows();
   r.add("Kind", kind);
@@ -55,6 +58,7 @@ export function archiveGroups(kind: string, s: ArchiveSummary, fileSize: number)
   return groups;
 }
 
+/** Inspects a ZIP archive or ZIP-based document (Office, EPUB, OpenDocument, JAR/APK) and extracts metadata groups. */
 export async function zipDocument(handle: fsp.FileHandle, size: number, ext: string): Promise<{ groups: InfoGroup[]; kind: string }> {
   let entries: CentralEntry[];
   try {
@@ -140,12 +144,14 @@ export async function zipDocument(handle: fsp.FileHandle, size: number, ext: str
 // tar and gzip
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Extracts the entry path from a 512-byte POSIX ustar tar header block, combining prefix and name fields. */
 export function tarName(h: Buffer): string {
   const name = h.subarray(0, 100).toString("utf8").replace(/\0.*$/, "");
   const prefix = h.subarray(345, 500).toString("utf8").replace(/\0.*$/, "");
   return prefix && h.subarray(257, 262).toString("latin1") === "ustar" ? `${prefix}/${name}` : name;
 }
 
+/** Checks whether a 512-byte buffer is a valid POSIX `ustar` tar header with a matching octal checksum. */
 export function isTarHeader(h: Buffer): boolean {
   if (h.length < 512 || h.subarray(257, 262).toString("latin1") !== "ustar") return false;
   let sum = 0;
@@ -195,6 +201,7 @@ export async function walkTar(chunks: AsyncIterable<Buffer>, limits: { maxEntrie
   return summarizeEntries(list, partial);
 }
 
+/** Inspects an uncompressed `.tar` archive file and returns its summary groups and kind label. */
 export async function tarDocument(path: string, size: number): Promise<{ groups: InfoGroup[]; kind: string }> {
   const rs = createReadStream(path, { highWaterMark: 256 * 1024 });
   try {
@@ -225,6 +232,7 @@ async function gunzipStart(compressed: Buffer, count: number): Promise<Buffer> {
   return Buffer.concat(got).subarray(0, count);
 }
 
+/** Inspects a gzip-compressed file (or `.tar.gz` archive) and returns its header metadata and archive summary groups. */
 export async function gzipDocument(handle: fsp.FileHandle, path: string, size: number): Promise<{ groups: InfoGroup[]; kind: string }> {
   const head = await readBytes(handle, 0, 64 * 1024);
   const rows = new Rows();

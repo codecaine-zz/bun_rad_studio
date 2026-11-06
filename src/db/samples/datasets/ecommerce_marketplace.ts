@@ -1,3 +1,7 @@
+/**
+ * Synthetic E-Commerce Marketplace sample dataset definition covering product categories,
+ * multi-seller catalog variants, customer orders, line items, promotions, shipments, and reviews.
+ */
 import { addDays, dayOf, dayStr, hashString, mulberry32 } from "../gen";
 import { COLORS, COMPANY_A, COMPANY_B } from "../words";
 import { dataset, query, table, view, type Scale } from "../model";

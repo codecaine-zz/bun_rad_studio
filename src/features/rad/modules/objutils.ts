@@ -1,3 +1,7 @@
+/**
+ * Object manipulation toolkit providing type predicates, prototype-pollution-safe deep path operations,
+ * key/value picking and mapping, structural equality, deep cloning/merging/freezing, and structural diffing.
+ */
 // Feature: RAD - objutils
 // Object toolkit inspired by es-toolkit / lodash: predicates, prototype-pollution-safe deep paths
 // (get/has/set/unset), pick/omit families, key/value mapping, structural equality (Bun.deepEquals),
@@ -80,8 +84,11 @@ export function toPath(path: ObjPath): (string | number)[] {
  * @example `objutils.get<number>(cfg, "server.port", 3000); // typed number, never undefined`
  */
 export function get<T>(obj: unknown, path: ObjPath, defaultValue: T): T;
+/** Safe deep read returning `any` when no type parameter or default value is given. */
 export function get(obj: unknown, path: ObjPath): any;
+/** Safe deep read typed as `T | undefined` when no default value is given. */
 export function get<T>(obj: unknown, path: ObjPath): T | undefined;
+/** Implementation of safe deep property reading along a dotted/bracketed path. */
 export function get<T = any>(obj: unknown, path: ObjPath, defaultValue?: T): T | undefined {
   if (obj == null) return defaultValue;
   let current: any = obj;
@@ -313,6 +320,9 @@ export function objectDiff(before: Record<string, any>, after: Record<string, an
   return diff;
 }
 
+/**
+ * Namespace of object predicates, deep path accessors, key/value transformers, and deep merge/diff helpers.
+ */
 export const objutils = {
   isNil,
   isPlainObject,

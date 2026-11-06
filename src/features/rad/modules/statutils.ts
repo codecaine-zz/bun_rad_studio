@@ -1,3 +1,7 @@
+/**
+ * Descriptive and inferential statistics toolkit in pure TypeScript: central tendency, dispersion,
+ * quantiles, skewness/kurtosis, correlation, linear regression, moving averages, and outlier detection.
+ */
 // Feature: RAD - statutils
 // Descriptive & inferential statistics in pure TypeScript: central tendency (arithmetic, geometric,
 // harmonic, weighted), dispersion, percentiles/quartiles, shape (skew/kurtosis), correlation
@@ -319,6 +323,9 @@ export function summarize(nums: readonly number[]): StatsSummary {
   };
 }
 
+/**
+ * Namespace bundling all descriptive and inferential statistical analysis functions.
+ */
 export const statutils = {
   mean,
   weightedMean,

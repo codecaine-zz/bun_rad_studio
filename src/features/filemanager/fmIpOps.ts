@@ -1,3 +1,7 @@
+/**
+ * File Manager API handlers for the IP Info power tool (`ip/*`), covering IP/hostname lookups,
+ * subnet and CIDR math, local network interfaces, external map/WHOIS links, and result file export/import.
+ */
 import { lstatSync, promises as fsp } from "fs";
 import { absolutePath, assertCreatable, assertFolder, pathApi, type FmContext, type FmHandler } from "./fmCore";
 import { formatsAnswer, inCidrAnswer, interfacesAnswer, maskAnswer, splitAnswer, subnetAnswer } from "./fmIpCalc";
@@ -107,6 +111,7 @@ async function loadList(ctx: FmContext, body: Record<string, any>) {
   return { name: pathApi(ctx).basename(path), text, truncated, count: targets.length, skipped };
 }
 
+/** File Manager API route handlers for the IP Info tool (`ip/lookup`, `ip/myip`, `ip/subnet`, `ip/interfaces`, `ip/bulk`, `ip/incidr`, `ip/split`, `ip/formats`, `ip/mask`, `ip/openurl`, `ip/save`, `ip/loadlist`). */
 export const ipOperations: Record<string, FmHandler> = {
   async "ip/lookup"(_ctx, b) {
     return await guarded(() => lookupAnswer(b.target, b.token));

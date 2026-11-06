@@ -10,6 +10,7 @@ const TABLE_EXTRA = "md markdown html htm sql";
 const DATA_STRUCT = exts(STRUCT);
 const DATA_ALL = exts(`${STRUCT} ${TABLE_EXTRA}`);
 
+/** Set of file extensions recognized as plain-text or source-code files by built-in text converters. */
 export const TEXT_EXTENSIONS = exts(
   "txt log md markdown csv tsv tab json jsonc json5 yaml yml toml xml ini env properties html htm css js mjs ts jsx tsx c h cpp hpp cs java kt py rb go rs php sh bat cmd ps1 sql srt vtt ass ssa lrc tex rst org textile adoc svg plist conf cfg",
 );
@@ -31,6 +32,7 @@ function target(id: string, label: string, hint: string, out: string, inputs: Se
   return { id, label, hint, group: "Data & text", inputs, out, suffix: "converted", mode: "each", rejectSame: true, engines: [builtin("data", { to: out === "md" ? "markdown" : out })], options: [...READ_OPTIONS, ...options], ...extra };
 }
 
+/** Catalog of built-in structured data and spreadsheet conversion definitions (JSON, YAML, TOML, CSV, XLSX, XML, SQL, etc.). */
 export const DATA_DEFS: ConvDef[] = [
   target("data-json", "Convert to JSON", "The data format of the web.", "json", DATA_ALL, [INDENT], { keywords: "json5 jsonc yaml csv" }),
   target("data-yaml", "Convert to YAML", "A readable format for settings files.", "yaml", DATA_ALL, []),
@@ -73,6 +75,7 @@ const ENCODING_CHOICES: Array<[string, string]> = [
   ["gbk", "GBK (Simplified Chinese)"], ["big5", "Big5 (Traditional Chinese)"], ["euc-kr", "EUC-KR (Korean)"],
 ];
 
+/** Catalog of built-in text encoding, line-ending, indentation, diacritic, and Base64/hex conversion definitions. */
 export const TEXT_DEFS: ConvDef[] = [
   textTool("text-encoding", "Change the text encoding", "Fixes accents that look wrong, or saves the file in another encoding.", "encoding", {}, "re-encoded", [
     choiceOpt("from", "Read it as", "Automatic looks at the file: a mark at the start, or whether it is valid UTF-8.", [["auto", "Find it automatically"], ...ENCODING_CHOICES, ["gb18030", "GB18030 (Chinese)"]], "auto"),
@@ -115,6 +118,7 @@ export const TEXT_DEFS: ConvDef[] = [
 const GZIP_LEVEL = numberOpt("level", "Compression level (1 is fastest, 9 is smallest)", "Higher squeezes more but takes longer. 6 is the usual balance.", 1, 9, 6);
 const ZSTD_LEVEL = numberOpt("level", "Compression level (1 is fastest, 19 is smallest)", "Higher squeezes more but takes longer and needs more memory. 3 is the usual balance; 19 is for files you will keep for a long time.", 1, 19, 3);
 
+/** Catalog of built-in archive creation, extraction, and compression definitions requiring no external tools. */
 export const ARCHIVE_BUILTIN_DEFS: ConvDef[] = [
   { id: "arc-zip", label: "Zip into one .zip file", hint: "Works for files and folders. Nothing to install.", group: "Archives", inputs: null, dirs: true, out: "zip", suffix: "zipped", mode: "all", allName: "Archive", singleName: true, minFiles: 1, engines: [builtin("zip-create")], keywords: "compress archive zip" },
   { id: "arc-targz", label: "Pack into a .tar.gz file", hint: "The usual archive on Linux and Mac. Works for files and folders.", group: "Archives", inputs: null, dirs: true, out: "tar.gz", suffix: "packed", mode: "all", allName: "Archive", singleName: true, minFiles: 1, engines: [builtin("targz-create")], options: [GZIP_LEVEL], keywords: "compress archive tar tgz" },

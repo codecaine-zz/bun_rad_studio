@@ -9,9 +9,12 @@ import { HASH_BY_ID, HASH_SPECS, digestFile } from "./fmHashes";
 import { openForRead, regularFile, type InfoRow } from "./fmInfoCommon";
 import { FmError } from "./fmPaths";
 
+/** Kind of background task run by the "More info" window (`"hash"` or `"folder"`). */
 export type TaskKind = "hash" | "folder";
+/** Lifecycle state of a "More info" background task. */
 export type TaskState = "running" | "done" | "failed" | "cancelled";
 
+/** Public status and result snapshot of a "More info" background task. */
 export interface TaskView {
   id: string;
   kind: TaskKind;
@@ -29,6 +32,7 @@ interface Task {
   finishedAt: number;
 }
 
+/** Cancellation signal and progress reporter passed into a running "More info" task callback. */
 export interface TaskControl {
   signal: AbortSignal;
   progress(done: number, total: number, message?: string): void;
@@ -63,6 +67,7 @@ function purge(map: Map<string, Task>): void {
   }
 }
 
+/** Starts an asynchronous "More info" background task (`"hash"` or `"folder"`) and returns its initial `TaskView`. */
 export function startTask(ctx: FmContext, kind: TaskKind, run: (control: TaskControl) => Promise<unknown>): TaskView {
   const map = registry(ctx);
   purge(map);
@@ -92,12 +97,14 @@ export function startTask(ctx: FmContext, kind: TaskKind, run: (control: TaskCon
   return { ...task.view };
 }
 
+/** Returns the current `TaskView` snapshot for the task identified by `id`, or throws `NO_TASK`. */
 export function taskView(ctx: FmContext, id: unknown): TaskView {
   const t = typeof id === "string" ? registry(ctx).get(id) : undefined;
   if (!t) throw new FmError("NO_TASK", "That job isn't running any more.");
   return { ...t.view };
 }
 
+/** Aborts a running "More info" background task by `id` and returns whether it was running. */
 export function cancelTask(ctx: FmContext, id: unknown): boolean {
   const t = typeof id === "string" ? registry(ctx).get(id) : undefined;
   if (!t || t.view.state !== "running") return false;
@@ -111,8 +118,10 @@ export function cancelTask(ctx: FmContext, id: unknown): boolean {
 
 /** What "Calculate fingerprints" works out by default (the other kinds are chosen on the page). */
 export const DEFAULT_HASH_IDS = ["md5", "sha1", "sha256", "sha512", "crc32"];
+/** Metadata descriptors for all available cryptographic and fast non-cryptographic hash algorithms. */
 export const HASHES = HASH_SPECS.map((s) => ({ id: s.id, label: s.label, hint: s.hint, group: s.group }));
 
+/** Computed hash row containing the algorithm identifier, group, display label, and hex digest value. */
 export interface HashRowOut extends InfoRow {
   id: string;
   group: string;
@@ -156,6 +165,7 @@ export function normalizeHash(text: string): { hex: string; named: string | null
   return { hex: /^[0-9a-f]*$/.test(hex) ? hex : "", named };
 }
 
+/** Compares a user-supplied checksum string against computed file hash rows and returns the matching algorithm and explanation. */
 export function compareHash(expected: unknown, rows: Array<{ id: string; value: string }>): { matched: string | null; hint: string; normalized: string } {
   const { hex, named } = normalizeHash(typeof expected === "string" ? expected : "");
   if (!hex) return { matched: null, normalized: "", hint: "That doesn't look like a checksum. It should be letters a–f and digits, for example 9f86d081…" };

@@ -1,3 +1,6 @@
+/**
+ * Interactive UI help tooltips and audit skip rules for the Bun RAD Studio Launcher (`launcher_studio`), covering app search, category filtering, themes, and process management.
+ */
 import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Help tips for `launcher_studio`. Keys: see src/shared/helpTips.ts. Check with: bun run scripts/help_controls.ts <app file> --missing */

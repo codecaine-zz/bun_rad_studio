@@ -1,3 +1,6 @@
+/**
+ * Interactive UI help tooltips and audit skip rules for Watchexec Studio (`watchexec_studio`), covering filesystem watcher rules, debounce settings, and automated command runs.
+ */
 import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Help tips for `watchexec_studio` (also the page of `watcher_studio`). Keys: see src/shared/helpTips.ts. Check with: bun run scripts/help_controls.ts <app file> --missing */

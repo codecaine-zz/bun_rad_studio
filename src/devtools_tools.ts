@@ -9,6 +9,7 @@ import { homedir } from "os";
 /** Directories that are never descended into. */
 export const ALWAYS_SKIP_DIRS = new Set(["node_modules", ".git", "dist", ".temp", ".temp_screens"]);
 
+/** Parses `v` as a base-10 integer and clamps it to `[min, max]`, returning `fallback` when not finite. */
 export const clampInt = (v: any, min: number, max: number, fallback: number): number => {
   const n = parseInt(String(v), 10);
   if (!Number.isFinite(n)) return fallback;
@@ -17,6 +18,7 @@ export const clampInt = (v: any, min: number, max: number, fallback: number): nu
 
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+/** Formats a byte count into a human-readable string with binary units (`B`, `KB`, `MB`, `GB`, `TB`). */
 export function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
   const units = ["KB", "MB", "GB", "TB"];
@@ -72,6 +74,7 @@ export function parseGlobList(text: string): string[] {
 
 interface GlobRule { re: RegExp; slash: boolean; negate: boolean }
 
+/** Compiles an array of include and `!exclude` glob strings into regex rules for path filtering. */
 export function compileGlobs(globs: string[]): GlobRule[] {
   return globs.map((g) => {
     const negate = g.startsWith("!");
@@ -95,8 +98,10 @@ export function passesGlobs(rel: string, rules: GlobRule[]): boolean {
 // .gitignore support (simple subset: comments, dir-only, anchored, globs; no negation)
 // ---------------------------------------------------------------------------
 
+/** Predicate returning `true` when a relative path should be ignored according to `.gitignore` rules. */
 export type IgnoreMatcher = (rel: string, isDir: boolean) => boolean;
 
+/** Parses `.gitignore` file content into an `IgnoreMatcher` predicate function. */
 export function parseGitignore(text: string): IgnoreMatcher {
   const rules: { re: RegExp; anchored: boolean; dirOnly: boolean }[] = [];
   for (let line of String(text || "").split(/\r?\n/)) {
@@ -127,6 +132,7 @@ export function parseGitignore(text: string): IgnoreMatcher {
 // Pattern building & file walking
 // ---------------------------------------------------------------------------
 
+/** Pattern matching options controlling case sensitivity, whole-word boundaries, and literal matching. */
 export interface MatchOptions {
   caseSensitive?: boolean;
   wholeWord?: boolean;
@@ -140,6 +146,7 @@ export function buildMatcher(pattern: string, opts: MatchOptions = {}, global = 
   return new RegExp(src, (opts.caseSensitive ? "" : "i") + (global ? "g" : ""));
 }
 
+/** Directory traversal options controlling glob filtering, dotfiles, `.gitignore` rules, and directory inclusion. */
 export interface WalkOptions {
   include?: string;      // glob list, `!` prefix excludes
   hidden?: boolean;      // include dotfiles / dot-directories
@@ -147,6 +154,7 @@ export interface WalkOptions {
   includeDirs?: boolean; // yield directories as well as files
 }
 
+/** File or directory entry yielded by `walkEntries`. */
 export interface WalkEntry { full: string; rel: string; isDir: boolean }
 
 /** Walk `root` (file or directory) honouring skip dirs, hidden, globs and .gitignore. */
@@ -199,12 +207,14 @@ export function looksBinary(buf: Uint8Array): boolean {
 // Ripgrep-style search
 // ---------------------------------------------------------------------------
 
+/** Options for ripgrep-style text search across files in a directory. */
 export interface SearchOptions extends MatchOptions, WalkOptions {
   maxResults?: number;
   context?: number;     // lines of context before/after
   filesOnly?: boolean;  // list matching files with counts only
 }
 
+/** Aggregated output and match counts returned by `searchCode`. */
 export interface SearchResult {
   output: string;
   matches: number;
@@ -213,6 +223,7 @@ export interface SearchResult {
   truncated: boolean;
 }
 
+/** Searches non-binary files under `targetDir` for lines matching `pattern` with optional context lines. */
 export function searchCode(targetDir: string, pattern: string, options: SearchOptions = {}): SearchResult {
   let regex: RegExp;
   try {
@@ -281,11 +292,13 @@ export function searchCode(targetDir: string, pattern: string, options: SearchOp
 // Fd-style finder
 // ---------------------------------------------------------------------------
 
+/** Options for `fd`-style file and directory path discovery. */
 export interface FindOptions extends MatchOptions, WalkOptions {
   maxResults?: number;
   type?: "any" | "file" | "dir";
 }
 
+/** Finds files and directories under `targetDir` whose basename or relative path matches `pattern`. */
 export function findPaths(targetDir: string, pattern: string, options: FindOptions = {}): { output: string; matches: number; truncated: boolean } {
   let regex: RegExp;
   try {
@@ -318,11 +331,13 @@ export function findPaths(targetDir: string, pattern: string, options: FindOptio
 // Sd-style find & replace
 // ---------------------------------------------------------------------------
 
+/** Options for `sd`-style multi-file search and replace, including dry-run preview and `.bak` backups. */
 export interface ReplaceOptions extends MatchOptions, WalkOptions {
   dryRun: boolean;
   backup?: boolean; // write `<file>.bak` before changing
 }
 
+/** Replaces occurrences of `searchPattern` with `replaceWith` across files in `targetPath`, or previews diffs in dry-run mode. */
 export function replaceInFiles(
   targetPath: string,
   searchPattern: string,
@@ -390,9 +405,12 @@ export function replaceInFiles(
 // Rip-style safe trash with undo
 // ---------------------------------------------------------------------------
 
+/** Record of the most recently trashed path and its destination in the Trash folder for undo restoration. */
 export interface TrashRecord { from: string; to: string }
 let lastTrash: TrashRecord | null = null;
+/** Returns the most recent `TrashRecord` from `trashPath`, or `null` if none is available. */
 export const getLastTrash = () => lastTrash;
+/** Clears the stored last-trash undo record. */
 export const clearLastTrash = () => { lastTrash = null; };
 
 function moveAny(from: string, to: string) {
@@ -405,6 +423,7 @@ function moveAny(from: string, to: string) {
   }
 }
 
+/** Safely moves a file or directory to `trashDir` with a timestamped name and records it for undo. */
 export function trashPath(targetPath: string, trashDir = join(homedir(), ".Trash")): { output: string; success: boolean } {
   if (!existsSync(targetPath)) {
     return { output: `Target path does not exist: ${targetPath}`, success: false };
@@ -428,6 +447,7 @@ export function trashPath(targetPath: string, trashDir = join(homedir(), ".Trash
   }
 }
 
+/** Restores the most recently trashed file or directory back to its original location. */
 export function undoLastTrash(): { output: string; success: boolean } {
   if (!lastTrash) return { output: "Nothing to undo.", success: false };
   const { from, to } = lastTrash;

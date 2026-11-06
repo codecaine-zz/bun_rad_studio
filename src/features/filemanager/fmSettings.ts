@@ -10,6 +10,7 @@ import { pathApi, type FmContext } from "./fmCore";
 import { sanitizeOverrides } from "../../../resources/file_manager/ui/shortcuts.js";
 import { ATMOSPHERE_IDS, normalizeAtmosphereSpec } from "../../../resources/file_manager/ui/atmosphereCatalog.js";
 
+/** Validated user preferences and workspace configuration persisted in `file_manager.json`. */
 export interface Settings {
   favorites: string[];
   /** A short name of the person's own for a favorite (the key is one of `favorites`). */
@@ -205,33 +206,49 @@ export interface Settings {
   phononSyncOffsetMs: number;
 }
 
+/** Supported audio and read-along video export formats for Ollama Phonon speech synthesis. */
 export const PHONON_AUDIO_FORMATS = ["wav", "mp3", "m4a", "aac", "flac", "ogg", "opus", "aiff", "wma", "mp4", "webm", "mov", "mkv"] as const;
+/** Audio or video container format identifier for Ollama Phonon speech export. */
 export type PhononAudioFormat = (typeof PHONON_AUDIO_FORMATS)[number];
 
+/** Optional extra column identifiers that can be toggled in the Details file view. */
 export const EXTRA_COLUMNS = ["permissions", "ext"] as const;
+/** Optional column identifier for the Details file view (`"permissions"` or `"ext"`). */
 export type ExtraColumn = (typeof EXTRA_COLUMNS)[number];
+/** Available folder item grouping modes (`"none"`, `"kind"`, `"date"`, `"size"`). */
 export const GROUP_BY_MODES = ["none", "kind", "date", "size"] as const;
+/** Grouping mode for items in a directory listing. */
 export type GroupByMode = (typeof GROUP_BY_MODES)[number];
+/** Supported row spacing density presets for file lists. */
 export const ROW_DENSITIES = ["compact", "comfortable", "spacious"] as const;
+/** Row spacing density preset for file lists. */
 export type RowDensity = (typeof ROW_DENSITIES)[number];
+/** Allowed color keys for user-assigned file and folder tags. */
 export const TAG_COLORS = ["red", "orange", "yellow", "green", "blue", "purple", "gray"] as const;
+/** Color key for a file or folder tag. */
 export type TagColor = (typeof TAG_COLORS)[number];
+/** Maximum number of tagged file/folder paths stored in settings (`500`). */
 export const MAX_TAGS = 500;
+/** Maximum number of file/folder sticky notes stored in settings (`500`). */
 export const MAX_NOTES = 500;
+/** Maximum character length of a single file/folder sticky note (`500`). */
 export const MAX_NOTE_LENGTH = 500;
 
+/** Named preset of conversion/editing options saved in the Image Studio or Media Studio. */
 export interface StudioPreset {
   name: string;
   /** Studio option id -> value. The studio and the conversion job check them again when they are used. */
   options: Record<string, string | number | boolean>;
 }
 
+/** Per-layer opacity, speed, and hex color tint override for an atmospheric effect layer. */
 export interface AtmosphereLayerMod {
   opacity?: number;
   speed?: number;
   color?: string;
 }
 
+/** User-saved atmospheric effect preset combining effect spec, intensity, hardware tier, reactivity, and layer modifiers. */
 export interface AtmospherePreset {
   name: string;
   effect: AtmosphereEffect;
@@ -241,74 +258,141 @@ export interface AtmospherePreset {
   layerMods?: Record<string, AtmosphereLayerMod>;
 }
 
+/** Available top-level workspace layouts in the File Manager UI. */
 export const WORKSPACES = ["files", "home", "tools", "split", "dual"] as const;
+/** Top-level workspace layout identifier. */
 export type Workspace = (typeof WORKSPACES)[number];
+/** All registered atmospheric background effect IDs from the atmosphere catalog. */
 export const ATMOSPHERE_EFFECTS: readonly string[] = ATMOSPHERE_IDS;
+/** Atmospheric effect identifier or `+`-joined multi-layer effect specification. */
 export type AtmosphereEffect = string;
+/** Hardware graphics quality tiers for atmospheric canvas shaders. */
 export const ATMOSPHERE_TIERS = ["auto", "low", "medium", "high", "ultra", "extreme"] as const;
+/** Hardware graphics quality tier for atmospheric effects. */
 export type AtmosphereTier = (typeof ATMOSPHERE_TIERS)[number];
+/** Supported cross-platform compositor profile overrides (`""` for auto-detect). */
 export const PLATFORM_PROFILES = ["", "macos", "windows", "linux"] as const;
+/** Cross-platform compositor profile override identifier. */
 export type PlatformProfile = (typeof PLATFORM_PROFILES)[number];
+/** Real-time reactive physics modulation modes for atmospheric effects. */
 export const ATMOSPHERE_REACTIVE_MODES = ["off", "activity", "telemetry", "audio"] as const;
+/** Real-time reactive physics modulation mode for atmospheric effects. */
 export type AtmosphereReactiveMode = (typeof ATMOSPHERE_REACTIVE_MODES)[number];
+/** Targets that the Ambient Playlist automatic rotation can cycle through. */
 export const AMBIENT_PLAYLIST_TARGETS = ["themes", "atmosphere", "both"] as const;
+/** Target aspect rotated by the Ambient Playlist (`"themes"`, `"atmosphere"`, or `"both"`). */
 export type AmbientPlaylistTarget = (typeof AMBIENT_PLAYLIST_TARGETS)[number];
+/** Source pools from which the Ambient Playlist selects themes or atmospheric effects. */
 export const AMBIENT_PLAYLIST_POOLS = ["favorites", "presets", "ultra", "all"] as const;
+/** Source pool identifier for the Ambient Playlist. */
 export type AmbientPlaylistPool = (typeof AMBIENT_PLAYLIST_POOLS)[number];
+/** Available UI typography font pairing profile IDs. */
 export const THEME_FONT_PROFILES = ["default", "scifi", "cyberpunk", "terminal", "editorial", "technical", "rounded", "humanist_hig", "swiss_grotesk", "drafting_cad"] as const;
+/** Typography font pairing profile identifier. */
 export type ThemeFontProfile = (typeof THEME_FONT_PROFILES)[number];
+/** Available UI border-radius / corner geometry profile IDs. */
 export const THEME_CORNER_PROFILES = ["default", "sharp", "chamfer", "chamfered", "rounded", "squircle_hig", "pill", "organic"] as const;
+/** UI corner geometry profile identifier. */
 export type ThemeCornerProfile = (typeof THEME_CORNER_PROFILES)[number];
+/** Available icon drop-shadow and neon glow intensity profiles. */
 export const THEME_ICON_GLOWS = ["off", "subtle", "soft", "ambient_p3", "xdr_specular", "neon", "plasma", "hyper"] as const;
+/** Icon drop-shadow and glow profile identifier. */
 export type ThemeIconGlow = (typeof THEME_ICON_GLOWS)[number];
+/** Available interactive 3D and shader animation choreography modes for icons. */
 export const THEME_ICON_ANIMATIONS = ["off", "spring_pop_3d", "levitate_float", "holo_foil_shimmer", "orbital_halo_spin", "cyber_glitch_pulse", "heartbeat_biolum", "clockwork_gear_tick", "liquid_jelly_morph", "jelly_squish_3d", "plasma_arc_surge", "fire_ember_flicker", "godmode_pantheon_ascend", "folder_3d_spin_turntable", "flash_2advanced_vector_hud", "folder_3d_flip_origami", "gyro_3d_cube_matrix", "flash_fwa_kinetic_eq", "hologram_3d_projector_beam", "quantum_3d_phase_split", "m4_liquid_metal_morph", "houdini_vex_particle_burst", "c4d_mograph_cloner_wave", "after_effects_graph_overshoot", "unreal_nanite_mesh_lod", "blender_geometry_nodes_bloom", "raytraced_caustic_refraction"] as const;
+/** Interactive icon animation choreography identifier. */
 export type ThemeIconAnimation = (typeof THEME_ICON_ANIMATIONS)[number];
+/** Available UI element shader and material FX modes for folders, toolbars, and rows. */
 export const UI_ELEMENT_FX_MODES = ["auto", "off", "tahoe_glass_folders", "fluent_mica_folders", "xdr_titanium_folders", "google_material_folders", "cupertino_ceramic_bevel", "swiss_sapphire_chronograph", "teenage_field_anodized", "blueprint_cad_cyanotype", "kyoto_washi_sumi", "carbon_kevlar_weave", "fire_folders", "slime_drip", "cryo_frost", "tesla_arcs", "storm_wind", "mercury_chrome", "holo_glitch", "void_tentacles", "kaleidoscope_prism", "lava_wax", "acid_warp", "oil_slick_chrome", "shroom_spores", "holiday_festive_glow", "nerd_arcane_runes", "nerd_lcars_hud", "horror_blood_moon", "horror_vhs_static", "realworld_mahogany_brass", "realworld_stained_glass", "screen_melt_ooze", "molten_lava_melt", "crt_magnetic_warp", "fever_dream_ripple", "godmode_omega_halo", "godmode_photonic_crystal", "godmode_dyson_lattice", "godmode_chrono_crystal", "godmode_neural_synapse", "godmode_zero_point_arc", "flash_3000_vector_hud", "spinning_3d_holo_folders", "c4d_mograph_extrude_folders", "houdini_procedural_vex_hud"] as const;
+/** UI element shader and material FX mode identifier. */
 export type UiElementFx = (typeof UI_ELEMENT_FX_MODES)[number];
+/** Available visual icon pack style IDs for folders, files, and toolbars. */
 export const ICON_PACK_STYLES = ["auto", "default", "macos_tahoe_3d", "win11_fluent_pro", "pro_studio_xdr", "hdr_photo_studio", "linux_papirus_pro", "nordic_minimal", "google_material_3d", "cupertino_hig_studio", "swiss_horology_gold", "teenage_field_synth", "blueprint_cad_pro", "kyoto_zen_ink", "carbon_aerospace", "inferno", "inferno_burn", "slime", "bio_slime", "storm_tempest", "storm_weather", "neon_cyber", "liquid_gems", "liquid_chrome", "cryo_crystal", "retro_pixel", "arcane_glyphs", "xenotech_2126", "psychedelic_trip", "lava_groovy", "op_art_illusion", "us_holidays_festive", "nerd_rpg_arcane", "nerd_scifi_fleet", "nerd_hacker_retro", "horror_crypt", "realworld_objects", "godmode_celestial", "godmode_photonic", "godmode_quantum", "godmode_chrono", "godmode_omni_pantheon", "macos_sequoia_hig", "apple_vision_glass_3d", "dev_polyglot_pro", "creative_cinema_8k", "cyberdeck_matrix_hud", "royal_24k_gold_obsidian", "anime_mecha_neon", "steampunk_brass_clockwork", "bioluminescent_eden", "holo_prismatic_foil", "stained_glass_cathedral_pro", "synthwave_outrun_1984", "nasa_apollo_telemetry", "obsidian_blood_ruby", "aurora_nordic_ice", "vaporwave_marble_plaza", "quantum_superconductor", "classic_os_win95", "handheld_gameboy", "art_deco_gold", "bauhaus_primary", "memphis_80s_pop", "neo_brutalist_flat", "ukiyoe_woodblock", "pop_art_comic", "sketch_chalkboard", "clay_soft_3d", "origami_papercraft", "lowpoly_isometric", "thin_line_duotone", "mono_high_contrast", "terminal_ascii_tui", "deep_sea_biolum", "desert_sandstone", "cottagecore_botanical"] as const;
+/** Visual icon pack style identifier. */
 export type IconPackStyle = (typeof ICON_PACK_STYLES)[number];
+/** Available display and camera lens post-processing screen filter IDs. */
 export const SCREEN_FILTER_MODES = ["off", "crt_trinitron_95", "crt_amber_monochrome", "crt_green_p1_apple2", "vhs_camcorder_1994", "gameboy_dmg_olive", "virtual_boy_red_led", "kodachrome_64_film", "technicolor_3strip", "imax_70mm_anamorphic", "cyberpunk_chromatic_rgb", "night_vision_gen3", "flir_thermal_infrared", "blueprint_xray_neg", "sepia_daguerreotype_1888", "noir_sin_city_ink", "e_ink_carta_paper", "night_shift_warm_2700k", "pro_display_xdr_vivid", "nano_texture_matte_glass", "dreamcore_bloom_soft", "vhs_arcade_crt_curvature", "matrix_code_phosphor", "halftone_comic_spiderverse", "underwater_aquatic_refraction", "synthwave_sunset_grade", "hologram_pepper_ghost", "kaleidoscope_prism_lens", "davinci_aces_cct_grade", "nuke_anamorphic_flare_streak", "octane_spectral_iridescence", "red_v_raptor_8k_log", "arcane_painterly_brushwork", "substance_pbr_albedo_normal"] as const;
+/** Display and lens post-processing screen filter mode identifier. */
 export type ScreenFilterMode = (typeof SCREEN_FILTER_MODES)[number];
+/** Available physical icon material finish mode IDs. */
 export const ICON_FINISH_MODES = ["off", "macos_aqua_glass", "win11_fluent_acrylic", "pro_titanium_anodized", "neumorphic_tactile_studio", "holographic_collector_grade", "holiday_grand_celebration"] as const;
+/** Physical icon material finish mode identifier. */
 export type IconFinishMode = (typeof ICON_FINISH_MODES)[number];
+/** Available 3D Desktop Stage and Ambilux backlight mode IDs. */
 export const WORKSPACE_STAGE_MODE_IDS = ["off", "ambilux_xdr_halo", "stage_manager_3d_tilt", "coverflow_3d_reflection", "anamorphic_cinema_letterbox", "isometric_architect_table", "holodeck_grid_horizon", "holiday_snowglobe_dome"] as const;
+/** 3D Desktop Stage and Ambilux backlight mode identifier. */
 export type WorkspaceStageMode = (typeof WORKSPACE_STAGE_MODE_IDS)[number];
+/** Available procedural WebAudio tactile UI soundscape profile IDs. */
 export const UI_SOUND_PROFILE_IDS = ["off", "apple_hig_tactile", "mechanical_thock_pro", "teenage_synth_op1", "scifi_lcars_bridge", "retro_crt_arcade", "cinema_sub_boom", "holiday_chimes_festive"] as const;
+/** Procedural WebAudio UI soundscape profile identifier. */
 export type UiSoundProfile = (typeof UI_SOUND_PROFILE_IDS)[number];
+/** Available interactive pointer spotlight and 120Hz cursor trail mode IDs. */
 export const CURSOR_TRAIL_MODE_IDS = ["off", "holo_prism_spotlight", "stardust_comet_tail", "flash_2advanced_crosshair", "matrix_digital_wake", "cyber_plasma_arc", "sakura_petal_breeze", "holiday_magic_wand"] as const;
+/** Interactive pointer spotlight and cursor trail mode identifier. */
 export type CursorTrailMode = (typeof CURSOR_TRAIL_MODE_IDS)[number];
+/** Available spring-loaded 3D folder hover and selection behavior IDs. */
 export const FOLDER_SPRING_MODE_IDS = ["off", "macos_spring_loaded", "spatial_glass_extrude", "magnetic_dock_magnify", "xray_content_wireframe", "holiday_gift_unwrap"] as const;
+/** Spring-loaded 3D folder hover/selection mode identifier. */
 export type FolderSpringMode = (typeof FOLDER_SPRING_MODE_IDS)[number];
+/** Available procedural 8K desktop wallpaper backplate scene IDs. */
 export const DESKTOP_WALLPAPER_SCENE_IDS = ["off", "sequoia_redwood_dawn", "tahoe_alpine_lake", "win11_bloom_sculpture", "tokyo_neon_rain_alley", "cern_quantum_chamber", "deep_space_jwst_pillars", "holiday_winter_village"] as const;
+/** Procedural desktop wallpaper backplate scene identifier. */
 export type DesktopWallpaperScene = (typeof DESKTOP_WALLPAPER_SCENE_IDS)[number];
+/** Available dual-pane active vs. target visual distinction mode IDs. */
 export const DUAL_PANE_FOCUS_MODE_IDS = ["off", "spotlight", "neon_rim", "dim_inactive", "source_target_badges"] as const;
+/** Dual-pane focus visual distinction mode identifier. */
 export type DualPaneFocusMode = (typeof DUAL_PANE_FOCUS_MODE_IDS)[number];
+/** Available Chameleon folder mood auto-accent mode IDs. */
 export const CHAMELEON_FOLDER_MODE_IDS = ["off", "auto", "code", "media", "data", "docs", "archives", "security"] as const;
+/** Chameleon folder mood auto-accent mode identifier. */
 export type ChameleonFolderMode = (typeof CHAMELEON_FOLDER_MODE_IDS)[number];
+/** Available unfocused window and battery zero-watt governor mode IDs. */
 export const ZERO_WATT_GOVERNOR_MODE_IDS = ["auto", "always_120hz", "eco_saver"] as const;
+/** Unfocused window and battery power governor mode identifier. */
 export type ZeroWattGovernorMode = (typeof ZERO_WATT_GOVERNOR_MODE_IDS)[number];
+/** Available Kelvin white-point and OLED true-black mastering mode IDs. */
 export const COLOR_TEMP_MODE_IDS = ["neutral_6500k", "candle_2700k", "golden_hour_3500k", "halogen_4300k", "daylight_d50_5000k", "cyber_cool_7500k", "arctic_blue_9300k", "oled_true_black"] as const;
+/** Kelvin white-point / OLED mastering color temperature mode identifier. */
 export type ColorTempMode = (typeof COLOR_TEMP_MODE_IDS)[number];
+/** Available color-vision deficiency (Daltonism) and high-contrast accessibility mode IDs. */
 export const COLOR_VISION_MODE_IDS = ["off", "protanopia_safe", "deuteranopia_safe", "tritanopia_safe", "achromatopsia_mono", "high_contrast_aaa"] as const;
+/** Color-vision accessibility mode identifier. */
 export type ColorVisionMode = (typeof COLOR_VISION_MODE_IDS)[number];
+/** Available presentation modes for the built-in Theme Show / Screensaver. */
 export const THEME_SHOW_MODES = ["cinema_hud", "pure_canvas", "living_desktop", "retro_afterdark"] as const;
+/** Presentation mode identifier for the Theme Show / Screensaver. */
 export type ThemeShowMode = (typeof THEME_SHOW_MODES)[number];
+/** Available curated theme and FX channels for the Theme Show / Screensaver. */
 export const THEME_SHOW_CHANNELS = ["all_ultra", "storms_debris", "year_2126", "tesla_physics", "visceral_fx", "linux_retro", "us_holidays", "nerd_complete", "horror_nightmare", "realworld_objects", "favorites"] as const;
+/** Channel identifier for the Theme Show / Screensaver. */
 export type ThemeShowChannel = (typeof THEME_SHOW_CHANNELS)[number];
+/** Available scene transition styles for the Theme Show / Screensaver. */
 export const THEME_SHOW_TRANSITIONS = ["oklab_morph", "arc_surge", "glitch_cut"] as const;
+/** Scene transition style identifier for the Theme Show / Screensaver. */
 export type ThemeShowTransition = (typeof THEME_SHOW_TRANSITIONS)[number];
+/** Available hardware tier boost overrides while the Theme Show is active. */
 export const THEME_SHOW_BOOST_TIERS = ["extreme", "ultra", "keep"] as const;
+/** Hardware tier boost override identifier for the Theme Show. */
 export type ThemeShowBoostTier = (typeof THEME_SHOW_BOOST_TIERS)[number];
+/** Maximum number of per-folder custom theme assignments stored in settings (`100`). */
 export const MAX_FOLDER_THEMES = 100;
+/** Maximum number of user-saved atmosphere presets stored in settings (`50`). */
 export const MAX_ATMOSPHERE_PRESETS = 50;
+/** Maximum number of per-layer atmosphere modifiers stored in a preset or settings (`32`). */
 export const MAX_LAYER_MODS = 32;
+/** Minimum percentage width/height of the split pane (`20`). */
 export const SPLIT_MIN = 20;
+/** Maximum percentage width/height of the split pane (`80`). */
 export const SPLIT_MAX = 80;
+/** Minimum height in pixels of the built-in bottom terminal panel (`120`). */
 export const TERMINAL_HEIGHT_MIN = 120;
+/** Maximum height in pixels of the built-in bottom terminal panel (`1200`). */
 export const TERMINAL_HEIGHT_MAX = 1200;
+/** Default height in pixels of the built-in bottom terminal panel (`300`). */
 export const TERMINAL_HEIGHT_DEFAULT = 300;
 const TOOL_ID = /^[a-z][a-z0-9-]{0,24}$/;
 
+/** Default File Manager settings used when `file_manager.json` is absent or a field is invalid. */
 export const DEFAULT_SETTINGS: Settings = {
   favorites: [],
   favoriteNames: {},
@@ -412,11 +496,17 @@ export const DEFAULT_SETTINGS: Settings = {
   phononSyncOffsetMs: 0,
 };
 
+/** Maximum number of pinned favorite folders stored in settings (`100`). */
 export const MAX_FAVORITES = 100;
+/** Maximum character length of a custom display name for a favorite folder (`60`). */
 export const MAX_FAVORITE_NAME = 60;
+/** Maximum number of favorite theme keys pinned by the user (`50`). */
 export const MAX_FAVORITE_THEMES = 50;
+/** Maximum number of recently opened file paths retained in settings (`30`). */
 export const MAX_RECENTS = 30;
+/** Maximum number of saved presets per Studio tool (`50`). */
 export const MAX_STUDIO_PRESETS = 50;
+/** Maximum character length of a saved Studio or Atmosphere preset name (`40`). */
 export const MAX_PRESET_NAME = 40;
 
 const oneOf = <T extends string>(value: unknown, allowed: readonly T[], fallback: T): T => (allowed.includes(value as T) ? (value as T) : fallback);
@@ -692,16 +782,20 @@ async function readSettingsRaw(ctx: FmContext): Promise<Settings> {
   }
 }
 
+/** Reads and sanitizes `file_manager.json` after awaiting any in-flight write for the same path. */
 export async function loadSettings(ctx: FmContext): Promise<Settings> {
   await (writingQueues.get(settingsFile(ctx)) ?? Promise.resolve());
   return readSettingsRaw(ctx);
 }
 
+/** Callback that inspects the current `Settings` and returns a partial patch to apply, or `null` to skip saving. */
 export type SettingsMutator = (current: Settings) => Record<string, unknown> | null | Promise<Record<string, unknown> | null>;
 
-/** Applies a partial change (or mutator function) and saves it. Unknown keys are ignored. */
+/** Applies a mutator callback to the current settings, sanitizes the result, and atomically saves it. */
 export async function updateSettings(ctx: FmContext, change: SettingsMutator): Promise<Settings>;
+/** Applies a partial settings patch object, sanitizes the result, and atomically saves it. Unknown keys are ignored. */
 export async function updateSettings(ctx: FmContext, change: unknown): Promise<Settings>;
+/** Applies a partial change (or mutator function) and saves it. Unknown keys are ignored. */
 export async function updateSettings(
   ctx: FmContext,
   change: unknown,

@@ -15,12 +15,14 @@ import {
 } from "./targets";
 import type { SeedHooks, SeedProgress, SeedSummary } from "./runner";
 
+/** Pre-flighted sample database creation plan ready to execute against the target host. */
 export interface PreparedSeed {
   /** The name the sample will be created under (database, schema or file path). */
   target: string;
   run(hooks: SeedHooks): Promise<SeedSummary>;
 }
 
+/** Preview result of running a read-only example query against a seeded sample database. */
 export interface QueryPreview {
   columns: string[];
   rows: unknown[][];
@@ -29,6 +31,7 @@ export interface QueryPreview {
   ms: number;
 }
 
+/** Dialect-specific host adapter for preparing, seeding, opening, and querying sample databases. */
 export interface SampleHost {
   dialect: Dialect;
   /** Runs one catalog query (a read-only SELECT) inside the created sample and returns a preview of the rows. */
@@ -40,6 +43,7 @@ export interface SampleHost {
   open(target: string, datasetId: string): Promise<{ success: boolean; error?: string; path?: string }>;
 }
 
+/** State of an in-progress or completed sample database creation job. */
 export interface SampleJob {
   id: string;
   datasetId: string;
@@ -58,6 +62,7 @@ export interface SampleJob {
   result: (SeedSummary & { target: string }) | null;
 }
 
+/** HTTP route handler and active job map for `/api/samples/*` endpoints. */
 export interface SampleApi {
   handle(req: Request, url: URL, headers?: Record<string, string>): Promise<Response | null>;
   jobs: Map<string, SampleJob>;
@@ -81,6 +86,7 @@ export function plainQueryError(message: string): string {
   return `The query could not run: ${m}`;
 }
 
+/** Creates a `SampleApi` HTTP router backed by the given `SampleHost`. */
 export function createSampleApi(host: SampleHost): SampleApi {
   const jobs = new Map<string, SampleJob>();
   const cancelFlags = new Set<string>();

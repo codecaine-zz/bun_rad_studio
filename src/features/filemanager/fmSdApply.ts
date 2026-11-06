@@ -11,8 +11,10 @@ import { FmError, describeFsError } from "./fmPaths";
 import { sdState, runSdJob, type SdPreview, type SdUndoFile, type SdUndoRun } from "./fmSdRun";
 import { SD_MAX_BATCH_BYTES, SD_UNDO_RUNS, type SdTransformOutcome } from "./fmSdShared";
 
+/** Outcome status for a single file during a Replace apply or undo operation. */
 export type RowStatus = "replaced" | "changed" | "protected" | "failed" | "unchanged" | "already" | "restored" | "missing" | "edited";
 
+/** Per-file result entry returned after applying or undoing a Replace preview. */
 export interface ApplyRow {
   path: string;
   status: RowStatus;
@@ -51,12 +53,14 @@ async function writeBackup(ctx: FmContext, path: string, bytes: Buffer, mode: nu
   throw new FmError("NO_FREE_NAME", "Could not find a free name for the backup.");
 }
 
+/** Validates and normalizes a backup file extension (defaulting to `".bak"`), ensuring it starts with a dot. */
 export function backupExtension(raw: unknown): string {
   const text = typeof raw === "string" && raw.trim() ? raw.trim() : ".bak";
   if (!/^\.?[A-Za-z0-9_~-]{1,16}$/.test(text)) throw new FmError("BAD_REQUEST", "The backup ending can only use letters, numbers, dashes and underscores, like .bak or .orig.");
   return text.startsWith(".") ? text : `.${text}`;
 }
 
+/** Options controlling which previewed files to replace and whether to write backup copies. */
 export interface ApplyOptions {
   files: string[];
   backup: boolean;
@@ -177,6 +181,7 @@ export async function undoRun(ctx: FmContext, runId: string | undefined): Promis
   }
 }
 
+/** Returns a lightweight summary of all in-memory Replace runs available for undo in the current session. */
 export function undoSummary(ctx: FmContext): Array<{ id: string; at: number; files: number; replacements: number; backups: number; find: string; replace: string }> {
   return sdState(ctx).undo.map((r) => ({
     id: r.id, at: r.at, files: r.files.length, replacements: r.files.reduce((n, f) => n + f.replacements, 0), backups: r.files.filter((f) => f.backup).length,

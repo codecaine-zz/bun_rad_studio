@@ -13,6 +13,7 @@ import { FmError } from "./fmPaths";
 
 const NAME_RE = /^[A-Za-z0-9][A-Za-z0-9._ -]{0,80}$/;
 
+/** File Manager API handlers for creating, resetting, and opening the built-in sample SQLite database. */
 export const sampleOperations: Record<string, FmHandler> = {
   async "db/sample/catalog"() {
     return {

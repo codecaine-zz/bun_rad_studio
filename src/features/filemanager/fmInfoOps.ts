@@ -20,6 +20,7 @@ function hashRows(value: unknown): Array<{ id: string; value: string }> {
   });
 }
 
+/** Map of File Manager `info/*` RPC operation handlers for inspecting files, media, images, folders, and hashes. */
 export const infoOperations: Record<string, FmHandler> = {
   async "info/file"(ctx, b) {
     return await withLimit(OP_TIMEOUT_MS, () => fileInfo(ctx, b.path));

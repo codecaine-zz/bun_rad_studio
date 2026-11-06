@@ -34,6 +34,7 @@ import { FmError } from "./fmPaths";
 import { findInFiles, listWorkspaceFiles } from "./fmCodeSearch";
 import { loadCodeSession, updateCodeSession } from "./fmCodeSession";
 
+/** File Manager API handlers for the Code power tool (`code/read`, `code/save`, `code/search`, `code/git`, `code/session`, `code/presets`, `code/format`). */
 export const codeOperations: Record<string, FmHandler> = {
   async "code/read"(ctx, b) {
     return { file: await readCodeFile(ctx, b.path, b.encoding) };

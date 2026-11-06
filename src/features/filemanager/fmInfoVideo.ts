@@ -81,6 +81,7 @@ function readIlst(buf: Uint8Array, ilst: Box, m: MediaInfo): void {
   }
 }
 
+/** Parses ISO Base Media (MP4, MOV, M4A, 3GP) atoms (`ftyp`, `moov`, `trak`, `udta`, `ilst`) into `MediaInfo`. */
 export async function parseMp4(src: Source): Promise<MediaInfo> {
   const m = emptyMedia("MP4 video (MPEG-4)");
   let pos = 0;
@@ -208,6 +209,7 @@ const uint = (b: Uint8Array, e: El) => {
 const str = (b: Uint8Array, e: El) => clip(Buffer.from(b.subarray(e.start, e.end)).toString("utf8").replace(/\0.*$/, ""), 300).trim();
 const float = (b: Uint8Array, e: El) => (e.end - e.start === 4 ? Buffer.from(b).readFloatBE(e.start) : e.end - e.start === 8 ? Buffer.from(b).readDoubleBE(e.start) : NaN);
 
+/** Parses EBML Matroska / WebM container segments, track entries, and stream parameters into `MediaInfo`. */
 export async function parseMatroska(src: Source): Promise<MediaInfo> {
   const m = emptyMedia("Matroska video (MKV)");
   const b = await src.read(0, 2 * 1024 * 1024);

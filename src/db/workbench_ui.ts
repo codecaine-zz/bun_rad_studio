@@ -3,6 +3,8 @@
  * All database content is inserted with textContent / createTextNode, never as HTML. The page holds no
  * credentials: passwords are sent once to the backend, which keeps them in the OS credential store.
  */
+
+/** Options for rendering the standalone Database Workbench HTML page. */
 export interface WorkbenchHtmlOptions {
   token: string;
   title?: string;
@@ -10,6 +12,7 @@ export interface WorkbenchHtmlOptions {
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
+/** Generates the self-contained HTML document for the Database Workbench with an embedded CSRF/API token. */
 export function generateWorkbenchHtml(opts: WorkbenchHtmlOptions): string {
   const title = esc(opts.title ?? "Database Workbench");
   return `<!DOCTYPE html>

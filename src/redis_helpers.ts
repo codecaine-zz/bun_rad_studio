@@ -3,10 +3,14 @@
  * validation, delete-pattern safety and export file naming. No network access.
  */
 
+/** Schema version number for Redis Studio JSON export documents. */
 export const REDIS_EXPORT_VERSION = 1;
+/** Redis data types supported by Redis Studio export and import. */
 export const REDIS_EXPORTABLE_TYPES = ["string", "hash", "list", "set", "zset"] as const;
+/** Union of Redis data type names supported for export and import. */
 export type RedisExportableType = (typeof REDIS_EXPORTABLE_TYPES)[number];
 
+/** Serialized representation of a single Redis key, its type, TTL, and value. */
 export interface RedisExportKey {
   key: string;
   type: RedisExportableType;
@@ -15,6 +19,7 @@ export interface RedisExportKey {
   value: any;
 }
 
+/** Envelope format for a Redis Studio database export JSON document. */
 export interface RedisExportDoc {
   format: "redis-studio-export";
   version: number;
@@ -42,6 +47,7 @@ export function normalizeDeletePattern(raw: string): { ok: boolean; pattern: str
   return { ok: true, pattern, matchesAll: /^\*+$/.test(pattern) };
 }
 
+/** Generates a timestamped default filename for exporting a Redis database index. */
 export function exportFileName(db: number, now = new Date()): string {
   const p = (n: number) => String(n).padStart(2, "0");
   const stamp = `${now.getFullYear()}${p(now.getMonth() + 1)}${p(now.getDate())}_${p(now.getHours())}${p(now.getMinutes())}${p(now.getSeconds())}`;
@@ -82,6 +88,7 @@ export function validateExportDoc(input: unknown): { ok: boolean; doc?: RedisExp
 
 import { parseUniversalTable } from "./db/importParser";
 
+/** Options for parsing and importing multi-format payloads into Redis keys. */
 export interface RedisImportOptions {
   format?: string;
   fileName?: string;

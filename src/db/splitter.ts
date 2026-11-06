@@ -1,5 +1,10 @@
+/**
+ * Dialect-aware SQL script tokenizer and statement splitter supporting strings, comments,
+ * PostgreSQL dollar-quoting, MySQL `DELIMITER` directives, and SQLite `BEGIN ... END` triggers.
+ */
 import type { Engine } from "./types";
 
+/** A single SQL statement extracted from a multi-statement script with its character offsets and 1-based line number. */
 export interface SqlStatement {
   /** Statement text without the terminating delimiter, trimmed. */
   sql: string;

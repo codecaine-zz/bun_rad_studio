@@ -93,6 +93,7 @@ async function writeUniqueReport(
   throw new FmError("EXISTS", "Couldn't find a free file name in that folder.");
 }
 
+/** File Manager API handlers (`tasks/*`) for listing, inspecting, signaling, port-freeing, and exporting OS processes. */
 export const taskManagerOperations: Record<string, FmHandler> = {
   async "tasks/list"(ctx) {
     const snap = await collectTaskSnapshot(ctx.platform, ctx.tasks);

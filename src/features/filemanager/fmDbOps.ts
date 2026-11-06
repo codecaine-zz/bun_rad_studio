@@ -31,6 +31,7 @@ async function draft(input: unknown, id?: string): Promise<DbProfile> {
   return await guarded(async () => (input.engine === "redis" ? ({ ...sanitizeRedisProfile(input), id: id ?? "draft", createdAt: now } as RedisProfile) : ({ ...sanitizeProfileInput(input), id: id ?? "draft", createdAt: now } as ConnectionProfile)));
 }
 
+/** Combined map of all File Manager `db/*` API operation handlers. */
 export const databaseOperations: Record<string, FmHandler> = {
   async "db/overview"(ctx) {
     const st = dbState(ctx);

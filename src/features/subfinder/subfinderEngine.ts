@@ -18,6 +18,9 @@ import {
 import { PASSIVE_SOURCES, SourceError, askSource, type FetchLike } from "./subfinderSources.ts";
 import { runSubfinderProgram, type SpawnLike } from "./subfinderProgram.ts";
 
+/**
+ * Full configuration for a subdomain discovery run across passive OSINT sources and optional active DNS/HTTP/TCP phases.
+ */
 export interface DiscoveryOptions {
   /** Source ids: crtsh, hackertarget, alienvault, anubis, subfinder. */
   sources: string[];
@@ -42,6 +45,9 @@ export interface DiscoveryOptions {
   programPath?: string | null;
 }
 
+/**
+ * Hard safety ceilings on concurrency, redirect hops, IPs per host, and total discovered hosts.
+ */
 export const ENGINE_LIMITS = {
   maxDnsConcurrency: 10,
   maxHttpConcurrency: 5,
@@ -51,6 +57,9 @@ export const ENGINE_LIMITS = {
   maxResultsCeiling: 10_000,
 } as const;
 
+/**
+ * Default passive-only `DiscoveryOptions` used when starting a subdomain discovery run.
+ */
 export const DEFAULT_OPTIONS: DiscoveryOptions = {
   sources: ["crtsh", "hackertarget", "alienvault", "anubis"],
   resolve: false, probeHttp: false, ports: [], wildcard: false,
@@ -59,6 +68,9 @@ export const DEFAULT_OPTIONS: DiscoveryOptions = {
   rateLimitMs: 250, allowPrivate: false, verifyTls: true,
 };
 
+/**
+ * Injectable external dependencies (HTTP, DNS, TCP, process spawning, clock, RNG, and concurrency limiter) for the discovery engine.
+ */
 export interface EngineDeps {
   fetch: FetchLike;
   resolve(host: string, o: { timeoutMs: number; signal?: AbortSignal }): Promise<string[]>;
@@ -73,6 +85,9 @@ export interface EngineDeps {
   limiter: Limiter;
 }
 
+/**
+ * Constructs the default production `EngineDeps` wired to real DNS, socket TCP/HTTP, `fetch`, and `sharedLimiter`.
+ */
 export function defaultDeps(): EngineDeps {
   return {
     fetch: (url, init) => fetch(url, init),
@@ -81,8 +96,14 @@ export function defaultDeps(): EngineDeps {
   };
 }
 
+/**
+ * Execution lifecycle state of a single passive OSINT source during a discovery run.
+ */
 export type SourceState = "waiting" | "running" | "done" | "failed" | "timeout" | "cancelled";
 
+/**
+ * Live status and telemetry counters reported for a single passive source.
+ */
 export interface SourceStatus {
   id: string;
   label: string;
@@ -96,8 +117,14 @@ export interface SourceStatus {
   ms: number;
 }
 
+/**
+ * Progress counter for the currently active engine phase (`sources`, `dns`, `http`, or `ports`).
+ */
 export interface PhaseInfo { phase: "sources" | "dns" | "http" | "ports"; done: number; total: number }
 
+/**
+ * Streaming callbacks invoked by `runDiscovery` as sources complete, rows are discovered/updated, phases advance, and log messages are emitted.
+ */
 export interface EngineHooks {
   onSource?(status: SourceStatus): void;
   onRow?(row: SubdomainResult): void;
@@ -105,6 +132,9 @@ export interface EngineHooks {
   log?(level: "info" | "ok" | "warn" | "error", text: string): void;
 }
 
+/**
+ * Final summary statistics returned when `runDiscovery` finishes or is cancelled.
+ */
 export interface DiscoverySummary {
   state: "done" | "cancelled";
   hosts: number;
@@ -133,6 +163,9 @@ async function pool<T>(items: T[], concurrency: number, signal: AbortSignal, fn:
 
 const ipv4First = (ips: string[]) => [...ips].sort((a, b) => Number(a.includes(":")) - Number(b.includes(":")));
 
+/**
+ * Executes a full passive and optional active subdomain discovery workflow for `domain`, streaming updates via `hooks` and honoring `signal` cancellation.
+ */
 export async function runDiscovery(domain: string, options: DiscoveryOptions, deps: EngineDeps, hooks: EngineHooks, signal: AbortSignal): Promise<DiscoverySummary> {
   const started = deps.now();
   const log = hooks.log ?? (() => {});

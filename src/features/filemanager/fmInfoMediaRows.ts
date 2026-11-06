@@ -1,6 +1,7 @@
 /** What the media readers answer with, and how it is turned into rows. Shared by the built-in readers and ffprobe. */
 import { formatDuration, Rows, type InfoGroup } from "./fmInfoCommon";
 
+/** Metadata for a single video, audio, subtitle, or data stream inside a media container. */
 export interface MediaStream {
   type: "video" | "audio" | "subtitle" | "data" | "other";
   codec: string;
@@ -19,6 +20,7 @@ export interface MediaStream {
   durationSec?: number;
 }
 
+/** Parsed container, stream, tag, lyrics, and chapter metadata for an audio or video file. */
 export interface MediaInfo {
   source: "ffprobe" | "built-in";
   container: string;
@@ -35,6 +37,7 @@ export interface MediaInfo {
   partial: boolean;
 }
 
+/** Creates an empty `MediaInfo` record initialized with the given container name. */
 export function emptyMedia(container: string): MediaInfo {
   return { source: "built-in", container, durationSec: null, bitrate: null, streams: [], tags: {}, coverArt: false, chapters: [], notes: [], partial: false };
 }
@@ -46,6 +49,7 @@ const TAG_LABELS: Array<[string, string]> = [
 
 const bitrateText = (bps: number) => (bps >= 1_000_000 ? `${Math.round(bps / 10_000) / 100} Mbit/s` : `${Math.round(bps / 1000)} kbit/s`);
 
+/** Formats a `MediaInfo` record and file byte size into labeled `InfoGroup` sections for display. */
 export function mediaGroups(m: MediaInfo, size: number): InfoGroup[] {
   const groups: InfoGroup[] = [];
   const main = new Rows();

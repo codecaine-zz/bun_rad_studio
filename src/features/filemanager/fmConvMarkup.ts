@@ -9,6 +9,7 @@ import { ConvError, MAX_DEPTH, Notes, flatten, inferScalar, isObj, newObj, recor
 // XML
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Parsed XML element node containing tag name, attribute tuples, child elements, and text content. */
 export interface XNode {
   name: string;
   attrs: Array<[string, string]>;
@@ -19,6 +20,7 @@ export interface XNode {
 
 const ENTITIES: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: "\u00a0" };
 
+/** Decodes standard named (`&amp;`, `&lt;`, etc.) and numeric (`&#...;`, `&#x...;`) XML/HTML character entities. */
 export function decodeEntities(s: string): string {
   return s.replace(/&(#x[0-9a-fA-F]{1,6}|#\d{1,7}|[A-Za-z][A-Za-z0-9]{1,10});/g, (m, body: string) => {
     if (body[0] === "#") {
@@ -29,6 +31,7 @@ export function decodeEntities(s: string): string {
   });
 }
 
+/** Parses an XML document string into a tree of `XNode` elements. */
 export function parseXmlTree(source: string): XNode {
   const text = source.charCodeAt(0) === 0xfeff ? source.slice(1) : source;
   let i = 0;
@@ -143,6 +146,7 @@ function xnodeValue(node: XNode): Value {
   return out;
 }
 
+/** Parses an XML document string into a plain structured `Value` object. */
 export function parseXml(text: string): Value {
   const root = parseXmlTree(text);
   const out = newObj();
@@ -155,6 +159,7 @@ const escAttr = (s: string) => escXml(s).replace(/"/g, "&quot;").replace(/\r?\n/
 // eslint-disable-next-line no-control-regex
 const XML_BAD = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufffe\uffff]/g;
 
+/** Serializes a structured `Value` into formatted XML text with the configured root and item element names. */
 export function writeXml(v: Value, opts: { rootName: string; itemName: string }, notes: Notes): string {
   const clean = (s: string) => {
     if (XML_BAD.test(s)) notes.add("Control characters that XML can't hold were removed.");
@@ -218,6 +223,7 @@ export function writeXml(v: Value, opts: { rootName: string; itemName: string },
 // plist (XML property lists)
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Parses an Apple XML `.plist` document into a structured `Value` tree. */
 export function parsePlist(text: string, notes: Notes): Value {
   if (text.startsWith("bplist00")) throw new ConvError("This is a binary property list. Convert it to XML first (on a Mac: plutil -convert xml1 file.plist), then try again.");
   const root = parseXmlTree(text);
@@ -260,6 +266,7 @@ export function parsePlist(text: string, notes: Notes): Value {
   return go(first, 0);
 }
 
+/** Serializes a structured `Value` tree into an Apple XML `.plist` v1.0 document. */
 export function writePlist(v: Value, notes: Notes): string {
   const out: string[] = [];
   const go = (x: Value, level: number) => {
@@ -306,6 +313,7 @@ function unquoteValue(raw: string): string {
   return t;
 }
 
+/** Parses an INI configuration file with `[section]` headers into a nested `Value` object. */
 export function parseIni(text: string, infer: boolean, notes: Notes): Value {
   const root = newObj();
   let cur: Obj = root;
@@ -342,6 +350,7 @@ export function parseIni(text: string, infer: boolean, notes: Notes): Value {
   return root;
 }
 
+/** Serializes a structured `Value` object into INI configuration text with top-level keys and `[section]` blocks. */
 export function writeIni(v: Value, notes: Notes): string {
   if (!isObj(v)) throw new ConvError("An INI file needs named settings. This data is a list or a single value, so it can't be written as INI. Convert it from JSON with an object at the top.");
   const q = (x: string) => (/^\s|\s$|^["';#]|[\r\n]/.test(x) ? JSON.stringify(x) : x);
@@ -368,6 +377,7 @@ export function writeIni(v: Value, notes: Notes): string {
 // .env
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Parses a `.env` file (`KEY=VALUE` lines with single, double, or unquoted values) into a plain `Value` object. */
 export function parseEnv(text: string, infer: boolean): Value {
   const out = newObj();
   const lines = text.replace(/^\ufeff/, "").split(/\r?\n/);
@@ -406,6 +416,7 @@ export function parseEnv(text: string, infer: boolean): Value {
   return out;
 }
 
+/** Flattens and serializes a structured `Value` into uppercase `KEY=VALUE` `.env` lines. */
 export function writeEnv(v: Value, notes: Notes): string {
   const flat = isObj(v) ? flatten(v, "_") : flatten({ value: v } as Obj, "_");
   if (!isObj(v) || Object.values(v).some((x) => typeof x === "object" && x !== null)) notes.add("Nested data was flattened, joining the names with _.");
@@ -428,6 +439,7 @@ function propUnescape(s: string): string {
   return s.replace(/\\(u[0-9a-fA-F]{4}|[\s\S])/g, (_m, c: string) => (c[0] === "u" && c.length === 5 ? String.fromCharCode(parseInt(c.slice(1), 16)) : c === "n" ? "\n" : c === "t" ? "\t" : c === "r" ? "\r" : c === "f" ? "\f" : c));
 }
 
+/** Parses a Java `.properties` file (including line continuations and `\uXXXX` escapes) into a `Value` object. */
 export function parseProperties(text: string, infer: boolean): Value {
   const out = newObj();
   const physical = text.replace(/^\ufeff/, "").split(/\r?\n|\r/);
@@ -449,6 +461,7 @@ export function parseProperties(text: string, infer: boolean): Value {
   return out;
 }
 
+/** Flattens and serializes a structured `Value` into Java `.properties` format. */
 export function writeProperties(v: Value, notes: Notes): string {
   const flat = isObj(v) ? flatten(v) : flatten({ value: v } as Obj);
   if (!isObj(v) || Object.values(v).some((x) => typeof x === "object" && x !== null)) notes.add("Nested data was flattened into dotted names (like server.port).");
@@ -491,6 +504,7 @@ function splitPipes(line: string): string[] {
   return cells.map((c) => c.trim().replace(/<br\s*\/?>/gi, "\n"));
 }
 
+/** Extracts and parses the first GitHub-flavored Markdown pipe table in `text` into an array of row objects. */
 export function parseMarkdownTable(text: string, infer: boolean, notes: Notes): Value {
   const lines = text.replace(/^\ufeff/, "").split(/\r?\n/);
   const sep = (l: string) => /^\s*\|?\s*:?-{1,}:?\s*(\|\s*:?-{1,}:?\s*)*\|?\s*$/.test(l) && l.includes("-") && (l.includes("|") || /^\s*:?-+:?\s*$/.test(l));
@@ -511,6 +525,7 @@ export function parseMarkdownTable(text: string, infer: boolean, notes: Notes): 
   return recordsFromRows(header, rows, infer);
 }
 
+/** Formats a structured `Value` as a GitHub-flavored Markdown pipe table. */
 export function writeMarkdownTable(v: Value, flatOpt: boolean, notes: Notes): string {
   const t = toTable(v, { flatten: flatOpt, notes });
   const cell = (x: Value) => scalarText(x).replace(/\|/g, "\\|").replace(/\r?\n/g, "<br>");
@@ -523,6 +538,7 @@ export function writeMarkdownTable(v: Value, flatOpt: boolean, notes: Notes): st
 
 const stripTags = (s: string) => decodeEntities(s.replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]*>/g, "")).replace(/[ \t\r\f\v\u00a0]+/g, " ").replace(/ ?\n ?/g, "\n").trim();
 
+/** Extracts and parses the first HTML `<table>` in `text` into an array of row objects or cell arrays. */
 export function parseHtmlTable(text: string, header: boolean, infer: boolean, notes: Notes): Value {
   const tables = [...text.matchAll(/<table\b[^>]*>([\s\S]*?)<\/table\s*>/gi)];
   if (!tables.length) throw new ConvError("No table was found in this file (there is no <table> in it).");
@@ -542,6 +558,7 @@ export function parseHtmlTable(text: string, header: boolean, infer: boolean, no
   return rows.map((r) => r.map((c) => (infer ? inferScalar(c) : c)));
 }
 
+/** Renders a structured `Value` as a standalone HTML document containing a styled `<table>`. */
 export function writeHtmlTable(v: Value, flatOpt: boolean, title: string, notes: Notes): string {
   const t = toTable(v, { flatten: flatOpt, notes });
   const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -554,8 +571,10 @@ export function writeHtmlTable(v: Value, flatOpt: boolean, title: string, notes:
 // SQL INSERT statements
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Target SQL quoting and identifier dialect (`ansi`, `mysql`, or `sqlserver`) for `writeSql`. */
 export type Dialect = "ansi" | "mysql" | "sqlserver";
 
+/** Generates optional `CREATE TABLE` DDL and batched `INSERT INTO` SQL statements from a structured `Value`. */
 export function writeSql(v: Value, o: { table: string; dialect: Dialect; createTable: boolean; flatten: boolean }, notes: Notes): string {
   const t = toTable(v, { flatten: o.flatten, notes });
   const ident = (s: string) => (o.dialect === "mysql" ? `\`${s.replace(/`/g, "``")}\`` : o.dialect === "sqlserver" ? `[${s.replace(/\]/g, "]]")}]` : `"${s.replace(/"/g, '""')}"`);

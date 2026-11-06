@@ -15,11 +15,14 @@ import * as nodePath from "path";
 import type { FmContext } from "./fmCore";
 import { splitName, uniqueName } from "./fmPaths";
 
+/** Identifier of an external CLI helper tool that the File Manager can detect and invoke. */
 export type ToolId =
   | "ffmpeg" | "imagemagick" | "pandoc"
   | "ghostscript" | "libreoffice" | "calibre" | "tesseract" | "fonttools" | "woff2" | "sevenzip" | "unar" | "bsdtar" | "qpdf" | "poppler" | "exiftool" | "ollama";
+/** Identifier of a supported system package manager used to install helper tools. */
 export type ManagerId = "brew" | "winget" | "scoop" | "choco" | "apt" | "dnf" | "pacman";
 
+/** Static metadata, executable names, package manager mappings, and search paths for an external CLI helper tool. */
 export interface ToolDef {
   id: ToolId;
   name: string;
@@ -49,6 +52,7 @@ export interface ToolDef {
   dirs?: { darwin?: string[]; linux?: string[]; win32?: string[] };
 }
 
+/** Registry mapping every `ToolId` to its `ToolDef` specification. */
 export const TOOLS: Record<ToolId, ToolDef> = {
   ffmpeg: {
     id: "ffmpeg", name: "ffmpeg", what: "Converts video and sound files (MP4, MP3, GIF and many more).",
@@ -160,6 +164,7 @@ export const TOOLS: Record<ToolId, ToolDef> = {
   },
 };
 
+/** Ordered list of all supported helper tool identifiers. */
 export const TOOL_IDS = Object.keys(TOOLS) as ToolId[];
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -305,8 +310,10 @@ const VIDEO_IN = new Set(["mp4", "mov", "mkv", "avi", "webm", "m4v", "wmv", "flv
 const AUDIO_IN = new Set(["mp3", "wav", "flac", "aac", "m4a", "ogg", "opus", "wma", "aiff", "aif"]);
 const DOC_IN = new Set(["md", "markdown", "txt", "html", "htm", "docx", "odt", "rtf", "epub", "tex", "rst", "org", "textile"]);
 
+/** Media category grouping for quick-convert actions (`"Pictures"`, `"Video"`, `"Sound"`, `"Documents"`). */
 export type ActionGroup = "Pictures" | "Video" | "Sound" | "Documents";
 
+/** Specification of a built-in batch conversion or transformation action backed by a helper tool. */
 export interface ActionDef {
   id: string;
   label: string;
@@ -376,6 +383,7 @@ export const ACTIONS: ActionDef[] = [
   docAction("doc-pdf", "Convert to PDF", "Needs a PDF engine such as Typst or LaTeX.", "pdf", [], { needs: "pdfengine" }),
 ];
 
+/** Lookup map from action ID to its `ActionDef` definition. */
 export const ACTION_BY_ID = new Map(ACTIONS.map((a) => [a.id, a]));
 
 /** The lower-case extension of a file name without the dot. */
@@ -477,6 +485,7 @@ export function tesseractCapabilities(listing: string): string[] {
   return listing.split(/\r?\n/).map((l) => l.trim()).filter((l) => /^[A-Za-z_]{2,20}$/.test(l) && l !== "osd").map((l) => `lang-${l}`);
 }
 
+/** Candidate PDF engines checked in preference order when converting documents to PDF with `pandoc`. */
 export const PDF_ENGINES = ["typst", "tectonic", "xelatex", "lualatex", "pdflatex", "wkhtmltopdf", "weasyprint"];
 
 /** Why an action can't be used with the installed program, or null if it can. */
@@ -495,6 +504,7 @@ export function missingCapability(action: { needs?: string }, caps: string[], to
 // Installing
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Resolved package-manager installation command and user guidance for installing a missing helper tool. */
 export interface InstallPlan {
   tool: ToolId;
   method: ManagerId | null;
@@ -512,10 +522,13 @@ export interface InstallPlan {
   size: string;
 }
 
+/** Standard shell command shown to install Homebrew on macOS or Linux when no package manager is present. */
 export const HOMEBREW_INSTALL_COMMAND = '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"';
 
+/** Map of detected package manager IDs to their resolved executable paths on the current machine. */
 export type Managers = Partial<Record<ManagerId, string>>;
 
+/** Returns the package identifier(s) used to install `tool` via `manager`. */
 export function packageOf(tool: ToolId, manager: ManagerId): string {
   return TOOLS[tool][manager];
 }

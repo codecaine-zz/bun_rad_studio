@@ -10,10 +10,13 @@ import * as nodePath from "path";
 import type { FmContext } from "./fmCore";
 import { normaliseHost, validateTargetDomain } from "../subfinder/subfinderNames";
 
+/** Maximum number of past subdomain discovery runs retained in `file_manager_subdomains_history.json`. */
 export const MAX_HISTORY = 20;
+/** Maximum number of discovered host rows stored per history entry when `"keep results"` is enabled. */
 export const MAX_KEPT_HOSTS = 2000;
 const FILE_NAME = "file_manager_subdomains_history.json";
 
+/** Persisted host row stored inside a subdomain discovery `HistoryEntry`. */
 export interface HistoryRow {
   host: string;
   sources: string[];
@@ -24,6 +27,7 @@ export interface HistoryRow {
   isWildcard?: boolean;
 }
 
+/** Persisted summary (and optional host list) of a completed or cancelled subdomain discovery run. */
 export interface HistoryEntry {
   id: string;
   domain: string;
@@ -91,6 +95,7 @@ export function validateEntry(raw: unknown): HistoryEntry | null {
 const storeFile = (ctx: FmContext) => nodePath.join(ctx.dataDir, FILE_NAME);
 let queue: Promise<unknown> = Promise.resolve();
 
+/** Reads and validates the list of recent subdomain discovery runs from disk. */
 export async function loadHistory(ctx: FmContext): Promise<HistoryEntry[]> {
   try {
     const parsed = JSON.parse(await fsp.readFile(storeFile(ctx), "utf8"));
@@ -128,6 +133,7 @@ export function addHistory(ctx: FmContext, input: Omit<HistoryEntry, "id">): Pro
   });
 }
 
+/** Deletes the subdomain discovery history file and returns the number of entries that were cleared. */
 export function clearHistory(ctx: FmContext): Promise<number> {
   return locked(async () => {
     const all = await loadHistory(ctx);

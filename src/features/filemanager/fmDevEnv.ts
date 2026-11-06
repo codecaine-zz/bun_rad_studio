@@ -52,6 +52,7 @@ const TOOLS: ToolDef[] = [
   { id: "jq", name: "jq", programs: ["jq"], args: ["--version"], group: "other", brew: "jq", apt: "jq", winget: "jqlang.jq" },
 ];
 
+/** Detected installation status, version string, and executable path for a developer CLI tool or runtime. */
 export interface EnvTool {
   id: string;
   name: string;
@@ -78,6 +79,7 @@ function hintFor(t: ToolDef, platform: FmContext["platform"]): string {
   return t.winget ? `winget install ${t.winget}` : t.other ?? "";
 }
 
+/** Extracts the first semantic version token (e.g., `1.24.0`) from a CLI `--version` output string. */
 export function parseToolVersion(text: string): string | null {
   const line = text.split(/\r?\n/).find((l) => /\d+\.\d+/.test(l)) ?? "";
   return /(\d+\.\d+(?:\.\d+)*[\w.+-]*)/.exec(line)?.[1] ?? null;

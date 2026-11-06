@@ -1,9 +1,16 @@
 #!/usr/bin/env bun
+/**
+ * Command-line interface for `doggo`, parsing DNS query targets, record types,
+ * nameservers, DoH options, and output flags.
+ */
 import { parseArgs } from "node:util";
 import { runDoggoCoordinator } from "./doggoCoordinator.ts";
 import { isIpAddress, parseTargetArgs } from "./doggoDoers.ts";
 import type { DnsRecordType, DoggoOptions } from "./doggoTypes.ts";
 
+/**
+ * Parses CLI flags and positional arguments into a validated `DoggoOptions` structure.
+ */
 export function parseDoggoArguments(args: string[]): DoggoOptions {
   const { values, positionals } = parseArgs({
     args,
@@ -52,6 +59,9 @@ export function parseDoggoArguments(args: string[]): DoggoOptions {
   };
 }
 
+/**
+ * Prints usage instructions and CLI flags for `doggo` to stdout.
+ */
 export function printDoggoHelp(): void {
   console.log(`Usage: doggo [flags] [domain] [type] [@nameserver]
 

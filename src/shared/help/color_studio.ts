@@ -1,3 +1,6 @@
+/**
+ * Interactive UI help tooltips and audit skip rules for Color Studio (`color_studio`), covering color pickers, palette generation, WCAG contrast checks, and CSS conversions.
+ */
 import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Help tips for `color_studio`. Keys: see src/shared/helpTips.ts. Check with: bun run scripts/help_controls.ts <app file> --missing */

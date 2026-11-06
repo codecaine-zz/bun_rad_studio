@@ -35,6 +35,7 @@ const EXTERNAL_ARCHIVE_EXTS = new Set([
 ]);
 const EXTERNAL_SINGLE_EXTS = new Set(["bz2", "xz", "lzma", "lz4", "z"]);
 
+/** Complete list of archive and compressed-file extensions supported by `extractArchive`. */
 export const EXTRACTABLE_EXTENSIONS: readonly string[] = [
   ...BUILTIN_ZIP_EXTS,
   ...BUILTIN_TAR_EXTS,
@@ -73,6 +74,7 @@ function singleFileTargetName(fileName: string, ext: string): string {
   return `${fileName || "decompressed"}.out`;
 }
 
+/** Summary of a single extracted archive or decompressed stream on disk. */
 export interface ArchiveExtracted {
   /** Path of the extracted folder (or the uncompressed file for single-file formats like .gz/.zst/.br). */
   folder: string;
@@ -86,10 +88,12 @@ export interface ArchiveExtracted {
   skipped: string[];
 }
 
+/** Extraction result for one archive item in a batch, including its `source` archive path. */
 export interface ExtractItemResult extends ArchiveExtracted {
   source: string;
 }
 
+/** Aggregated results, skipped non-archive count, and per-archive errors from `extractItems`. */
 export interface ExtractBatchResult {
   results: ExtractItemResult[];
   skippedCount: number;

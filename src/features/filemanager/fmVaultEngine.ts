@@ -21,6 +21,7 @@ import {
 import { containerStream, scanSource, type ScanResult } from "./fmVaultWalk";
 import { FmError, describeFsError, isSameOrInside, platformName, uniqueName, type Platform } from "./fmPaths";
 
+/** Parameters and progress callbacks for encrypting a file or folder into a `.radenc` vault file. */
 export interface EncryptRequest {
   source: string;
   outputDir: string;
@@ -39,6 +40,7 @@ export interface EncryptRequest {
   internal?: { kdf?: KdfParams; chunkLog2?: number; afterWrite?: (tempPath: string) => Promise<void> };
 }
 
+/** Summary of a completed `.radenc` encryption operation, including output path, byte counts, and warnings. */
 export interface EncryptResult {
   output: string;
   outputName: string;
@@ -49,6 +51,7 @@ export interface EncryptResult {
   warnings: string[];
 }
 
+/** Parameters and progress callbacks for decrypting and extracting a `.radenc` file. */
 export interface DecryptRequest {
   source: string;
   outputDir: string;
@@ -60,6 +63,7 @@ export interface DecryptRequest {
   onBytes?: (n: number) => void;
 }
 
+/** Summary of a completed `.radenc` decryption and extraction operation. */
 export interface DecryptResult {
   output: string;
   outputName: string;
@@ -68,6 +72,7 @@ export interface DecryptResult {
   plainBytes: number;
 }
 
+/** Result of inspecting a `.radenc` file's unencrypted header (`valid: true` with format metadata, or `valid: false` with refusal details). */
 export type InspectResult =
   | { valid: true; version: 1; level: Level | "custom"; compressed: boolean; size: number; chunkSize: number; kdf: KdfParams }
   | { valid: false; reason: "not-radenc" | "unsupported" | "refused"; message: string; size: number };
@@ -217,6 +222,7 @@ async function assertOutputFolder(dir: string): Promise<void> {
 // Encrypt
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Encrypts a file or folder into a `.radenc` vault file, verifies every ciphertext chunk, and publishes the output atomically. */
 export async function encryptItem(req: EncryptRequest): Promise<EncryptResult> {
   const platform = req.platform ?? platformName();
   const { signal } = req;
@@ -278,6 +284,7 @@ export async function encryptItem(req: EncryptRequest): Promise<EncryptResult> {
 // Decrypt
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Decrypts and authenticates a `.radenc` vault file and atomically publishes the extracted file or folder into `req.outputDir`. */
 export async function decryptFile(req: DecryptRequest): Promise<DecryptResult> {
   const platform = req.platform ?? platformName();
   const { signal } = req;

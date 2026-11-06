@@ -1,3 +1,7 @@
+/**
+ * Barrel entrypoint for the 44-module Bun RAD (Rapid Application Development) utility suite.
+ * Re-exports all module functions and types at the top level and provides the unified `rad` namespace.
+ */
 // Bun System Utilities - RAD Development Suite (44 Modules)
 // Port and extension of ergonomic utilities from https://github.com/codecaine-zz/vlang_utils
 // and modern utility primitives inspired by https://github.com/toss/es-toolkit
@@ -99,6 +103,10 @@ import { transpileutils } from "./modules/transpileutils.ts";
 import { objutils } from "./modules/objutils.ts";
 import { fnutils } from "./modules/fnutils.ts";
 
+/**
+ * Unified namespace aggregating all 44 RAD utility modules for convenient dot-access
+ * (e.g., `rad.fileutils`, `rad.sqliteutils`, `rad.strutils`).
+ */
 export const rad = {
   fileutils,
   sqliteutils,

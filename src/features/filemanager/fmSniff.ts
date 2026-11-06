@@ -3,8 +3,10 @@
  * Only the start of a file (about 600 bytes) is ever looked at, and nothing is run or parsed any further.
  */
 
+/** Broad file category returned when sniffing a file's magic bytes. */
 export type Family = "image" | "video" | "audio" | "document" | "archive" | "program" | "script" | "text" | "data" | "font" | "other";
 
+/** Description of a file format identified from its leading bytes. */
 export interface Sniffed {
   /** A short stable id such as "png", "pe", "text". */
   kind: string;

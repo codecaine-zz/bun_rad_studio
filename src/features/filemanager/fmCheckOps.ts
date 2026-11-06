@@ -6,10 +6,14 @@ import { absolutePath, pathApi, type FmContext, type FmHandler } from "./fmCore"
 import { checkFile, type FileCheck } from "./fmCheck";
 import { FmError } from "./fmPaths";
 
+/** Maximum number of file paths that can be inspected in a single `check/files` request. */
 export const MAX_CHECK_PATHS = 300;
+/** Default number of concurrent file header checks performed during a batch check. */
 export const CHECK_CONCURRENCY = 16;
+/** Maximum wall-clock time in milliseconds allotted to a batch file-type check before remaining files are skipped. */
 export const CHECK_TIME_CAP_MS = 3000;
 
+/** Per-file result from a batch file-type check, including any mismatch report or timeout skip flag. */
 export interface CheckEntry {
   path: string;
   check: FileCheck | null;
@@ -17,6 +21,7 @@ export interface CheckEntry {
   skipped?: boolean;
 }
 
+/** Tuning and test-injection options for batch file-type checking. */
 export interface CheckOptions {
   concurrency?: number;
   timeCapMs?: number;
@@ -54,6 +59,7 @@ export async function checkMany(ctx: FmContext, pathsInput: unknown, options: Ch
   return items.map((item, i) => results[i] ?? { path: item.given, check: null, skipped: true });
 }
 
+/** File Manager API handlers for `check/files` and `check/one` magic-byte verification. */
 export const checkOperations: Record<string, FmHandler> = {
   async "check/files"(ctx, b) {
     return { results: await checkMany(ctx, b.paths) };

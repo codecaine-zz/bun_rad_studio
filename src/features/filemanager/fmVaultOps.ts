@@ -74,6 +74,7 @@ function checkPlaces(ctx: FmContext, paths: string[], outputDir: string | null, 
   }
 }
 
+/** File Manager API handlers (`vault/*`) for encrypting, decrypting, inspecting, monitoring, and generating passphrases for `.radenc` vaults. */
 export const vaultOperations: Record<string, FmHandler> = {
   async "vault/encrypt"(ctx, b) {
     const paths = pathList(ctx, b.paths);

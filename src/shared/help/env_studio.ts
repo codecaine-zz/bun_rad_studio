@@ -1,3 +1,6 @@
+/**
+ * Interactive UI help tooltips and audit skip rules for Env Vault Studio (`env_studio`), covering `.env` parsing, secret masking, environment diffing, and security auditing.
+ */
 import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Environment & Secret Vault Studio. */

@@ -5,21 +5,27 @@
 import { Ansi } from './ansi.ts';
 import type { PipelineStep } from './types.ts';
 
+/**
+ * Sequential task execution pipeline that runs named steps with animated terminal spinners, timing, and summary output.
+ */
 export class Pipeline {
   public title: string;
   public steps: PipelineStep[] = [];
   private noColor: boolean = false;
 
+  /** Creates a new `Pipeline` with the given display title and optional color-disable flag. */
   constructor(title: string, noColor: boolean = false) {
     this.title = title;
     this.noColor = noColor;
   }
 
+  /** Appends a synchronous or asynchronous step function to the pipeline and returns `this` for chaining. */
   public addStep(name: string, stepFn: () => boolean | Promise<boolean>): this {
     this.steps.push({ name, stepFn });
     return this;
   }
 
+  /** Executes all registered pipeline steps in order, stopping at the first failure, and returns `true` if all succeeded. */
   public async run(): Promise<boolean> {
     const divider = '─'.repeat(Math.min(60, process.stdout.columns || 60));
     console.log(`\n${Ansi.bold(Ansi.cyan('▶'))} ${Ansi.bold(this.title)}`);

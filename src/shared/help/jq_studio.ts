@@ -1,3 +1,6 @@
+/**
+ * Interactive UI help tooltips and audit skip rules for jq JSON Query Studio (`jq_studio`), covering live jq filter evaluation, formatting, and preset expressions.
+ */
 import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Help tips for `jq_studio` (the same page is used by `json_studio`). Keys: see src/shared/helpTips.ts. Check with: bun run scripts/help_controls.ts <app file> --missing */

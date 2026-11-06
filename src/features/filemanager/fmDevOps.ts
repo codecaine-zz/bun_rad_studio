@@ -96,6 +96,7 @@ function exportTable(ctx: FmContext, b: Record<string, any>, snapshots: Awaited<
 
 const safeName = (s: string) => s.replace(/[^\w.-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "export";
 
+/** File Manager API handlers for all `dev/*` Developer Tools endpoints (stats, project info, git, env, disk, dupes, todo, semver, exports). */
 export const devOperations: Record<string, FmHandler> = {
   async "dev/meta"(ctx) {
     const tokei = await detectTokei(ctx);

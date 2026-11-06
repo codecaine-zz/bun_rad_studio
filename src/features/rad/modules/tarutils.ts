@@ -1,3 +1,7 @@
+/**
+ * Pure-TypeScript POSIX `ustar` TAR archive packer and unpacker with PAX extended header support,
+ * transparent gzip (`.tar.gz` / `.tgz`) handling, and path-traversal-safe extraction.
+ */
 // Feature: RAD - tarutils
 // Pure-TypeScript POSIX ustar TAR packer/unpacker with PAX long-name support, directory entries,
 // checksum verification, transparent gzip (.tar.gz / .tgz), and path-traversal-safe extraction.
@@ -277,6 +281,9 @@ export async function extractTarFile(tarPath: string, destDir: string): Promise<
   return files;
 }
 
+/**
+ * Namespace bundling all TAR and `.tar.gz` archive packing, listing, and extraction helpers.
+ */
 export const tarutils = {
   packTarBytes,
   unpackTarBytes,

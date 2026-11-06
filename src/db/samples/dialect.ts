@@ -1,16 +1,19 @@
 /** Per-dialect SQL helpers: identifier quoting, literals and the portable functions used by views and queries. */
 import type { Cell, ColumnDef, Dialect, SqlHelpers } from "./model";
 
+/** Quotes a SQL identifier using backticks for MySQL and double quotes for SQLite/PostgreSQL. */
 export function quoteId(d: Dialect, name: string): string {
   return d === "mysql" ? `\`${name.replace(/`/g, "``")}\`` : `"${name.replace(/"/g, '""')}"`;
 }
 
+/** Escapes and quotes a SQL string literal for the specified dialect. */
 export function quoteString(d: Dialect, s: string): string {
   let out = s.replace(/'/g, "''");
   if (d === "mysql") out = out.replace(/\\/g, "\\\\");
   return `'${out}'`;
 }
 
+/** Formats a generated cell value as a SQL literal appropriate for the target dialect and column definition. */
 export function literal(d: Dialect, v: Cell | undefined, col?: ColumnDef): string {
   if (v === null || v === undefined) return "NULL";
   if (typeof v === "number") {
@@ -33,6 +36,7 @@ export function literal(d: Dialect, v: Cell | undefined, col?: ColumnDef): strin
 
 const AS_OF = "(SELECT as_of FROM _sample_info)";
 
+/** Returns the dialect-specific `SqlHelpers` implementation used to render views and analytical queries. */
 export function sqlHelpers(d: Dialect): SqlHelpers {
   const sqlite = d === "sqlite";
   const mysql = d === "mysql";

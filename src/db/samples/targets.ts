@@ -15,15 +15,19 @@ import type { DatasetDef, Dialect, Scale } from "./model";
 import { objectNames, renderDrop } from "./render";
 import { seedDataset, SeedCancelled, type SeedHooks, type SeedSummary } from "./runner";
 
+/** User-facing error raised during sample database target validation or creation. */
 export class SampleError extends Error {
+  /** Creates a `SampleError` with an HTTP status code and machine-readable error code. */
   constructor(message: string, public status = 400, public code = "bad_request") {
     super(message);
     this.name = "SampleError";
   }
 }
 
+/** Whether to create a brand-new sample target or replace the tables of an existing sample of the same dataset. */
 export type SeedMode = "new" | "replace-sample-tables";
 
+/** Parameters for creating or replacing a sample dataset in a target database, schema, or file. */
 export interface SeedRequest {
   datasetId: string;
   scale: Scale;
@@ -33,6 +37,7 @@ export interface SeedRequest {
   seed?: number;
 }
 
+/** Inspection summary of an existing SQLite file, MySQL database, or PostgreSQL schema. */
 export interface TargetInfo {
   exists: boolean;
   objects: string[];
@@ -41,6 +46,7 @@ export interface TargetInfo {
 
 const NAME_RE = /^[A-Za-z][A-Za-z0-9_]{0,47}$/;
 
+/** Validates that a MySQL database name or PostgreSQL schema name is a safe identifier. */
 export function validateSchemaName(name: string, what: string): string {
   const n = (name ?? "").trim();
   if (!NAME_RE.test(n)) throw new SampleError(`Invalid ${what} "${n}": start with a letter, then letters, digits or underscores (up to 48 characters).`, 400, "bad_name");
@@ -82,6 +88,9 @@ function planOutcome(ds: DatasetDef, info: TargetInfo, req: SeedRequest, what: s
 
 // --------------------------------------------------------------------------------------------- SQLite
 
+/**
+ * Inspects an open SQLite database for existing user tables, views, and sample dataset metadata.
+ */
 export function inspectSqlite(db: Database): TargetInfo {
   const objects = (db.query("SELECT name FROM sqlite_master WHERE type IN ('table','view') AND name NOT LIKE 'sqlite_%'").all() as { name: string }[]).map((r) => r.name);
   let sampleDataset: string | null = null;
@@ -133,10 +142,16 @@ export async function createSqliteFile(path: string, ds: DatasetDef, req: SeedRe
   }
 }
 
+/**
+ * Verifies that a target SQLite file path does not already exist on disk before starting a seed job.
+ */
 export function sqlitePreflightFile(path: string): void {
   if (existsSync(path)) throw new SampleError(`The file ${path} already exists. Choose another name; existing files are never overwritten.`, 409, "exists");
 }
 
+/**
+ * Validates whether a sample dataset can be created or replaced inside the currently open SQLite database.
+ */
 export function sqlitePreflightCurrent(db: Database, ds: DatasetDef, req: SeedRequest): "create" | "replace" {
   return planOutcome(ds, inspectSqlite(db), req, "database", "the open database", true, true);
 }
@@ -145,6 +160,9 @@ export function sqlitePreflightCurrent(db: Database, ds: DatasetDef, req: SeedRe
 
 type BunSql = { unsafe: (sql: string, params?: unknown[]) => Promise<any>; reserve?: () => Promise<any> };
 
+/**
+ * Inspects a MySQL server for whether a target database exists, what tables/views it contains, and which sample dataset it holds.
+ */
 export async function inspectMysql(sql: BunSql, database: string): Promise<TargetInfo> {
   const dbs = await sql.unsafe("SELECT schema_name AS n FROM information_schema.schemata WHERE schema_name = ?", [database]);
   if (!dbs.length) return { exists: false, objects: [], sampleDataset: null };
@@ -160,12 +178,18 @@ export async function inspectMysql(sql: BunSql, database: string): Promise<Targe
   return { exists: true, objects, sampleDataset };
 }
 
+/**
+ * Validates the target MySQL database name and determines whether the seed operation will create or replace sample tables.
+ */
 export async function preflightMysql(sql: BunSql, ds: DatasetDef, req: SeedRequest): Promise<{ database: string; action: "create" | "replace"; info: TargetInfo }> {
   const database = validateSchemaName(req.target, "database name");
   const info = await inspectMysql(sql, database);
   return { database, action: planOutcome(ds, info, req, "database", database, true), info };
 }
 
+/**
+ * Creates or replaces a sample dataset in a MySQL database, cleaning up created objects if seeding fails or is cancelled.
+ */
 export async function seedMysql(sql: BunSql, ds: DatasetDef, req: SeedRequest, hooks: SeedHooks): Promise<SeedSummary> {
   const pre = await preflightMysql(sql, ds, req);
   const conn = await (sql as any).reserve();
@@ -196,6 +220,9 @@ export async function seedMysql(sql: BunSql, ds: DatasetDef, req: SeedRequest, h
 
 // --------------------------------------------------------------------------------------------- PostgreSQL
 
+/**
+ * Inspects a PostgreSQL database for whether a target schema exists, what relations it contains, and which sample dataset it holds.
+ */
 export async function inspectPostgres(sql: BunSql, schema: string): Promise<TargetInfo> {
   const s = await sql.unsafe("SELECT 1 AS x FROM pg_namespace WHERE nspname = $1", [schema]);
   if (!s.length) return { exists: false, objects: [], sampleDataset: null };
@@ -214,6 +241,9 @@ export async function inspectPostgres(sql: BunSql, schema: string): Promise<Targ
   return { exists: true, objects, sampleDataset };
 }
 
+/**
+ * Validates a target PostgreSQL schema name (rejecting reserved schemas like `public` and `pg_*`) and plans the seed outcome.
+ */
 export async function preflightPostgres(sql: BunSql, ds: DatasetDef, req: SeedRequest): Promise<{ schema: string; action: "create" | "replace"; info: TargetInfo }> {
   const schema = validateSchemaName(req.target, "schema name");
   if (/^pg_/i.test(schema) || ["public", "information_schema"].includes(schema.toLowerCase())) {
@@ -223,6 +253,9 @@ export async function preflightPostgres(sql: BunSql, ds: DatasetDef, req: SeedRe
   return { schema, action: planOutcome(ds, info, req, "schema", schema, true), info };
 }
 
+/**
+ * Seeds a sample dataset into a PostgreSQL schema inside a single transactional `BEGIN ... COMMIT` block.
+ */
 export async function seedPostgres(sql: BunSql & { begin: (fn: (tx: BunSql) => Promise<any>) => Promise<any> }, ds: DatasetDef, req: SeedRequest, hooks: SeedHooks): Promise<SeedSummary> {
   const pre = await preflightPostgres(sql, ds, req);
   const sch = quoteId("postgres", pre.schema);
@@ -234,6 +267,9 @@ export async function seedPostgres(sql: BunSql & { begin: (fn: (tx: BunSql) => P
   });
 }
 
+/**
+ * Returns the human-readable target container noun (`"database file"`, `"database"`, or `"schema"`) for a SQL dialect.
+ */
 export function dialectTargetLabel(d: Dialect): string {
   return d === "sqlite" ? "database file" : d === "mysql" ? "database" : "schema";
 }

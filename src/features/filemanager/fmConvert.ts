@@ -22,6 +22,7 @@ import { extractFullEpubRich } from "./fmPreview";
 import { explainFailure, pdfEngineFor, resolveTool, toolStatus, type ToolStatus } from "./fmToolDetect";
 import { TOOLS, childEnv, missingCapability, type ToolId } from "./fmTools";
 
+/** Maximum number of input paths accepted in a single conversion request. */
 export const MAX_FILES = 500;
 const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
 
@@ -31,6 +32,7 @@ type Status = Awaited<ReturnType<typeof toolStatus>>;
 // The selection
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Classified lists of regular file paths and directory paths from a user selection. */
 export interface Selection {
   files: string[];
   dirs: string[];
@@ -160,6 +162,7 @@ export function pickEngine(ctx: FmContext, st: Status, def: ConvDef, exts: strin
 // What the window shows
 // ---------------------------------------------------------------------------------------------------------------
 
+/** UI view model for a conversion option choice, including whether its required tool capability is available. */
 export interface ChoiceView {
   value: string;
   label: string;
@@ -167,10 +170,12 @@ export interface ChoiceView {
   why: string;
 }
 
+/** UI view model for a conversion option with availability-annotated choices. */
 export interface OptionView extends Omit<OptionDef, "choices"> {
   choices?: ChoiceView[];
 }
 
+/** UI summary of a conversion action's applicability, selected engine, availability, and options for the current selection. */
 export interface ActionInfo {
   id: string;
   label: string;
@@ -242,12 +247,14 @@ function optionViews(def: ConvDef, st: Status): OptionView[] {
   });
 }
 
+/** Returns the validated default option values for a conversion definition. */
 export function defaultOptions(def: ConvDef): OptionValues {
   return validateOptions(def.options, {});
 }
 
 const engineName = (e: Engine) => (e.tool === "builtin" ? "Built in" : TOOLS[e.tool].name);
 
+/** Computes available conversion actions, tool statuses, and selection summary for the Convert & Process window. */
 export async function overview(ctx: FmContext, paths: unknown) {
   const status = await toolStatus(ctx);
   const sel = Array.isArray(paths) && paths.length ? await classifyPaths(ctx, paths) : { files: [], dirs: [] };
@@ -283,6 +290,7 @@ export async function overview(ctx: FmContext, paths: unknown) {
 // Planning
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Incoming request payload for planning, previewing, or starting a batch conversion. */
 export interface ConvertRequest {
   action?: unknown;
   paths?: unknown;
@@ -291,6 +299,7 @@ export interface ConvertRequest {
   pattern?: unknown;
 }
 
+/** Planned conversion work item mapping one or more source paths to a unique output path and selected engine. */
 export interface PlanItem {
   /** The original files (or folders) this item uses, in order. */
   originals: string[];
@@ -303,6 +312,7 @@ export interface PlanItem {
   missing: boolean;
 }
 
+/** Validated conversion execution plan containing resolved options, per-file items, skipped count, and tool status. */
 export interface Plan {
   def: ConvDef;
   opts: OptionValues;
@@ -316,6 +326,7 @@ async function mtimeOf(p: string): Promise<number> {
   return (await fsp.stat(p).catch(() => null))?.mtimeMs ?? 0;
 }
 
+/** Validates a `ConvertRequest` and resolves the target engine and collision-free output path for each input. */
 export async function planConvert(ctx: FmContext, req: ConvertRequest): Promise<Plan> {
   const def = typeof req.action === "string" ? CATALOG_BY_ID.get(req.action) : undefined;
   if (!def) throw new FmError("UNKNOWN_ACTION", "That action isn't known.");
@@ -380,6 +391,7 @@ export async function planConvert(ctx: FmContext, req: ConvertRequest): Promise<
   return { def, opts, items, skipped, status };
 }
 
+/** Dry-run preview entry showing source files, target output name, engine label, or blocking problem. */
 export interface PreviewItem {
   from: string[];
   to: string;
@@ -514,6 +526,7 @@ function stepFor(ctx: FmContext, plan: Plan, item: PlanItem, pdfEngine: string |
   return spec;
 }
 
+/** Plans a conversion request and launches its steps as a cancellable background job. */
 export async function startConvert(ctx: FmContext, req: ConvertRequest): Promise<JobView> {
   const plan = await planConvert(ctx, req);
   const failing = plan.items.filter((i) => !i.engine);

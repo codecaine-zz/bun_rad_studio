@@ -12,6 +12,7 @@
  * The browser full-screen API is not used here.
  */
 
+/** CSS stylesheet for the shared Studio Keyboard Shortcuts dialog and toolbar badges. */
 export const STUDIO_SHORTCUTS_STYLE = `
     /* ===== Keyboard shortcuts ===== */
     .ss-kbd { display: inline-block; margin-left: 6px; padding: 0 5px; min-width: 18px; text-align: center; border-radius: 4px; font: 600 10px/16px var(--font-mono, ui-monospace, monospace); letter-spacing: 0; vertical-align: 1px; border: 1px solid color-mix(in srgb, currentColor 40%, transparent); background: color-mix(in srgb, currentColor 14%, transparent); color: inherit; opacity: 0.9; }
@@ -203,4 +204,5 @@ function studioShortcutsClient() {
   mountButton();
 }
 
+/** Self-invoking browser script that registers `window.StudioShortcuts` and mounts the Shortcuts button. */
 export const STUDIO_SHORTCUTS_SCRIPT = `(${studioShortcutsClient.toString()})();`;

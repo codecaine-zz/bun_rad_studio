@@ -1,3 +1,6 @@
+/**
+ * Unit tests for the Bash, Zsh, and Fish shell completion script generators (`src/shared/completions.ts`).
+ */
 import { describe, expect, it } from "bun:test";
 import {
   generateBashCompletion,

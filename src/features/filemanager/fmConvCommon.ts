@@ -5,6 +5,7 @@
 
 /** An error whose message is already written for the person using the File Manager. */
 export class ConvError extends Error {
+  /** Creates a user-facing conversion error with a plain-language message. */
   constructor(message: string) {
     super(message);
     this.name = "ConvError";
@@ -13,12 +14,15 @@ export class ConvError extends Error {
 
 /** Biggest input a built-in converter reads. */
 export const MAX_INPUT_BYTES = 100 * 1024 * 1024;
+/** Maximum object/array nesting depth allowed when parsing or serializing structured data. */
 export const MAX_DEPTH = 200;
 
 /** A parsed value: JSON-like, plus `bigint` for whole numbers too big for a normal number. */
 export type Value = null | boolean | number | bigint | string | Value[] | { [key: string]: Value };
+/** Plain string-keyed record of structured `Value` elements. */
 export type Obj = { [key: string]: Value };
 
+/** Type guard that returns true when `v` is a non-null, non-array, non-Date plain object. */
 export function isObj(v: unknown): v is Obj {
   return typeof v === "object" && v !== null && !Array.isArray(v) && !(v instanceof Date);
 }
@@ -28,6 +32,7 @@ export function setKey(target: Obj, key: string, value: Value): void {
   Object.defineProperty(target, key, { value, enumerable: true, writable: true, configurable: true });
 }
 
+/** Creates a fresh plain object for safe property assignment via `setKey`. */
 export function newObj(): Obj {
   return {};
 }
@@ -35,12 +40,15 @@ export function newObj(): Obj {
 /** Collects the things a conversion could not keep exactly, to tell the person afterwards. */
 export class Notes {
   readonly list: string[] = [];
+  /** Records a unique human-readable conversion note (up to 12 notes per conversion). */
   add(text: string): void {
     if (!this.list.includes(text) && this.list.length < 12) this.list.push(text);
   }
+  /** Joins all recorded conversion notes into a single space-separated summary string. */
   toString(): string {
     return this.list.join(" ");
   }
+  /** Returns true if at least one conversion note has been recorded. */
   get any(): boolean {
     return this.list.length > 0;
   }
@@ -147,6 +155,7 @@ export function unflatten(flat: Obj, joiner = "."): Obj {
   return root;
 }
 
+/** Normalized two-dimensional table of column names and row values for tabular conversions. */
 export interface Table {
   columns: string[];
   rows: Value[][];

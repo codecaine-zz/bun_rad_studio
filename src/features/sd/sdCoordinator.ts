@@ -1,3 +1,7 @@
+/**
+ * Coordinator workflows for `sd`, orchestrating regex construction, stdin or
+ * multi-file replacement, diff previewing, match counting, and backup creation.
+ */
 import type { FileTransformResult, SdOptions } from "./sdTypes.ts";
 import {
   buildReplacerRegex,
@@ -11,6 +15,9 @@ import {
   writeContent,
 } from "./sdDoers.ts";
 
+/**
+ * Asynchronously reads `filePath`, applies the search-and-replace `regex`, and computes diff hunks without writing to disk.
+ */
 export async function processFile(
   filePath: string,
   regex: RegExp,
@@ -30,6 +37,10 @@ export async function processFile(
   };
 }
 
+/**
+ * Executes the full `sd` search-and-replace workflow across stdin or target files/directories,
+ * returning formatted output lines (diffs, match counts, or update summaries).
+ */
 export async function runSdCoordinator(options: SdOptions): Promise<string[]> {
   const regex = buildReplacerRegex(
     options.findPattern,

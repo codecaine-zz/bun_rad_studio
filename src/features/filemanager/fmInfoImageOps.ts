@@ -8,6 +8,7 @@ import { iccRows, xmpRows } from "./fmInfoMeta";
 import { openCommand } from "./fmOpen";
 import { FmError, extensionOf } from "./fmPaths";
 
+/** Checklist item indicating whether a specific kind of private metadata (such as GPS or serial numbers) is present in an image. */
 export interface PrivacyItem {
   id: string;
   label: string;
@@ -15,6 +16,7 @@ export interface PrivacyItem {
   detail: string;
 }
 
+/** Complete image inspection report including dimensions, EXIF/ICC/XMP groups, GPS coordinates, and privacy checklist. */
 export interface ImageResult {
   format: string;
   kind: string;
@@ -34,6 +36,7 @@ export interface ImageResult {
 
 const NO_EXIF: ExifData = { littleEndian: false, tags: [], partial: false, hasThumbnail: false, hasMakerNote: false, makerNoteBytes: 0 };
 
+/** Analyzes an image file and returns its dimensions, format details, camera/EXIF/ICC/XMP groups, and privacy items. */
 export async function imageInfo(ctx: FmContext, input: unknown): Promise<ImageResult> {
   const t = await regularFile(ctx, input);
   const path = absolutePath(ctx, input);
@@ -109,6 +112,7 @@ export function mapUrl(lat: unknown, lon: unknown): string {
   return `https://www.openstreetmap.org/?mlat=${a}&mlon=${b}#map=16/${a}/${b}`;
 }
 
+/** Opens an OpenStreetMap browser view for the validated `lat`/`lon` coordinates after user confirmation. */
 export async function openMap(ctx: FmContext, body: Record<string, any>): Promise<{ opened: string }> {
   if (body.confirm !== true) throw new FmError("NEEDS_CONFIRM", "Opening the map sends this location to openstreetmap.org. Please confirm.");
   const url = mapUrl(body.lat, body.lon);

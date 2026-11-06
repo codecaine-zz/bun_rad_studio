@@ -15,12 +15,14 @@ function dos(date: Date): { time: number; date: number } {
   return { time: (date.getHours() << 11) | (date.getMinutes() << 5) | Math.floor(date.getSeconds() / 2), date: ((y - 1980) << 9) | ((date.getMonth() + 1) << 5) | date.getDate() };
 }
 
+/** Streaming standard ZIP archive writer that writes entries sequentially to a newly created file handle. */
 export class ZipFileWriter {
   private offset = 0;
   private readonly central: Buffer[] = [];
   private count = 0;
   private constructor(private readonly handle: fsp.FileHandle, private readonly path: string) {}
 
+  /** Opens a new file exclusively (`wx`) at `path` and returns a `ZipFileWriter` instance. */
   static async create(path: string): Promise<ZipFileWriter> {
     return new ZipFileWriter(await fsp.open(path, "wx", 0o644), path);
   }
@@ -147,6 +149,7 @@ export class ZipFileWriter {
     this.count++;
   }
 
+  /** Writes the central directory and end-of-central-directory record and closes the underlying file handle. */
   async finish(): Promise<void> {
     const start = this.offset;
     const size = this.central.reduce((n, b) => n + b.length, 0);

@@ -16,6 +16,7 @@
  * else sees the key), focus returns to where it was. The browser full-screen API is never used.
  */
 
+/** CSS stylesheet for the shared in-page modal dialogs (`StudioDialogs`). */
 export const STUDIO_DIALOGS_STYLE = `
     /* ===== In-page dialogs ===== */
     .sd-overlay { position: fixed; inset: 0; z-index: 10300; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(2, 6, 14, 0.55); backdrop-filter: blur(4px); }
@@ -208,4 +209,5 @@ function studioDialogsClient() {
   window.studioAlert = (message, o) => alertDialog(Object.assign({ message }, o || {}));
 }
 
+/** Self-invoking browser script that registers `window.StudioDialogs` and `studioPrompt`/`studioConfirm`/`studioAlert`. */
 export const STUDIO_DIALOGS_SCRIPT = `(${studioDialogsClient.toString()})();`;

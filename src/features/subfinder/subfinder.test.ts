@@ -1,3 +1,7 @@
+/**
+ * Unit tests for `subfinder` domain/subdomain cleaning, deduplication, wildcard DNS matching,
+ * hostname resolution, and result formatting.
+ */
 import { describe, expect, it } from "bun:test";
 import {
   cleanDomain,

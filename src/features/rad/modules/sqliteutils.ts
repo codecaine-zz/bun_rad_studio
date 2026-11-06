@@ -1,3 +1,9 @@
+/**
+ * Embedded database toolkit built on native `bun:sqlite`: tuned WAL connections, safe identifier
+ * quoting, typed query helpers, transactions, KV store, JSON document store, CRUD + bulk upserts,
+ * schema introspection, versioned migrations, FTS5 full-text search, custom SQL functions/aggregates,
+ * row-change hooks, and backups.
+ */
 // Feature: RAD - sqliteutils
 // Embedded database toolkit on native bun:sqlite: tuned connections, safe identifier quoting,
 // typed query helpers, transactions, KV store, JSON document store (with json_extract queries),
@@ -586,6 +592,9 @@ export function dbSizeBytes(db: Database): number {
   return pages * size;
 }
 
+/**
+ * Configuration flags for registering a custom scalar SQLite function via {@link registerFunction}.
+ */
 export interface SqliteFunctionOptions {
   deterministic?: boolean;
   directOnly?: boolean;
@@ -616,6 +625,9 @@ export function registerFunction(
   }
 }
 
+/**
+ * Definition for registering a custom SQLite aggregate or window function via {@link registerAggregate}.
+ */
 export interface SqliteAggregateOptions<TAcc = any> {
   start: TAcc | (() => TAcc);
   step: (acc: TAcc, ...args: any[]) => TAcc;
@@ -644,8 +656,14 @@ export function registerAggregate<TAcc = any>(db: Database, name: string, option
   db.aggregate(name, { ...rest, ...(final && !rest.result ? { result: final } : {}) } as any);
 }
 
+/**
+ * Callback signature invoked by SQLite when a row is inserted, updated, or deleted.
+ */
 export type SqliteRowChangeCallback = (database: any, table: string, rowid: number | bigint) => void;
 
+/**
+ * Row-level change listener callbacks passed to {@link onDatabaseChange}.
+ */
 export interface SqliteChangeHooks {
   onInsert?: SqliteRowChangeCallback | null;
   onUpdate?: SqliteRowChangeCallback | null;
@@ -668,6 +686,9 @@ export function onDatabaseChange(db: Database, hooks: SqliteChangeHooks): () => 
   };
 }
 
+/**
+ * Metadata describing a prepared SQLite statement returned by {@link statementInfo}.
+ */
 export interface SqliteStatementInfo {
   reader: boolean;
   readonly: boolean;
@@ -692,6 +713,9 @@ export function statementInfo(db: Database, sql: string): SqliteStatementInfo {
   }
 }
 
+/**
+ * Namespace bundling all `bun:sqlite` connection, query, KV, document store, CRUD, FTS5, and migration helpers.
+ */
 export const sqliteutils = {
   quoteIdent,
   openDb,

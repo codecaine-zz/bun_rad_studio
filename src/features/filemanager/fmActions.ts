@@ -37,8 +37,11 @@ import { applyPlan } from "./fmPlanRun";
 import { FmError, describeFsError, uniqueName } from "./fmPaths";
 import { secretIn } from "./fmWorkspaces";
 
+/** Current schema version for saved File Manager action definitions. */
 export const ACTION_VERSION = 1;
+/** Format identifier string written into exported File Manager action JSON files. */
 export const ACTION_FORMAT = "bun-rad-file-manager-action";
+/** Maximum number of custom saved actions stored per user. */
 export const MAX_ACTIONS = 100;
 const MAX_STEPS = 8;
 const MAX_PARAMS = 10;
@@ -46,6 +49,7 @@ const MAX_INPUTS = 500;
 const MAX_RUNS = 20;
 const STALE_WORK_MS = 24 * 60 * 60 * 1000;
 
+/** Configurable parameter definition exposed when running a saved file action. */
 export interface ActionParam {
   id: string;
   label: string;
@@ -56,10 +60,12 @@ export interface ActionParam {
   choices?: Array<{ value: string; label: string }>;
 }
 
+/** A single conversion or command step within a multi-step file action recipe. */
 export type ActionStep =
   | { type: "convert"; label: string; action: string; options: Record<string, unknown> }
   | { type: "command"; label: string; command: string };
 
+/** Complete specification of a built-in, local, or imported reusable file action. */
 export interface ActionDef {
   id: string;
   name: string;
@@ -207,6 +213,7 @@ export function builtinActions(ctx: FmContext): ActionDef[] {
 // Saved actions
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Resolves the path to the JSON file storing user-defined file actions in the app data directory. */
 export const actionsFile = (ctx: FmContext) => nodePath.join(ctx.dataDir, "file_manager_actions.json");
 
 const actionWriteQueues = new Map<string, Promise<unknown>>();
@@ -259,6 +266,7 @@ async function find(ctx: FmContext, id: unknown): Promise<ActionDef> {
 // Checking before running
 // ---------------------------------------------------------------------------------------------------------------
 
+/** A blocking error or warning discovered during action preflight validation. */
 export interface Problem {
   level: "block" | "warn";
   code: string;
@@ -267,6 +275,7 @@ export interface Problem {
   paths?: string[];
 }
 
+/** Complete preflight validation report detailing step readiness, accepted/rejected inputs, and output path status. */
 export interface Preflight {
   ok: boolean;
   problems: Problem[];
@@ -305,11 +314,13 @@ function resolveParams(def: ActionDef, given: unknown): Record<string, OptionVal
 const optionsFor = (step: ActionStep & { type: "convert" }, params: Record<string, OptionValue>) =>
   Object.fromEntries(Object.entries(step.options).map(([k, v]) => [k, v && typeof v === "object" ? params[(v as { $param: string }).$param] : v]));
 
+/** Resolves the absolute destination directory for an action's output based on the first input path. */
 export function outputFolderFor(ctx: FmContext, def: ActionDef, firstInput: string): string {
   const p = pathApi(ctx);
   return p.isAbsolute(def.output.folder) ? p.resolve(def.output.folder) : p.resolve(p.dirname(firstInput), def.output.folder);
 }
 
+/** Validates an action definition, parameter values, input files, and required external tools before execution. */
 export async function preflight(ctx: FmContext, body: Record<string, any>): Promise<Preflight> {
   const def = await find(ctx, body.action);
   const problems: Problem[] = [];
@@ -395,8 +406,10 @@ export async function preflight(ctx: FmContext, body: Record<string, any>): Prom
 // Running
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Lifecycle state of an executing or completed file action run. */
 export type RunState = "running" | "publishing" | "done" | "failed" | "cancelled";
 
+/** Progress and failure summary for an individual step within a running file action. */
 export interface RunStepView {
   index: number;
   label: string;
@@ -407,6 +420,7 @@ export interface RunStepView {
   failedFiles: Array<{ path: string; message: string }>;
 }
 
+/** Public status snapshot of a file action run, including step states and published output paths. */
 export interface RunView {
   id: string;
   actionId: string;
@@ -450,6 +464,7 @@ async function removeStale(ctx: FmContext): Promise<void> {
   } catch { /* no working folder yet */ }
 }
 
+/** Starts executing a validated file action in an isolated staging directory and publishes outputs upon completion. */
 export async function startRun(ctx: FmContext, body: Record<string, any>): Promise<RunView> {
   const def = await find(ctx, body.action);
   const check = await preflight(ctx, body);
@@ -553,6 +568,7 @@ async function execute(ctx: FmContext, def: ActionDef, params: Record<string, Op
   }
 }
 
+/** Cancels an active file action run and aborts any underlying conversion or publish jobs. */
 export function cancelRun(ctx: FmContext, id: unknown): RunView {
   const run = typeof id === "string" ? runsOf(ctx).get(id) : undefined;
   if (!run) throw new FmError("NOT_FOUND", "That run isn't available any more.");
@@ -564,6 +580,7 @@ export function cancelRun(ctx: FmContext, id: unknown): RunView {
   return viewOf(run);
 }
 
+/** Returns the current status view for a file action run by its ID. */
 export function getRun(ctx: FmContext, id: unknown): RunView {
   const run = typeof id === "string" ? runsOf(ctx).get(id) : undefined;
   if (!run) throw new FmError("NOT_FOUND", "That run isn't available any more.");
@@ -594,6 +611,7 @@ export function stepCatalog() {
   }));
 }
 
+/** File Manager API handlers for listing, validating, saving, importing, exporting, and running file actions. */
 export const actionOperations: Record<string, FmHandler> = {
   async "actions/catalog"() {
     return { steps: stepCatalog() };

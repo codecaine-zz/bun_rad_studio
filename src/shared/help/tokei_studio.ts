@@ -1,3 +1,6 @@
+/**
+ * Interactive UI help tooltips and audit skip rules for Tokei Code Metrics Studio (`tokei_studio`), covering lines-of-code statistics by language, blanks, and comments.
+ */
 import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Help tips for `tokei_studio`. Keys: see src/shared/helpTips.ts. Check with: bun run scripts/help_controls.ts <app file> --missing */

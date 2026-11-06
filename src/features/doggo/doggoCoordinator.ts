@@ -1,3 +1,7 @@
+/**
+ * Coordinator workflows for `doggo`, dispatching UDP DNS, DNS-over-HTTPS (DoH),
+ * or multi-record (`ALL`) queries and formatting the resulting output.
+ */
 import type { DoggoOptions, DoggoResponse } from "./doggoTypes.ts";
 import {
   formatDoggoTable,
@@ -8,6 +12,9 @@ import {
   performDohLookup,
 } from "./doggoDoers.ts";
 
+/**
+ * Resolves DNS records for `domain` using either a specific record `type` or `"ALL"` common record types.
+ */
 export async function lookupDomain(
   domain: string,
   type: DoggoOptions["queryType"] = "A",
@@ -19,6 +26,9 @@ export async function lookupDomain(
   return await performDnsLookup(domain, type, nameserver);
 }
 
+/**
+ * Executes the configured `doggo` query workflow and formats the response as short text, JSON, or a table.
+ */
 export async function runDoggoCoordinator(options: DoggoOptions): Promise<string> {
   let response: DoggoResponse;
   if (options.all || options.queryType === "ALL") {

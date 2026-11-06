@@ -1,3 +1,7 @@
+/**
+ * Web Worker entry point for executing regular expression matching and replacement off the main thread
+ * so catastrophic backtracking patterns can be safely terminated by a timeout.
+ */
 import { runRegexSync, replaceSync } from "./regex_tools";
 
 // Runs regex work off the main thread so a catastrophic pattern can be terminated by a timeout.

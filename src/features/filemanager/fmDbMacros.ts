@@ -25,9 +25,12 @@ import type { DbProfile } from "./fmDbStore";
 import { TEST_TIMEOUT_MS, type TestInput } from "./fmDbTest";
 import { FmError, cleanName } from "./fmPaths";
 
+/** Authoring mode for a database macro (`code` for Bun JS/TS script or `actions` for visual Access-style action rows). */
 export type DbMacroMode = "code" | "actions";
+/** Target database engine filter (`any` or a specific `DbEngine`) for a saved macro. */
 export type DbMacroEngineFilter = "any" | DbEngine;
 
+/** Supported visual macro action types (such as `RunSQL`, `OpenQuery`, `InsertRecord`, `SetTempVar`, `MsgBox`, `RunJS`). */
 export type DbMacroActionType =
   | "RunSQL"
   | "OpenQuery"
@@ -47,6 +50,7 @@ export type DbMacroActionType =
   | "StopMacro"
   | "Comment";
 
+/** A single visual action step with parameters, optional condition expression, comment, and enabled flag. */
 export interface DbMacroActionRow {
   id: string;
   action: DbMacroActionType;
@@ -56,6 +60,7 @@ export interface DbMacroActionRow {
   enabled: boolean;
 }
 
+/** Complete definition of a saved Bun JS or visual action database macro. */
 export interface DbMacro {
   id: string;
   name: string;
@@ -72,6 +77,7 @@ export interface DbMacro {
   builtin?: boolean;
 }
 
+/** Catalog metadata and parameter field schema for a visual macro action type. */
 export interface DbMacroCatalogEntry {
   action: DbMacroActionType;
   category: "Data" | "Queries & Tables" | "Variables & Flow" | "Bun Runtime" | "UI & Alerts";
@@ -80,24 +86,28 @@ export interface DbMacroCatalogEntry {
   fields: { key: string; label: string; placeholder: string; required?: boolean; multiline?: boolean }[];
 }
 
+/** Target database specification for running a macro (saved profile, SQLite file on disk, or in-memory SQLite). */
 export interface DbMacroTargetSpec {
   kind: "profile" | "sqliteFile" | "memory";
   profileId?: string;
   path?: string;
 }
 
+/** A timestamped console/debug log message emitted during macro execution. */
 export interface DbMacroLogEntry {
   level: "log" | "info" | "warn" | "error" | "debug";
   text: string;
   elapsedMs: number;
 }
 
+/** A modal alert message queued via `MsgBox` during macro execution. */
 export interface DbMacroMessageBox {
   title: string;
   message: string;
   type: "info" | "warning" | "error" | "success";
 }
 
+/** Tabular query result set captured during macro execution. */
 export interface DbMacroResultSet {
   label: string;
   sql?: string;
@@ -107,6 +117,7 @@ export interface DbMacroResultSet {
   truncated?: boolean;
 }
 
+/** Execution status, detail message, affected row count, and timing for an individual macro step. */
 export interface DbMacroStepResult {
   index: number;
   action: string;
@@ -117,6 +128,7 @@ export interface DbMacroStepResult {
   elapsedMs: number;
 }
 
+/** Complete execution report returned after running a database macro, including logs, result sets, and transaction status. */
 export interface DbMacroRunResult {
   ok: boolean;
   status: "completed" | "stopped" | "rolled_back" | "failed";
@@ -158,6 +170,7 @@ const MAX_MACRO_DEPTH = 8;
 const MAX_RESULT_ROWS = 250;
 const MAX_LOG_ENTRIES = 200;
 
+/** Catalog of all visual macro action types and their configurable field schemas. */
 export const FM_MACRO_ACTION_CATALOG: DbMacroCatalogEntry[] = [
   {
     action: "RunSQL",
@@ -600,6 +613,7 @@ function sanitizeMacroInput(raw: unknown, existing?: DbMacro): DbMacro {
   };
 }
 
+/** Loads and sanitizes saved database macros from disk, seeding built-in starter macros on first run. */
 export function loadMacros(ctx: FmContext): DbMacro[] {
   const file = macroFilePath(ctx);
   if (!existsSync(file)) {
@@ -644,6 +658,7 @@ function normalizeMacroSourceForAsyncBody(source: string): string {
     .replace(/^\s*export\s+(const|let|var)\s+/gm, "$1 ");
 }
 
+/** Static validation and TypeScript transpilation result for a Bun JS macro or visual action list. */
 export interface MacroValidationResult {
   valid: boolean;
   transpiledJs?: string;
@@ -653,9 +668,11 @@ export interface MacroValidationResult {
 
 const tsTranspiler = new Bun.Transpiler({ loader: "ts", target: "bun" });
 
+/** Regular expression matching restricted process, filesystem, or prototype-escape tokens forbidden in database macros. */
 export const FORBIDDEN_MACRO_CODE_RE =
   /(?:\b(?:process\s*\.\s*(?:env|binding|dlopen|exit|kill|mainModule)|Bun\s*\.\s*(?:spawn|spawnSync|serve|file|write|mmap|dlopen|unsafe|plugin)|globalThis\b|Reflect\b|Proxy\b|constructor\b|__proto__\b|prototype\b|import\s*\.\s*meta\b|require\s*\(|import\s*\(|child_process\b|Function\s*\(|eval\s*\(|WebSocket\b|XMLHttpRequest\b|SharedArrayBuffer\b|FinalizationRegistry\b|WeakRef\b|Worker\b|Deno\b)|\[\s*["'`]\s*(?:constructor|__proto__|prototype)\b|["'`]con["'`]\s*\+\s*["'`]structor["'`])/;
 
+/** Validates and transpiles Bun JS/TS macro source code, rejecting forbidden host APIs and syntax errors. */
 export function validateBunMacroCode(code: string): MacroValidationResult {
   const warnings: string[] = [];
   const errors: { message: string; line?: number; column?: number }[] = [];
@@ -695,6 +712,7 @@ export function validateBunMacroCode(code: string): MacroValidationResult {
   }
 }
 
+/** Validates a list of visual macro action rows for required fields, valid conditions, and JavaScript syntax. */
 export function validateMacroActions(actions: DbMacroActionRow[], knownMacroNames?: string[]): MacroValidationResult {
   const warnings: string[] = [];
   const errors: { message: string; line?: number; column?: number }[] = [];
@@ -1455,6 +1473,7 @@ function formatLogArg(val: unknown): string {
   }
 }
 
+/** Incoming request payload for executing a saved or inline database macro against a target database. */
 export interface RunMacroRequest {
   macro?: unknown;
   macroId?: string;
@@ -1465,6 +1484,7 @@ export interface RunMacroRequest {
   confirmWrites?: boolean;
 }
 
+/** Executes a database macro against a profile, SQLite file, or in-memory database with optional transaction wrapping and dry-run rollback. */
 export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Promise<DbMacroRunResult> {
   const allMacros = loadMacros(ctx);
   let macro: DbMacro;
@@ -2644,6 +2664,7 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
   };
 }
 
+/** File Manager API handlers for listing, saving, deleting, validating, converting, and running database macros. */
 export const macroOperations: Record<string, FmHandler> = {
   async "db/macros/list"(ctx) {
     const macros = loadMacros(ctx);

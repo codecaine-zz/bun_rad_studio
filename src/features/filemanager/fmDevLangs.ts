@@ -4,6 +4,7 @@
  * how a table entry is used.
  */
 
+/** String literal delimiter pair (`open`/`close`) and multiline behavior for a programming language. */
 export interface QuoteDef {
   open: string;
   close: string;
@@ -15,6 +16,7 @@ export interface QuoteDef {
   doc?: boolean;
 }
 
+/** Language definition specifying file extensions, filenames, shebangs, comment tokens, and string delimiters. */
 export interface LangDef {
   name: string;
   exts: string[];
@@ -169,6 +171,7 @@ const defs: LangDef[] = [
   { name: "Pug", exts: ["pug"], line: ["//-", "//"] },
 ];
 
+/** Readonly catalog of all programming, markup, and data languages recognized by the built-in code counter. */
 export const LANGUAGES: readonly LangDef[] = defs;
 
 const byExt = new Map<string, LangDef>();
@@ -182,6 +185,7 @@ for (const d of defs) {
   for (const s of d.shebangs ?? []) if (!byShebang.has(s)) byShebang.set(s, d);
 }
 
+/** Looks up a `LangDef` by its canonical language name (e.g., `"TypeScript"`). */
 export const languageByName = (name: string): LangDef | undefined => byName.get(name);
 
 /** The language of a file by its name alone (a whole-name match wins over the extension), or null. */

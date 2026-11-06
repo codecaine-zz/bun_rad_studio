@@ -1,3 +1,7 @@
+/**
+ * Coordinator workflows for `fd`, combining directory traversal with pattern,
+ * depth, type, extension, size, modification-time, and exclusion filters.
+ */
 import { resolve } from "node:path";
 import type { FdEntry, FdOptions } from "./fdTypes.ts";
 import {
@@ -14,6 +18,10 @@ import {
   matchesType,
 } from "./fdDoers.ts";
 
+/**
+ * Searches the filesystem starting from `options.rootPath` and returns all `FdEntry` items
+ * that satisfy every configured filter in `options`.
+ */
 export async function searchFiles(options: FdOptions): Promise<FdEntry[]> {
   const root = resolve(options.rootPath);
   const matcher = buildMatcher(options.pattern, options.caseSensitive);
@@ -38,6 +46,10 @@ export async function searchFiles(options: FdOptions): Promise<FdEntry[]> {
   });
 }
 
+/**
+ * Runs the `fd` search workflow, either executing `options.execCmd` on each matched path
+ * or returning color-formatted result strings.
+ */
 export async function runFdCoordinator(options: FdOptions): Promise<string[]> {
   const matches = await searchFiles(options);
 

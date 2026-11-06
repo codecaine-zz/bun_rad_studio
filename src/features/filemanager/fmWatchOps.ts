@@ -1,3 +1,6 @@
+/**
+ * API operations (`watch/*`), presets, shell options, and request validation for the File Manager's Watch power tool.
+ */
 import { existsSync, promises as fsp } from "fs";
 import * as nodePath from "path";
 import { absolutePath, assertCreatable, assertFolder, type FmContext, type FmHandler } from "./fmCore";
@@ -5,12 +8,16 @@ import { FmError, uniqueName, validateName } from "./fmPaths";
 import { clampSize } from "./fmTerminal";
 import { MAX_ACTIVE_WATCHERS, MAX_HISTORY, getWatchHub, type ShellChoice, type WatchConfig, type Watcher } from "./fmWatch";
 
+/** Maximum character length allowed for a watcher command string. */
 export const MAX_COMMAND_LENGTH = 4000;
 const MAX_LIST_ITEMS = 100;
 const MAX_ITEM_LENGTH = 200;
 
+/** Default file extensions watched when creating a new watcher in the UI. */
 export const DEFAULT_EXTENSIONS = ["ts", "js", "json", "html", "css"];
+/** Default folder and path patterns ignored by a watcher. */
 export const DEFAULT_IGNORE = ["node_modules", ".git", "dist", "build", ".cache", ".graveyard"];
+/** Default debounce delay in milliseconds before triggering a watcher command after a file change. */
 export const DEFAULT_DEBOUNCE = 150;
 
 interface Preset {
@@ -42,6 +49,7 @@ export function presetsFor(platform: FmContext["platform"]): Preset[] {
   return list;
 }
 
+/** Returns the list of shells available for executing watcher commands on the given platform. */
 export function shellsFor(platform: FmContext["platform"]): Array<{ id: ShellChoice; label: string }> {
   return platform === "win32"
     ? [{ id: "cmd", label: "Command Prompt (cmd)" }, { id: "powershell", label: "Windows PowerShell" }]
@@ -64,6 +72,7 @@ function listOf(value: unknown, what: string): string[] {
   return out;
 }
 
+/** Validates and normalizes a raw `watch/start` request body into a `WatchConfig`. */
 export function parseConfig(ctx: FmContext, b: Record<string, any>): WatchConfig & { cwdGiven: boolean } {
   const command = typeof b.command === "string" ? b.command.trim() : "";
   if (!command) throw new FmError("BAD_REQUEST", "Type the command to run when files change.");

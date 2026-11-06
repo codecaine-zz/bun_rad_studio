@@ -2,12 +2,15 @@
  * What the Secrets feature needs from the outside world, replaceable so tests never wait for real time, touch the
  * network or the real clipboard. Kept free of imports so fmCore.ts can refer to its type without a cycle.
  */
+
+/** Argon2id key derivation parameters (memory in KiB, pass count, and parallelism) for the Secrets vault. */
 export interface SecretsKdfParams {
   memoryKiB: number;
   passes: number;
   parallelism: number;
 }
 
+/** Interface to the operating system's credential store (or an in-memory test double). */
 export interface CredentialStore {
   /** The stored text, or null when there is none. Throws when the store is unavailable or access was refused. */
   get(service: string, name: string): Promise<string | null>;
@@ -16,6 +19,7 @@ export interface CredentialStore {
   delete(service: string, name: string): Promise<boolean>;
 }
 
+/** Injectable clock, timer, network, clipboard, credential store, and KDF dependencies for the Secrets service. */
 export interface SecretsHooks {
   /** Milliseconds since 1970 (`Date.now`). */
   now(): number;

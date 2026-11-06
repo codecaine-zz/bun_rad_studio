@@ -1,3 +1,7 @@
+/**
+ * Persistent application state utilities: OS-standard config/data/cache directory resolution,
+ * atomic JSON state stores with rollback history and subscriptions, and a key-value settings wrapper.
+ */
 // Feature: RAD - stateutils
 // Persistent application state: OS-correct config/data/cache directories, an AppStateStore with
 // atomic (temp+rename) saves, multi-level undo history, change subscriptions and partial patches,
@@ -90,6 +94,12 @@ export class AppStateStore<T extends Record<string, any>> {
   readonly autoSave: boolean;
   readonly historyLimit: number;
 
+  /**
+   * Creates a new persistent application state store.
+   * @param appName - Application identifier used to resolve the default state file directory.
+   * @param initialData - Default initial state snapshot.
+   * @param options - Optional path, auto-save, and undo history settings.
+   */
   constructor(appName: string, initialData: T, options: AppStateOptions = {}) {
     this.defaultData = clone(initialData);
     this.current = clone(initialData);
@@ -215,6 +225,11 @@ export class AppStateStore<T extends Record<string, any>> {
 export class KeyValueState {
   private store: AppStateStore<Record<string, any>>;
 
+  /**
+   * Creates a persistent key-value store backed by an {@link AppStateStore}.
+   * @param appName - Application name used for default config path resolution.
+   * @param customPath - Optional explicit JSON file path.
+   */
   constructor(appName: string, customPath?: string) {
     this.store = new AppStateStore(appName, {}, { customPath, autoSave: true });
   }
@@ -275,6 +290,9 @@ export class KeyValueState {
   }
 }
 
+/**
+ * Namespace of application state and directory resolution utilities.
+ */
 export const stateutils = {
   resolveConfigDir,
   resolveDataDir,

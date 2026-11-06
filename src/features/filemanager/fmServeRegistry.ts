@@ -10,15 +10,21 @@ import { RingLog } from "./fmServeLog";
 import { lanAddress, startStaticServer, type StaticServer } from "./fmServeStatic";
 import { phpEnv, portInUse, startPhp, type PhpProcess } from "./fmServePhp";
 
+/** Maximum number of concurrent static/PHP servers allowed per File Manager session (`8`). */
 export const MAX_SERVERS = 8;
+/** Starting port number probed when auto-picking a port for a static live server (`5500`). */
 export const LIVE_FIRST_PORT = 5500;
+/** Starting port number probed when auto-picking a port for a PHP built-in server (`8000`). */
 export const PHP_FIRST_PORT = 8000;
 const MAX_PORT_TRIES = 100;
 const MAX_STOPPED_KEPT = 8;
 
+/** Kind of local development server managed by `ServeRegistry`. */
 export type ServerKind = "static" | "php";
+/** Lifecycle status of a managed static or PHP development server. */
 export type ServerStatus = "starting" | "running" | "stopping" | "stopped" | "failed";
 
+/** Configuration parameters for starting a new static or PHP server in `ServeRegistry`. */
 export interface StartRequest {
   kind: ServerKind;
   /** The folder the person chose. */
@@ -63,6 +69,7 @@ interface Entry {
   phpProcess: PhpProcess | null;
 }
 
+/** Public status, URL, request count, and configuration summary of a managed server instance. */
 export interface ServerSummary {
   id: string;
   kind: ServerKind;
@@ -104,19 +111,24 @@ function summarize(e: Entry): ServerSummary {
   };
 }
 
+/** Per-context registry managing active and recently stopped static live servers and PHP development servers. */
 export class ServeRegistry {
   private entries = new Map<string, Entry>();
 
+  /** Creates a `ServeRegistry` bound to the given File Manager context `ctx`. */
   constructor(private ctx: FmContext) {}
 
+  /** Returns summaries of all tracked servers (both active and recently stopped/failed). */
   list(): ServerSummary[] {
     return [...this.entries.values()].map(summarize);
   }
 
+  /** Returns the current summary for the server identified by `id`, or throws `NOT_FOUND`. */
   summary(id: unknown): ServerSummary {
     return summarize(this.get(id));
   }
 
+  /** Reads log lines written after cursor `since` (if given) along with the server's current status. */
   log(id: unknown, since?: unknown): { lines: Array<{ n: number; t: number; text: string }>; cursor: number; dropped: boolean; status: ServerStatus } {
     const e = this.get(id);
     return { ...e.log.read(typeof since === "number" ? since : undefined), status: e.status };
@@ -255,6 +267,7 @@ export class ServeRegistry {
     return { ...was, status: "stopped" };
   }
 
+  /** Stops all tracked servers and returns the count of servers that were actively running. */
   async stopAll(): Promise<number> {
     const ids = [...this.entries.keys()];
     let n = 0;
@@ -280,6 +293,7 @@ export class ServeRegistry {
 
 const registries = new WeakMap<FmContext, ServeRegistry>();
 
+/** Returns (or creates) the `ServeRegistry` associated with `ctx`, registering cleanup on context disposal. */
 export function getServeRegistry(ctx: FmContext): ServeRegistry {
   let r = registries.get(ctx);
   if (!r) {

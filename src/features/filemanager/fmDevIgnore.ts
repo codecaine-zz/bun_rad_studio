@@ -6,12 +6,14 @@
 import { promises as fsp } from "fs";
 import * as nodePath from "path";
 
+/** Compiled regular expression rule parsed from a `.gitignore`, `.ignore`, or `.tokeignore` line. */
 export interface IgnoreRule {
   re: RegExp;
   negate: boolean;
   dirOnly: boolean;
 }
 
+/** Collection of compiled `IgnoreRule` patterns scoped to a base directory. */
 export interface IgnoreSet {
   /** The folder the patterns are relative to (absolute, with "/" separators). */
   base: string;
@@ -103,6 +105,7 @@ export function parseIgnoreLines(lines: string[]): IgnoreRule[] {
   return rules;
 }
 
+/** Compiles newline-separated gitignore-style patterns into an `IgnoreSet` anchored at `base`. */
 export function ignoreSetFromText(base: string, text: string): IgnoreSet {
   return { base: base.replace(/\\/g, "/").replace(/\/$/, ""), rules: parseIgnoreLines(text.split("\n")) };
 }
@@ -123,6 +126,7 @@ export function isIgnored(sets: IgnoreSet[], absPath: string, isDir: boolean): b
 }
 
 const MAX_IGNORE_FILE = 256 * 1024;
+/** Standard ignore filenames (`.gitignore`, `.ignore`, `.tokeignore`) respected during directory walks. */
 export const IGNORE_FILE_NAMES = [".gitignore", ".ignore", ".tokeignore"];
 
 /** Reads the ignore files in `dir` (if any). Symlinks are not followed and big files are skipped. */

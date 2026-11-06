@@ -134,6 +134,7 @@ async function parseStart(ctx: FmContext, input: Record<string, any>) {
   return { request, openBrowser: flag(b, "openBrowser", false) };
 }
 
+/** File Manager API handlers (`serve/*`) for starting, stopping, inspecting, and opening local static and PHP dev servers. */
 export const serveOperations: Record<string, FmHandler> = {
   async "serve/status"(ctx) {
     const php = await detectPhp(ctx);

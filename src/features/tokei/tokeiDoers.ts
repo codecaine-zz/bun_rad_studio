@@ -1,3 +1,8 @@
+/**
+ * Pure helper functions and language definitions for the `tokei` feature.
+ * Handles language detection by extension, line-by-line code/comment/blank classification,
+ * aggregation by language, sorting, and output formatting (ASCII table, JSON, Markdown).
+ */
 import { extname } from "node:path";
 import type {
   CommentRule,
@@ -10,6 +15,9 @@ import type {
 import { colors } from "../../shared/colors.ts";
 import { renderTable, type ColumnDef } from "../../shared/table.ts";
 
+/**
+ * Registry of supported programming and markup languages with their file extensions and comment rules.
+ */
 export const LANGUAGES: LanguageSpec[] = [
   { name: "TypeScript", extensions: [".ts", ".tsx"], commentRule: { single: ["//"], multi: [["/*", "*/"]] } },
   { name: "JavaScript", extensions: [".js", ".jsx", ".mjs", ".cjs"], commentRule: { single: ["//"], multi: [["/*", "*/"]] } },
@@ -36,12 +44,19 @@ export const LANGUAGES: LanguageSpec[] = [
   { name: "GraphQL", extensions: [".graphql", ".gql"], commentRule: { single: ["#"] } },
 ];
 
+/**
+ * Looks up the language specification matching a filename's extension.
+ * Returns `null` if the file has no extension or is not in `LANGUAGES`.
+ */
 export function detectLanguage(filename: string): LanguageSpec | null {
   const ext = extname(filename).toLowerCase();
   if (!ext) return null;
   return LANGUAGES.find((lang) => lang.extensions.includes(ext)) ?? null;
 }
 
+/**
+ * Counts total, blank, comment, and code lines in `content` using the given language `CommentRule`.
+ */
 export function analyzeLines(content: string, rule: CommentRule): LineStats {
   const lines = content.split("\n");
   let blank = 0;
@@ -84,6 +99,9 @@ export function analyzeLines(content: string, rule: CommentRule): LineStats {
   return { lines: lines.length, blank, comment, code };
 }
 
+/**
+ * Groups individual file statistics by language and computes per-language totals.
+ */
 export function aggregateStats(fileStats: FileStat[]): LanguageReport[] {
   const map = new Map<string, LanguageReport>();
   for (const f of fileStats) {
@@ -107,6 +125,9 @@ export function aggregateStats(fileStats: FileStat[]): LanguageReport[] {
   return Array.from(map.values());
 }
 
+/**
+ * Returns a new array of language reports sorted in descending order by the specified metric.
+ */
 export function sortReports(
   reports: LanguageReport[],
   sort: TokeiSortField
@@ -118,6 +139,9 @@ export function sortReports(
   });
 }
 
+/**
+ * Renders aggregated language statistics and grand totals as a colorized terminal table.
+ */
 export function formatTokeiTable(reports: LanguageReport[]): string {
   const totalFiles = reports.reduce((acc, r) => acc + r.files, 0);
   const totalLines = reports.reduce((acc, r) => acc + r.stats.lines, 0);
@@ -141,10 +165,16 @@ export function formatTokeiTable(reports: LanguageReport[]): string {
   return `========================================================\n${tableBody}\n${divider}\n${summaryLine}\n========================================================`;
 }
 
+/**
+ * Serializes language reports as pretty-printed JSON.
+ */
 export function formatJsonReports(reports: LanguageReport[]): string {
   return JSON.stringify(reports, null, 2);
 }
 
+/**
+ * Formats language reports and grand totals as a GitHub Flavored Markdown table.
+ */
 export function formatMarkdownTable(reports: LanguageReport[]): string {
   const header = "| Language | Files | Lines | Blank | Comment | Code |";
   const divider = "|:---|---:|---:|---:|---:|---:|";
@@ -161,6 +191,9 @@ export function formatMarkdownTable(reports: LanguageReport[]): string {
   return [header, divider, ...rows, totalRow].join("\n");
 }
 
+/**
+ * Formats a per-language, per-file line count breakdown table for terminal display.
+ */
 export function formatFilesBreakdown(reports: LanguageReport[]): string {
   const lines: string[] = [];
   for (const report of reports) {

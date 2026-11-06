@@ -14,40 +14,53 @@ import { formatHumanSize, getGraveyardDir, loadManifestChecked, saveManifest, ty
 import type { FmContext } from "./fmCore";
 import { FmError, isSameOrInside } from "./fmPaths";
 
+/** Regular expression matching valid Rip burial entry IDs (`rip_<timestamp>_<random>`). */
 export const ENTRY_ID = /^rip_\d{1,16}_[a-z0-9]{1,12}$/;
 /** More than this many "unburied" history records are dropped, oldest first (they only keep Rip Studio's history view). */
 export const MAX_HISTORY = 200;
+/** Maximum number of buried records loaded into memory from a graveyard manifest. */
 export const MAX_LISTED = 200_000;
+/** Maximum character length for a graveyard search query string. */
 export const MAX_QUERY_LENGTH = 200;
+/** Maximum number of rows returned per page when listing graveyard items. */
 export const MAX_PAGE_SIZE = 500;
 
+/** Resolves the active graveyard directory path for the given `FmContext`. */
 export const graveyardDirOf = (ctx: FmContext): string => getGraveyardDir(ctx.graveyardDir);
+/** Returns the `<graveyard>/entries` subdirectory path holding buried item payloads. */
 export const entriesDirOf = (dir: string): string => nodePath.join(dir, "entries");
+/** Returns the `<graveyard>/.staging` directory path used for cross-device temporary copies. */
 export const stagingDirOf = (dir: string): string => nodePath.join(dir, ".staging");
+/** Returns the `<graveyard>/manifest.json` file path storing graveyard records. */
 export const manifestFileOf = (dir: string): string => nodePath.join(dir, "manifest.json");
 
+/** Checks that `name` is a single safe basename without path separators, NUL bytes, or `.`/`..`. */
 export function isPlainName(name: unknown): name is string {
   return typeof name === "string" && name.length > 0 && name.length <= 255 && !/[/\\\0]/.test(name) && name !== "." && name !== "..";
 }
 
+/** Type guard verifying that a parsed manifest record has a valid burial `id`, plain `name`, `originalPath`, and timestamp. */
 export function isValidItem(item: any): item is GraveyardItem {
   return !!item && typeof item === "object" && typeof item.id === "string" && ENTRY_ID.test(item.id) && isPlainName(item.name) && typeof item.originalPath === "string" && Number.isFinite(item.buriedAtMs) && typeof item.status === "string";
 }
 
 /** Where an item's files are: `<graveyard>/entries/<id>/<name>`. */
 export const payloadDirOf = (dir: string, id: string): string => nodePath.join(entriesDirOf(dir), id);
+/** Returns the full path to a buried item's payload inside `<graveyard>/entries/<id>/<name>`. */
 export const payloadOf = (dir: string, item: { id: string; name: string }): string => nodePath.join(payloadDirOf(dir, item.id), item.name);
 
 // ---------------------------------------------------------------------------------------------------------------
 // Reading
 // ---------------------------------------------------------------------------------------------------------------
 
+/** A buried `GraveyardItem` paired with a precomputed lowercase search key (`name\noriginalPath`). */
 export interface Indexed {
   item: GraveyardItem;
   /** Lower-case "name and original place", what the search box looks in. */
   key: string;
 }
 
+/** Cached in-memory snapshot of a graveyard's manifest, active buried items, and health counters. */
 export interface GraveState {
   dir: string;
   exists: boolean;
@@ -72,6 +85,7 @@ async function signature(dir: string): Promise<string> {
   }
 }
 
+/** Reads and indexes the graveyard manifest at `dir`, returning a cached `GraveState` if the file signature has not changed. */
 export async function readGrave(dir: string): Promise<GraveState> {
   const sig = await signature(dir);
   const hit = cache.get(dir);
@@ -184,6 +198,7 @@ export function claim(dir: string, ids: string[]): { got: string[]; busy: string
 // What the page sees
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Serializable graveyard item row formatted for display in the File Manager UI. */
 export interface GraveRow {
   id: string;
   name: string;
@@ -201,6 +216,7 @@ export interface GraveRow {
   missing?: boolean;
 }
 
+/** Converts a `GraveyardItem` record into a UI-ready `GraveRow`. */
 export function rowOf(item: GraveyardItem): GraveRow {
   const size = Number.isFinite(item.sizeBytes) && item.sizeBytes > 0 ? item.sizeBytes : 0;
   const type: RipFileType = (["file", "directory", "symlink", "other"] as const).includes(item.type as never) ? item.type : "file";
@@ -220,9 +236,12 @@ export function rowOf(item: GraveyardItem): GraveRow {
   };
 }
 
+/** Filter mode for narrowing buried graveyard items (`all`, `here`, `files`, or `folders`). */
 export type GraveFilter = "all" | "here" | "files" | "folders";
+/** Sort column key for ordering buried graveyard items. */
 export type GraveSort = "buried" | "name" | "size" | "folder" | "type";
 
+/** Validated search, filter, sort, and pagination parameters for listing buried graveyard items. */
 export interface GraveQuery {
   query: string;
   filter: GraveFilter;
@@ -235,6 +254,7 @@ export interface GraveQuery {
 
 const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
 
+/** Parses and validates a request body into a normalized `GraveQuery`. */
 export function parseQuery(body: Record<string, any>): GraveQuery {
   const query = typeof body.query === "string" ? body.query.slice(0, MAX_QUERY_LENGTH) : "";
   const filter: GraveFilter = body.filter === "here" || body.filter === "files" || body.filter === "folders" ? body.filter : "all";
@@ -267,6 +287,7 @@ export function filterItems(state: GraveState, q: GraveQuery): Indexed[] {
   });
 }
 
+/** Filters, sorts, and paginates buried items from `state` according to `q`. */
 export function runQuery(state: GraveState, q: GraveQuery): { total: number; pages: number; page: number; items: GraveyardItem[] } {
   const list = filterItems(state, q);
   const sign = q.dir === "asc" ? 1 : -1;
@@ -287,6 +308,7 @@ export function runQuery(state: GraveState, q: GraveQuery): { total: number; pag
   return { total: sorted.length, pages, page, items: sorted.slice((page - 1) * q.pageSize, page * q.pageSize).map((x) => x.item) };
 }
 
+/** High-level statistics and disk space summary for the graveyard status view. */
 export interface GraveStats {
   dir: string;
   exists: boolean;
@@ -317,6 +339,7 @@ async function freeSpace(dir: string): Promise<GraveStats["free"]> {
   }
 }
 
+/** Computes aggregate statistics, newest/oldest items, and available filesystem space for the graveyard. */
 export async function graveStats(ctx: FmContext): Promise<GraveStats> {
   const dir = graveyardDirOf(ctx);
   const state = await readGrave(dir);

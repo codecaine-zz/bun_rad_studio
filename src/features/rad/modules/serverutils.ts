@@ -1,16 +1,29 @@
+/**
+ * High-performance HTTP server, parameterized URL router, path-traversal-safe static file server,
+ * and topic-based WebSocket pub/sub hub powered by `Bun.serve`.
+ */
 // Feature: RAD - serverutils
 // High-performance HTTP server, router, static file serving, and WebSocket hub powered by Bun.serve
 import { join, resolve, sep } from "node:path";
 import type { Server, ServerWebSocket } from "bun";
 
+/**
+ * Standard request handler signature compatible with `Bun.serve`.
+ */
 export type HttpHandler = (req: Request, server: Server<any>) => Response | Promise<Response>;
 
+/**
+ * Internal route definition pairing an HTTP method and compiled URL pattern with a request handler.
+ */
 export interface RouteEntry {
   method: string;
   pattern: RegExp;
   handler: (req: Request, params: Record<string, string>, server: Server<any>) => Response | Promise<Response>;
 }
 
+/**
+ * Fluent HTTP router supporting parameterized path patterns (e.g., `"/users/:id"`) and method dispatch.
+ */
 export interface HttpRouter {
   get(path: string, handler: (req: Request, params: Record<string, string>, server: Server<any>) => Response | Promise<Response>): HttpRouter;
   post(path: string, handler: (req: Request, params: Record<string, string>, server: Server<any>) => Response | Promise<Response>): HttpRouter;
@@ -30,6 +43,9 @@ function pathToRegex(path: string): { regex: RegExp; keys: string[] } {
 }
 
 // Coordinator: Create lightweight route registry
+/**
+ * Creates a lightweight {@link HttpRouter} instance for registering `GET`, `POST`, `PUT`, and `DELETE` routes.
+ */
 export function createRouter(): HttpRouter {
   const routes: RouteEntry[] = [];
 
@@ -85,6 +101,9 @@ export function createRouter(): HttpRouter {
   return router;
 }
 
+/**
+ * Options for starting an HTTP server via {@link serveHttp}.
+ */
 export interface ServeOptions {
   port?: number;
   hostname?: string;
@@ -92,6 +111,9 @@ export interface ServeOptions {
   router?: HttpRouter;
 }
 
+/**
+ * Handle to a running `Bun.serve` HTTP server with bound address metadata and lifecycle control.
+ */
 export interface ServerInstance {
   port: number;
   hostname: string;
@@ -101,6 +123,9 @@ export interface ServerInstance {
 }
 
 // Coordinator: Launch HTTP server with router or custom fetch handler
+/**
+ * Starts a `Bun.serve` HTTP server dispatched through a custom `fetch` handler or an {@link HttpRouter}.
+ */
 export function serveHttp(options: ServeOptions = {}): ServerInstance {
   const fetchHandler = options.fetch ?? (options.router ? options.router.handle : () => new Response("OK"));
   const server = Bun.serve({
@@ -118,6 +143,9 @@ export function serveHttp(options: ServeOptions = {}): ServerInstance {
   };
 }
 
+/**
+ * Configuration for serving static files from a local directory via {@link serveStatic}.
+ */
 export interface StaticServerOptions {
   dir: string;
   port?: number;
@@ -127,6 +155,9 @@ export interface StaticServerOptions {
 }
 
 // Coordinator: Launch zero-config static file server
+/**
+ * Starts a path-traversal-safe static file server rooted at `options.dir`, with optional SPA `index.html` fallback.
+ */
 export function serveStatic(options: StaticServerOptions): ServerInstance {
   const rootDir = resolve(options.dir);
   const server = Bun.serve({
@@ -172,6 +203,9 @@ export function serveStatic(options: StaticServerOptions): ServerInstance {
   };
 }
 
+/**
+ * Options for launching a topic-based WebSocket pub/sub server via {@link createWsHub}.
+ */
 export interface WsHubOptions {
   port?: number;
   /** Defaults to "127.0.0.1"; pass "0.0.0.0" to accept connections from other machines. */
@@ -180,6 +214,9 @@ export interface WsHubOptions {
   onError?: (ws: ServerWebSocket<any>, error: Error) => void;
 }
 
+/**
+ * Running WebSocket pub/sub hub supporting topic broadcasting and graceful shutdown.
+ */
 export interface WebSocketHub {
   port: number;
   url: string;
@@ -189,6 +226,10 @@ export interface WebSocketHub {
 }
 
 // Coordinator: Launch WebSocket broadcast and pub/sub hub
+/**
+ * Starts a WebSocket pub/sub hub where clients subscribe to a `?topic=` query parameter and receive
+ * messages published via `hub.broadcast(topic, data)`.
+ */
 export function createWsHub(options: WsHubOptions = {}): WebSocketHub {
   const bindHost = options.hostname ?? "127.0.0.1";
   const isLoopback = bindHost === "127.0.0.1" || bindHost === "localhost" || bindHost === "::1";
@@ -249,6 +290,9 @@ export function createWsHub(options: WsHubOptions = {}): WebSocketHub {
   };
 }
 
+/**
+ * Namespace bundling HTTP server, router, static file server, and WebSocket hub utilities.
+ */
 export const serverutils = {
   createRouter,
   serveHttp,

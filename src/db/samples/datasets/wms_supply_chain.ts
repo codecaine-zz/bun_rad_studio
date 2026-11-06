@@ -1,3 +1,7 @@
+/**
+ * Synthetic Warehouse Management and Supply Chain sample dataset definition covering
+ * suppliers, distribution centers, storage bins, SKUs, purchase orders, lots, and cycle counts.
+ */
 import { addDays, dayOf, dayStr } from "../gen";
 import { COMPANY_A, COMPANY_B } from "../words";
 import { dataset, query, table, view } from "../model";

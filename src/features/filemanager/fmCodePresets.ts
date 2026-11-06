@@ -13,14 +13,22 @@ import * as nodePath from "path";
 import { absolutePath, pathApi, type FmContext } from "./fmCore";
 import { FmError } from "./fmPaths";
 
+/** Format identifier string written into exported Code tab run-presets JSON files. */
 export const PRESETS_FORMAT = "bun-rad-file-manager-run-presets";
+/** Maximum number of run/build presets stored for a single file or file extension. */
 export const MAX_PRESETS_PER_ENTRY = 20;
+/** Maximum number of per-file preset entries retained in the presets store. */
 export const MAX_FILE_ENTRIES = 500;
+/** Maximum number of per-extension preset entries retained in the presets store. */
 export const MAX_TYPE_ENTRIES = 60;
+/** Maximum size in bytes of the persisted run-presets JSON file. */
 export const MAX_PRESET_BYTES = 500 * 1024;
+/** Maximum length in characters of a preset command string. */
 export const MAX_COMMAND = 2000;
+/** Maximum length in characters of a preset display name. */
 export const MAX_NAME = 60;
 
+/** A saved run or build command preset for the Code tab. */
 export interface Preset {
   id: string;
   name: string;
@@ -32,6 +40,7 @@ export interface Preset {
   runCount: number;
 }
 
+/** Collection of presets and default run/build selections associated with a specific file path or extension. */
 export interface Entry {
   path: string;
   presets: Preset[];
@@ -41,6 +50,7 @@ export interface Entry {
   touched: string;
 }
 
+/** Root schema of the persisted `file_manager_code_presets.json` document. */
 export interface PresetDoc {
   version: 1;
   files: Record<string, Entry>;
@@ -85,6 +95,7 @@ export function checkPreset(raw: unknown, keep?: Partial<Preset>): Preset | stri
 }
 
 const keyOf = (ctx: FmContext, path: string) => (ctx.platform === "win32" ? path.toLowerCase() : path);
+/** Extracts and validates a normalized lowercase file extension key (e.g., `.ts`) from a filename. */
 export const extensionKey = (name: string): string => {
   const dot = name.lastIndexOf(".");
   const ext = dot > 0 ? name.slice(dot).toLowerCase() : "";
@@ -111,6 +122,7 @@ function cleanEntry(raw: unknown, path: string, dropped: { n: number }): Entry |
   return presets.length || entry.defaultRun || entry.defaultBuild || entry.last ? entry : null;
 }
 
+/** Validates and sanitizes an untrusted preset document object, counting any invalid entries dropped. */
 export function sanitizeDoc(raw: unknown, ctx: FmContext): { doc: PresetDoc; dropped: number } {
   const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, any>;
   const p = pathApi(ctx);
@@ -187,7 +199,9 @@ async function update<T>(ctx: FmContext, change: (doc: PresetDoc) => T): Promise
 // Looking presets up
 // ---------------------------------------------------------------------------------------------------------------
 
+/** A preset resolved for a specific file, annotated with whether it came from the file or its extension scope. */
 export interface ResolvedPreset extends Preset { scope: "file" | "ext"; ext: string }
+/** Combined list of file-scoped and extension-scoped presets and default IDs for a target file. */
 export interface ResolvedList { path: string; presets: ResolvedPreset[]; defaultRun: string; defaultBuild: string; last: string }
 
 /** This file's presets first, then the ones for every file with the same ending. */
@@ -228,8 +242,10 @@ function findOwner(ctx: FmContext, doc: PresetDoc, path: string, id: string): { 
   return null;
 }
 
+/** Loads and resolves all applicable run/build presets for the requested file path. */
 export const listPresets = async (ctx: FmContext, body: Record<string, any>) => resolve(ctx, (await loadDoc(ctx)).doc, absolutePath(ctx, body.path));
 
+/** Creates or updates a file-scoped or extension-scoped run preset and returns the updated resolved list. */
 export async function savePreset(ctx: FmContext, body: Record<string, any>): Promise<ResolvedList> {
   const path = absolutePath(ctx, body.path);
   const scope = body.scope === "ext" ? "ext" : "file";
@@ -259,6 +275,7 @@ export async function savePreset(ctx: FmContext, body: Record<string, any>): Pro
   });
 }
 
+/** Deletes a preset by ID from its owning file or extension entry and returns the updated resolved list. */
 export async function deletePreset(ctx: FmContext, body: Record<string, any>): Promise<ResolvedList> {
   const path = absolutePath(ctx, body.path);
   return await update(ctx, (doc) => {
@@ -276,6 +293,7 @@ export async function deletePreset(ctx: FmContext, body: Record<string, any>): P
   });
 }
 
+/** Reorders presets within a file or extension scope according to the provided ID list. */
 export async function reorderPresets(ctx: FmContext, body: Record<string, any>): Promise<ResolvedList> {
   const path = absolutePath(ctx, body.path);
   if (!Array.isArray(body.ids) || body.ids.length > MAX_PRESETS_PER_ENTRY * 2) throw new FmError("BAD_REQUEST", "That order isn't valid.");
@@ -346,6 +364,7 @@ export async function movePresets(ctx: FmContext, body: Record<string, any>): Pr
   });
 }
 
+/** Exports all saved file and extension run presets as a portable JSON payload. */
 export async function exportPresets(ctx: FmContext): Promise<{ data: Record<string, unknown> }> {
   const { doc } = await loadDoc(ctx);
   return { data: { format: PRESETS_FORMAT, version: 1, exportedAt: new Date().toISOString(), files: doc.files, types: doc.types } };

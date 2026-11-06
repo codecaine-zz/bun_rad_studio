@@ -8,13 +8,17 @@ import { decodeText, looksBinary, readRegularFile } from "./fmDevRead";
 import { walkFiles, type WalkLimits } from "./fmDevWalk";
 import { FmError } from "./fmPaths";
 
+/** Default comment marker tags (`TODO`, `FIXME`, `HACK`, `XXX`, `BUG`, `NOTE`) scanned in source files. */
 export const DEFAULT_TAGS = ["TODO", "FIXME", "HACK", "XXX", "BUG", "NOTE"];
+/** Maximum number of custom marker tags allowed in a single TODO scan. */
 export const MAX_TAGS = 12;
+/** Maximum number of TODO/FIXME comment matches collected before truncating the report. */
 export const MAX_TODO_ITEMS = 5000;
 const MAX_FILE_BYTES = 1024 * 1024;
 const MAX_LINE = 400;
 const SKIP_NAMES = /(^|\.)(min\.(js|css)|lock)$|^(package-lock\.json|bun\.lockb?|yarn\.lock|pnpm-lock\.yaml|composer\.lock|Cargo\.lock|go\.sum)$/i;
 
+/** A single marker comment match (`TODO`, `FIXME`, etc.) with relative file path, 1-based line number, and message text. */
 export interface TodoItem {
   path: string;
   line: number;
@@ -22,6 +26,7 @@ export interface TodoItem {
   text: string;
 }
 
+/** Completed TODO/FIXME scan report containing matched items, per-tag counts, and walk statistics. */
 export interface TodoReport {
   root: string;
   tags: string[];
@@ -34,6 +39,7 @@ export interface TodoReport {
   elapsedMs: number;
 }
 
+/** Validates and normalizes a list of uppercase marker tag names for a TODO scan. */
 export function parseTags(input: unknown): string[] {
   if (input === undefined) return DEFAULT_TAGS;
   if (!Array.isArray(input)) throw new FmError("BAD_TAGS", "The marker words must be a list.");
@@ -59,6 +65,7 @@ export function findMarkers(line: string, pattern: RegExp): Array<{ tag: string;
   return out;
 }
 
+/** Scans source files under `job.root` for comment lines containing the requested marker tags. */
 export async function runTodo(job: DevJob, o: { tags: string[]; respectGitignore: boolean; hidden: boolean; vendored: boolean; excludes: string[]; limits?: Partial<WalkLimits> }): Promise<TodoReport> {
   const started = Date.now();
   const re = new RegExp(`(?<![A-Za-z0-9_])(${o.tags.join("|")})(?![A-Za-z0-9_])`, "g");

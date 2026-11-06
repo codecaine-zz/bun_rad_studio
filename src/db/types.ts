@@ -3,8 +3,10 @@
  * normalizes how callers talk to them but exposes real differences through `Capabilities`.
  */
 
+/** Supported relational database engine identifier. */
 export type Engine = "sqlite" | "mysql" | "postgres";
 
+/** TLS certificate verification options for MySQL and PostgreSQL connections. */
 export interface TlsOptions {
   /** PEM text of a CA certificate to trust in addition to / instead of the system store. */
   ca?: string;
@@ -12,6 +14,7 @@ export interface TlsOptions {
   verify?: boolean;
 }
 
+/** Configuration parameters for establishing a SQLite, MySQL, or PostgreSQL connection. */
 export interface ConnectionConfig {
   engine: Engine;
   /** SQLite: file path, or ":memory:". */
@@ -37,6 +40,7 @@ export interface ConnectionConfig {
   statementTimeoutMs?: number;
 }
 
+/** Mechanism used by the database adapter to enforce a read-only connection. */
 export type ReadOnlyEnforcement =
   /** The connection itself cannot write (SQLite readonly open). */
   | "connection"
@@ -44,6 +48,7 @@ export type ReadOnlyEnforcement =
   | "transaction"
   | "none";
 
+/** Feature and safety capabilities reported by an active database adapter. */
 export interface Capabilities {
   engine: Engine;
   version: string;
@@ -76,6 +81,7 @@ export type Param =
   | { $date: string }
   | { $json: unknown };
 
+/** Normalized result of executing a single SQL query or DML statement. */
 export interface QueryResult {
   columns: string[];
   rows: Record<string, WireValue>[];
@@ -89,10 +95,12 @@ export interface QueryResult {
   elapsedMs: number;
 }
 
+/** Per-query execution options such as row limits. */
 export interface QueryOptions {
   maxRows?: number;
 }
 
+/** Metadata describing a single column of a table or view. */
 export interface ColumnInfo {
   name: string;
   dataType: string;
@@ -104,6 +112,7 @@ export interface ColumnInfo {
   comment?: string | null;
 }
 
+/** Metadata describing a foreign key constraint on a table. */
 export interface ForeignKeyInfo {
   name: string | null;
   columns: string[];
@@ -114,6 +123,7 @@ export interface ForeignKeyInfo {
   onUpdate?: string;
 }
 
+/** Metadata describing a table index. */
 export interface IndexInfo {
   name: string;
   unique: boolean;
@@ -121,6 +131,7 @@ export interface IndexInfo {
   primary: boolean;
 }
 
+/** Complete schema metadata for a table or view, including columns, primary key, foreign keys, and indexes. */
 export interface TableInfo {
   schema?: string;
   name: string;
@@ -134,24 +145,28 @@ export interface TableInfo {
   comment?: string | null;
 }
 
+/** Reference to a database table or view, optionally qualified by schema. */
 export interface ObjectRef {
   schema?: string;
   name: string;
   type: "table" | "view";
 }
 
+/** Server version, active database, and ping round-trip latency returned by `ping()`. */
 export interface ServerInfo {
   version: string;
   currentDatabase: string | null;
   latencyMs: number;
 }
 
+/** Single column filter predicate applied when browsing table rows. */
 export interface BrowseFilter {
   column: string;
   op: "eq" | "ne" | "lt" | "lte" | "gt" | "gte" | "contains" | "startsWith" | "isNull" | "notNull";
   value?: Param;
 }
 
+/** Paginated, sorted, and filtered data browse request for a table or view. */
 export interface BrowseRequest {
   table: ObjectRef;
   limit: number;
@@ -160,8 +175,10 @@ export interface BrowseRequest {
   filters?: BrowseFilter[];
 }
 
+/** Indicates whether rows of a browsed object can be edited in place and which key columns identify a row. */
 export type EditableInfo = { ok: true; keyColumns: string[]; keyKind: "primary" | "rowid" } | { ok: false; reason: string };
 
+/** Paginated result of browsing a table or view, including column metadata, total count, and editability status. */
 export interface BrowseResult {
   columns: ColumnInfo[];
   rows: Record<string, WireValue>[];
@@ -172,10 +189,12 @@ export interface BrowseResult {
   editable: EditableInfo;
 }
 
+/** Map of primary-key (or `rowid`) column names to parameter values uniquely identifying a single row. */
 export interface RowKey {
   [column: string]: Param;
 }
 
+/** Optimistically-locked single-row update request. */
 export interface RowUpdate {
   table: ObjectRef;
   key: RowKey;
@@ -184,6 +203,7 @@ export interface RowUpdate {
   changes: Record<string, Param>;
 }
 
+/** Optimistically-locked single-row delete request. */
 export interface RowDelete {
   table: ObjectRef;
   key: RowKey;
@@ -191,11 +211,13 @@ export interface RowDelete {
   expected?: Record<string, Param>;
 }
 
+/** Single-row insert request mapping column names to parameter values. */
 export interface RowInsert {
   table: ObjectRef;
   values: Record<string, Param>;
 }
 
+/** Dedicated stateful database session supporting interactive transactions and statement cancellation. */
 export interface DbSession {
   readonly inTransaction: boolean;
   query(sql: string, params?: Param[], options?: QueryOptions): Promise<QueryResult>;
@@ -207,6 +229,7 @@ export interface DbSession {
   close(): Promise<void>;
 }
 
+/** Unified asynchronous adapter contract implemented by SQLite, MySQL, and PostgreSQL drivers. */
 export interface DbAdapter {
   readonly config: Readonly<Omit<ConnectionConfig, "password">>;
   readonly engine: Engine;

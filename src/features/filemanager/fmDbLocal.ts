@@ -9,9 +9,12 @@ import { createConnection } from "net";
 import { connectionFingerprint } from "./fmDbModel";
 import type { EnvConnection } from "./fmDbDetect";
 
+/** Default loopback hostname (`127.0.0.1`) probed for a local Redis server. */
 export const LOCAL_REDIS_HOST = "127.0.0.1";
+/** Default TCP port (`6379`) probed for a local Redis server. */
 export const LOCAL_REDIS_PORT = 6379;
 
+/** Outcome of probing the local Redis port (`open`, `password` required, or `none`). */
 export type LocalRedisState = "open" | "password" | "none";
 
 /** "open": answered PING. "password": it is Redis but wants a password first. "none": nothing (usable) there. */

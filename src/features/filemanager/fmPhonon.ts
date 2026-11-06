@@ -40,12 +40,18 @@ import { loadSettings, PHONON_AUDIO_FORMATS, updateSettings, type PhononAudioFor
 import { detectManagers, explainFailure, resolveTool } from "./fmToolDetect";
 import { findExecutable, installPlan, searchDirs, TOOLS } from "./fmTools";
 
+/**
+ * Weight and fundamental frequency of a built-in reference voice used when blending a custom voice conditioning tensor.
+ */
 export interface PhononVoiceBlendComponent {
   voiceId: string;
   weight: number;
   f0Hz: number;
 }
 
+/**
+ * Acoustic biometric measurements and prosody characteristics extracted from a user's voice recording.
+ */
 export interface PhononVoiceAcousticProfile {
   medianF0Hz: number;
   f0MinHz: number;
@@ -70,6 +76,9 @@ export interface PhononVoiceAcousticProfile {
   prosodyContour125: number[];
 }
 
+/**
+ * Persisted metadata record for a custom cloned or recorded user voice in the Phonon library.
+ */
 export interface PhononCustomVoiceRecord {
   id: string;
   label: string;
@@ -86,6 +95,9 @@ export interface PhononCustomVoiceRecord {
   cloningEngine?: "f5-tts-mlx" | "phonon-transfer";
 }
 
+/**
+ * Display and capability metadata for a built-in or custom Phonon TTS voice.
+ */
 export interface PhononVoiceInfo {
   id: string;
   label: string;
@@ -102,6 +114,9 @@ export interface PhononVoiceInfo {
   cloningEngine?: "f5-tts-mlx" | "phonon-transfer";
 }
 
+/**
+ * Guided reading passage displayed to the user when recording a voice sample for custom voice cloning.
+ */
 export interface PhononCalibrationScript {
   id: string;
   label: string;
@@ -109,6 +124,9 @@ export interface PhononCalibrationScript {
   text: string;
 }
 
+/**
+ * Built-in calibration scripts optimized for capturing vocal pitch range, timbre, and cadence during voice cloning.
+ */
 export const VOICE_CALIBRATION_SCRIPTS: PhononCalibrationScript[] = [
   {
     id: "rainbow",
@@ -174,6 +192,9 @@ export const DEFAULT_PHONON_VOICES: PhononVoiceInfo[] = [
   { id: "Azgorath", label: "Azgorath", category: "Character", desc: "Dark, cinematic fantasy villain voice" },
 ];
 
+/**
+ * Descriptor for a supported Phonon audio or read-along video export format.
+ */
 export interface PhononFormatInfo {
   id: PhononAudioFormat;
   label: string;
@@ -184,6 +205,9 @@ export interface PhononFormatInfo {
   desc: string;
 }
 
+/**
+ * Supported audio-only export formats for Phonon speech synthesis.
+ */
 export const AUDIO_FORMAT_INFO: PhononFormatInfo[] = [
   { id: "wav", label: "WAV (24 kHz PCM — Native)", ext: "wav", mime: "audio/wav", needsFfmpeg: false, isVideo: false, desc: "Uncompressed studio-grade 24 kHz 16-bit mono WAV directly from Phonon. Works without ffmpeg." },
   { id: "mp3", label: "MP3 (Universal Audio)", ext: "mp3", mime: "audio/mpeg", needsFfmpeg: true, isVideo: false, desc: "Compact MP3 audio file playable on every phone, car, and media player (uses ffmpeg)." },
@@ -196,6 +220,9 @@ export const AUDIO_FORMAT_INFO: PhononFormatInfo[] = [
   { id: "wma", label: "WMA (Windows Media Audio)", ext: "wma", mime: "audio/x-ms-wma", needsFfmpeg: true, isVideo: false, desc: "Windows Media Audio format (uses ffmpeg)." },
 ];
 
+/**
+ * Supported read-along video export formats with synchronized text highlighting and subtitles.
+ */
 export const VIDEO_FORMAT_INFO: PhononFormatInfo[] = [
   { id: "mp4", label: "MP4 Read-Along Video (H.264 + Highlighted Text)", ext: "mp4", mime: "video/mp4", needsFfmpeg: true, isVideo: true, desc: "Universal 1080p MP4 Read-Along Video with synchronized word-by-word karaoke text highlighting and companion .SRT/.VTT subtitles." },
   { id: "webm", label: "WebM Read-Along Video (VP9 + Highlighted Text)", ext: "webm", mime: "video/webm", needsFfmpeg: true, isVideo: true, desc: "Open-web VP9/Opus Read-Along Video with synchronized word-by-word text highlighting." },
@@ -203,15 +230,30 @@ export const VIDEO_FORMAT_INFO: PhononFormatInfo[] = [
   { id: "mkv", label: "MKV Matroska Read-Along Video (H.264 + Subtitles)", ext: "mkv", mime: "video/x-matroska", needsFfmpeg: true, isVideo: true, desc: "Archival MKV Read-Along Video with synchronized burned-in text highlighting and companion subtitle files." },
 ];
 
+/**
+ * Combined list of all supported Phonon audio and read-along video export formats.
+ */
 export const ALL_MEDIA_FORMAT_INFO: PhononFormatInfo[] = [...AUDIO_FORMAT_INFO, ...VIDEO_FORMAT_INFO];
 
+/**
+ * Type guard checking whether a Phonon format identifier represents a read-along video container (`mp4`, `webm`, `mov`, or `mkv`).
+ */
 export function isPhononVideoFormat(format: string): format is "mp4" | "webm" | "mov" | "mkv" {
   return format === "mp4" || format === "webm" || format === "mov" || format === "mkv";
 }
 
+/**
+ * Supported aspect ratios for Phonon read-along videos.
+ */
 export const PHONON_VIDEO_ASPECTS = ["16:9", "9:16", "1:1"] as const;
+/**
+ * Aspect ratio identifier for Phonon read-along videos.
+ */
 export type PhononVideoAspect = (typeof PHONON_VIDEO_ASPECTS)[number];
 
+/**
+ * Canvas resolution and typography layout parameters for a Phonon read-along video aspect ratio.
+ */
 export interface PhononVideoAspectInfo {
   id: PhononVideoAspect;
   label: string;
@@ -225,6 +267,9 @@ export interface PhononVideoAspectInfo {
   lineSpacingPx: number;
 }
 
+/**
+ * Lookup table mapping each Phonon video aspect ratio to its resolution and subtitle layout parameters.
+ */
 export const VIDEO_ASPECT_INFO: Record<PhononVideoAspect, PhononVideoAspectInfo> = {
   "16:9": {
     id: "16:9",
@@ -264,9 +309,18 @@ export const VIDEO_ASPECT_INFO: Record<PhononVideoAspect, PhononVideoAspectInfo>
   },
 };
 
+/**
+ * Supported visual color themes for Phonon read-along videos.
+ */
 export const PHONON_VIDEO_THEMES = ["midnight", "parchment", "cyber", "high_contrast"] as const;
+/**
+ * Color theme identifier for Phonon read-along videos.
+ */
 export type PhononVideoTheme = (typeof PHONON_VIDEO_THEMES)[number];
 
+/**
+ * Canvas background color and ASS subtitle palette definitions for a Phonon read-along video theme.
+ */
 export interface PhononVideoThemeInfo {
   id: PhononVideoTheme;
   label: string;
@@ -279,6 +333,9 @@ export interface PhononVideoThemeInfo {
   assOutline: string;
 }
 
+/**
+ * Lookup table mapping each Phonon video theme to its canvas background and ASS karaoke color codes.
+ */
 export const VIDEO_THEME_INFO: Record<PhononVideoTheme, PhononVideoThemeInfo> = {
   midnight: {
     id: "midnight",
@@ -330,6 +387,9 @@ export const VIDEO_THEME_INFO: Record<PhononVideoTheme, PhononVideoThemeInfo> = 
 // Synchronized Word-by-Word & Phrase Timing Engine (for Live Teleprompter + Read-Along Video & Subtitles)
 // ---------------------------------------------------------------------------------------------------------------
 
+/**
+ * Millisecond-level timing and character offsets for a single spoken word in a read-along timeline.
+ */
 export interface PhononWordTiming {
   word: string;
   wordIndex: number;
@@ -342,6 +402,9 @@ export interface PhononWordTiming {
   durationMs: number;
 }
 
+/**
+ * Phrase-level subtitle cue grouping consecutive spoken words for teleprompter and subtitle display.
+ */
 export interface PhononReadAlongCue {
   index: number;
   chunkIndex: number;
@@ -352,6 +415,9 @@ export interface PhononReadAlongCue {
   words: PhononWordTiming[];
 }
 
+/**
+ * Synthesized text chunk annotated with start/end timestamps and optional PCM waveform or word timing data.
+ */
 export interface PhononTimedChunk {
   index: number;
   paragraphIndex: number;
@@ -369,6 +435,9 @@ export interface PhononTimedChunk {
   words?: PhononWordTiming[];
 }
 
+/**
+ * Complete read-along synchronization timeline containing timed chunks, subtitle cues, and individual word timings.
+ */
 export interface PhononReadAlongTimeline {
   totalDurationMs: number;
   chunks: PhononTimedChunk[];
@@ -984,9 +1053,18 @@ export function formatAssKaraokeSubtitles(
  * guarantees that Phonon never hits its context limit, avoids voice drift, and keeps per-chunk latency low.
  */
 export const PHONON_DEFAULT_CHUNK_CHARS = 520;
+/**
+ * Default target character limit per text chunk during batch audio and video exports.
+ */
 export const PHONON_BATCH_CHUNK_CHARS = 900;
+/**
+ * Hard upper bound on characters per text chunk to prevent exceeding Phonon's 8,192-token context window.
+ */
 export const PHONON_HARD_MAX_CHUNK_CHARS = 1200;
 
+/**
+ * Segment of normalized plain text prepared for a single Phonon synthesis call.
+ */
 export interface PhononTextChunk {
   index: number;
   paragraphIndex: number;
@@ -995,6 +1073,9 @@ export interface PhononTextChunk {
   wordCount: number;
 }
 
+/**
+ * Configuration options for splitting long documents into Phonon synthesis chunks.
+ */
 export interface SplitTextOptions {
   /** Maximum characters per chunk (clamped to 120..1200, default 520). */
   maxChars?: number;
@@ -1166,6 +1247,9 @@ export function splitTextForPhonon(rawText: string, options: SplitTextOptions = 
 // Speech Text Normalization & Markup/Format Cleanup
 // ---------------------------------------------------------------------------------------------------------------
 
+/**
+ * Options controlling how markup, code blocks, URLs, and timestamps are stripped before speech synthesis.
+ */
 export interface CleanTextOptions {
   /** Strip Markdown formatting (# headings, **bold**, links, tables, etc.). Default true. */
   stripMarkdown?: boolean;
@@ -1297,6 +1381,9 @@ export function cleanTextForSpeech(input: string, opts: CleanTextOptions = {}): 
 // Universal Format-to-Plain-Text Extractor (Any Document / Data / Subtitle / E-Book / Text File)
 // ---------------------------------------------------------------------------------------------------------------
 
+/**
+ * Result of extracting and normalizing spoken plain text from a document, e-book, subtitle, or data file.
+ */
 export interface ExtractedPlainText {
   text: string;
   rawText: string;
@@ -1754,6 +1841,9 @@ export async function extractPlainTextFromFile(
 // WAV & AIFF PCM Audio Parsing and Disk-Backed Multi-Chunk Stitching
 // ---------------------------------------------------------------------------------------------------------------
 
+/**
+ * Decoded RIFF/WAVE header metadata and raw PCM sample payload.
+ */
 export interface ParsedWav {
   sampleRate: number;
   numChannels: number;
@@ -1888,6 +1978,9 @@ export async function convertWavFileToAiffNative(wavPath: string, aiffPath: stri
 // Ollama & Phonon Discovery, Voice Parsing, and Synthesis
 // ---------------------------------------------------------------------------------------------------------------
 
+/**
+ * Extracts voice names listed under the `Voices` section of `ollama show phonon` output.
+ */
 export function parseVoicesFromModelfile(showOutput: string): string[] {
   const found = new Set<string>();
   const lines = showOutput.split(/\r?\n/);
@@ -2047,6 +2140,9 @@ const REFERENCE_PHONON_VOICE_TARGETS: ReferenceVoiceAcousticTarget[] = [
   { voiceId: "Pippa", f0Hz: 211.9, centroidHz: 1070, expressiveness: 0.81, cadence: 6.6, formantBands: { low: 0.631, midLow: 0.205, midHigh: 0.085, air: 0.078 } },
 ];
 
+/**
+ * Returns the directory path where user-recorded custom Phonon voice samples and tensors are stored.
+ */
 export function customVoicesDir(ctx: FmContext): string {
   return nodePath.join(ctx.dataDir, "phonon-custom-voices");
 }
@@ -2063,6 +2159,9 @@ function customVoicesManifestPath(ctx: FmContext): string {
   return nodePath.join(customVoicesDir(ctx), "voices.json");
 }
 
+/**
+ * Sanitizes a user-supplied voice name into a safe identifier that does not collide with built-in Phonon voices.
+ */
 export function sanitizeCustomVoiceId(rawName: string): string {
   const cleaned = rawName
     .trim()
@@ -3171,6 +3270,9 @@ export function applyCustomVoiceTransferToWav(wavBuf: Buffer, profile: PhononVoi
   }
 }
 
+/**
+ * Synchronously reads the custom voices manifest from disk.
+ */
 export function listCustomVoicesSync(ctx: FmContext): PhononCustomVoiceRecord[] {
   const manifestFile = customVoicesManifestPath(ctx);
   if (!existsSync(manifestFile)) return [];
@@ -3735,6 +3837,9 @@ async function callF5MlxWorker(
   return next;
 }
 
+/**
+ * Extracts a pause-aligned 24 kHz reference clip from a custom voice WAV and transcribes it with Whisper for F5-TTS-MLX zero-shot voice cloning.
+ */
 export async function prepareF5MlxVoiceReference(
   ctx: FmContext,
   voiceId: string,
@@ -3761,6 +3866,9 @@ export async function prepareF5MlxVoiceReference(
   return null;
 }
 
+/**
+ * Synthesizes speech in a user's cloned voice using the local Apple Silicon F5-TTS-MLX worker process.
+ */
 export async function synthesizeWithF5MlxVoiceClone(
   ctx: FmContext,
   cv: PhononCustomVoiceRecord,
@@ -3888,10 +3996,16 @@ export async function ensureCustomVoicesUpgraded(ctx: FmContext): Promise<Phonon
   return voices;
 }
 
+/**
+ * Lists all custom user voices after ensuring their profiles, reference clips, and Ollama manifests are up to date.
+ */
 export async function listCustomVoices(ctx: FmContext): Promise<PhononCustomVoiceRecord[]> {
   return ensureCustomVoicesUpgraded(ctx);
 }
 
+/**
+ * Resolves the on-disk WAV sample file path for a given custom voice ID, or `null` if not found.
+ */
 export function getCustomVoiceSampleFile(ctx: FmContext, voiceId: string): string | null {
   if (!/^[A-Za-z0-9][A-Za-z0-9 _-]{0,46}$/.test(voiceId)) return null;
   const wavPath = nodePath.join(customVoicesDir(ctx), `${voiceId}.wav`);
@@ -4016,6 +4130,9 @@ export async function createCustomVoiceFromAudio(
   return { voice: record, voices: updatedList };
 }
 
+/**
+ * Deletes a custom user voice, removing its audio samples, `.safetensors` file, and Ollama manifest entry.
+ */
 export async function deleteCustomVoice(
   ctx: FmContext,
   body: { id?: unknown },
@@ -4049,6 +4166,9 @@ export async function deleteCustomVoice(
   return { deletedId: id, voices: remaining };
 }
 
+/**
+ * Full status report for Phonon TTS readiness, installed voices, supported formats, and user settings.
+ */
 export interface PhononStatusReport {
   supported: boolean;
   ollamaInstalled: boolean;
@@ -4091,6 +4211,9 @@ export function isPhononSupportedPlatform(platform: string = process.platform, a
   return platform === "darwin" && arch === "arm64";
 }
 
+/**
+ * Probes local Ollama and Phonon model installation status, available voices, and active synthesis settings.
+ */
 export async function getPhononStatus(ctx: FmContext): Promise<PhononStatusReport> {
   const effectiveArch = ctx.platform === "darwin" && process.platform !== "darwin" ? "arm64" : process.arch;
   const supported = isPhononSupportedPlatform(ctx.platform, effectiveArch);
@@ -4533,6 +4656,9 @@ export async function speakChunk(
   };
 }
 
+/**
+ * Resolves a cached synthesized audio chunk file or custom voice sample file by its cache identifier.
+ */
 export function getCachedAudioFile(ctx: FmContext, id: string): string | null {
   if (id.startsWith("voice-sample:")) {
     return getCustomVoiceSampleFile(ctx, id.slice("voice-sample:".length));
@@ -4831,6 +4957,9 @@ export async function installOllamaBinaryCrossPlatform(
   return found;
 }
 
+/**
+ * Creates a background job step that installs the Ollama binary on the host platform.
+ */
 export function createOllamaInstallStep(ctx: FmContext) {
   return {
     label: "Install Ollama",
@@ -4844,6 +4973,9 @@ export function createOllamaInstallStep(ctx: FmContext) {
   };
 }
 
+/**
+ * Creates a background job step that starts the Ollama daemon and pulls the default starter AI models (`qwen3.5:4b` and `lfm3-omni:latest`).
+ */
 export function createStarterModelsPullStep(ctx: FmContext) {
   const env = buildExecEnv(ctx);
   return {
@@ -4867,6 +4999,9 @@ export function createStarterModelsPullStep(ctx: FmContext) {
   };
 }
 
+/**
+ * Creates a background job step that starts the Ollama daemon and pulls the `phonon` neural TTS model.
+ */
 export function createPhononPullStep(ctx: FmContext) {
   const env = buildExecEnv(ctx);
   return {
@@ -4896,6 +5031,9 @@ export function createPhononPullStep(ctx: FmContext) {
   };
 }
 
+/**
+ * Starts a background installation job to install Ollama (if missing) and pull the `phonon` voice model.
+ */
 export function startPhononInstall(ctx: FmContext, body: { confirm?: unknown }): ReturnType<FmContext["jobs"]["start"]> {
   if (body.confirm !== true) {
     throw new FmError("NEEDS_CONFIRM", "Confirm to install Ollama and download the Phonon voice model.");
@@ -4918,6 +5056,9 @@ export function startPhononInstall(ctx: FmContext, body: { confirm?: unknown }):
 // Multi-Chunk Synthesis + Any-Audio-Format Export Job (`phonon/save`)
 // ---------------------------------------------------------------------------------------------------------------
 
+/**
+ * Builds ffmpeg `-af` filter arguments (`asetrate`, `aresample`, and chained `atempo` filters) for independent speed and pitch shifting.
+ */
 export function buildAtempoFilter(speed: number, pitchSemitones = 0, sampleRate = 24000): string[] {
   const s = Math.min(2.5, Math.max(0.5, speed || 1));
   const p = Math.min(6, Math.max(-6, pitchSemitones || 0));
@@ -5378,6 +5519,9 @@ export async function synthesizeAndExportAudioFile(
   }
 }
 
+/**
+ * Validates parameters and starts a background job to synthesize text or files into audio or read-along video files.
+ */
 export async function startPhononAudioExportJob(
   ctx: FmContext,
   body: {
@@ -5605,6 +5749,9 @@ export async function savePlainTextToFile(
   return { path: outPath, size: st.size };
 }
 
+/**
+ * Planned chapter metadata and normalized text for a multi-chapter Phonon audiobook export.
+ */
 export interface PhononAudiobookChapterPlan {
   index: number;
   number: number;
@@ -5673,6 +5820,9 @@ function splitPlainTextIntoChapterSections(rawText: string, maxChapters = 60): A
   return chunked;
 }
 
+/**
+ * Extracts and segments a book, document, or plain text string into ordered chapters for audiobook synthesis.
+ */
 export async function extractAudiobookChapters(
   ctx: FmContext,
   input: { path?: unknown; text?: unknown; clean?: boolean; maxChapters?: number; ext?: string },
@@ -5787,6 +5937,9 @@ export async function extractAudiobookChapters(
   return { bookTitle, formatLabel, chapters };
 }
 
+/**
+ * Previews or starts a multi-chapter audiobook export job that writes per-chapter audio files, an M3U8 playlist, and a `chapters.json` manifest.
+ */
 export async function startPhononAudiobookExportJob(
   ctx: FmContext,
   body: Record<string, unknown>,
@@ -6022,6 +6175,9 @@ export async function startPhononAudiobookExportJob(
 // HTTP Operations Table (`PHONON_OPS`)
 // ---------------------------------------------------------------------------------------------------------------
 
+/**
+ * File Manager API operation handlers for Phonon text-to-speech, custom voice cloning, and audio/video export (`phonon/*`).
+ */
 export const PHONON_OPS: Record<string, FmHandler> = {
   "phonon/status": (ctx) => getPhononStatus(ctx),
   "phonon/install": async (ctx, b) => ({ job: startPhononInstall(ctx, (b ?? {}) as { confirm?: unknown }) }),

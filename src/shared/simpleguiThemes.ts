@@ -1,7 +1,12 @@
+/**
+ * Master catalog of `SimpleGUITheme` definitions combining classic RAD Studio themes,
+ * operating-system themes (`OS_THEMES`), and futuristic FX themes (`FX_THEMES`).
+ */
 import type { SimpleGUITheme } from "../simplegui";
 import { OS_THEMES } from "./osThemes";
 import { FX_THEMES } from "./fxThemes";
 
+/** Complete dictionary of built-in `SimpleGUITheme` entries keyed by theme ID. */
 export const SIMPLEGUI_THEMES: Record<string, SimpleGUITheme> = {
     // ==========================================
     // 3. V-LANG RAD STUDIO 42 PORTED THEMES

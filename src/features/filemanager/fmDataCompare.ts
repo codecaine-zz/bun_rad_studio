@@ -8,11 +8,15 @@ import { absolutePath, pathApi, type FmContext, type FmHandler } from "./fmCore"
 import { FmError, describeFsError, extensionOf } from "./fmPaths";
 import { extractReadableDocumentText } from "./fmPreview";
 
+/** Maximum file size in bytes accepted when comparing two structured data files. */
 export const COMPARE_MAX_BYTES = 5 * 1024 * 1024;
+/** Maximum object/array nesting depth traversed when diffing two structured data trees. */
 export const COMPARE_MAX_DEPTH = 100;
+/** Maximum number of individual key/index differences returned in a structured data comparison. */
 export const COMPARE_MAX_ENTRIES = 300;
 const VALUE_CHARS = 200;
 
+/** Structured data format family (`JSON`, `JSON5`, `YAML`, or `TOML`) supported by semantic data comparison. */
 export type DataKind = "JSON" | "JSON5" | "YAML" | "TOML";
 
 const KIND_BY_EXT: Record<string, DataKind> = { json: "JSON", jsonc: "JSON5", json5: "JSON5", yaml: "YAML", yml: "YAML", toml: "TOML" };
@@ -20,6 +24,7 @@ const KIND_BY_EXT: Record<string, DataKind> = { json: "JSON", jsonc: "JSON5", js
 /** Can this file name be compared (by its extension)? */
 export const comparableKind = (name: string): DataKind | null => KIND_BY_EXT[extensionOf(name).toLowerCase()] ?? null;
 
+/** A single path-level difference between two structured data files. */
 export interface Difference {
   path: string;
   left?: string;
@@ -27,6 +32,7 @@ export interface Difference {
   note?: string;
 }
 
+/** Semantic comparison report for two structured data files, including changed, left-only, and right-only paths. */
 export interface CompareResult {
   /** The same data once key order and formatting are ignored (`Bun.deepEquals`). */
   identical: boolean;
@@ -156,6 +162,7 @@ export async function compareDataFiles(ctx: FmContext, leftPath: unknown, rightP
   };
 }
 
+/** File Manager API handlers for semantic structured data comparison (`data/compare`) and line-by-line text comparison (`text/compare`). */
 export const dataCompareOperations: Record<string, FmHandler> = {
   async "data/compare"(ctx, b) {
     return { ...(await compareDataFiles(ctx, b.left, b.right)) };
@@ -165,9 +172,12 @@ export const dataCompareOperations: Record<string, FmHandler> = {
   },
 };
 
+/** Maximum file size in bytes accepted when comparing two plain-text or document files. */
 export const TEXT_COMPARE_MAX_BYTES = 2 * 1024 * 1024;
+/** Maximum number of lines per file compared in the LCS line-by-line text diff. */
 export const TEXT_COMPARE_MAX_LINES = 2000;
 
+/** A single unchanged, added, or deleted line in a side-by-side/unified text comparison. */
 export interface TextDiffRow {
   type: "same" | "add" | "del";
   leftLine?: number;
@@ -175,6 +185,7 @@ export interface TextDiffRow {
   text: string;
 }
 
+/** Line-by-line diff rows, similarity percentage, line counts, and unified patch for two compared text files. */
 export interface TextCompareResult {
   identical: boolean;
   left: { name: string; path: string; lines: number; bytes: number };

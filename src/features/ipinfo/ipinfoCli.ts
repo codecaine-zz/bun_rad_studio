@@ -1,8 +1,14 @@
 #!/usr/bin/env bun
+/**
+ * Command-line entry point and argument parser for the IPInfo tool.
+ */
 import { parseArgs } from "node:util";
 import { runIpInfoCoordinator } from "./ipinfoCoordinator.ts";
 import type { IpInfoOptions } from "./ipinfoTypes.ts";
 
+/**
+ * Parses raw command-line arguments into structured `IpInfoOptions`.
+ */
 export function parseIpInfoArguments(args: string[]): IpInfoOptions {
   const { values, positionals } = parseArgs({
     args,
@@ -40,6 +46,9 @@ export function parseIpInfoArguments(args: string[]): IpInfoOptions {
   };
 }
 
+/**
+ * Prints CLI usage instructions and available flags for the `ipinfo` command to stdout.
+ */
 export function printIpInfoHelp(): void {
   console.log(`Usage: ipinfo [<ip|cidr>] [options]
 

@@ -11,9 +11,12 @@ import { VENDORED_DIRS, type Cancellable } from "./fmDevWalk";
 import { FmError } from "./fmPaths";
 import type { FileRow, LangRow, StatsOptions } from "./fmDevTypes";
 
+/** Maximum JSON stdout byte size accepted from the external `tokei` binary. */
 export const TOKEI_OUTPUT_CAP = 64 * 1024 * 1024;
+/** Platform package-manager instructions shown when `tokei` is not installed. */
 export const TOKEI_INSTALL_HINT = "Install tokei with `brew install tokei` (macOS/Linux), `cargo install tokei`, `winget install XAMPPRocky.tokei` or `scoop install tokei`.";
 
+/** Detection status, binary path, version string, and supported languages for an installed `tokei` executable. */
 export interface TokeiInfo {
   installed: boolean;
   path: string | null;

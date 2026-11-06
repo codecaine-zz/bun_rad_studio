@@ -7,6 +7,7 @@ import { basename } from "path";
 import { provenanceText, type EnvVar, type EnvView, type Provenance } from "./fmDbEnvView";
 import { ENGINES, GENERIC_ENV, OTHER_ENV, STUDIO_ENV, connectionFingerprint, engineOfScheme, isEngineVariable, parseConnectionUrl, validHost, validPort, type DbEngine, type FieldName } from "./fmDbModel";
 
+/** A connection setting value extracted from an environment variable or `.env` file together with its provenance. */
 export interface FieldValue {
   value: string | number | boolean;
   /** The variable the value was read from (DATABASE_URL when it was part of an address). */
@@ -15,6 +16,7 @@ export interface FieldValue {
   viaUrl?: boolean;
 }
 
+/** A database connection discovered from environment variables or `.env` files, with provenance and fingerprint. */
 export interface EnvConnection {
   engine: DbEngine;
   fields: Partial<Record<FieldName, FieldValue>>;
@@ -34,6 +36,7 @@ export interface EnvConnection {
   fileExists?: boolean;
 }
 
+/** Filtering options controlling which environment and `.env` variables are considered when reading connection fields. */
 export interface ReadOptions {
   /** Only the names the studio itself reads (used when working out what a studio would get). */
   studioOnly: boolean;

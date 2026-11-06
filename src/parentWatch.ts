@@ -1,4 +1,8 @@
 /**
+ * Parent process lifecycle watchdog for child studio servers spawned by the File Manager.
+ */
+
+/**
  * A studio started by the File Manager (`--server`) must not outlive it. The File Manager passes its process id in
  * STUDIO_PARENT_PID; when that process is gone (closed, crashed or killed) the studio ends itself.
  * Started any other way, the variable is absent and nothing is watched.

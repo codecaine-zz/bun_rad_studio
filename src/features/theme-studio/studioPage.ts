@@ -14,6 +14,9 @@ import { THEME_STUDIO_PRESETS } from "./presets";
 import { generateThemeStudioStyles } from "./studioUi";
 import { INSPECTOR_CATEGORIES, type ThemeSurfaceConfig } from "./types";
 
+/**
+ * Options for generating a standalone Theme Studio HTML document.
+ */
 export interface ThemeStudioPageOptions {
   title?: string;
   initialSurface?: Partial<ThemeSurfaceConfig>;

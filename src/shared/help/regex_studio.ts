@@ -1,3 +1,6 @@
+/**
+ * Interactive UI help tooltips and audit skip rules for Regex Studio (`regex_studio`), covering regular expression testing, capture group highlighting, and replacement previews.
+ */
 import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Regex Studio: test a regular expression, preview a replacement and generate code. */

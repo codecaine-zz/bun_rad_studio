@@ -132,6 +132,7 @@ function createViewTools() {
   return { quoteIdent, validateViewName, validateSelect, buildViewDdl, buildDropViewDdl, friendlyError, parseColumns };
 }
 
+/** Shared pure SQL view validation, DDL generation, and error formatting utilities. */
 export const viewTools = createViewTools();
 
 const sqlLit = (s) => "'" + String(s).replace(/'/g, "''") + "'";
@@ -225,6 +226,7 @@ export async function viewApi(op, body, adapter) {
   }
 }
 
+/** CSS stylesheet for the shared Create/Edit View dialog and sidebar button in the database studios. */
 export const STUDIO_VIEWS_STYLE = `
     /* ===== Create view ===== */
     .sv-btn { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; padding: 1px 8px; border-radius: 6px; border: 1px solid color-mix(in srgb, var(--cyan) 55%, transparent); background: color-mix(in srgb, var(--cyan) 12%, transparent); color: var(--cyan); font: inherit; font-size: 10px; font-weight: 700; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
@@ -436,4 +438,5 @@ function studioViewsClient() {
 }
 
 // The page script embeds the same pure tools the server uses.
+/** Self-invoking browser script that registers `window.StudioViews` with embedded `createViewTools`. */
 export const STUDIO_VIEWS_SCRIPT = `(${studioViewsClient.toString().replace("__CREATE_VIEW_TOOLS__", "(" + createViewTools.toString() + ")")})();`;

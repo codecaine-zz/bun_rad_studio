@@ -1,5 +1,6 @@
 /** Word lists for the sample-data generators. Every name is invented or common; no real people or organizations. */
 
+/** Pool of synthetic given names used when generating sample person records. */
 export const FIRST_NAMES = (
   "Aaliyah Aaron Abigail Adam Adrian Aiden Alana Albert Alex Alice Alicia Amara Amelia Amir Andre Andrea Angela Anika Anthony Aria Arjun Ashley Audrey Ava " +
   "Bao Beatrice Benjamin Bianca Blake Bria Brian Bruno Caleb Camila Carlos Carmen Caroline Chen Chloe Christian Clara Claire Colin Cora Curtis Dalia Daniel Darius " +
@@ -12,6 +13,7 @@ export const FIRST_NAMES = (
   "Thomas Tia Tobias Tomas Uma Valentina Vera Victor Vikram Violet Wei Wendy William Xavier Ximena Yara Yusuf Yuki Zachary Zara Zoe"
 ).split(" ");
 
+/** Pool of synthetic family names used when generating sample person records. */
 export const LAST_NAMES = (
   "Abbott Acosta Adeyemi Aguilar Ahmed Alvarez Anderson Andrade Arora Bailey Baker Banerjee Barnes Bastian Bell Bennett Bianchi Brooks Brown Burke Campbell " +
   "Cardenas Carter Castillo Chaudhry Chavez Chen Choi Clarke Coleman Collins Cooper Cruz Dang Davis Dawson Delgado Diaz Dixon Dubois Duncan Edwards Ellis " +
@@ -25,6 +27,7 @@ export const LAST_NAMES = (
   "Williams Wilson Wong Wood Wright Wu Yamamoto Yang Young Zhang Zhao Zimmerman"
 ).split(" ");
 
+/** US city, state code, and 3-digit ZIP prefix tuples for synthetic address generation. */
 export const CITIES: [string, string, string][] = [
   ["Albany", "NY", "122"], ["Atlanta", "GA", "303"], ["Austin", "TX", "787"], ["Baltimore", "MD", "212"], ["Boise", "ID", "837"],
   ["Boston", "MA", "021"], ["Buffalo", "NY", "142"], ["Charlotte", "NC", "282"], ["Chicago", "IL", "606"], ["Cincinnati", "OH", "452"],
@@ -40,30 +43,38 @@ export const CITIES: [string, string, string][] = [
   ["Tucson", "AZ", "857"], ["Tulsa", "OK", "741"], ["Washington", "DC", "200"], ["Wichita", "KS", "672"], ["Anchorage", "AK", "995"],
 ];
 
+/** Street root names for synthetic postal address generation. */
 export const STREETS = (
   "Maple Oak Cedar Pine Elm Walnut Willow Birch Spruce Hickory Chestnut Magnolia Sycamore Juniper Laurel Aspen Cypress Poplar Linden Hawthorn " +
   "Washington Lincoln Jefferson Madison Jackson Franklin Adams Monroe Harrison Highland Lakeview Ridge Meadow Sunset Riverside Park Church Mill " +
   "Union Spring Prospect Orchard Garden Bridge Forest Valley Hillcrest Canal Harbor Station Market Commerce Liberty Heritage Summit"
 ).split(" ");
+/** Street type suffixes (St, Ave, Blvd, etc.) for synthetic postal address generation. */
 export const STREET_SUFFIX = ["St", "Ave", "Blvd", "Dr", "Ln", "Rd", "Way", "Ct", "Pl", "Ter"];
 
+/** First-word prefixes for synthetic company and organization names. */
 export const COMPANY_A = (
   "Apex Atlas Beacon Blue Bright Cedar Clear Cobalt Crest Delta Eagle Ember Evergreen First Frontier Granite Harbor Horizon Iron Keystone Lakeside Landmark " +
   "Lumen Meridian Mesa Northstar Nova Oak Orbit Pacific Pioneer Prime Quantum Redwood Ridge Silver Summit Sunrise Terra Tidewater Triton United Vertex Vista Westwood Zenith"
 ).split(" ");
+/** Second-word industry suffixes for synthetic company and organization names. */
 export const COMPANY_B = (
   "Analytics Associates Capital Dynamics Enterprises Group Holdings Industries Labs Logistics Partners Services Solutions Systems Technologies Ventures Works " +
   "Supply Foods Motors Textiles Health Energy Media Networks Materials Trading Consulting Robotics Packaging"
 ).split(" ");
 
+/** Reserved RFC 2606 example domains used for synthetic email addresses. */
 export const EMAIL_DOMAINS = ["example.org", "example.com", "example.net", "mail.example", "sample.invalid"];
 
+/** Neutral vocabulary words used to compose synthetic sentences and descriptions. */
 export const LOREM = (
   "alpha amber anchor arbor basil bridge cable canvas cobalt copper dune ember fable fjord garnet harbor indigo jade kernel lantern lumen meadow nectar " +
   "onyx orchid pebble quartz ripple saffron timber umber velvet willow zephyr signal ledger vector matrix circuit prism beacon horizon summit harvest"
 ).split(" ");
 
+/** Standard color names used in synthetic product and inventory attributes. */
 export const COLORS = ["Black", "White", "Gray", "Navy", "Red", "Green", "Blue", "Olive", "Sand", "Burgundy", "Teal", "Orange", "Pink", "Brown", "Cream"];
+/** ISO-3166 alpha-2 country code and country name pairs for synthetic geographic data. */
 export const COUNTRIES: [string, string][] = [
   ["US", "United States"], ["CA", "Canada"], ["MX", "Mexico"], ["GB", "United Kingdom"], ["DE", "Germany"], ["FR", "France"], ["ES", "Spain"],
   ["IT", "Italy"], ["NL", "Netherlands"], ["SE", "Sweden"], ["PL", "Poland"], ["BR", "Brazil"], ["AR", "Argentina"], ["IN", "India"], ["JP", "Japan"],

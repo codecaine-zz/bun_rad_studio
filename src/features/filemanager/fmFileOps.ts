@@ -30,10 +30,12 @@ import { FmError, describeFsError } from "./fmPaths";
 import { restoreFromTrash } from "./fmTrash";
 import { StepSkip, type ItemSize, type JobSpec, type JobStepSpec, type JobView, type StepProgress } from "./fmJobs";
 
+/** Maximum number of source items allowed in a single queued copy, move, or rename operation. */
 export const MAX_ITEMS_PER_OPERATION = 5000;
 const MEASURE_LIMIT = 200_000;
 const CHUNK = 1024 * 1024;
 
+/** Whether a file transfer job copies items or moves them to the destination folder. */
 export type TransferMode = "copy" | "move";
 
 const word = (n: number, one: string) => `${n} ${n === 1 ? one : `${one}s`}`;
@@ -141,6 +143,7 @@ export async function copyWithProgress(source: string, destination: string, sign
   }
 }
 
+/** Restores a previously displaced item from the Recycle Bin when a `replace` transfer fails or is cancelled. */
 export async function undoReplace(ctx: FmContext, replacedTrashId: string | undefined): Promise<string> {
   if (!replacedTrashId) return "";
   const [back] = await restoreFromTrash(ctx, [replacedTrashId]).catch(() => [undefined]);

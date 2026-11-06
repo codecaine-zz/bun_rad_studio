@@ -14,14 +14,20 @@ import type { FmContext } from "./fmCore";
 import { FmError, describeFsError } from "./fmPaths";
 import { LogBuffer, MAX_LOG_CHARS, createTextCleaner } from "./fmWatchLog";
 
+/** Maximum number of recent command run history entries kept per watcher. */
 export const MAX_HISTORY = 50;
+/** Maximum number of active watchers allowed simultaneously per File Manager instance. */
 export const MAX_ACTIVE_WATCHERS = 3;
 const MAX_KEPT_WATCHERS = 6;
 
+/** Lifecycle state of a file-system watcher (`ACTIVE`, `STOPPED`, or `ERROR`). */
 export type WatchState = "ACTIVE" | "STOPPED" | "ERROR";
+/** Outcome or state classification of a single triggered command run. */
 export type RunKind = "running" | "success" | "failed" | "cancelled";
+/** Supported system shells for executing watched commands. */
 export type ShellChoice = "sh" | "bash" | "zsh" | "cmd" | "powershell";
 
+/** A single recorded command run in a watcher's execution history. */
 export interface HistoryRow {
   time: string;
   n: number;
@@ -33,6 +39,7 @@ export interface HistoryRow {
   duration: string;
 }
 
+/** Configuration settings for a folder watcher and the shell command it triggers. */
 export interface WatchConfig {
   watchPath: string;
   cwd: string;
@@ -70,6 +77,7 @@ interface Run {
 const seconds = (ms: number) => `${(ms / 1000).toFixed(2)}s`;
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
+/** Watches a folder for file changes and runs a configured shell command with debouncing, logging, and history tracking. */
 export class Watcher {
   state: WatchState = "ACTIVE";
   message = "";
@@ -87,14 +95,17 @@ export class Watcher {
   private guard: ReturnType<typeof setInterval> | null = null;
   private pending: { abs: string; rel: string } | null = null;
 
+  /** Creates a new `Watcher` with the given identifier, platform, configuration, and log capacity. */
   constructor(readonly id: string, private readonly platform: FmContext["platform"], readonly config: WatchConfig, logCap = MAX_LOG_CHARS) {
     this.log = new LogBuffer(logCap);
   }
 
+  /** True while a triggered command subprocess is currently running. */
   get running(): boolean {
     return this.current !== null;
   }
 
+  /** Starts watching the target directory and triggers an initial command run unless postponed. */
   start(): void {
     try {
       this.fsw = fsWatch(this.config.watchPath, { recursive: true }, (_event, name) => this.onEvent(name));
@@ -265,6 +276,7 @@ export class Watcher {
     this.fsw = null;
   }
 
+  /** Stops watching the folder and cancels any currently running command. */
   stop(): void {
     if (this.state === "STOPPED") return;
     this.closeWatching();
@@ -299,6 +311,7 @@ export class Watcher {
 // The hub
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Per-server registry that creates, tracks, and stops `Watcher` instances. */
 export interface WatchHub {
   readonly watchers: Map<string, Watcher>;
   create(config: WatchConfig, logCap?: number): Watcher;

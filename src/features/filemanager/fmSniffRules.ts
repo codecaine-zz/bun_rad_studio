@@ -6,6 +6,7 @@
 import { splitName } from "./fmPaths";
 import type { Family, Sniffed } from "./fmSniff";
 
+/** Expected content family and allowed sniffed kinds for a known file extension. */
 export interface ExtRule {
   /** What kind of thing the name promises. */
   family: Family;
@@ -137,6 +138,7 @@ export const DECOY_EXTS = new Set([
   "mp3", "mp4", "mov", "avi", "mkv", "wav", "flac", "wmv", "m4a", "zip", "rar", "7z",
 ]);
 
+/** Warning describing a deceptive or problematic file name pattern (bidi override, hidden chars, double extension, etc.). */
 export interface NameProblem {
   code: "BIDI_OVERRIDE" | "HIDDEN_CHARACTERS" | "DOUBLE_EXTENSION" | "PADDED_NAME" | "TRAILING_DOT_SPACE";
   title: string;
@@ -211,6 +213,7 @@ export function needsContent(ext: string): boolean {
   return !!r && !r.textLike && !["sqlite", "sqlite3", "db3", "s3db"].includes(ext.toLowerCase());
 }
 
+/** Notice returned when a non-executable filename ends with two distinct known extensions (e.g., `"New file.txt.png"`). */
 export interface EndingNotice {
   /** The part before the last ending, as written ("txt" in "New file.txt.png"). */
   first: string;

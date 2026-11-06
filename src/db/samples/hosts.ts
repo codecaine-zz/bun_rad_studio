@@ -16,6 +16,7 @@ const dsOrThrow = (id: string) => {
   return ds;
 };
 
+/** Returns the default database, schema, or file stem name (`sample_<datasetId>`) for a dataset. */
 export const defaultSampleName = (datasetId: string) => `sample_${datasetId}`;
 
 const PREVIEW_ROWS = 200;
@@ -36,6 +37,7 @@ function preview(rows: Record<string, unknown>[], started: number): QueryPreview
 
 // ------------------------------------------------------------------------------------------ SQLite
 
+/** Callbacks connecting the SQLite sample host to the SQLite studio's active database manager. */
 export interface SqliteHostContext {
   getDb(): Database;
   getActivePath(): string;
@@ -44,6 +46,7 @@ export interface SqliteHostContext {
   sampleDir(): string;
 }
 
+/** Validates and resolves a user-supplied SQLite sample target name or path inside `sampleDir()`. */
 export function resolveSqliteTarget(ctx: Pick<SqliteHostContext, "sampleDir">, target: string): string {
   const t = target.trim();
   if (!t || t.includes("\0")) throw new SampleError("Enter a file name for the new sample database.", 400, "bad_name");
@@ -62,6 +65,7 @@ export function resolveSqliteTarget(ctx: Pick<SqliteHostContext, "sampleDir">, t
   return join(ctx.sampleDir(), withExt);
 }
 
+/** Creates a `SampleHost` implementation for the SQLite studio. */
 export function sqliteSampleHost(ctx: SqliteHostContext): SampleHost {
   return {
     dialect: "sqlite",
@@ -128,12 +132,14 @@ export function sqliteSampleHost(ctx: SqliteHostContext): SampleHost {
 
 // ------------------------------------------------------------------------------------------ MySQL
 
+/** Callbacks connecting the MySQL sample host to the MySQL studio's active connection manager. */
 export interface MysqlHostContext {
   getSql(): any;
   currentDatabase(): string;
   connect(database: string): Promise<{ success: boolean; error?: string }>;
 }
 
+/** Creates a `SampleHost` implementation for the MySQL studio. */
 export function mysqlSampleHost(ctx: MysqlHostContext): SampleHost {
   return {
     dialect: "mysql",
@@ -170,6 +176,7 @@ export function mysqlSampleHost(ctx: MysqlHostContext): SampleHost {
 
 // ------------------------------------------------------------------------------------------ PostgreSQL
 
+/** Callbacks connecting the PostgreSQL sample host to the PostgreSQL studio's active connection manager. */
 export interface PostgresHostContext {
   getSql(): any;
   currentDatabase(): string;
@@ -177,6 +184,7 @@ export interface PostgresHostContext {
   connect(database: string, schema: string): Promise<{ success: boolean; error?: string }>;
 }
 
+/** Creates a `SampleHost` implementation for the PostgreSQL studio. */
 export function postgresSampleHost(ctx: PostgresHostContext): SampleHost {
   return {
     dialect: "postgres",

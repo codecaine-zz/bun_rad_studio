@@ -5,11 +5,16 @@
 import { randomUUID } from "node:crypto";
 import { FmError } from "./fmPaths";
 
+/** Supported item category identifiers in the Secrets vault. */
 export const ITEM_TYPES = ["login", "note", "card", "identity", "api", "wifi", "ssh", "custom"] as const;
+/** Union type of supported Secrets vault item categories. */
 export type ItemType = (typeof ITEM_TYPES)[number];
+/** Supported value kinds for user-defined custom fields on a vault item. */
 export const CUSTOM_KINDS = ["text", "hidden", "url", "date", "otp"] as const;
+/** Union type of custom field value kinds. */
 export type CustomKind = (typeof CUSTOM_KINDS)[number];
 
+/** Maximum counts and character/byte lengths enforced across vault items, fields, attachments, and the database. */
 export const LIMITS = {
   items: 5000,
   title: 200,
@@ -30,6 +35,7 @@ export const LIMITS = {
   dbBytes: 64 * 1024 * 1024,
 } as const;
 
+/** Schema descriptor for a built-in field belonging to a specific `ItemType`. */
 export interface FieldSpec {
   key: string;
   label: string;
@@ -38,6 +44,7 @@ export interface FieldSpec {
 }
 const f = (key: string, label: string, secret = false, kind: FieldSpec["kind"] = "text"): FieldSpec => ({ key, label, secret, kind });
 
+/** Built-in field specifications for each `ItemType`. */
 export const TYPE_FIELDS: Record<ItemType, FieldSpec[]> = {
   login: [f("username", "Username"), f("password", "Password", true, "password"), f("url", "Website", false, "url"), f("totp", "One-time code (2FA) secret", true, "otp")],
   note: [],
@@ -49,12 +56,14 @@ export const TYPE_FIELDS: Record<ItemType, FieldSpec[]> = {
   custom: [],
 };
 
+/** User-defined custom field stored on a vault item. */
 export interface CustomField {
   id: string;
   label: string;
   kind: CustomKind;
   value: string;
 }
+/** Small binary file attachment stored inline (base64-encoded) on a vault item. */
 export interface Attachment {
   id: string;
   name: string;
@@ -63,6 +72,7 @@ export interface Attachment {
   /** base64 of the file's bytes */
   data: string;
 }
+/** Complete decrypted record for a single item stored in the Secrets vault. */
 export interface SecretItem {
   id: string;
   type: ItemType;
@@ -80,6 +90,7 @@ export interface SecretItem {
   pwChangedAt: number;
   deletedAt: number | null;
 }
+/** User-configurable lock, clipboard, and device-unlock preferences stored inside the vault database. */
 export interface Settings {
   /** 0 = never */
   autoLockMinutes: number;
@@ -89,11 +100,13 @@ export interface Settings {
   /** "Unlock with this computer" stops working after this many days without the master password (1 to 90). */
   deviceMaxDays: number;
 }
+/** Timestamped audit log entry recording a high-level vault event (without any secret values). */
 export interface AuditEvent {
   t: number;
   ev: string;
   n?: number;
 }
+/** Top-level decrypted JSON database structure stored inside the Secrets vault file. */
 export interface Db {
   v: 1;
   createdAt: number;
@@ -103,8 +116,10 @@ export interface Db {
   audit: AuditEvent[];
 }
 
+/** Default vault lock and clipboard security settings for newly created vaults. */
 export const DEFAULT_SETTINGS: Settings = { autoLockMinutes: 5, clipboardSeconds: 30, lockOnBlur: false, deviceMaxDays: 14 };
 
+/** Creates a fresh, empty version-1 vault `Db` initialized at timestamp `now`. */
 export function emptyDb(now: number): Db {
   return { v: 1, createdAt: now, modifiedAt: now, settings: { ...DEFAULT_SETTINGS }, items: {}, audit: [] };
 }
@@ -123,6 +138,7 @@ function text(value: unknown, max: number, what: string, { required = false, tri
   return s;
 }
 
+/** Validates and merges partial vault settings updates onto `base`, throwing an `FmError` on invalid values. */
 export function normalizeSettings(input: unknown, base: Settings = DEFAULT_SETTINGS): Settings {
   if (input === undefined) return { ...base };
   if (!input || typeof input !== "object" || Array.isArray(input)) return reject("The settings must be an object.");
@@ -147,6 +163,7 @@ export function normalizeSettings(input: unknown, base: Settings = DEFAULT_SETTI
   return out;
 }
 
+/** Validates and normalizes a `/`-separated folder path (at most 5 levels deep) for organizing vault items. */
 export function folderPath(value: unknown): string {
   const raw = text(value, LIMITS.folder, "folder name");
   const parts = raw.split("/").map((p) => p.trim()).filter(Boolean);
@@ -172,6 +189,7 @@ function tagList(value: unknown): string[] {
 
 const specFor = (type: ItemType, key: string): FieldSpec | undefined => TYPE_FIELDS[type].find((s) => s.key === key);
 
+/** Type guard that checks whether an unknown value is a valid `ItemType`. */
 export const isItemType = (v: unknown): v is ItemType => typeof v === "string" && (ITEM_TYPES as readonly string[]).includes(v);
 
 /**

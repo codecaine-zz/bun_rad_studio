@@ -1,4 +1,5 @@
 /** The pure part of the help tooltips: which tip belongs to an element. See `helpTips.ts` for the overview and key formats. */
+/** Mapping from selector/label match keys (`#id`, `.class`, `text:...`, `aria:...`, `ph:...`, `name:...`) to help tooltip strings. */
 export type HelpTips = Record<string, string>;
 
 /** What the matcher needs to know about one element. */
@@ -64,6 +65,7 @@ export interface SkipRule {
   why: string;
 }
 
+/** Returns true if `info` matches any `SkipRule` in `rules` and therefore does not require a help tooltip. */
 export function isSkipped(info: ElementInfo, rules: SkipRule[], normalize: (s: string) => string): boolean {
   return rules.some((r) =>
     (r.id !== undefined && info.id === r.id) ||

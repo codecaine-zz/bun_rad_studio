@@ -1,3 +1,6 @@
+/**
+ * Interactive UI help tooltips and audit skip rules for Homebrew Studio (`brew_studio`), covering formula and cask browsing, installation, upgrades, and maintenance commands.
+ */
 import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Help tips for `brew_studio`. Keys: see src/shared/helpTips.ts. Check with: bun run scripts/help_controls.ts <app file> --missing */

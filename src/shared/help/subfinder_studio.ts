@@ -1,3 +1,6 @@
+/**
+ * Interactive UI help tooltips and audit skip rules for Subfinder Studio (`subfinder_studio`), covering passive subdomain enumeration, DNS resolution, and target filtering.
+ */
 import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Help tips for `subfinder_studio`. Keys: see src/shared/helpTips.ts. Check with: bun run scripts/help_controls.ts <app file> --missing */

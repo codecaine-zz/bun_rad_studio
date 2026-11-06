@@ -20,13 +20,16 @@ import { decodeImageToPngBuffer } from "./fmImageConvert";
 import { classify, extensionOf } from "./fmPaths";
 import { resolveTool } from "./fmToolDetect";
 
+/** Map of lowercase audio file extensions to their HTTP MIME types for browser `<audio>` streaming. */
 export const AUDIO_MIME: Record<string, string> = {
   mp3: "audio/mpeg", wav: "audio/wav", m4a: "audio/mp4", aac: "audio/aac", flac: "audio/flac",
   ogg: "audio/ogg", oga: "audio/ogg", opus: "audio/ogg", weba: "audio/webm",
 };
+/** Map of lowercase video file extensions to their HTTP MIME types for browser `<video>` streaming. */
 export const VIDEO_MIME: Record<string, string> = {
   mp4: "video/mp4", m4v: "video/mp4", mov: "video/quicktime", webm: "video/webm", ogv: "video/ogg",
 };
+/** Combined map of supported audio and video file extensions to their HTTP MIME types. */
 export const MEDIA_MIME: Record<string, string> = { ...AUDIO_MIME, ...VIDEO_MIME };
 
 /** Files the system's Quick Look can draw a picture of but a web page cannot. */
@@ -36,11 +39,13 @@ const THUMB_EXTS = new Set([
   "mkv", "avi", "wmv", "flv", "mpg", "mpeg", "3gp",
 ]);
 
+/** Returns `"audio"` or `"video"` if `name` has a streamable media extension, or `null` otherwise. */
 export function mediaKindOf(name: string): "audio" | "video" | null {
   const ext = extensionOf(name);
   return AUDIO_MIME[ext] ? "audio" : VIDEO_MIME[ext] ? "video" : null;
 }
 
+/** Checks whether `name` has an extension that benefits from a system Quick Look thumbnail preview. */
 export const wantsThumbnail = (name: string) => THUMB_EXTS.has(extensionOf(name));
 
 let cachedHasQlmanage: boolean | null = null;
