@@ -548,10 +548,12 @@ describe("where the dialogs are offered", () => {
   test("the right-click menu and the toolbar offer the Lock actions (the menu module can't load without a real terminal library, so its source is checked)", () => {
     const ui = join(import.meta.dir, "..", "resources", "file_manager", "ui");
     const menu = readFileSync(join(ui, "contextmenu.js"), "utf8");
-    expect(menu).toContain('canLock(entries) ? { label: "Encrypt…"');
-    expect(menu).toContain('canUnlock(entries) ? { label: "Decrypt…"');
+    expect(menu).toMatch(/canLock\(entries\)\s*\?\s*\{\s*label:\s*"Encrypt…"/);
+    expect(menu).toMatch(
+      /canUnlock\(entries\)\s*\?\s*\{\s*label:\s*"Decrypt…"/,
+    );
     const bar = readFileSync(join(ui, "toolbar.js"), "utf8");
-    expect(bar).toMatch(/id: "lock", icon: "🔒", label: "Lock"/);
+    expect(bar).toMatch(/id:\s*"lock",\s*icon:\s*"🔒",\s*label:\s*"Lock"/);
     expect(bar).toContain("run: lockSelection");
     expect(readFileSync(join(ui, "main.js"), "utf8")).toContain(
       'import "./vault.js"',

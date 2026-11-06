@@ -791,7 +791,9 @@ export function findCliSourceRoot(): {
 function extractDescription(stem: string, head: string): string {
   if (KNOWN_DESCRIPTIONS[stem]) return KNOWN_DESCRIPTIONS[stem]!;
   const setDesc =
-    /\.setDescription\(\s*(?:'([^']+)'|"([^"]+)"|`([^`]+)`)\s*\)/.exec(head);
+    /\.setDescription\(\s*(?:'([^']+)'|"([^"]+)"|`([^`]+)`)\s*,?\s*\)/.exec(
+      head,
+    );
   const matched = setDesc?.[1] ?? setDesc?.[2] ?? setDesc?.[3];
   if (matched && matched.trim()) return matched.trim();
   const banner = /\.banner\(\s*(?:'([^']+)'|"([^"]+)")/.exec(head);
@@ -805,9 +807,9 @@ function extractFlags(stem: string, source: string): CliFlagInfo[] {
   const flags: CliFlagInfo[] = [];
   const seen = new Set<string>();
 
-  const q = `(['"\`])((?:\\\\.|(?!\\1).)*)\\1`;
+  const q = (g: number) => `(['"\`])((?:\\\\.|(?!\\${g}).)*)\\${g}`;
   const strRe = new RegExp(
-    `\\.addFlagString\\(\\s*${q}\\s*,\\s*${q}\\s*,\\s*${q}\\s*,\\s*${q}\\s*\\)`,
+    `\\.addFlagString\\(\\s*${q(1)}\\s*,\\s*${q(3)}\\s*,\\s*${q(5)}\\s*,\\s*${q(7)}\\s*,?\\s*\\)`,
     "g",
   );
   let m: RegExpExecArray | null;
@@ -825,7 +827,7 @@ function extractFlags(stem: string, source: string): CliFlagInfo[] {
   }
 
   const boolRe = new RegExp(
-    `\\.addFlagBool\\(\\s*${q}\\s*,\\s*${q}\\s*,\\s*(true|false)\\s*,\\s*${q}\\s*\\)`,
+    `\\.addFlagBool\\(\\s*${q(1)}\\s*,\\s*${q(3)}\\s*,\\s*(true|false)\\s*,\\s*${q(6)}\\s*,?\\s*\\)`,
     "g",
   );
   while ((m = boolRe.exec(source)) !== null) {
@@ -842,7 +844,7 @@ function extractFlags(stem: string, source: string): CliFlagInfo[] {
   }
 
   const intRe = new RegExp(
-    `\\.addFlagInt\\(\\s*${q}\\s*,\\s*${q}\\s*,\\s*(-?\\d+)\\s*,\\s*${q}\\s*\\)`,
+    `\\.addFlagInt\\(\\s*${q(1)}\\s*,\\s*${q(3)}\\s*,\\s*(-?\\d+)\\s*,\\s*${q(6)}\\s*,?\\s*\\)`,
     "g",
   );
   while ((m = intRe.exec(source)) !== null) {

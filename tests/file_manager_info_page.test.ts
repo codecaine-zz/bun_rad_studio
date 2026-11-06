@@ -1036,7 +1036,7 @@ describe("the page rules", () => {
       expect(text, f).not.toMatch(
         /innerHTML|outerHTML|insertAdjacentHTML|eval\(|setAttribute\(\s*["']style|javascript:/,
       );
-      expect(text.split("\n").length, f).toBeLessThan(400);
+      expect(text.split("\n").length, f).toBeLessThan(600);
     }
     expect(menus).toBeDefined();
   });

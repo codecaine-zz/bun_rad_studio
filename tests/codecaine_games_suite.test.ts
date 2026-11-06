@@ -393,7 +393,7 @@ describe("🕹️ Codecaine 60-Game Arcade Suite & File Manager Integration", ()
     expect(sokobanHtml).toContain("toggleAutoSolve()");
     expect(sokobanHtml).toContain("generateRandomSolvableLevel");
     expect(sokobanHtml).toContain('id="rng-difficulty"');
-    const match = sokobanHtml.match(/const LEVELS = (\[[\s\S]*?\n\]);/);
+    const match = sokobanHtml.match(/const LEVELS = (\[[\s\S]*?\n\s*\]);/);
     expect(match).toBeTruthy();
     const levels = new Function(`return ${match![1]}`)() as Array<{
       name: string;

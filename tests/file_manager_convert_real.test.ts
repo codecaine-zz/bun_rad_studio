@@ -326,11 +326,14 @@ describe.skipIf(!ffmpeg || !hasProbe)("video with ffmpeg", () => {
   });
 
   test("extract the sound in several formats, and pictures from the video", async () => {
+    const caps =
+      (await toolStatus(ctx)).tools.find((t) => t.id === "ffmpeg")
+        ?.capabilities ?? [];
     for (const [format, codec] of [
       ["mp3", "mp3"],
       ["flac", "flac"],
       ["m4a", "aac"],
-      ["ogg", "vorbis"],
+      ...(caps.includes("vorbis") ? ([["ogg", "vorbis"]] as const) : []),
       ["opus", "opus"],
       ["wav", "pcm_s16le"],
     ] as const) {
@@ -457,16 +460,27 @@ describe.skipIf(!ffmpeg || !hasProbe)("video with ffmpeg", () => {
       "copy",
       copy,
     ]);
-    const burned = await run({ action: "vid-burn-subs", paths: [copy, srt] });
-    expect(basename(burned.outputs[0]!)).toBe("clip (subtitled).mp4");
-    await expect(
-      startConvert(ctx, { action: "vid-burn-subs", paths: [copy, clip] }),
-    ).rejects.toMatchObject({ code: "BAD_OPTION" });
+    const caps =
+      (await toolStatus(ctx)).tools.find((t) => t.id === "ffmpeg")
+        ?.capabilities ?? [];
+    if (caps.includes("subtitles")) {
+      const burned = await run({
+        action: "vid-burn-subs",
+        paths: [copy, srt],
+      });
+      expect(basename(burned.outputs[0]!)).toBe("clip (subtitled).mp4");
+      await expect(
+        startConvert(ctx, { action: "vid-burn-subs", paths: [copy, clip] }),
+      ).rejects.toMatchObject({ code: "BAD_OPTION" });
+    }
   });
 });
 
 describe.skipIf(!ffmpeg || !hasProbe)("sound with ffmpeg", () => {
   test("converting with a chosen quality, sample rate and channels", async () => {
+    const caps =
+      (await toolStatus(ctx)).tools.find((t) => t.id === "ffmpeg")
+        ?.capabilities ?? [];
     const out = (
       await run({
         action: "aud-custom",
@@ -487,7 +501,7 @@ describe.skipIf(!ffmpeg || !hasProbe)("sound with ffmpeg", () => {
     ]);
     for (const [id, codec] of [
       ["aud-opus", "opus"],
-      ["aud-ogg", "vorbis"],
+      ...(caps.includes("vorbis") ? ([["aud-ogg", "vorbis"]] as const) : []),
       ["aud-flac", "flac"],
       ["aud-m4a", "aac"],
       ["aud-aiff", "pcm_s16be"],

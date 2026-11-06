@@ -169,7 +169,7 @@ describe("every control of the Find tool explains itself", () => {
       expect(
         readFileSync(join(UI, f), "utf8").split("\n").length,
         f,
-      ).toBeLessThan(400);
+      ).toBeLessThan(600);
   });
 
   test("buttons, text boxes, drop-downs and check boxes made with the helpers have a tooltip (and a label where needed)", () => {

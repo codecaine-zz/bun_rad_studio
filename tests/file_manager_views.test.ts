@@ -51,7 +51,7 @@ describe("saving settings while navigation is still being remembered", () => {
       new URL("../resources/file_manager/ui/nav.js", import.meta.url),
       "utf8",
     )
-      .replace(/^import .*;\r?$/gm, "")
+      .replace(/^import\s+[\s\S]*?from\s+["'][^"']+["'];\r?$/gm, "")
       .replace(/^export /gm, "");
     const save = new Function(
       "state",
@@ -551,7 +551,7 @@ describe("the page starts in the view it was left in", () => {
         ),
         "utf8",
       ),
-    ).toContain("body:not(.ready) #stage { visibility: hidden; }");
+    ).toMatch(/body:not\(\.ready\)\s+#stage\s*\{\s*visibility:\s*hidden;\s*\}/);
   });
 });
 
@@ -1444,7 +1444,7 @@ describe("the Dual view", () => {
       "utf8",
     );
     expect(views).toMatch(
-      /\[data-workspace="dual"\] #info \{ display: none; \}/,
+      /\[data-workspace="dual"\]\s+#info\s*\{\s*display:\s*none;\s*\}/,
     );
     expect(views).toMatch(/--side-w: 11rem/);
   });
@@ -1567,7 +1567,7 @@ describe("the Dual view's right pane has the same options as the left one", () =
     const heads = (id: string) =>
       $$(`#${id} > *`)
         .filter((e: any) => !e.hidden)
-        .map((e: any) => e.textContent);
+        .map((e: any) => e.textContent.trim());
     expect(heads("dual-list-head")).toEqual(heads("list-head"));
     expect(heads("dual-list-head")).toEqual([
       "",
@@ -4906,8 +4906,8 @@ describe("core file browsing & pane ergonomics (tabs, marquee, folder tree, colu
     );
 
     // 1. Verify List view uses a stable CSS Grid instead of height-sensitive newspaper columns
-    expect(styleCss).toContain(
-      "#list.view-list, #dual-list.view-list { display: grid;",
+    expect(styleCss).toMatch(
+      /#list\.view-list,\s*#dual-list\.view-list\s*\{\s*display:\s*grid;/,
     );
     // 2. Verify selection-bar is floating (position: absolute) and nowrap so clicking between files and folders never resizes #list-wrap
     expect(viewsCss).toMatch(/\.selection-bar\s*\{[^}]*position:\s*absolute/);

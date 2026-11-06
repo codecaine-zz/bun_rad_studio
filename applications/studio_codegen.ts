@@ -1528,6 +1528,7 @@ function emitV(
   w.line("import flag");
   w.line("import os");
   if (plan.post.some((p) => p.kind === "backup")) w.line("import time");
+  w.line("#include <sqlite3.h>");
   w.line();
   if (
     plan.macros.some((m) =>

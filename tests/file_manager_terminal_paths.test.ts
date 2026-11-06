@@ -206,7 +206,7 @@ describe("selected paths for a terminal", () => {
       new URL("../resources/file_manager/ui/terminal.js", import.meta.url),
       "utf8",
     )
-      .replace(/^import .*;\r?$/gm, "")
+      .replace(/^import\s+[\s\S]*?from\s+["'][^"']+["'];\r?$/gm, "")
       .replace(/^export /gm, "");
     const insert = new Function(
       "deps",
@@ -360,7 +360,7 @@ describe("selected paths for a terminal", () => {
     const html = readFileSync(
       new URL("../resources/file_manager/index.html", import.meta.url),
       "utf8",
-    );
+    ).replace(/\s+/g, " ");
     expect(html).toContain("Follow terminal (real path)");
     expect(html).toContain("compare pwd -P");
   });
@@ -542,7 +542,7 @@ function loadTerminal(platform: string) {
     new URL("../resources/file_manager/ui/terminal.js", import.meta.url),
     "utf8",
   )
-    .replace(/^import .*;\r?$/gm, "")
+    .replace(/^import\s+[\s\S]*?from\s+["'][^"']+["'];\r?$/gm, "")
     .replace(/^export /gm, "");
   const api = new Function(
     "deps",

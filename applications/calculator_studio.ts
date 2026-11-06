@@ -231,7 +231,7 @@ function buildCalculatorHtml(
     if (existsSync(stylesPath)) {
       const css = readFileSync(stylesPath, "utf8");
       html = html.replace(
-        /<link rel="stylesheet" href="styles\.css[^"]*">/,
+        /<link rel="stylesheet" href="styles\.css[^"]*"\s*\/?>/,
         () => `<style>\n${css}\n</style>`,
       );
     }
@@ -255,7 +255,7 @@ function buildCalculatorHtml(
       if (existsSync(intuitionCss)) {
         const cssContent = readFileSync(intuitionCss, "utf8");
         intuitionHtml = intuitionHtml.replace(
-          /<link rel="stylesheet" href="styles\.css[^"]*">/,
+          /<link rel="stylesheet" href="styles\.css[^"]*"\s*\/?>/,
           () => `<style>\n${cssContent}\n</style>`,
         );
       }

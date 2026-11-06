@@ -73,7 +73,7 @@ function fixture(platform = "linux") {
     ),
     "utf8",
   )
-    .replace(/^import .*;\r?$/gm, "")
+    .replace(/^import\s+[\s\S]*?from\s+["'][^"']+["'];\r?$/gm, "")
     .replace(/^export /gm, "");
   const wire = new Function(
     "deps",

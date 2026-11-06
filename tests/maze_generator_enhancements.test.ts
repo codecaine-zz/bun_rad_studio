@@ -381,14 +381,15 @@ describe("maze studio server & persistence", () => {
 // ---------------------------------------------------------------------------------------------
 // 5. The real page, running in jsdom under Node
 // ---------------------------------------------------------------------------------------------
-describe("maze page (jsdom, run under node)", () => {
+const node = Bun.which("node");
+(node ? describe : describe.skip)("maze page (jsdom, run under node)", () => {
   test("all page tests pass", () => {
     resetState();
     const baseFile = path.join(tmp, "base.html");
     fs.writeFileSync(baseFile, generateMazeStudioHtml());
     const r = Bun.spawnSync(
       [
-        "node",
+        node!,
         "--test",
         "--test-reporter=spec",
         path.join(import.meta.dir, "maze_generator_page.node.mjs"),

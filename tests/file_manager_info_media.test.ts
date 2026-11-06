@@ -549,11 +549,16 @@ describe.skipIf(!ffmpeg || !ffprobe)(
       "-i",
       "sine=frequency=440:duration=2.3:sample_rate=44100",
     ];
+    const hasVorbis =
+      Boolean(ffmpeg) &&
+      /\blibvorbis\b/.test(
+        Bun.spawnSync([ffmpeg!, "-hide_banner", "-encoders"]).stdout.toString(),
+      );
     const files = [
       "a.wav",
       "b.mp3",
       "c.flac",
-      "d.ogg",
+      ...(hasVorbis ? ["d.ogg"] : []),
       "e.opus",
       "f.m4a",
       "g.mp4",
@@ -577,7 +582,8 @@ describe.skipIf(!ffmpeg || !ffprobe)(
         join(dir, "b.mp3"),
       );
       await make([...sine, ...meta], join(dir, "c.flac"));
-      await make([...sine, ...meta, "-c:a", "libvorbis"], join(dir, "d.ogg"));
+      if (hasVorbis)
+        await make([...sine, ...meta, "-c:a", "libvorbis"], join(dir, "d.ogg"));
       await make([...sine, ...meta, "-c:a", "libopus"], join(dir, "e.opus"));
       await make([...sine, ...meta, "-c:a", "aac"], join(dir, "f.m4a"));
       await make(

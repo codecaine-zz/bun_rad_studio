@@ -4328,16 +4328,18 @@ describe("the theme editor in the page", () => {
       ),
       "utf8",
     );
+    const normCss = (s: string) =>
+      s.replace(/\s+/g, " ").replace(/\(\s+/g, "(").replace(/\s+\)/g, ")");
     expect(fxCssText).toContain(
       "LINUX / UBUNTU WEBKITGTK & VIRTIO GPU 60-120HZ AAA STUDIO OPTIMIZATIONS",
     );
-    expect(fxCssText).toContain(
+    expect(normCss(fxCssText)).toContain(
       ':is(:root[data-platform="linux"], html.rad-linux):is([data-icon-anim], [data-fx-icon-anim])',
     );
-    expect(fxCssText).toContain(
+    expect(normCss(fxCssText)).toContain(
       ':is(html[data-platform="linux"], html.rad-linux)[data-stage-mode="coverflow_3d_reflection"]',
     );
-    expect(fxCssText).toContain(
+    expect(normCss(fxCssText)).toContain(
       ':is(html[data-platform="linux"], html.rad-linux)[data-wallpaper-scene]:not([data-wallpaper-scene="off"]) body',
     );
     expect(fxCssText).toContain("content-visibility: auto");
@@ -4812,13 +4814,15 @@ describe("the theme editor in the page", () => {
     expect(doc.documentElement.dataset.osHolidayOptimized).toBe("metal_xdr");
 
     // 5. Verify CSS contains Windows & Linux zero-readback rules and the Idle-Row Compositor Governor
+    const normCss = (s: string) =>
+      s.replace(/\s+/g, " ").replace(/\(\s+/g, "(").replace(/\s+\)/g, ")");
     expect(cssText).toContain(
       "WINDOWS 11 DIRECTX 12, WINDOWS ARM64 (APPLE SILICON M4 PRO / PARALLELS)",
     );
-    expect(cssText).toContain(
+    expect(normCss(cssText)).toContain(
       ':is(:root[data-platform="windows"], html.rad-windows):is([data-icon-anim], [data-fx-icon-anim])',
     );
-    expect(cssText).toContain(
+    expect(normCss(cssText)).toContain(
       ':is(:root[data-platform="windows"], html.rad-windows, :root[data-platform="linux"], html.rad-linux) :is(#list, #dual-list) .row:not(:hover):not(.selected):not(:focus-within)',
     );
 

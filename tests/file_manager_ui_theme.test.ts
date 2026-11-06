@@ -120,7 +120,7 @@ describe("accessibility basics in the stylesheet", () => {
   test("zen mode keeps the editor on screen: the Code pane stays absolutely positioned and no rule makes it 'relative'", () => {
     const ui = join(import.meta.dir, "..", "resources", "file_manager", "ui");
     expect(readFileSync(join(ui, "power.css"), "utf8")).toMatch(
-      /\.power-pane \{[^}]*position: absolute; inset: 0/,
+      /\.power-pane\s*\{[^}]*position:\s*absolute;\s*inset:\s*0/,
     );
     const code = readFileSync(join(ui, "code.css"), "utf8");
     // Setting position on the pane itself would shrink it to nothing (it is laid out by inset: 0), so only its children may.
@@ -254,7 +254,7 @@ describe("accessibility basics in the stylesheet", () => {
     const qlJs = readFileSync(join(ui, "quicklook.js"), "utf8");
     expect(qlJs).toContain("qlImgActual");
     expect(qlJs).toContain("qlImgAskBionic");
-    expect(qlJs).toContain('"1": "[data-ql-img-actual]"');
+    expect(qlJs).toMatch(/["']?1["']?:\s*"\[data-ql-img-actual\]"/);
     expect(qlJs).toContain("Interactive image stage for");
     expect(css).toContain("scroll-axis-lock: none");
     expect(css).toContain("overscroll-behavior: contain");
@@ -271,8 +271,8 @@ describe("accessibility basics in the stylesheet", () => {
     expect(infoJs).toContain('infoAction: "read-aloud"');
 
     const quickbarJs = readFileSync(join(ui, "quickbar.js"), "utf8");
-    expect(quickbarJs).toContain('addAct("ollama"');
-    expect(quickbarJs).toContain('addAct("bionic"');
+    expect(quickbarJs).toMatch(/addAct\(\s*"ollama"/);
+    expect(quickbarJs).toMatch(/addAct\(\s*"bionic"/);
 
     // 6. Shared Database Studio polish (studioPolish.ts)
     const studioPolishTs = readFileSync(

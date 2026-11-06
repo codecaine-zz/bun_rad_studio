@@ -406,14 +406,15 @@ describe("server: HTML assembly and state API", () => {
 // The real page, running in jsdom. jsdom cannot execute page scripts under Bun's vm, so the page
 // tests live in word_search_page.node.mjs and are run by Node (node:test) from here.
 // ---------------------------------------------------------------------------------------------
-describe("page (jsdom, run under node)", () => {
+const node = Bun.which("node");
+(node ? describe : describe.skip)("page (jsdom, run under node)", () => {
   test("all page tests pass", () => {
     resetState();
     const baseFile = path.join(tmp, "base.html");
     fs.writeFileSync(baseFile, generateWordSearchStudioHtml());
     const r = Bun.spawnSync(
       [
-        "node",
+        node!,
         "--test",
         "--test-reporter=spec",
         path.join(import.meta.dir, "word_search_page.node.mjs"),

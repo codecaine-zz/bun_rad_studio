@@ -133,7 +133,9 @@ test("the packaged File Manager never opens a browser unless --browser is explic
     expect(output).toMatch(/READY:\d+/);
     const serverUrl = `http://127.0.0.1:${/READY:(\d+)/.exec(output)![1]}`;
     const page = await (await fetch(serverUrl)).text();
-    const token = /<meta name="fm-token" content="([^"]+)">/.exec(page)?.[1];
+    const token = /<meta name="fm-token" content="([^"]+)"\s*\/?>/.exec(
+      page,
+    )?.[1];
     expect(token).toBeDefined();
     const search = await fetch(`${serverUrl}/api/find/search`, {
       method: "POST",

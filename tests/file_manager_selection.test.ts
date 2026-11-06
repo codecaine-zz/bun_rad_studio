@@ -153,7 +153,7 @@ test("Enter choosing a menu action is consumed before that action focuses the te
     new URL("../resources/file_manager/ui/menus.js", import.meta.url),
     "utf8",
   )
-    .replace(/^import .*;\r?$/gm, "")
+    .replace(/^import\s+[\s\S]*?from\s+["'][^"']+["'];\r?$/gm, "")
     .replace(/^export /gm, "");
   const h = (
     tag: string,

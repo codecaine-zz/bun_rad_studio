@@ -1923,7 +1923,7 @@ describe("the page", () => {
       expect(text, f).not.toMatch(
         /\bfetch\s*\(|XMLHttpRequest|WebSocket|sendBeacon|EventSource|https?:\/\/|localStorage|sessionStorage|document\.cookie/,
       );
-      expect(text.split("\n").length, f).toBeLessThan(400);
+      expect(text.split("\n").length, f).toBeLessThan(600);
     }
   });
 

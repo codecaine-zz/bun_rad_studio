@@ -405,7 +405,7 @@ describe("the page", () => {
   test("the toolkit is reachable from the header and from the T key, and the main page's shortcuts are blocked while it is open", () => {
     expect(html).toContain('id="header-toolkit-btn"');
     expect(html).toContain("openTimerToolkit()");
-    expect(html).toContain("e.code === 'KeyT'");
+    expect(html).toMatch(/e\.code === ["']KeyT["']/);
     expect(html).toContain("e.stopPropagation()");
   });
 });

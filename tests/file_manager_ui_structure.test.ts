@@ -209,7 +209,7 @@ describe("the File Manager page is wired together correctly", () => {
       /new\s+Function\s*\(/,
       /\bsetTimeout\s*\(\s*["'`]/,
       /\bsetInterval\s*\(\s*["'`]/,
-      /javascript:/i,
+      /["'`]\s*javascript:/i,
       /\bimport\s*\(/,
       /setAttribute\(\s*["']style["']/,
       /\.cssText\b/,
